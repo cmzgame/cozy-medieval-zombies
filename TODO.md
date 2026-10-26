@@ -23,39 +23,37 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-25, evening: the animals and natural resources are built; the sittings ahead wait for Michael)
+## Status (2026-10-25, late: the belt and handedness merged, the potions spec ruled and filed; the potions build is next)
 
-**Built and merged this evening**, Michael away from his desk and approving by remote (each PR reviewed by a fresh agent, run in the pane and in two tabs by Primary, and its wiki synced in cmz-wiki#35 to #37 through game #466; the belt, #467, is still to sync):
-- **Natural resources ruled and built** (`docs/46`, #288): the comeback rule, rocks and ore rising from the ground (#453); herbs, clay, and salt (#457); saplings and Gather sticks (#461).
-- **Animals ruled and built** (`docs/45`, #289): in the world (#452), hunting (#456), keeping (#460), the recipes (#462). The companion waits for after the demo.
-- **Small issues:** the off hand's swing (#450), apple trees and the bees (#451), the belt's rulings (#467).
-- **Multiplayer:** a guest drops the chunks the host evicts (#455), a guest's arrows stepped from their launch (#463), seams 7 and 26 and a read-only guest console (#465), a prop across a chunk edge stays whole and one lift per piece (#468). `net.PROTOCOL` is 15.
-- **Engine and tests:** the pathfinder's reused memory (#458), the item census in `check("sync")` (#459), a click under a tree's crown finding the herb (#464).
-- **Bugs:** two batches from `docs/bugs.md` (#454, #466), including a made counter landing on its own workbench.
+**Merged tonight with Michael at his desk** (each reviewed by a fresh agent, run in the pane and in two tabs by Primary, muted):
+- **The belt's slot roles** (#478; `docs/02`, The belt's slots have roles): main, off, and utility slots, the leather belt adding a main and an off; hand keys draw or else consume, the utility key consumes only; two-handers never in an off-hand slot; a line for every failed key; the Belt slot order setting (Sequential by default, Hands grouped); empty slots stamped with role icons. `net.PROTOCOL` 17.
+- **Handedness** (#477; `docs/02`, Right- or left-handed): chosen on the identity screen, right by default; the labels, the belt's icons, and the drawn arm, nothing mechanical. `net.PROTOCOL` 16.
+- **Test pages are silent** (#473, #474): `?mute` on every agent's test page.
+- **The potions sitting, ruled** (#479; `docs/47`, `docs/02` Potions, poisons, and mana ruled): clay vials, clean water, two herbs and a secondary at a cauldron, mana 100 and the Fire Bolt 20, poisons put on with Use, the splash. Filed as four build steps: mana (#480), vials, the cauldron, and drinking (#481), poisons (#482), throwing (#483).
 
-**The order ahead** (Michael, 2026-10-25), each a sit-down with him, **the belt's own discussion first** (pinned: "we come back to it before the sit downs"; held 2026-10-25, `docs/02` The belt's slots have roles, built on `primary/belt-roles`, its PR open):
-1. **Potions**, first after the belt (Michael, 2026-10-25: "Put the potions sitting first, right after the belt discussion, before power items.") (Michael, 2026-10-25: "This may need its own sit, I want to make sure this system is built thoughtfully"): which herbs and how many go into each, and what making one takes (vials, water); with it, Herbalism 6 and 7's replacements (struck) and what the herb bed grows (`docs/02` open questions 35 and 36).
-2. Power items: gems (#281), trinkets (#282), silver (#283).
-3. Armour and difficulty (#133).
-4. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
-5. The demo, the business, and so on.
-6. Eventually, the regions.
+**Earlier this evening, Michael away** (synced in cmz-wiki#35 to #37): natural resources (`docs/46`: #453, #457, #461), animals (`docs/45`: #452, #456, #460, #462), the belt's first rulings (#467, replaced by #478), multiplayer seams (#455, #463, #465, #468), engine and test chores (#458, #459, #464), two bug batches (#454, #466).
+
+**Next:** build the potions, #480 to #483 in order, through builders in parallel worktrees where the steps allow (step 1 and step 2 touch different files; 3 and 4 follow 2). Then the sittings, each a sit-down with Michael:
+1. Power items: gems (#281), trinkets (#282), silver (#283).
+2. Armour and difficulty (#133).
+3. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
+4. The demo, the business, and so on.
+5. Eventually, the regions.
+Still open from the potions' neighbours: Herbalism 6 and 7's replacements (struck) and what the herb bed grows (`docs/02` open questions 35 and 36).
 
 **Open lines of `docs/39` by issue** (counted 2026-10-25, evening, by line; 52 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #133 5 · #181 4 · #283 4 · #103 3 · #262, #104, #271, #261, #217, #106 1 each.
 
-**The potions sitting is ruled** (2026-10-25): `docs/47`, potions, poisons, and mana, four build steps, one issue each.
-
-**In progress:** the Secondary's test-order hygiene (every instrument passing whatever ran before it in one page; a runner for a full sweep); the evening's rulings in #475 (`primary/rise-shudder`: the rocks' rise shudder, Mageroot, grave moss at any hour, eggs one a cell; for review).
-
-**Ruled this evening** (`docs/02`, 2026-10-25, The evening's defaults ruled, and The evening's rulings): a newborn may appear in view in its pen; the rocks rise as read, with a shudder; every other default he was shown stands as built (Michael: "Anything not commented on is fine as-is"); the mana herb is Mageroot and grave moss keeps its name; no plant is only at night (grave moss at any hour; Herbalism 6 and 7 struck, their replacements open); pemmican's 3 and 35 as they are; eggs do not stack, open to change after a playtest; potions get their own sitting.
+**In progress:** the Secondary's test-order hygiene (every instrument passing whatever ran before it in one page; a runner for a full sweep).
 
 **Waiting on Michael** (defaults built, his to confirm or overrule; each named in its PR's Risks):
-- **the belt's roles** (`primary/belt-roles`): the builder's readings where the ruling was silent, listed in `docs/02` (2026-10-25, The belt's slots have roles); #467's defaults are gone with the hand choice;
+- **the belt** (#478): an item a draw pushes out tries an empty utility slot before the floor; the utility slot's menu offers Equip into the item's own hand; a locked or missing belt's key says a line on this client alone; the rest of the builder's readings in `docs/02`;
+- **handedness** (#477): a left-hander's main slot in the character screen's other column; the identity screen's figure shows no difference (it holds nothing);
+- **the potions' defaults** (`docs/47`): healing 40, the stamina buff, 10 s between potions, the brew's 20 s, the poison drain, the cauldron's fire as the oven's, and the vials coloured on seal and glazed band;
 - from before: the shared repair count and the plank for the rod and bow (#425); water's infection opening on "Bitten"; a tainted sip at full thirst; #426 brightness and Plants vs Zombies; #415 spikes; #419 the Stardew notebook; the loot rates; the rucksack's recipe; the burst against a bow, shield, or brace; #271's items 6 and 8 to 11; #393 the downed art; knockdown on cards; music; #324; the `needs-michael` issues.
 
 **Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`).
 
-**Not done, Michael's hand:** the finished builders' worktrees under `.claude/worktrees/agent-*` (twenty, all merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
+**Not done, Michael's hand:** the finished builders' worktrees under `.claude/worktrees/agent-*` (all merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
 
 **The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
