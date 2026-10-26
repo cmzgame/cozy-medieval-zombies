@@ -23,10 +23,17 @@ export async function run(game) {
   // One of the dead of its own for each trial, taken away in the finally: the world's first one may be in any state after other checks
   // in the page (the order-independence of the checks, check("all")).
   const { createZombie } = await import("/src/entities/zombie.js");
+  // The one before it is taken away when the next is made: one that broke into a house in its trial stays there, and a later trial that
+  // finds the same house (which houses are found depends on the chunks grown, so on what ran earlier in the page) had the player teleported
+  // in beside it and bitten to death (found by check("all") with melee before windows, #492).
+  const owned = [];
+  const drop = (z) => { const i = G.zombies.indexOf(z); if (i >= 0) G.zombies.splice(i, 1); const j = (G.corpses || []).indexOf(z); if (j >= 0) G.corpses.splice(j, 1); };
   const own = (at) => {
+    for (const old of owned.splice(0)) drop(old);
     const z = createZombie(at[0], at[1], { aggro: true });
     G.zombies.push(z);
-    restore.push(() => { const i = G.zombies.indexOf(z); if (i >= 0) G.zombies.splice(i, 1); const j = (G.corpses || []).indexOf(z); if (j >= 0) G.corpses.splice(j, 1); });
+    owned.push(z);
+    restore.push(() => drop(z));
     return z;
   };
   // Every door and window grown, as it stood: the dead it rouses batter more than the houses it uses, and what they open or break is
@@ -34,6 +41,10 @@ export async function run(game) {
   const openings0 = [];
   for (const c of G.map.loadedChunks()) for (const t of c.tiles || []) for (const e of ["n", "w"]) { const w = t && t[e]; if (w && (w.kind === "door" || w.kind === "window")) openings0.push([w, { open: w.open, broken: w.broken, hp: w.hp, shutter: w.shutter }]); }
   const needs0 = (({ hunger, thirst, tired, hp, bleed, sick, infection }) => ({ hunger, thirst, tired, hp, bleed, sick, infection }))(me);
+  // The world's own dead sit out its trials, put back in the finally: since sight-pull (docs/48) the one it makes, seeing the player, calls
+  // every dead one near it that sees it, and a pack the earlier checks in the page left by the house would join and bite (#492).
+  const dead0 = G.game.state.zombies;
+  G.game.state.zombies = [];
   try {
     G.loop.setPaused(true);
     G.rules.set({ zombieAggro: true });
@@ -102,7 +113,6 @@ export async function run(game) {
       step(1); // the rooms are found again, and their ids with them
       const homeRoom = () => G.map.tileAt(w.inside[0], w.inside[1]).room; // rooms are found again, their ids with them: read it each time
       const z = own(from);
-      for (const o of G.zombies) if (o !== z && !o.dead && Math.hypot(o.gx - w.inside[0], o.gy - w.inside[1]) < 30) { const keep = { gx: o.gx, gy: o.gy, aggro: o.aggro }; restore.push(() => Object.assign(o, keep, { path: [] })); o.aggro = false; }
       G.teleport(w.inside[0], w.inside[1]);
       z.gx = from[0];
       z.gy = from[1];
@@ -228,6 +238,7 @@ export async function run(game) {
     }
   } finally {
     for (const r of restore.reverse()) r();
+    G.game.state.zombies = [...dead0, ...G.game.state.zombies]; // the world's dead back, and any it made that are still standing
     for (const [w, was] of openings0) if (Object.keys(was).some((k) => w[k] !== was[k])) { Object.assign(w, was); if (w.at) G.map.touch(w.at[0], w.at[1]); }
     G.map.rebuildRooms(); // a door shut or a wall whole again closes its room
     Object.assign(me, needs0);

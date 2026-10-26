@@ -27,6 +27,10 @@ export const zombie = {
   fenceBiteExtra: 0.5, // tiles a bite reaches further across a fence its dead one is striking (#174; the strikers stand up to `fenceReach` from it)
   fenceStrike: 1, // hit points one strike takes from a fence or gate (world.fenceHp 90, a gate half; #174): a strike every attack and cooldown
   groanText: "Braaaains", // what the dead say now and then (docs/19)
+  pullRadius: 4, // tiles: one of the dead turning to a player calls the dead within this that see it, scaled by the light on it as sight is (docs/48); 0 switches it off
+  pullText: "Hrraagh!", // the caller's line, said only when one answers (docs/48)
+  pullBubble: "!", // over each one drawn in (docs/48), as the cowering villager's
+  pullBubbleSeconds: 1,
   groanMin: 20, // seconds between groans
   groanMax: 60,
   stagger: 0.3, // seconds a hit stops it (docs/14)

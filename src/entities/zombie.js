@@ -50,6 +50,8 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
     ...createCharacter("zombie", gx, gy, { id: id || nextId("z"), speed: T.speed, radius: T.radius, hp, maxHp: T.hp }),
     state: aggro ? "chase" : "idle",
     aggro,
+    huntsPlayer: false, // hunting a player, first-hand or drawn in by a pull (docs/48): `aggro` is any hunt, a flame's or a villager's too
+    pullDue: false, // a player's blow landed and it lived: its next step calls the dead that see it (docs/48; damageZombie has no list of them)
     lastSeen: null, // [gx, gy] where the player was last seen
     seesNow: false,
     target: null, // who it is hunting right now: the player, or (the setting on) a villager it can see
@@ -125,6 +127,12 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
     z.aggro = true;
     z.lastSeen = [from[0], from[1]];
     z.sincePlayer = 0;
+    // A player's blow it lives through is a first-hand turn to a player (docs/48): the pull, made at the top of its next step, where the
+    // list of the dead is (a killing blow returned above and calls no one).
+    if (!z.huntsPlayer) {
+      z.huntsPlayer = true;
+      z.pullDue = true;
+    }
   }
   if (wasDown) return { killed: false, downed: false };
   if (knockdown) {
@@ -361,12 +369,16 @@ export function mayBite(z, tgt, others) {
 }
 
 
+// How far the dead see something standing at (gx, gy): `base` scaled by the light there (the cozy parent's rule), unlit at night
+// `sightDarkFraction` of it, in a pool or by day the whole of it. A player, a villager, and a pull's caller (docs/48) by the one rule.
+export function sightRange(base, gx, gy) {
+  return base * (T.sightDarkFraction + (1 - T.sightDarkFraction) * light.lightAt(gx, gy));
+}
+
 // Symmetric with the player's own sight: if you could see it, it can see you.
-// The range scales with the light on the player (the cozy parent's rule):
-// unlit at night about a third, in a pool or by day the whole of it.
 function canSee(z, player) {
   if (player.dead || !rules.zombieAggro) return false;
-  const range = T.sight * (T.sightDarkFraction + (1 - T.sightDarkFraction) * light.lightAt(player.gx, player.gy));
+  const range = sightRange(T.sight, player.gx, player.gy);
   if (distTo(z, player) > range) return false;
   return lineOfSight(z.gx, z.gy, player.gx, player.gy);
 }
@@ -403,7 +415,7 @@ function nearestSeenPlayer(z, players) {
 // A villager in sight, the same rule as the player's: the range scales with the
 // light on them, and a clear line.
 function canSeeCharacter(z, c, d) {
-  const range = T.sight * (T.sightDarkFraction + (1 - T.sightDarkFraction) * light.lightAt(c.gx, c.gy));
+  const range = sightRange(T.sight, c.gx, c.gy);
   return d <= range && lineOfSight(z.gx, z.gy, c.gx, c.gy);
 }
 
@@ -544,7 +556,39 @@ function startSiege(z) {
   z.repathTimer = 0;
 }
 
+// Sight-pull (docs/48, Michael 2026-10-25): one of the dead turning to hunt a player first-hand calls, once, to the dead near it that see it,
+// and they join the hunt; the ones it calls never call others (they already hunt a player). Who hears: every other dead one not hunting a
+// player, not lying down (one getting up answers), within `pullRadius` scaled by the light on the caller as sight is (`sightRange`), with a
+// clear line to it. Each joins as if struck from where the caller learnt of the player: `huntsPlayer`, `aggro`, the caller's `lastSeen`;
+// idle, wander, and getting up turn to the chase on their next step (the aggro branches and the rise's end), a search turns now; a breach
+// keeps at it, its own memory kept (the breach goes on while the room it remembers is the one it breaks into), and a press keeps at it. The
+// tells only when one answers: the caller's `pullText` (none from one lying down, as it does not groan) and a `pullBubble` over each drawn
+// in, lines the frame already carries. The order the world holds the dead in decides who calls first when two turn on one step; nothing is
+// rolled.
+function callOthers(z, others) {
+  if (!(T.pullRadius > 0) || !others) return;
+  const r = sightRange(T.pullRadius, z.gx, z.gy);
+  let drawn = 0;
+  for (const o of others) {
+    if (o === z || o.kind !== "zombie" || o.dead || o.huntsPlayer || (isDown(o) && !o.gettingUp)) continue;
+    if (Math.hypot(o.gx - z.gx, o.gy - z.gy) > r || !lineOfSight(o.gx, o.gy, z.gx, z.gy)) continue;
+    o.huntsPlayer = true;
+    o.aggro = true;
+    if (!o.breach) o.lastSeen = z.lastSeen ? [z.lastSeen[0], z.lastSeen[1]] : [z.gx, z.gy]; // a breacher keeps its door (docs/48)
+    o.sincePlayer = 0;
+    if (o.state === "search") {
+      o.state = "chase";
+      o.repathTimer = 0;
+    }
+    say(o, T.pullBubble, T.pullBubbleSeconds);
+    drawn++;
+  }
+  if (drawn && !isDown(z)) say(z, T.pullText);
+}
+
 function giveUp(z) {
+  z.huntsPlayer = false; // every end of a hunt comes here: a later first-hand turn is a pull again (docs/48)
+  z.pullDue = false;
   z.siege = null;
   z.seenRoom = -1;
   z.state = "idle";
@@ -565,6 +609,11 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     // The fall is over: the body becomes one baked frame, so it can be stripped (docs/19).
     if (z.anim.done && !z.corpse) dressCorpse(z);
     return;
+  }
+  // A player's blow last step that it lived through: the pull, first thing, before a stagger or a fall returns early (docs/48).
+  if (z.pullDue) {
+    z.pullDue = false;
+    callOthers(z, others);
   }
   // A groan now and then, from the living dead only (a corpse is silent).
   z.groanTimer -= dt;
@@ -590,6 +639,12 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       z.lastSeen = [seen.gx, seen.gy];
       z.sincePlayer = 0;
       noteSighting(z, seen);
+      // Its first sight of a player while not hunting one is a first-hand turn: the pull (docs/48). One already walking to a flame or after a
+      // villager still pulls here; one drawn in by another's call already hunts a player and calls no one.
+      if (!z.huntsPlayer) {
+        z.huntsPlayer = true;
+        callOthers(z, others);
+      }
     } else {
       // The player first, always; failing that, with the setting on, the
       // nearest villager in sight, hunted the same way (memory and all).
