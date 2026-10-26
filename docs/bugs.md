@@ -16,6 +16,8 @@
 
 ## Open: likely bugs
 
+- **A lit cauldron of your own: Take apart says "Put it out first.", which cannot be done** (found syncing the wiki for #491, at `0fa02e5`, read from the code, *needs repro*). `src/placement.js` `holdsProblem` (~618) answers a lit fire with "Put it out first.", but a cauldron has no Put out (the `putout` verb is the switches' alone, `src/burn.js` ~263): it burns down. Pick up already says it right, "Its fire is still burning; let it burn down." (`src/setdown.js` ~107). The oven's and the forge's Take apart (with Village stations movable) would read the same. Likely fix: `holdsProblem` says "let it burn down" for a fire that is not a switch.
+
 - **A prop removed or restaged in an ungrown chunk leaves a solid ghost out of the registry** (found building #447 and reproduced by its review under Node, 2026-10-25, on `primary/447-resources-comeback`; not reachable in play today). `map.removeProp` (`src/map.js` ~787) and `map.restage` reach the tile through `tileAt`, which for an ungrown chunk is the frozen blank tile: the prop leaves the registry, but the authored tile keeps it, so when the chunk grows it stands on its tile again, solid, not minable, and a sync mismatch. Every remover today stands in its own grown ring. Likely fix: reach the tile through `growTile`, as `placeProp` does (a mutator grows its chunk).
 
 - **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`, *needs repro*). `src/moodles.js` (~26): the first stage's words assume a bite, and water gives no bite.
