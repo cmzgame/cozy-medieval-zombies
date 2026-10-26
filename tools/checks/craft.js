@@ -177,7 +177,15 @@ export async function run(game) {
     {
       const anvil = find("anvil");
       let jackSeen = null;
+      const ev = await import("/src/events.js");
+      const lines = {}; // each make's done line, as the log says it (main.js and host.js both read stations.doneLine of the event)
       const make = (station, id) => {
+        let line = null;
+        const hear = (e) => { if (e.recipe === id && e.id === station.id) line = G.stations.doneLine(e.out); };
+        ev.on("craftDone", hear);
+        try { return makeOnce(station, id); } finally { ev.off("craftDone", hear); lines[id] = line; }
+      };
+      const makeOnce = (station, id) => {
         standBy(station);
         const r = G.stations.recipe(id);
         const box = chestBeside(station, []);
@@ -274,6 +282,35 @@ export async function run(game) {
           row("a second anvil is carried and set down again, and makes a dirk as the village's does", lifted && p.carrying === null && map.propById(second.id) === second && r2.ok && dirk, `carried ${lifted}, set down ${!!map.propById(second.id)}; ${r2.ok ? "" : r2.reason}; dirk ${dirk}`);
           const canMove = ids.every((id) => G.placement.canCarry([...map.allProps()].find((q) => q.sprite === id) || { sprite: id }));
           row("with it on, the village's own are movable too (every one of the six)", canMove, ids.map((id) => `${id} ${G.placement.canCarry([...map.allProps()].find((q) => q.sprite === id) || { sprite: id })}`).join(", "));
+          // A made prop is named in words (docs/bugs.md, 2026-10-25: "Made a pumpkin.", "Made a dyevat.", "Made a millstones."): the done line
+          // the log says for each, and the refusal's words for the same props.
+          const want = { jack_o_lantern: "a jack-o'-lantern", dyevat: "a dye vat", millstones: "a pair of millstones", counter: "a counter" };
+          const said = Object.keys(want).map((id) => `${id}: ${lines[id]}`);
+          row("each made prop's done line names it in words: a jack-o'-lantern, a dye vat, a pair of millstones, a counter", Object.entries(want).every(([id, w]) => lines[id] === `Made ${w}.`), said.join("; "));
+          const words = Object.keys(want).map((id) => G.stations.madeWords(G.stations.recipe(id).out));
+          row("and a refusal for want of room names them the same (stations.madeWords)", words.join("|") === Object.values(want).join("|"), words.join(", "));
+          // A busy station's Pick up names it too ("dyevat" once): a dye vat and the millstones placed by the check, a job in each queue.
+          p.hands.main = null; // both hands free, so Pick up is offered as itself
+          p.hands.off = null;
+          const place = (sprite) => {
+            const t = map.nearestWalkable(Math.round(p.gx) + 2, Math.round(p.gy), (x, y) => !!map.tileAt(x, y).prop || map.besideDoor(x, y));
+            const q = map.createProp({ sprite, tile: t });
+            map.placeProp(q, t[0], t[1]);
+            made.push(q);
+            return q;
+          };
+          const vat = place("dyevat");
+          const stones = place("millstones");
+          const labelsOf = (q) => G.interact.actionsForProp(q, p).map((a) => a.label);
+          const idle = labelsOf(vat);
+          vat.queue = [{ recipe: "none" }];
+          stones.queue = [{ recipe: "flour" }];
+          const busyVat = labelsOf(vat);
+          const busyStones = labelsOf(stones);
+          vat.queue = [];
+          stones.queue = [];
+          row("a dye vat's menu says Pick up dye vat and Use the dye vat, never dyevat", idle.includes("Pick up dye vat") && idle.includes("Use the dye vat"), idle.join(", "));
+          row("busy, Pick up says why in words: dye vat (it is still making something), millstones (they are)", busyVat.includes("Pick up dye vat (it is still making something)") && busyStones.includes("Pick up millstones (they are still making something)"), `${busyVat.join(", ")} / ${busyStones.join(", ")}`);
           void keep;
         } finally {
           G.rules.set({ villageStations: was });

@@ -9,6 +9,7 @@ import * as inventory from "./inventory.js";
 import * as grid from "./grid.js";
 import { getDef } from "./assets.js";
 import { getItem, makeEntry } from "./items.js";
+import { propName, propAName } from "./prop-names.js"; // a prop's name in words, the one helper
 import { reachProblem, TOO_FAR } from "./reach.js";
 import { showMessage } from "./ui/prompt.js";
 
@@ -28,14 +29,15 @@ export function footprintFor(sprite, facing) {
 
 export const facingsOf = (sprite) => (getDef(sprite).facings || ["y"]).slice();
 
-// A prop's name for a message: its sprite without the variant ("tree yellow", not "tree yellow l"), a crop as what it is ("potato crop", not "crop potato"), with the right article
-// ("an anvil", "an ore cart", "a table").
+// A prop's name for a message: any tree a "tree", a crop as what it is ("potato crop", not "crop potato"), anything else by prop-names.js (its recipe's label, its
+// definition's `name`, else its id in words: "dye vat", not "dyevat"); `aNameOf` with the right article ("an anvil", "an ore cart", "a pair of millstones").
 export function nameOf(sprite) {
   const crop = sprite.match(/^crop_([a-z]+)_\d+$/);
   if (sprite.startsWith("tree_")) return "tree"; // every kind and size of tree
-  return crop ? `${crop[1]} crop` : sprite.replace(/_(l|m|s|old|\d+)$/, "").replace(/_/g, " ");
+  return crop ? `${crop[1]} crop` : propName(sprite);
 }
 export const withArticle = (name) => `${/^[aeiou]/i.test(name) ? "an" : "a"} ${name}`;
+export const aNameOf = (sprite) => (sprite.startsWith("tree_") || /^crop_/.test(sprite) ? withArticle(nameOf(sprite)) : propAName(sprite));
 
 // Why a rug of this sprite and facing cannot lie with its top tile at (tx, ty), or "": a tile with no ground to lie on (water, an unloaded edge), another rug, a prop that cannot be
 // lifted away (so the rug could never be taken up), or a wall between two of its tiles (it fits within a room or the open ground, never across a wall). Furniture that can be lifted
@@ -51,7 +53,7 @@ export function fitProblem(sprite, facing, tx, ty) {
       if (map.floorRule(t.floor).walk === false) return "No room";
       if (t.rug) return "A rug is already there";
       // Only under what can be lifted away (a table, a chest, a bed, a chair, a barrel): under a tree, an anvil, a crop, or a cart it could never come up again.
-      if (t.prop && getDef(t.prop.sprite).carry !== true) return `There is ${withArticle(nameOf(t.prop.sprite))} in the way`;
+      if (t.prop && getDef(t.prop.sprite).carry !== true) return `There is ${aNameOf(t.prop.sprite)} in the way`;
       if (dx > 0 && map.wallBetween(x - 1, y, x, y)) return "A wall is in the way";
       if (dy > 0 && map.wallBetween(x, y - 1, x, y)) return "A wall is in the way";
     }

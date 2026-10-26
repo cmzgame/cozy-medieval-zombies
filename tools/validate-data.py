@@ -880,13 +880,23 @@ for i in items:
     if "stand" in i and i["stand"] not in STANDS:
         fail(f"items.{i['id']}.stand: one of {STANDS}, not {i['stand']!r}")
 # How an item's name counts in a sentence (src/items.js countName): `noun` "mass" (some lard, 3 raw venison) or "pair" (shears, 2 shears),
-# and `plural` a plural that is not +s, a non-empty string.
+# and `plural` a plural that is not +s, a non-empty string; `article` the words before one ("a pair of"). A prop's sprite counts the same way
+# (src/prop-names.js), and its `name` (what a line calls it, lower case) is a non-empty string.
 NOUNS = ("mass", "pair")
+def check_counting(where, d):
+    if "noun" in d and d["noun"] not in NOUNS:
+        fail(f"{where}.noun: one of {NOUNS}, not {d['noun']!r}")
+    for key in ("plural", "article"):
+        if key in d and not (isinstance(d[key], str) and d[key].strip()):
+            fail(f"{where}.{key}: words, not {d[key]!r}")
 for i in items:
-    if "noun" in i and i["noun"] not in NOUNS:
-        fail(f"items.{i['id']}.noun: one of {NOUNS}, not {i['noun']!r}")
-    if "plural" in i and not (isinstance(i["plural"], str) and i["plural"].strip()):
-        fail(f"items.{i['id']}.plural: a word, not {i['plural']!r}")
+    check_counting(f"items.{i['id']}", i)
+for sid, d in sprite_flags.items():
+    check_counting(f"sprites.{sid}", d)
+    if "name" in d and not (isinstance(d["name"], str) and d["name"].strip()):
+        fail(f"sprites.{sid}.name: words, not {d['name']!r}")
+    if "name" in d and "wall" not in d and d["name"] != d["name"].lower():
+        fail(f"sprites.{sid}.name: lower case, as a line says it, not {d['name']!r}")
 for sid, d in sprite_flags.items():
     if "item" in d and d["item"] not in item_ids:
         fail(f"sprites.{sid}.item: no item {d['item']!r}")

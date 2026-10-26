@@ -24,6 +24,7 @@ import * as map from "./map.js";
 import * as inventory from "./inventory.js";
 import * as items from "./items.js";
 import { idleFrame, getDef, getSheet } from "./assets.js";
+import { propName } from "./prop-names.js"; // a prop's name in words, the one helper
 import { showMessage } from "./ui/prompt.js";
 import { rules } from "./rules.js";
 import * as tuning from "./tuning.js";
@@ -571,7 +572,7 @@ function buildEntryOf(wall) {
 }
 
 function targetName(t) {
-  if (t.type === "prop") return t.prop.sprite.replace(/_/g, " ");
+  if (t.type === "prop") return propName(t.prop.sprite);
   if (!t.wall) return "nothing";
   const d = buildEntryOf(t.wall);
   return (d && d.label ? d.label : t.wall.kind).toLowerCase();

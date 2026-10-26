@@ -22,6 +22,7 @@ import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
 import { beltKey, beltHand, setBeltHand, handProblem, offBelt, offBeltWord, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
+import * as names from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id (docs/bugs.md, 2026-10-25)
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
 import * as placement from "./placement.js";
 import * as grid from "./grid.js";
@@ -293,7 +294,7 @@ function pickUpAction(entry, tx, ty, player, simple) {
 // down on any clear tiles in reach, or with E on the tile you face.
 
 function propName(prop) {
-  return prop.sprite.replace(/_/g, " ");
+  return names.propName(prop.sprite); // "dye vat", "jack-o'-lantern", never the raw id (docs/bugs.md, 2026-10-25)
 }
 
 // Take apart (docs/43, section 2): a made prop destroyed for half its materials, with its recipe's tool, refused while it holds anything.
@@ -334,7 +335,7 @@ function carryAction(prop, player) {
   const busy = !!(prop.queue && prop.queue.length); // a station mid-job stays where it is (the review of #462), as Take apart refuses it
   return act({
     kind: "carry",
-    label: busy ? `Pick up ${propName(prop)} (it is still making something)` : free ? `Pick up ${propName(prop)}` : `Pick up ${propName(prop)} (needs both hands)`,
+    label: busy ? `Pick up ${propName(prop)} (${names.propIsPlural(prop.sprite) ? "they are" : "it is"} still making something)` : free ? `Pick up ${propName(prop)}` : `Pick up ${propName(prop)} (needs both hands)`,
     tiles: prop.tiles,
     mx: prop.tile[0],
     my: prop.tile[1],
@@ -344,7 +345,7 @@ function carryAction(prop, player) {
       // Still where it stood (#341, as a rug's Pick up, #339): a walk to it (a guest's command, or a far click) that meets someone else's
       // lift, or its Take apart, gets nothing, never a second of the same chest.
       if (!stillStanding(prop, at)) {
-        showMessage(`The ${propName(prop)} is not there any more.`);
+        showMessage(`The ${propName(prop)} ${names.propIsPlural(prop.sprite) ? "are" : "is"} not there any more.`);
         return false;
       }
       map.removeProp(prop);
@@ -421,7 +422,7 @@ export function propBag(prop) {
   if (!prop.bag) {
     const [cols, rows] = containerGrid(prop.container.loot);
     const d = getDef(prop.sprite);
-    prop.bag = createBag(cols, rows, d.containerName || prop.sprite.replace(/_/g, " "));
+    prop.bag = createBag(cols, rows, names.containerName(prop.sprite));
     if (d.accepts) prop.bag.accepts = d.accepts; // a feeding trough takes feed alone (docs/45)
     prop.searched = !!d.searched; // a container that is never rolled (a feeding trough) opens at once
     if (d.searched) map.markDirty(prop.tile[0], prop.tile[1]); // never searched, so no search marks it: its grid goes to a guest from here
@@ -431,7 +432,7 @@ export function propBag(prop) {
 }
 
 function containerActions(prop) {
-  const name = getDef(prop.sprite).containerName || prop.sprite.replace(/_/g, " ");
+  const name = names.containerName(prop.sprite);
   const open = prop.searched || !!getDef(prop.sprite).searched; // a container never rolled (a feeding trough) opens at once, as itself
   return [act({
     kind: "container",
@@ -463,7 +464,7 @@ function fireActions(prop, player) {
   if (!f || !f.burns) return [];
   if (f.switch) return switchActions(prop, player); // a fireplace, a hearth: on and off, no fuel (docs/43, section 3)
   if (prop.sprite === campfire.SPRITE) return campfireActions(prop, player);
-  const name = prop.sprite.replace(/_/g, " ");
+  const name = names.propName(prop.sprite);
   const fuelId = f.fuelItem;
   const fuelA = aName(fuelId); // "a log", "some charcoal" (items.aName: the fuel's `noun`)
   const have = countAll(player, fuelId);
@@ -944,7 +945,7 @@ function waterActions(source, player) {
 }
 
 function wellActions(prop, player) {
-  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: prop.sprite.replace(/_/g, " "), clean: water.cleanSource(prop.sprite), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
+  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: names.propName(prop.sprite), clean: water.cleanSource(prop.sprite), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
 }
 
 // A water tile's actions, from its bank; with a fishing rod in hand, the cast. The wait is rolled as the cast starts (on the authority: a
@@ -1066,7 +1067,7 @@ function itemPickUpAction(prop, player) {
 // A station (docs/30, section 6): one entry that opens its panel; the panel calls the craft verb.
 function stationActions(prop, player) {
   const list = stations.stationOf(prop);
-  const label = list.length === 1 && list[0] === "cooking" ? "Cook here" : list.includes("dyevat") ? "Use the dye vat" : `Use the ${prop.sprite.replace(/_/g, " ")}`; // a fire that only cooks, else the station by name (the oven cooks too)
+  const label = list.length === 1 && list[0] === "cooking" ? "Cook here" : `Use the ${names.propName(prop.sprite)}`; // a fire that only cooks, else the station by name (the oven cooks too; "Use the dye vat")
   return [act({
     kind: "station",
     simple: true,

@@ -61,22 +61,27 @@ export function allItems() {
 
 // An item's name in a sentence, lower-cased: with its article (`aName`), its plural (`pluralName`), or a count (`countName`). A definition's
 // `noun` says how it counts: "mass" (venison, lard, wool: "some lard", "3 raw venison"), "pair" (shears, breeches: "shears", "2 shears");
-// its `plural` names a plural that is not +s. Anything else is "a"/"an" and +s ("a feather", "3 feathers").
+// its `plural` names a plural that is not +s; its `article` the words before one, over all of those ("a pair of": the millstones). Anything
+// else is "a"/"an" and +s ("a feather", "3 feathers"). `namePlural` and `nameWithArticle` are the same rule for any name and the definition
+// that says how it counts: a prop's, whose definition is its sprite's (src/prop-names.js).
 export function nounName(id) {
   return hasItemDef(id) ? getItem(id).name.toLowerCase() : String(id).replace(/_/g, " ");
 }
-export function pluralName(id) {
-  const def = items.get(id);
+export function namePlural(name, def) {
   if (def && def.plural) return def.plural;
-  const name = nounName(id);
   return def && (def.noun === "mass" || def.noun === "pair") ? name : `${name}s`;
 }
-export function aName(id) {
-  const def = items.get(id);
-  const name = nounName(id);
+export function nameWithArticle(name, def) {
+  if (def && def.article) return `${def.article} ${name}`;
   if (def && def.noun === "mass") return `some ${name}`;
   if (def && def.noun === "pair") return name;
   return `${/^[aeiou]/.test(name) ? "an" : "a"} ${name}`;
+}
+export function pluralName(id) {
+  return namePlural(nounName(id), items.get(id));
+}
+export function aName(id) {
+  return nameWithArticle(nounName(id), items.get(id));
 }
 export function countName(id, n) {
   return n === 1 ? aName(id) : `${n} ${pluralName(id)}`;

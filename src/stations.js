@@ -12,6 +12,7 @@
 import * as map from "./map.js";
 import { getDef } from "./assets.js";
 import { getItem, aName, countName, containerGrid } from "./items.js";
+import { propAName, containerName, setRecipes as setPropRecipes } from "./prop-names.js"; // a made prop's name (docs/bugs.md, 2026-10-25)
 import * as loop from "./loop.js"; // the sim clock: a spot is read once a step
 import * as grid from "./grid.js";
 import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem, detach } from "./inventory.js";
@@ -34,6 +35,7 @@ export function resetActive(props) {
 
 export function loadRecipes(json) {
   rows = (json && (json.rows || json)) || [];
+  setPropRecipes(rows); // a made prop is named by its recipe's label first (prop-names.js)
 }
 
 export function recipes() {
@@ -273,15 +275,11 @@ export function roomProblem(prop, r) {
   return `There is no room beside it for ${madeWords(o)}.`;
 }
 
-// A made thing in words, for a line: "a counter", "5 arrows", "a loaf of bread".
+// A made thing in words, for a line: "a counter", "5 arrows", "a loaf of bread", "a jack-o'-lantern", "a pair of millstones". A prop is
+// named by prop-names.js (its recipe's label, its definition's `name`, else its id in words; counted by its definition's `noun`).
 export function madeWords(out) {
   if (!out) return "something";
-  if (out.prop) {
-    let n = null;
-    try { n = getDef(out.prop).name; } catch { n = null; }
-    const name = (n || out.prop.replace(/_/g, " ")).toLowerCase();
-    return `${/^[aeiou]/.test(name) ? "an" : "a"} ${name}`;
-  }
+  if (out.prop) return propAName(out.prop);
   return countName(out.id, out.count || 1);
 }
 
@@ -305,7 +303,7 @@ function deliver(prop, r) {
       // loot on its first search): its bag made now, already searched, so nothing is ever rolled into it.
       if (made.container) {
         const [cols, rows] = containerGrid(made.container.loot);
-        made.bag = createBag(cols, rows, made.sprite.replace(/_/g, " "));
+        made.bag = createBag(cols, rows, containerName(made.sprite));
         made.searched = true;
       }
       map.placeProp(made, at[0], at[1]);

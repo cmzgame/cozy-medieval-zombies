@@ -1,5 +1,5 @@
 {
-  "version": "c9cd6759",
+  "version": "2d37e293",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3016, "stamp": "87aeb2be"},
@@ -714,9 +714,9 @@
     "data/sprites/lantern_post.json": {"size": 148, "stamp": "ea05063c"},
     "data/sprites/lectern.json": {"size": 201, "stamp": "f66311d9"},
     "data/sprites/loom.json": {"size": 214, "stamp": "95f448b2"},
-    "data/sprites/marketcross.json": {"size": 198, "stamp": "6c1e15d3"},
+    "data/sprites/marketcross.json": {"size": 222, "stamp": "f01ab3f4"},
     "data/sprites/maypole.json": {"size": 202, "stamp": "9277c3e8"},
-    "data/sprites/millstones.json": {"size": 299, "stamp": "d2699de5"},
+    "data/sprites/millstones.json": {"size": 441, "stamp": "15b89a15"},
     "data/sprites/millwheel.json": {"size": 242, "stamp": "cfe5ead0"},
     "data/sprites/mine_mouth.json": {"size": 201, "stamp": "45bc8a7d"},
     "data/sprites/mushroom_0.json": {"size": 511, "stamp": "f3fb980d"},
@@ -757,7 +757,7 @@
     "data/sprites/shelf.json": {"size": 230, "stamp": "478c11d3"},
     "data/sprites/smoking_rack.json": {"size": 307, "stamp": "c74f1680"},
     "data/sprites/snare.json": {"size": 334, "stamp": "c0d50b6f"},
-    "data/sprites/spinningwheel.json": {"size": 348, "stamp": "8e04a7fc"},
+    "data/sprites/spinningwheel.json": {"size": 374, "stamp": "33c8e376"},
     "data/sprites/spoil_heap.json": {"size": 202, "stamp": "8e14c426"},
     "data/sprites/stall.json": {"size": 230, "stamp": "f32ae474"},
     "data/sprites/stocks.json": {"size": 200, "stamp": "493fdf7a"},
