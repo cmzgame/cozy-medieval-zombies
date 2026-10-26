@@ -1185,13 +1185,21 @@ check("hover card: the spear, the bow, the arrows, the Book and Staff of Fire, t
   assert(!card("arrow").includes(burnt), "a plain arrow says it burns");
   const fb = I("book_of_fire").book.spell;
   has("book_of_fire", `Cast ${fb.name} (left button, a staff in the other hand): ${by(fb.damage)}, up to ${fb.range} tiles.`);
-  has("book_of_fire", `${fb.name} bursts on the first of the dead it meets, or within ${fb.landRadius} tile${fb.landRadius === 1 ? "" : "s"} of where it lands.`);
+  has("book_of_fire", `${fb.name} bursts on the first of the dead or wild game it meets, or within ${fb.landRadius} tile${fb.landRadius === 1 ? "" : "s"} of where it lands; it passes tame animals by.`);
   has("book_of_fire", burnt);
+  // The draw's scale written out (docs/20, 0.4 + 0.6 c at minDraw 0.15), so a wrong formula fails here and not only in step with the card:
+  // shotDamage literally, and the cards' literal text while the data holds today's numbers (a tuned number skips the card literal, not the formula).
+  assert(archeryMod.shotDamage(38, 0.15) === 19 && archeryMod.shotDamage(150, 0.15) === 74 && archeryMod.shotDamage(45, 0.15) === 22 && archeryMod.shotDamage(38, 1) === 38, `shotDamage: ${archeryMod.shotDamage(38, 0.15)}, ${archeryMod.shotDamage(150, 0.15)}, ${archeryMod.shotDamage(45, 0.15)}, ${archeryMod.shotDamage(38, 1)}`);
+  if (T.minDraw === 0.15) {
+    if (bow.bow.damage === 38) has("bow", "Draw and release (left button): 19 to 38 damage by the draw, up to 22 tiles.");
+    if (sp.damage === 150) has("spear", "Throw (middle button or Q): 74 to 150 damage by the draw, up to 6.5 tiles.");
+    if (fb.damage === 45) has("book_of_fire", "Cast Fireball (left button, a staff in the other hand): 22 to 45 damage by the draw, up to 18 tiles.");
+  }
   has("staff_of_fire", `Cast (left button, a spellbook in the other hand): ${fb.name} with the Book of Fire.`);
   const th = I("halberd").weapon.alt;
   has("halberd", `Thrust (middle button or Q): ${th.damage} damage, reach ${th.range}; ${th.stamina} stamina.`);
   for (const id of ["throwing_knife", "throwing_axe"]) {
-    has(id, "To come: thrown on the middle button or Q.");
+    has(id, "To come: thrown.");
     assert(!card(id).some((l) => l.startsWith("Throw (")), `${id} says it throws, and it does not yet`);
   }
   for (const id of ["cap", "hood", "tunic", "gloves", "breeches", "boots"]) {

@@ -161,8 +161,7 @@ function byDraw(d) {
 const tiles = (n) => `${n} tile${n === 1 ? "" : "s"}`;
 // What one burn does to the dead (data/combat.json `burn`): the whole of it, capped. Only the dead burn (burn.js).
 const burnLine = () => line(`Sets the dead it hits alight: ${Math.round(Math.min(BURN.cap, BURN.dps * BURN.duration))} damage over ${BURN.duration} seconds.`);
-// A cast's or a throw's cost where its data names one (`mana`, `stamina`); no spell has one yet (docs/24, Q2), so none is said.
-const costOf = (o) => [o.mana ? `${o.mana} mana` : "", o.stamina ? `${o.stamina} stamina` : ""].filter(Boolean).join(" and ");
+// No cost is said for a cast or a throw: none is charged beyond the draw (docs/24, Q2), and a card never claims one the game does not take.
 const ammoOf = (bowDef) => bowDef.bow.ammo || ["arrow"]; // a bow's arrows in the order it takes them (archery.launcherOf)
 
 // The lines for what is shot, thrown, or cast (#317), read from the item's `thrown`, `bow`, `book.spell`, and `staff` blocks, an arrow's bows
@@ -172,8 +171,7 @@ function shotLines(def) {
   const out = [];
   const th = def.thrown;
   if (th && th.damage) {
-    const cost = costOf(th);
-    out.push(line(`Throw (middle button or Q): ${byDraw(th.damage)}, up to ${tiles(th.range ?? shot.range)}${cost ? `; ${cost} a throw` : ""}.`));
+    out.push(line(`Throw (middle button or Q): ${byDraw(th.damage)}, up to ${tiles(th.range ?? shot.range)}.`));
     // A thrown thing is its own shot (archery.js): it lands as itself, or lodges in the body it hits and comes out in its loot; one that breaks is gone.
     if (!th.vanish) out.push(line(`It lands to be picked up again, or stays in the body it hits${th.breakChance ? `; it may break (${Math.round(th.breakChance * 100)}%)` : ""}.`));
     if (th.ignite) out.push(burnLine());
@@ -200,10 +198,10 @@ function shotLines(def) {
   // A spell, the book's (docs/24): cast with a staff in the other hand, drawn and released as the bow is.
   const s = def.book && def.book.spell;
   if (s) {
-    const cost = costOf(s);
-    out.push(line(`Cast ${s.name} (left button, a staff in the other hand): ${byDraw(s.damage)}, up to ${tiles(s.range ?? shot.range)}${cost ? `; ${cost} a cast` : ""}.`));
-    const burst = [s.contact ? "on the first of the dead it meets" : "", s.landRadius ? `within ${tiles(s.landRadius)} of where it lands` : ""].filter(Boolean);
-    if (burst.length) out.push(line(`${s.name} bursts ${burst.join(", or ")}.`));
+    out.push(line(`Cast ${s.name} (left button, a staff in the other hand): ${byDraw(s.damage)}, up to ${tiles(s.range ?? shot.range)}.`));
+    const burst = [s.contact ? "on the first of the dead or wild game it meets" : "", s.landRadius ? `within ${tiles(s.landRadius)} of where it lands` : ""].filter(Boolean);
+    // A spell passes a tame animal by (archery.bodyAt, docs/45 section 2): the dead and wild game are what it meets.
+    if (burst.length) out.push(line(`${s.name} bursts ${burst.join(", or ")}; it passes tame animals by.`));
     if (s.ignite) out.push(burnLine());
   }
   // A staff: the spells of the books it casts.

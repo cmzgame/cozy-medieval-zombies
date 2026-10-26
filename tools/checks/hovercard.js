@@ -76,15 +76,19 @@ export async function run(game) {
       ["bow", "the bow: its damage by the draw, its range, and its arrows, fire arrows first", [`Draw and release (left button): ${by(bw.bow.damage)}, up to ${A.tunables.range} tiles.`, `Needs arrows carried, fire arrows first; good for about ${bw.shots} shots.`]],
       ["arrow", "an arrow: shot from the bow, after fire arrows", [`Shot from a hunting bow (${by(bw.bow.damage)}), when no fire arrows are carried.`]],
       ["fire_arrow", "a fire arrow: shot first, it sets the dead alight, and is made by dipping arrows", [`Shot from a hunting bow (${by(bw.bow.damage)}), before any arrows.`, burnt, "Made from arrows: Use them on fire (dip)."]],
-      ["book_of_fire", "the Book of Fire: it casts Fireball with a staff, its damage, range, burst, and burn", [`Cast ${fb.name} (left button, a staff in the other hand): ${by(fb.damage)}, up to ${fb.range} tiles.`, `${fb.name} bursts on the first of the dead it meets, or within ${fb.landRadius} tile${fb.landRadius === 1 ? "" : "s"} of where it lands.`, burnt]],
+      ["book_of_fire", "the Book of Fire: it casts Fireball with a staff, its damage, range, burst, and burn", [`Cast ${fb.name} (left button, a staff in the other hand): ${by(fb.damage)}, up to ${fb.range} tiles.`, `${fb.name} bursts on the first of the dead or wild game it meets, or within ${fb.landRadius} tile${fb.landRadius === 1 ? "" : "s"} of where it lands; it passes tame animals by.`, burnt]],
       ["staff_of_fire", "the Staff of Fire: the spell it casts with a book", [`Cast (left button, a spellbook in the other hand): ${fb.name} with the Book of Fire.`]],
       ["halberd", "the halberd: its thrust on the middle button or Q", [`Thrust (middle button or Q): ${alt.damage} damage, reach ${alt.range}; ${alt.stamina} stamina.`]],
-      ["throwing_knife", "the throwing knife: thrown is still to come", ["To come: thrown on the middle button or Q."]],
-      ["throwing_axe", "the throwing axe: thrown is still to come", ["To come: thrown on the middle button or Q."]],
+      ["throwing_knife", "the throwing knife: thrown is still to come", ["To come: thrown."]],
+      ["throwing_axe", "the throwing axe: thrown is still to come", ["To come: thrown."]],
       ["cap", "a garment tears into rags at the workbench", ["Tear into 2 rags at the workbench, a dirk carried."]],
       ["rag", "the rag: torn from clothing", ["Tear clothing into rags (2 each) at the workbench, a dirk carried: linen cap, onion-head hat, linen tunic and more."]],
     ];
     for (const [id, label, want] of SHOT) row(`${label} (#317)`, want.every((w) => text(id).includes(w)), text(id).join(" | "));
+    // The draw's scale written out (docs/20), so a wrong formula fails: today's numbers literally (a tuned number skips the card literal, never the formula's).
+    const lit = [[38, 19], [150, 74], [45, 22]].every(([d, lo]) => A.shotDamage(d, 0.15) === lo);
+    const cardsLit = A.tunables.minDraw !== 0.15 || ((bw.bow.damage !== 38 || has("bow", "19 to 38 damage by the draw")) && (sp.damage !== 150 || has("spear", "74 to 150 damage by the draw")) && (fb.damage !== 45 || has("book_of_fire", "22 to 45 damage by the draw")));
+    row("the damage by the draw, literally: 19 to 38 (the bow), 74 to 150 (the spear), 22 to 45 (Fireball) (#317)", lit && cardsLit, `${A.shotDamage(38, 0.15)} ${A.shotDamage(150, 0.15)} ${A.shotDamage(45, 0.15)}; ${text("bow")[2]}`);
     row("a garment's Goes into no longer names the rag, the rag says no Made at, and the rope belt does not tear (#317)", !text("cap").some((l) => /^Goes into:.*\brag\b/.test(l)) && !text("rag").some((l) => l.startsWith("Made at")) && !text("belt").some((l) => l.startsWith("Tear")), `${text("cap").join(" | ")} || ${text("rag").join(" | ")}`);
     // Every item: a name nobody else has, a kind, and no segment but Use is gold.
     const ids = [...new Set((all || []).map((d) => d.id))];

@@ -1,5 +1,5 @@
 {
-  "version": "f7d173ff",
+  "version": "7d0cf3ec",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3016, "stamp": "87aeb2be"},
@@ -9,7 +9,7 @@
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
     "data/ground.json": {"size": 3492, "stamp": "fb2c261c"},
     "data/interactions.json": {"size": 4176, "stamp": "0cbd9fe3"},
-    "data/items.json": {"size": 50988, "stamp": "1d66a917"},
+    "data/items.json": {"size": 50936, "stamp": "8e5e290e"},
     "data/kit.json": {"size": 939, "stamp": "628d28a8"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
     "data/loot.json": {"size": 7901, "stamp": "6cc83f31"},
