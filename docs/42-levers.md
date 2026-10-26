@@ -68,3 +68,5 @@ Two kinds:
 - **The aim guide**, on by default from 2026-10-24 (#385; it was off since 2026-10-16), off for the challenge.
 - **Swing targets**, on (`41` step 1). **Swing timer**, on. **Floating numbers**, shown.
 - **Sound**, on; **Volume**, 75% (`docs/40`; 2026-10-24, question 1); a mute key, F8 (2026-10-24, #386).
+- **Belt slot order** (`beltOrder`, Display): Sequential by default (1 main, 2 off, 3 utility, a leather belt's 4 main and 5 off), or Hands grouped (1 and 2 main, 3 and 4 off, 5 utility); this client's own, never sent (Michael, 2026-10-25, `02` The belt's slots have roles; built, #478).
+- **Handedness** (an identity's `handed`, chosen on the identity screen, not the Settings screen): Right-handed by default, or Left-handed, never ambidextrous; the labels, the belt's icons, and the drawn arm, nothing mechanical (Michael, 2026-10-25, `02` Right- or left-handed; built, #477).
