@@ -64,6 +64,7 @@ import * as gather from "./gather.js"; // herbs gathered, mushrooms foraged, cla
 import * as trees from "./trees.js"; // sticks under a tree, a sapling's Inspect (docs/46 step 3, #449)
 import * as water from "./water.js"; // tainted and clean water, and the boil verb (docs/44)
 import { taintedDrink } from "./sick.js"; // a tainted drink's one roll, Sick and the infection (docs/44)
+import * as potions from "./potions.js"; // a potion drunk, its vial back (docs/47 section 4, #481)
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -1019,7 +1020,7 @@ function propActions(prop, player) {
   out.push(...repair.propActions(prop, player, act, world), ...sawpit.propActions(prop, player, act, world), ...hives.propActions(prop, player, act, world), ...mana.propActions(prop, player, act)); // docs/43 section 6, and the altar's Pray (docs/47 section 5): each is nothing on a prop that is not its own
   if (canCarry(prop)) out.push(carryAction(prop, player));
   if (prop.snare) out.push(lookAtSnareAction(prop)); // a set snare (docs/45 section 2): what it holds, the asking client's own line
-  if (getDef(prop.sprite).item) out.push(itemPickUpAction(prop, player)); // a torch post, a decoration: back into the bag as its item (docs/43, section 4)
+  if (getDef(prop.sprite).item && (prop.made || !getDef(prop.sprite).station)) out.push(itemPickUpAction(prop, player)); // a torch post, a decoration, your own cauldron: back into the bag as its item (docs/43, section 4); the witch's is no one's to lift (docs/47 section 3)
   if (prop.made) out.push(takeApartAction(prop, player)); // only what a player made (docs/43, section 2)
   return out;
 }
@@ -1528,8 +1529,8 @@ function eatOne(player, entry, def, take) {
 // A belt slot used (its key, a guest's too, and the slot's Equip, which a double-click runs; Michael, 2026-10-25): what the slot's role does
 // with what is there (inventory.beltAction). A hand slot draws into its hand, swapping what the hand held onto the slot, or eats a food; the
 // utility slot eats; anything else does nothing and says why ("every expected slot action that fails should give you a log line"). An empty
-// slot does nothing at all and says nothing, so a stray key in a fight never moves the weapon out of your hand. Returns "drawn", "eaten",
-// "refused", "none", or "nothing".
+// slot does nothing at all and says nothing, so a stray key in a fight never moves the weapon out of your hand. A potion is drunk from any
+// slot (docs/47 section 4, until step 4 makes it holdable). Returns "drawn", "eaten", "drunk", "refused", "none", or "nothing".
 export function beltPress(player, i) {
   const belt = beltOf(player);
   const e = belt && Number.isInteger(i) && i >= 0 && i < belt.length ? belt[i] : null;
@@ -1540,6 +1541,7 @@ export function beltPress(player, i) {
     eatOne(player, e, def, () => { belt[i] = null; });
     return "eaten";
   }
+  if (a.act === "drink") return potions.drinkFrom(player, e, { kind: "belt", index: i }) ? "drunk" : "refused";
   if (a.act === "draw") {
     const r = beltDraw(player, i);
     for (const d of r.drop) map.dropItem(Math.round(player.gx), Math.round(player.gy), d); // the off hand's thing, with no room for it
@@ -1602,6 +1604,8 @@ export function itemMenu(player, entry, bag, otherBag) {
   if (def.kind === "food") {
     out.push({ label: "Eat", enabled: true, onSelect: () => { eatOne(player, entry, def, () => grid.remove(bag, entry)); } });
   }
+  // A potion in your bag is drunk from it, its vial back in its cell (docs/47 section 4); the refusal (the ten seconds between) says why.
+  if (potions.potionOf(def) && mine) out.push({ label: "Drink", enabled: true, onSelect: () => potions.drinkFrom(player, entry, { kind: "bag", bag }) });
   if (def.capacity) {
     const pct = Math.round(entry.fill ?? 0);
     out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });
@@ -1693,6 +1697,8 @@ export function slotMenu(player, slotId) {
     // double-click that follows it, never equip from there, and say why.
     if (bdef.kind === "food") {
       out.push({ label: "Eat", enabled: true, onSelect: () => { eatOne(player, entry, bdef, () => { belt[i] = null; }); } });
+    } else if (potions.potionOf(bdef)) {
+      out.push({ label: "Drink", enabled: true, onSelect: () => beltPress(player, i) }); // the slot's key, the vial back in the slot (docs/47 section 4)
     } else if (bdef.capacity) {
       const pct = Math.round(entry.fill ?? 0);
       out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });

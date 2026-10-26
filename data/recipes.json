@@ -1,5 +1,5 @@
 {
- "note": "docs/30 section 6: a recipe is a row; `in` names item ids or tags with counts; `fire` needs the station's fire lit; `tool` needs that item in a hand; `out.prop` places a prop beside the station instead of an item in its output. Seconds are sim seconds (a game hour is 30). `uses` names a verb: the recipe needs a carried item whose `verbs` list it (a hand, the belt, or the bag: the tool rule, #214, #215; `tool` is the older in-hand check, the anvil's hammer, until open question 32 is ruled). `verb` (optional) names how a row works one thing into another, for the hover card (#317): Tear, a garment into rags, is said \"Tear into 2 rags at the workbench\" on the garment and \"Tear clothing into rags\" on the rag, in place of its Made at and Goes into.",
+ "note": "docs/30 section 6: a recipe is a row; `in` names item ids or tags with counts; `fire` needs the station's fire lit; `tool` needs that item in a hand; `out.prop` places a prop beside the station instead of an item in its output. Seconds are sim seconds (a game hour is 30). `uses` names a verb: the recipe needs a carried item whose `verbs` list it (a hand, the belt, or the bag: the tool rule, #214, #215; `tool` is the older in-hand check, the anvil's hammer, until open question 32 is ruled). `verb` (optional) names how a row works one thing into another, for the hover card (#317): Tear, a garment into rags, is said \"Tear into 2 rags at the workbench\" on the garment and \"Tear clothing into rags\" on the rag, in place of its Made at and Goes into. `water` (docs/47 section 3) is a draught of clean water a row needs, the amount drawn from the `fill` of clean waterskins carried (the bag, the belt, the hands; never a container, never a tainted skin) and taken with the ingredients when the make starts; without it the Make is refused, \"Potions need clean water.\".",
  "rows": [
   {
    "id": "torch",
@@ -1608,6 +1608,186 @@
    ],
    "seconds": 8,
    "note": "wool spun to yarn (Crafting 6; docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "unfired_vial",
+   "station": "workbench",
+   "out": {
+    "id": "unfired_vial",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "clay",
+     "count": 1
+    }
+   ],
+   "seconds": 4,
+   "note": "docs/47 section 2 (#481): one clay shaped into two unfired vials (Crafting 1, the clay's Mining 3, recorded, open to all until the skills)"
+  },
+  {
+   "id": "clay_vial",
+   "station": "oven",
+   "out": {
+    "id": "clay_vial",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "unfired_vial",
+     "count": 1
+    }
+   ],
+   "seconds": 10,
+   "fire": true,
+   "note": "docs/47 section 2 (#481): an unfired vial fired in any oven, no kiln (docs/39 sections 3 and 5.7)"
+  },
+  {
+   "id": "cauldron",
+   "station": "anvil",
+   "out": {
+    "id": "cauldron",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 3
+    }
+   ],
+   "seconds": 16,
+   "uses": "smith",
+   "note": "docs/47 section 3 (#481): your own cauldron, an item into the bag, set down with Place; three iron bars, a smith's hammer carried; no world rule, so it is open in every world"
+  },
+  {
+   "id": "healing_potion",
+   "station": "cauldron",
+   "out": {
+    "id": "healing_potion",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "yarrow",
+     "count": 2
+    },
+    {
+     "id": "sage",
+     "count": 1
+    },
+    {
+     "id": "clay_vial",
+     "count": 1
+    }
+   ],
+   "water": 10,
+   "seconds": 20,
+   "fire": true,
+   "note": "docs/47 section 3 (#481): two of the main herb, one secondary, a clay vial, a draught of clean water; over the cauldron's lit fire (Potions, open to all until the skills)"
+  },
+  {
+   "id": "stamina_potion",
+   "station": "cauldron",
+   "out": {
+    "id": "stamina_potion",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "nettle",
+     "count": 2
+    },
+    {
+     "id": "honey",
+     "count": 1
+    },
+    {
+     "id": "clay_vial",
+     "count": 1
+    }
+   ],
+   "water": 10,
+   "seconds": 20,
+   "fire": true,
+   "note": "docs/47 section 3 (#481): two of the main herb, one secondary, a clay vial, a draught of clean water; over the cauldron's lit fire (Potions, open to all until the skills)"
+  },
+  {
+   "id": "mana_potion",
+   "station": "cauldron",
+   "out": {
+    "id": "mana_potion",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "mana_herb",
+     "count": 2
+    },
+    {
+     "id": "mushroom",
+     "count": 1
+    },
+    {
+     "id": "clay_vial",
+     "count": 1
+    }
+   ],
+   "water": 10,
+   "seconds": 20,
+   "fire": true,
+   "note": "docs/47 section 3 (#481): two of the main herb, one secondary, a clay vial, a draught of clean water; over the cauldron's lit fire (Potions, open to all until the skills)"
+  },
+  {
+   "id": "poison",
+   "station": "cauldron",
+   "out": {
+    "id": "poison",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "nightshade",
+     "count": 2
+    },
+    {
+     "id": "grave_moss",
+     "count": 1
+    },
+    {
+     "id": "clay_vial",
+     "count": 1
+    }
+   ],
+   "water": 10,
+   "seconds": 20,
+   "fire": true,
+   "note": "docs/47 section 3 (#481): two of the main herb, one secondary, a clay vial, a draught of clean water; over the cauldron's lit fire (Potions, open to all until the skills)"
+  },
+  {
+   "id": "strong_poison",
+   "station": "cauldron",
+   "out": {
+    "id": "strong_poison",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "wolfsbane",
+     "count": 2
+    },
+    {
+     "id": "grave_moss",
+     "count": 1
+    },
+    {
+     "id": "clay_vial",
+     "count": 1
+    }
+   ],
+   "water": 10,
+   "seconds": 20,
+   "fire": true,
+   "note": "docs/47 section 3 (#481): two of the main herb, one secondary, a clay vial, a draught of clean water; over the cauldron's lit fire (Potions, open to all until the skills)"
   }
  ]
 }

@@ -486,6 +486,11 @@ def build():
     g.road([(80, 18), (80, 62)], 1, "floor_dirt", group="the lane to the mere")
     g.river([(58, 28), (115, 28)], width=2, bank=1, group="brook")
     g.floor_rect([80, 26, 1, 4], "floor_wood", kind="bridge", note="the plank footbridge (29/02); floor_bridge_plank when drawn")
+    # The witch's cauldron (docs/47 section 3, #481): where her cottage will stand, at the lane's north end on its east side, the first cauldron;
+    # authored, so never carried and no player's made thing, and not a village station (the world rule Village stations never hides its
+    # recipes). Cold and empty: the logs and the flame are the brewer's. The cottage, the witch, and her garden come with the map sitting (#92).
+    wc = g.place("the witch's cauldron", [81, 17, 4, 4])
+    wc.prop("cauldron", (1, 1), id="cauldron_witch", note="the witch's cauldron (docs/47 section 3)")
     la = g.place("Long Acre's farmhouse", [66, 39, 12, 9])
     la.building(
         [1, 1, 10, 7], "wall_daub", "floor_wood",

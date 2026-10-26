@@ -20,6 +20,7 @@ import * as burning from "./fire.js";
 import * as bleed from "./bleed.js";
 import * as sick from "./sick.js"; // tainted water's debuff (docs/44)
 import * as mana from "./mana.js"; // the mana bar and the altar's Pray (docs/47 section 5)
+import * as potions from "./potions.js"; // a potion's buff runs down on the authority (docs/47 section 4)
 import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
 import * as fruit from "./fruit.js"; // bare fruit trees bear again (#190)
 import * as farming from "./farming.js"; // crops grow on the clock (#194)
@@ -472,7 +473,7 @@ export function syncParts() {
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third
   // step, the first bleeding guest a sync check met; the rule a fire's fuel already follows: compare what the wire promises).
   const hp2 = (n) => (typeof n === "number" ? (Math.round(n * 100) / 100).toFixed(2) : String(n));
-  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `hidden ${(p.hidden || []).join(",")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `handed ${handedOf(p.handed)}`, `carrying ${p.carrying ? p.carrying.id : "-"}`, `bleed ${p.bleed ? `${p.bleed.stacks}/${hp2(p.bleed.left)}` : "-"}`, `sick ${p.sick ? `${p.sick.stacks}/${hp2(p.sick.left)}` : "-"}`, `mana ${hp2(p.mana)}/${hp2(p.maxMana)}`].join(" | "); // the wound a bleeding player has, and Sick (docs/44): stacks and time, as the wire carries them (#308); mana as health is, to two decimals (docs/47 section 9)
+  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `hidden ${(p.hidden || []).join(",")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `handed ${handedOf(p.handed)}`, `carrying ${p.carrying ? p.carrying.id : "-"}`, `bleed ${p.bleed ? `${p.bleed.stacks}/${hp2(p.bleed.left)}` : "-"}`, `sick ${p.sick ? `${p.sick.stacks}/${hp2(p.sick.left)}` : "-"}`, `mana ${hp2(p.mana)}/${hp2(p.maxMana)}`, `potion ${p.potionAt == null ? "-" : hp2(p.potionAt)}`, `buffs ${p.buffs ? Object.keys(p.buffs).sort().map((k) => `${k}/${hp2(p.buffs[k].left)}`).join(",") : "-"}`].join(" | "); // the wound a bleeding player has, and Sick (docs/44): stacks and time, as the wire carries them (#308); mana as health is, to two decimals (docs/47 section 9); the last potion's time and a potion's buff (docs/47 section 4), to two decimals as the wire carries them
   const parts = {
     map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : k === "boards" && v && Array.isArray(v.near) ? { near: v.near.length, far: v.far.length } : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening), a board's health (a bare number in `wall.boards`) not either, only how many boards stand, so a broken one still shows
     chart: hashOf(chart.hashText()), // what the world has seen, the charted chunks sorted (docs/33)
@@ -813,6 +814,7 @@ export function step(dt, snapshots = null) {
     bleed.update(p, dt);
     sick.update(p, dt); // Sick runs down here, on the authority, as the wound does (docs/44)
     mana.update(p, dt); // the mana bar regenerates here, on the authority, never in updatePlayer, which a guest predicts (docs/47 section 9)
+    potions.update(p, dt); // and a potion's buff (docs/47 section 4)
     // The mouse and the keys, as a snapshot, to the player's controller (docs/23a, D1; never the input module).
     // Only a player whose client is here is controlled: the draw and the combat clock are still
     // one per world (docs/31/05, items 12 and 13), so an absent player's idle input must not touch them.

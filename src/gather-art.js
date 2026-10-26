@@ -8,11 +8,12 @@
 // A design: { kind: "herb", leaf, stem?, flower?, eye?, glow?, berries?, root?, flowers: "spike" | "daisy" | "umbel" | "cluster" | "star" |
 // "hood" | "bell" | "top" | "none", wide?, spikeFrom?, stems, height, spread, base, leafSize, leafGap, broad?, serrated?, mound?, tufts?, seed } · { kind: "mushroom", cap, stalk, capWidth, capHeight, stalkHeight, spots? } · { kind: "lump",
 // color, halfWidth, height, streaks?, sheen?, crystals?, crystal?, seed } · { kind: "sapling", trunk, leaf, soil, height, crown, wide?, seed } (docs/46
-// step 3: a young tree planted, not a gatherable, outlined as the gatherables are so it is found in the grass). The foot of the picture is its
+// step 3: a young tree planted, not a gatherable, outlined as the gatherables are so it is found in the grass) · { kind: "vial", fired?, body?, seal?,
+// band?, seed } (docs/47: a clay vial and the potions in it, the colour on the seal and the band). The foot of the picture is its
 // anchor: the pixel drawn at the tile's centre.
 
 export const OUTLINE = "#2b2522";
-export const KINDS = ["herb", "mushroom", "lump", "sapling"];
+export const KINDS = ["herb", "mushroom", "lump", "sapling", "vial"];
 
 // A small hash in 0..1 of two integers: the design's variation, never the sim's generator.
 function hash(seed, i) {
@@ -272,7 +273,37 @@ function sapling(d, set) {
   }
 }
 
-const DRAW = { herb, mushroom, lump, sapling };
+// A clay vial (docs/47 sections 2 and 8, #481): an earthen bottle, its belly lit from the upper left, a narrow neck and a lip. Clay is opaque
+// (Michael, 2026-10-25), so a potion's colour is on its wax seal and a glazed band round its shoulder (`seal`, `band`, each a colour; a strong
+// poison's seal black); an empty vial is bare, its mouth open; an unfired one (`fired` false) is matte raw clay with no sheen.
+const VIAL_ROWS = [[0, 2], [-1, 3], [-2, 3], [-3, 3], [-4, 3], [-5, 2], [-6, 1], [-7, 1], [-8, 2]]; // [y, half width], the foot up to the lip
+function vial(d, set) {
+  const body = d.body || (d.fired === false ? "#9a7a62" : "#b8673c");
+  const seed = d.seed || 1;
+  for (const [y, hw] of VIAL_ROWS) {
+    for (let x = -hw; x <= hw; x++) {
+      let c = x <= -hw + 1 && hw > 1 ? tone(body, 1.16) : x >= hw ? tone(body, 0.72) : x > 0 ? tone(body, 0.88) : body;
+      if (y === 0) c = tone(c, 0.82); // the foot in shade
+      if (d.fired === false && hash(seed, (x + 9) * 13 + y + 20) < 0.18) c = tone(c, 0.9); // raw clay, a little uneven
+      set(x, y, c);
+    }
+  }
+  if (d.fired !== false) { set(-2, -2, tone(body, 1.4)); set(-2, -3, tone(body, 1.3)); } // the fired clay's sheen
+  if (d.band) {
+    for (const y of [-4, -5]) {
+      const hw = VIAL_ROWS.find((r) => r[0] === y)[1];
+      for (let x = -hw; x <= hw; x++) set(x, y, x <= -hw + 1 ? tone(d.band, 1.2) : x >= hw ? tone(d.band, 0.7) : y === -5 ? tone(d.band, 1.05) : d.band);
+    }
+    set(-1, -5, tone(d.band, 1.45)); // the glaze's glint
+  }
+  if (d.seal) {
+    for (let x = -2; x <= 2; x++) set(x, -8, Math.abs(x) === 2 ? tone(d.seal, 0.78) : d.seal);
+    for (let x = -1; x <= 1; x++) set(x, -9, x < 0 ? tone(d.seal, 1.3) : d.seal);
+    set(2, -7, tone(d.seal, 0.7)); // a drip of wax down the neck
+  } else set(0, -8, tone(body, 0.45)); // bare: the open mouth
+}
+
+const DRAW = { herb, mushroom, lump, sapling, vial };
 
 // The picture of a design: { w, h, ax, ay, px: [[x, y, "#rrggbb"]] }, the outline included, the anchor (ax, ay) its foot.
 export function pixelsOf(design) {

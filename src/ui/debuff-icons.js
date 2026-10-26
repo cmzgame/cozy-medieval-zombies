@@ -33,6 +33,20 @@ const DRAW = {
     b.put(12, 12, "#5a7428"); // the shade
     b.put(11, 13, "#5a7428");
   },
+  stamina(b) {
+    const gold = "#e8c860"; // a gold bolt (docs/47 section 4: the stamina potion's buff, in gold as buffs are)
+    b.rect(9, 1, 11, 2, gold);
+    b.rect(8, 3, 10, 4, gold);
+    b.rect(6, 5, 9, 6, gold);
+    b.rect(5, 7, 11, 8, gold);
+    b.rect(8, 9, 10, 10, gold);
+    b.rect(7, 11, 9, 12, gold);
+    b.rect(6, 13, 7, 14, gold);
+    b.put(9, 1, "#fff2b8"); // the light on it
+    b.put(6, 5, "#fff2b8");
+    b.put(10, 8, "#a8862a"); // the shade
+    b.put(9, 10, "#a8862a");
+  },
 };
 
 export const ICON_SIZE = SIZE;

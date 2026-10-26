@@ -2171,10 +2171,13 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
   // The cards: the full name, the kind, where it is gathered (read from its nodes and their kinds' `where`), and no use that is not built.
   const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
   const KIND = { sage: "Herb", nettle: "Herb", feverfew: "Herb", yarrow: "Herb", mana_herb: "Herb", nightshade: "Herb", wolfsbane: "Herb", grave_moss: "Herb", woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Forage", clay: "Material", salt: "Material" };
+  // What a gathered thing goes into once its use is built (the potions and the vials of docs/47, #481), said before where it is gathered.
+  const GOES = { sage: "Goes into: healing potion.", yarrow: "Goes into: healing potion.", nettle: "Goes into: stamina potion.", mana_herb: "Goes into: mana potion.", mushroom: "Goes into: mana potion.", nightshade: "Goes into: poison.", wolfsbane: "Goes into: strong poison.", grave_moss: "Goes into: poison, strong poison.", clay: "Goes into: unfired vial." };
   for (const [id, kind] of Object.entries(KIND)) {
     const c = itemInfoMod.cardFor(itemsMod.makeEntry(id));
     const lines = c.lines.map((l) => l.map((g) => g.t).join(""));
-    assert(c.name === itemsMod.getItem(id).name && c.kind === kind && lines.length === 1 && lines[0] === SOURCE[id], `${id}'s card: ${itemInfoMod.textOf(c).join(" | ")}`);
+    const want = GOES[id] ? [GOES[id], SOURCE[id]] : [SOURCE[id]];
+    assert(c.name === itemsMod.getItem(id).name && c.kind === kind && lines.join(" | ") === want.join(" | "), `${id}'s card: ${itemInfoMod.textOf(c).join(" | ")}`);
   }
   assert(itemInfoMod.gatheredFrom(itemsMod.getItem("stone")).length === 0 && itemInfoMod.gatheredFrom(itemsMod.getItem("iron_ore")).length === 0, "stone or iron ore gained a source line (their kinds have no where)");
   assert(itemsMod.getItem("mana_herb").name === "Mageroot" && itemsMod.getItem("grave_moss").name === "Grave moss", "the names Michael gave moved (Mageroot, grave moss; 2026-10-25)");
@@ -3350,6 +3353,282 @@ check("mana: the bar and its regeneration in the host's step alone; the Fireball
     const card = itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry("book_of_fire")));
     assert(card.includes(`Costs ${cost} mana a cast, spent when it is released.`), `the book's card: ${card.join(" | ")}`);
     return `100 a bar, ${T.manaRegen} a second in the host's step alone; ${cost} a Fireball, refused at 19.9 and 10 with the line and the flash, spent once on the release and never on a cancel or a dry one; a guest's prediction flashes and draws nothing; Pray by a label and by the verb, ${tuningMod.potions.praySeconds} s, refused far and elsewhere; the save, an old save, the sync part to two decimals, PROTOCOL 18 or later; the card`;
+  } finally {
+    promptMod.setMessageSink(null);
+  }
+});
+
+// Potions, step 2 (docs/47 sections 2 to 4, 8 and 9, #481): the vials made (one clay into two unfired vials at the workbench, one fired into a
+// clay vial at an oven), the witch's cauldron on the map (carried by no one, not a village station, its recipes open with Village stations off,
+// a fire that burns logs and cooks nothing), your own made at the anvil with a smith's hammer carried, set down by the host's call and a
+// guest's command, picked up only out and empty; the five brews over the lit fire alone, each taking a draught of clean water from carried
+// skins (refused without it, "Potions need clean water.", and never from a tainted skin), twenty seconds a potion; the three potions drunk by
+// a belt key, the bag's menu, the slot's menu, a double-click, and a guest's commands, ten seconds between, the vial back in its place, else
+// the bag, else the feet with its line; the stamina buff in the row, run down by the host's step; the mana potion against `player.mana`
+// (#480's bar) and refused while there is none; the poisons never drunk, their line in every slot; the cards; the save and the sync part.
+// (The page, the art, the cards read over the bag, and two tabs are check("potions")'s, in the pane.)
+const potionsMod = await import("../src/potions.js");
+check("potions: the vials, the cauldron (the witch's and your own), the brews with clean water, drinking every way, the buff, the poisons, the cards, the save and the sync part", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false, survival: true, villageStations: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  const last = () => said[said.length - 1] || "";
+  const P = tuningMod.potions;
+  try {
+    const mk = (id, n = 1, props = {}) => itemsMod.makeEntry(id, n, props);
+    const card = (id, e = mk(id)) => itemInfoMod.textOf(itemInfoMod.cardFor(e));
+    const has = (id, text) => card(id).includes(text);
+    const bag = inventoryMod.bagOf(me);
+    const clear = () => { bag.items.length = 0; const b = inventoryMod.beltOf(me); if (b) b.fill(null); me.hands.main = null; me.hands.off = null; };
+    // The levers.
+    assert(P.heal === 40 && P.mana === 50 && P.staminaMult === 2 && P.staminaSeconds === 30 && P.between === 10, `tuning.potions: ${JSON.stringify(P)}`);
+    // The items: stacks, the belt, the cards from the data.
+    for (const id of ["healing_potion", "stamina_potion", "mana_potion", "poison", "strong_poison"]) assert(itemsMod.getItem(id).stack === 5 && itemsMod.getItem(id).belt === true, `${id}: stack ${itemsMod.getItem(id).stack}`);
+    assert(itemsMod.getItem("clay_vial").stack === 10 && itemsMod.getItem("unfired_vial").stack === 10, "the vials stack 10");
+    assert(has("healing_potion", "Drink: heals 40 at once.") && has("healing_potion", "10 seconds between one potion and the next; the empty vial is kept.") && has("healing_potion", "Made at the cauldron.") && itemInfoMod.cardFor(mk("healing_potion")).kind === "Potion", card("healing_potion").join(" | "));
+    assert(has("stamina_potion", "Drink: fills your stamina, and it comes back twice as fast for 30 seconds.") && has("mana_potion", "Drink: restores 50 mana at once."), `${card("stamina_potion").join(" | ")} || ${card("mana_potion").join(" | ")}`);
+    assert(has("poison", "Use on a blade or on arrows.") && has("poison", "Ordinary poison: never drunk.") && has("strong_poison", "Strong poison: never drunk.") && !card("poison").some((l) => /^Drink/.test(l)) && itemInfoMod.cardFor(mk("poison")).kind === "Poison", `${card("poison").join(" | ")} || ${card("strong_poison").join(" | ")}`);
+    const useSeg = itemInfoMod.cardFor(mk("poison")).lines.flat().find((s) => s.t === "Use");
+    assert(useSeg && useSeg.k === "use", "the poison's Use is not its own gold segment");
+    assert(has("unfired_vial", "Made at the workbench.") && has("unfired_vial", "Goes into: clay vial.") && has("clay_vial", "Made at the oven.") && card("clay_vial").some((l) => /^Goes into: healing potion, stamina potion, mana potion, poison and more\.$/.test(l)), `${card("unfired_vial").join(" | ")} || ${card("clay_vial").join(" | ")}`);
+    assert(has("cauldron", "Place: set down on the floor.") && has("cauldron", "Set down, it is a station: 5 recipes, over a fire of logs; picked up again while out and empty.") && has("cauldron", "Made at the anvil."), card("cauldron").join(" | "));
+    assert(itemsMod.countName("poison", 1) === "a vial of poison" && itemsMod.countName("strong_poison", 2) === "2 vials of strong poison" && stationsMod.doneLine({ id: "healing_potion", count: 1 }) === "Made a healing potion.", `${itemsMod.countName("poison", 1)}; ${itemsMod.countName("strong_poison", 2)}`);
+    // The witch's cauldron: on the map, carried by no one, no village station, a fire that burns and cooks nothing, its rows open with Village stations off.
+    const witch = mapMod.propById("cauldron_witch");
+    assert(witch && witch.sprite === "cauldron" && witch.fire && witch.fire.burns && !witch.fire.cooks && !witch.fire.lit && witch.fire.maxFuel === 3 && witch.fire.hoursPerUnit === 2, `the witch's cauldron: ${JSON.stringify(witch && witch.fire)}`);
+    assert(!placementMod.canCarry(witch) && !getDef("cauldron").villageStation && stationsMod.stationOf(witch).join(",") === "cauldron", `carry ${placementMod.canCarry(witch)}, stations ${stationsMod.stationOf(witch)}`);
+    assert(stationsMod.recipesFor("cauldron").map((r) => r.id).join(",") === "healing_potion,stamina_potion,mana_potion,poison,strong_poison", `the cauldron's rows with Village stations off: ${stationsMod.recipesFor("cauldron").map((r) => r.id)}`);
+    assert(Math.abs(witch.tile[0] - 80) <= 3 && witch.tile[1] >= 17 && witch.tile[1] <= 21, `the witch's cauldron at ${witch.tile} (the lane to the mere ends at 80,18)`);
+    // Stand beside it.
+    const standBy = (prop) => {
+      const at = [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1]].map(([dx, dy]) => [prop.tile[0] + dx, prop.tile[1] + dy]).find(([x, y]) => mapMod.isWalkableTile(x, y) && !mapMod.tileAt(x, y).prop);
+      me.gx = at[0];
+      me.gy = at[1];
+      mapMod.ensureAround(me.gx, me.gy, 2);
+    };
+    mapMod.ensureAround(witch.tile[0], witch.tile[1], 2);
+    standBy(witch);
+    const labels = (prop) => interactMod.actionsForTarget({ kind: "prop", id: prop.id }, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}`);
+    assert(labels(witch).includes("Use the cauldron") && !labels(witch).some((l) => /^Pick up|^Take apart|^Carry|^Boil|^Cook/.test(l)) && labels(witch).some((l) => /^Light the cauldron/.test(l)), `the witch's cauldron's menu: ${labels(witch).join(", ")}`);
+    // A brew: the fire, the water, the ingredients, twenty seconds, the potion in its output.
+    clear();
+    me.hp = 50;
+    // Into the bag; a stackable goes in as a new entry of the grid's own (grid.insert merges and makes), so the entry in the bag is returned.
+    const give = (id, n = 1, props = {}) => {
+      if (itemsMod.getItem(id).stack) { const before = new Set(bag.items); gridMod.add(bag, id, n, props); return bag.items.find((e) => e.id === id && !before.has(e)) || bag.items.filter((e) => e.id === id).pop(); }
+      const e = mk(id, n, props);
+      inventoryMod.stow(me, e);
+      return e;
+    };
+    for (const [id, n] of [["yarrow", 2], ["sage", 1], ["clay_vial", 1]]) give(id, n);
+    const tainted = give("waterskin", 1, { fill: 100 });
+    const heal = stationsMod.recipe("healing_potion");
+    assert(heal.water === 10 && heal.seconds === 20 && heal.fire === true && heal.out.count === 1, JSON.stringify(heal));
+    assert(stationsMod.canMake(me, witch, heal) === "The fire is out.", `out: ${stationsMod.canMake(me, witch, heal)}`);
+    give("log", 2);
+    give("tinderbox", 1);
+    const light = interactMod.actionsForTarget({ kind: "prop", id: witch.id }, me).find((a) => /^Light the cauldron/.test(a.label));
+    interactMod.performByLabel(me, { kind: "prop", id: witch.id }, light.label);
+    assert(witch.fire.lit && witch.fire.fuel === 1, `lit by its menu with a flame and a log: ${JSON.stringify(witch.fire)}`);
+    assert(stationsMod.canMake(me, witch, heal) === stationsMod.NO_WATER && stationsMod.NO_WATER === "Potions need clean water.", `a tainted skin only: ${stationsMod.canMake(me, witch, heal)}`);
+    const r0 = verbsMod.run("craft", worldMod.world, me, { prop: witch.id }, { recipe: "healing_potion" });
+    assert(!r0.ok && r0.reason === "Potions need clean water.", `the craft verb with no clean water: ${JSON.stringify(r0)}`);
+    tainted.fill = 100;
+    const clean = give("waterskin", 1, { fill: 15, clean: true });
+    const cleanBelt = mk("waterskin", 1, { fill: 4, clean: true });
+    inventoryMod.beltOf(me)[2] = cleanBelt;
+    assert(stationsMod.waterHave(me) === 19, `clean water carried: ${stationsMod.waterHave(me)}`);
+    const r1 = verbsMod.run("craft", worldMod.world, me, { prop: witch.id }, { recipe: "healing_potion" });
+    assert(r1.ok && cleanBelt.fill === 0 && clean.fill === 9 && tainted.fill === 100, `the draught from the clean skins, emptiest first, never the tainted one: ${JSON.stringify(r1)} belt ${cleanBelt.fill}, bag ${clean.fill}, tainted ${tainted.fill}`);
+    assert(inventoryMod.countAll(me, "yarrow") === 0 && inventoryMod.countAll(me, "sage") === 0 && inventoryMod.countAll(me, "clay_vial") === 0, "the ingredients were not taken");
+    for (let i = 0; i < 60 * 10; i++) stationsMod.update(1 / 60);
+    mapMod.setFireLit(witch, false);
+    for (let i = 0; i < 60 * 30; i++) stationsMod.update(1 / 60);
+    assert(witch.queue && witch.queue.length === 1 && !(witch.output && witch.output.items.length), "the brew went on with the fire out");
+    interactMod.performByLabel(me, { kind: "prop", id: witch.id }, interactMod.actionsForTarget({ kind: "prop", id: witch.id }, me).find((a) => /^Light the cauldron/.test(a.label)).label); // lit again by its menu, a second log
+    assert(witch.fire.lit, "the cauldron was not lit again");
+    for (let i = 0; i < 60 * 11; i++) stationsMod.update(1 / 60);
+    const brewed = witch.output && witch.output.items.find((e) => e.id === "healing_potion");
+    assert(brewed && brewed.count === 1 && !(witch.queue && witch.queue.length), `twenty seconds of a lit fire made one: ${JSON.stringify(witch.output && witch.output.items)}`);
+    // The vials: the workbench's row and the oven's.
+    const uv = stationsMod.recipe("unfired_vial");
+    const cv = stationsMod.recipe("clay_vial");
+    assert(uv.station === "workbench" && uv.in[0].id === "clay" && uv.in[0].count === 1 && uv.out.count === 2 && cv.station === "oven" && cv.fire && cv.in[0].id === "unfired_vial" && cv.out.id === "clay_vial", `${JSON.stringify(uv)} ${JSON.stringify(cv)}`);
+    // Drinking: a belt key, the vial back in its slot; ten seconds between, refused with the line.
+    clear();
+    const belt = inventoryMod.beltOf(me);
+    belt[0] = mk("healing_potion");
+    me.hp = 50;
+    loopMod.setSimTime(1000);
+    me.potionAt = null;
+    assert(interactMod.beltPress(me, 0) === "drunk" && me.hp === 90 && me.potionAt === 1000 && belt[0] && belt[0].id === "clay_vial", `the main-hand slot's key: ${me.hp}, ${belt[0] && belt[0].id}`);
+    belt[2] = mk("healing_potion");
+    loopMod.setSimTime(1009.9);
+    assert(interactMod.beltPress(me, 2) === "refused" && last() === "You can't drink another potion yet." && me.hp === 90 && belt[2].id === "healing_potion", `within ten seconds: ${last()}`);
+    loopMod.setSimTime(1010);
+    me.hp = 30;
+    assert(interactMod.beltPress(me, 2) === "drunk" && me.hp === 70 && belt[2].id === "clay_vial", `the utility slot's key after ten seconds: ${me.hp}`);
+    // Every slot's key drinks (until step 4, a potion is not holdable); its card says so.
+    const leather = mk("good_belt");
+    const wasBelt = me.worn.waist;
+    me.worn.waist = leather;
+    const lb = inventoryMod.beltOf(me);
+    const rows = [];
+    for (let i = 0; i < lb.length; i++) {
+      lb[i] = mk("healing_potion");
+      loopMod.setSimTime(2000 + i * 20);
+      me.hp = 10;
+      rows.push(`${inventoryMod.beltRole(i)}:${interactMod.beltPress(me, i)}:${lb[i].id}`);
+    }
+    assert(rows.every((r) => /:drunk:clay_vial$/.test(r)), `every slot's key: ${rows.join(", ")}`);
+    lb[3] = mk("healing_potion");
+    assert(itemInfoMod.textOf(itemInfoMod.cardFor(lb[3], { beltRole: "main" }))[2] === "From this main-hand slot: drunk.", itemInfoMod.textOf(itemInfoMod.cardFor(lb[3], { beltRole: "main" })).join(" | "));
+    me.worn.waist = wasBelt;
+    // The slot's menu and a double-click on it.
+    belt[1] = mk("stamina_potion");
+    loopMod.setSimTime(3000);
+    me.stamina = 5;
+    const menu = interactMod.slotMenu(me, "belt:1").map((m) => m.label);
+    assert(menu.includes("Drink") && !menu.some((l) => l.startsWith("Equip")), `the slot's menu: ${menu.join(", ")}`);
+    const acts = invActionsMod.createInventoryActions(() => me);
+    assert(acts.useSlot("belt:1") === true && me.stamina === me.maxStamina && potionsMod.staminaBuffed(me) && me.buffs.stamina.left === 30 && belt[1].id === "clay_vial", `the double-click on the slot: ${me.stamina}, ${JSON.stringify(me.buffs)}`);
+    // The buff: regeneration doubled, in the row in gold, run down by the host's step.
+    const base = (() => { const b = me.buffs; me.buffs = null; const k = playerMod.staminaRegenMult(me); me.buffs = b; return k; })();
+    assert(playerMod.staminaRegenMult(me) === base * 2, `regeneration ${playerMod.staminaRegenMult(me)} against ${base}`);
+    const row = debuffsMod.activeDebuffs(me).find((d) => d.id === "stamina");
+    assert(row && row.buff === true && row.time === "30s" && debuffsMod.cardOf(row).kind === "Buff" && /twice as fast/.test(debuffsMod.cardOf(row).lines.flat().map((s) => s.t).join(" ")), `the row: ${JSON.stringify(row)}`);
+    const parts0 = gameMod.syncParts();
+    for (let i = 0; i < 60 * 10; i++) gameMod.step(1 / 60, null);
+    assert(me.buffs && Math.abs(me.buffs.stamina.left - 20) < 0.05 && gameMod.syncParts().players !== parts0.players, `ten seconds later: ${JSON.stringify(me.buffs)}`);
+    for (let i = 0; i < 60 * 21; i++) gameMod.step(1 / 60, null);
+    assert(me.buffs === null && !potionsMod.staminaBuffed(me) && !debuffsMod.activeDebuffs(me).some((d) => d.id === "stamina"), `after thirty seconds: ${JSON.stringify(me.buffs)}`);
+    // The bag: its menu's Drink and a double-click, the vial back in the cell; from a stack, the vial into the bag; a full bag, the feet.
+    clear();
+    const one = give("healing_potion", 1);
+    const [cx, cy] = [one.x, one.y];
+    loopMod.setSimTime(4000);
+    me.hp = 20;
+    interactMod.itemMenu(me, one, bag, null).find((m) => m.label === "Drink").onSelect();
+    const v1 = bag.items.find((e) => e.id === "clay_vial");
+    assert(me.hp === 60 && !bag.items.includes(one) && v1 && v1.x === cx && v1.y === cy, `the bag's Drink: hp ${me.hp}, the vial at ${v1 && [v1.x, v1.y]} (the potion's ${[cx, cy]})`);
+    const stack = give("healing_potion", 3);
+    loopMod.setSimTime(4020);
+    assert(acts.use(stack, bag) === true && stack.count === 2 && inventoryMod.countAll(me, "clay_vial") === 2 && bag.items.filter((e) => e.id === "clay_vial").length === 1, `a double-click on a stack: ${stack.count} left, ${inventoryMod.countAll(me, "clay_vial")} vials`);
+    // A guest's two commands (the double-click and the menu, by uid), run here as the host runs them.
+    loopMod.setSimTime(4040);
+    me.hp = 10;
+    invActionsMod.performItemCommand(me, { op: "dbl", uid: stack.uid, src: { kind: "bag", bag: { mine: true } } });
+    loopMod.setSimTime(4060);
+    invActionsMod.performItemCommand(me, { op: "menu", label: "Drink", uid: stack.uid, src: { kind: "bag", bag: { mine: true } } });
+    assert(me.hp === 90 && !bag.items.includes(stack) && inventoryMod.countAll(me, "clay_vial") === 4, `a guest's dbl and menu commands: hp ${me.hp}, vials ${inventoryMod.countAll(me, "clay_vial")}`);
+    // A full bag: the last of a stack leaves its cell to its vial; a stack's vial with no room goes to the feet, with its line.
+    clear();
+    const full = give("healing_potion", 2);
+    while (gridMod.add(bag, "stone", 1) === 1);
+    loopMod.setSimTime(5000);
+    const floor0 = (mapMod.tileAt(Math.round(me.gx), Math.round(me.gy)).items || []).filter((e) => e.id === "clay_vial").length;
+    potionsMod.drinkFrom(me, full, { kind: "bag", bag });
+    const floor1 = (mapMod.tileAt(Math.round(me.gx), Math.round(me.gy)).items || []).filter((e) => e.id === "clay_vial").length;
+    assert(full.count === 1 && floor1 === floor0 + 1 && said.includes("Your bag is full: the vial is at your feet."), `a full bag: ${floor0} to ${floor1} vials at the feet; "${last()}"`);
+    loopMod.setSimTime(5020);
+    potionsMod.drinkFrom(me, full, { kind: "bag", bag });
+    assert(!bag.items.includes(full) && bag.items.some((e) => e.id === "clay_vial" && e.x === full.x && e.y === full.y), "the last of a stack's vial took its cell in a full bag");
+    // Mana: 50 on the bar of #480 (`player.mana`), up to the player's own most (`maxMana`).
+    clear();
+    const mana = give("mana_potion", 1);
+    const mana0 = me.mana;
+    loopMod.setSimTime(6000);
+    me.mana = 30;
+    assert(potionsMod.drinkFrom(me, mana, { kind: "bag", bag }) && me.mana === 80, `mana from 30: ${me.mana}`);
+    loopMod.setSimTime(6020);
+    const mana2 = give("mana_potion", 1);
+    me.mana = me.maxMana - 10;
+    potionsMod.drinkFrom(me, mana2, { kind: "bag", bag });
+    assert(me.mana === me.maxMana && me.maxMana === tuningMod.player.mana, `mana capped: ${me.mana} of ${me.maxMana}`);
+    me.mana = mana0;
+    // The poisons: never drunk, the line from every slot and a double-click, no Drink in a menu.
+    clear();
+    belt[0] = mk("poison");
+    belt[2] = mk("strong_poison");
+    const pw = "Poison isn't for drinking. Use it on a blade or on arrows.";
+    said.length = 0;
+    assert(interactMod.beltPress(me, 0) === "none" && last() === pw && interactMod.beltPress(me, 2) === "none" && said.filter((t) => t === pw).length === 2 && belt[0].id === "poison", `the poison's keys: ${said.join(" / ")}`);
+    const pz = give("poison", 1);
+    assert(!interactMod.itemMenu(me, pz, bag, null).some((m) => m.label.startsWith("Drink")) && !interactMod.slotMenu(me, "belt:0").some((m) => m.label.startsWith("Drink")), "a poison has a Drink");
+    said.length = 0;
+    assert(acts.use(pz, bag) === true && last() === pw && bag.items.includes(pz), `the poison's double-click: "${last()}"`);
+    const pcard = itemInfoMod.textOf(itemInfoMod.cardFor(belt[0], { beltRole: "off" }));
+    assert(pcard[2] === "From this off-hand slot: carried only." && pcard.filter((l) => /on a blade or on arrows/.test(l)).length === 1 && pcard.filter((l) => /never drunk/.test(l)).length === 1, `the poison's card on a slot says Use and never drunk once: ${pcard.join(" | ")}`);
+    // A double-click on a potion in a chest's grid drinks nothing (only your own bag, belt, and hands); drinkFrom refuses a place that does not hold it.
+    const chestBag = inventoryMod.createBag(3, 2, "chest");
+    const inChest = mk("healing_potion");
+    gridMod.insert(chestBag, inChest);
+    const inC = chestBag.items[0];
+    loopMod.setSimTime(7000);
+    me.hp = 20;
+    assert(acts.use(inC, chestBag) === false && me.hp === 20 && !potionsMod.drinkFrom(me, inC, { kind: "bag", bag: chestBag }) && !potionsMod.drinkFrom(me, inC, { kind: "belt", index: 0 }) && me.hp === 20 && inC.count === 1, `a potion in a chest was drunk: hp ${me.hp}`);
+    // Your own cauldron: made at the anvil with a smith's hammer carried (into the output, an item), set down from the bag, picked up out and empty.
+    clear();
+    const anvil = [...mapMod.allProps()].find((p) => p.sprite === "anvil");
+    mapMod.ensureAround(anvil.tile[0], anvil.tile[1], 2);
+    standBy(anvil);
+    const cr = stationsMod.recipe("cauldron");
+    assert(cr && cr.station === "anvil" && !cr.rule && cr.uses === "smith" && cr.in.length === 1 && cr.in[0].id === "iron_bar" && cr.in[0].count === 3 && cr.out.id === "cauldron", JSON.stringify(cr));
+    give("iron_bar", 3);
+    assert(stationsMod.canMake(me, anvil, cr) === "You need a smith's hammer.", `no hammer: ${stationsMod.canMake(me, anvil, cr)}`);
+    give("hammer", 1);
+    assert(verbsMod.run("craft", worldMod.world, me, { prop: anvil.id }, { recipe: "cauldron" }).ok, "the anvil would not make it with a hammer in the bag");
+    for (let i = 0; i < 60 * (cr.seconds + 1); i++) stationsMod.update(1 / 60);
+    const made = anvil.output.items.find((e) => e.id === "cauldron");
+    assert(made, "no Cauldron item in the anvil's output");
+    gridMod.remove(anvil.output, made);
+    assert(gridMod.insert(bag, made), "the Cauldron would not go in the bag");
+    let spot = null;
+    for (let r = 1; r < 30 && !spot; r++) for (let dx = -r; dx <= r && !spot; dx++) for (const dy of [-r, r]) {
+      const x = Math.round(me.gx) + dx;
+      const y = Math.round(me.gy) + dy;
+      if (!spot && !setdownMod.standProblem("ground", x, y) && !setdownMod.standProblem("ground", x, y + 1) && mapMod.isWalkableTile(x, y + 1)) spot = [x, y];
+    }
+    assert(spot, "no floor near the anvil");
+    me.gx = spot[0];
+    me.gy = spot[1] + 1;
+    const uid = bag.items.find((e) => e.id === "cauldron").uid;
+    assert(setdownMod.place(me, uid, spot[0], spot[1]), `set down: ${last()}`);
+    const own = mapMod.tileAt(spot[0], spot[1]).prop;
+    assert(own && own.sprite === "cauldron" && own.made && !own.fire.lit && own.fire.fuel === 0 && !bag.items.some((e) => e.id === "cauldron"), `your cauldron: ${own && own.sprite}`);
+    assert(stationsMod.stationOf(own).join(",") === "cauldron" && labels(own).includes("Use the cauldron") && labels(own).includes("Pick up cauldron"), `its menu: ${labels(own).join(", ")}`);
+    give("log", 1);
+    give("tinderbox", 1);
+    interactMod.performByLabel(me, { kind: "prop", id: own.id }, interactMod.actionsForTarget({ kind: "prop", id: own.id }, me).find((a) => /^Light the cauldron/.test(a.label)).label);
+    assert(own.fire.lit && setdownMod.pickUpProblem(own) === "Its fire is still burning; let it burn down." && labels(own).includes("Pick up cauldron (its fire is still burning; let it burn down) [off]"), `lit: ${labels(own).join(", ")}`);
+    mapMod.setFireLit(own, false);
+    own.fire.fuel = 0;
+    own.queue = [{ recipe: "healing_potion", left: 5, count: 1, by: me.id }];
+    assert(setdownMod.pickUpProblem(own) === "It is still making something.", setdownMod.pickUpProblem(own));
+    own.queue = [];
+    stationsMod.outputOf(own).items.push(mk("healing_potion", 1, { x: 0, y: 0 }));
+    assert(setdownMod.pickUpProblem(own) === "Empty it first.", setdownMod.pickUpProblem(own));
+    own.output.items.length = 0;
+    assert(setdownMod.pickUp(me, own) && !mapMod.propById(own.id) && bag.items.some((e) => e.id === "cauldron"), `picked up: ${last()}`);
+    // A guest's set-down command (placement.performPlacement's `setdown`, by the entry's uid): the same rule.
+    const uid2 = bag.items.find((e) => e.id === "cauldron").uid;
+    placementMod.performPlacement(me, { kind: "setdown", uid: uid2, tx: spot[0], ty: spot[1] });
+    const own2 = mapMod.tileAt(spot[0], spot[1]).prop;
+    assert(own2 && own2.sprite === "cauldron" && own2.made, "a guest's setdown command did not set the cauldron down");
+    assert(setdownMod.pickUp(me, own2), "picked up again");
+    // The save and the sync part: the potion's time and the buff.
+    me.potionAt = 123.456;
+    me.buffs = { stamina: { left: 12.3456 } };
+    const text = gameMod.syncParts().players;
+    me.buffs = { stamina: { left: 12.3 } };
+    assert(gameMod.syncParts().players !== text, "the buff is not in the sync part");
+    const saved = gameMod.serialize();
+    const back = saved.characters.players.find((p) => p.id === me.id);
+    assert(back && back.potionAt === 123.456 && back.buffs && back.buffs.stamina.left === 12.3, `the save: ${JSON.stringify(back && { potionAt: back.potionAt, buffs: back.buffs })}`);
+    return `the levers; the vials 1 clay to 2, fired at an oven; the witch's cauldron at ${witch.tile} (no carry, no village station, cooks nothing, its 5 rows open); a brew over a lit fire only, its draught from clean skins (refused "${stationsMod.NO_WATER}"), 20 s; drunk by 5 slots' keys, the slot's menu, double-clicks, the bag's Drink, a guest's two commands; 10 s between; the vial back, into the bag, at the feet; the buff doubled and gone in 30 s; mana against #480's bar; the poisons' line; your own cauldron made, set down by the host and a guest, picked up out and empty; the cards; the save and the sync part`;
   } finally {
     promptMod.setMessageSink(null);
   }

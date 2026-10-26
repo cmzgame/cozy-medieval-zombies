@@ -339,13 +339,20 @@ function weaponish(def) {
   return !!((def.weapon && !def.fire) || def.bow || def.thrown || def.shield || def.staff);
 }
 
-// What slot `role`'s key does with this entry: { act: "draw", hand } ("main", "off", or "both"), { act: "eat" }, or { act: "none", word }, the
-// line that says why. One answer for the key, the slot's menu, and the card (item-info.js), so they cannot drift apart.
+// A poison's line, its key in any belt slot and a double-click alike (docs/47 section 6; src/potions.js re-exports it).
+export const POISON_WORD = "Poison isn't for drinking. Use it on a blade or on arrows.";
+
+// What slot `role`'s key does with this entry: { act: "draw", hand } ("main", "off", or "both"), { act: "eat" }, { act: "drink" } (a potion,
+// docs/47), or { act: "none", word }, the line that says why. One answer for the key, the slot's menu, and the card (item-info.js), so they
+// cannot drift apart.
 export function beltAction(entry, role) {
   const def = getItem(entry.id);
   const n = def.name.toLowerCase();
   // A skin sips by itself from any slot, as from the bag; a tap never drinks (Michael: "I would not let you manually drink from a waterskin on tap").
   if (def.capacity) return { act: "none", word: `Your ${n} drinks by itself from your belt.` };
+  // A potion is drunk by every slot's key until step 4 makes it holdable (docs/47 section 4, #481: src/potions.js); a poison never is.
+  if (def.potion && !def.hands) return { act: "drink" };
+  if (def.poison && !def.hands) return { act: "none", word: POISON_WORD };
   if (role === "main" || role === "off") {
     const h = def.hands;
     if (h === "both") return role === "main" ? { act: "draw", hand: "both" } : { act: "none", word: roleRefusal(role, entry) }; // an off-hand slot never takes one; an old world's might hold one
