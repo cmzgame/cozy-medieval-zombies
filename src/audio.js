@@ -15,6 +15,7 @@ const slots = new Map(); // name -> { name, buffers, group, volume, radius, maxV
 let voices = []; // { slot, gain, node, end } now sounding
 let voiceCap = 24;
 let on = true; // the master switch (the Sound setting)
+let silent = false; // a test page's mute (`?mute`): nothing is heard, the settings are untouched, and the log still fills
 let masterLevel = 0.75; // the Volume setting
 let duck = 1; // 0.3 while a screen is up on the wire (docs/40, section 1)
 const groupLevel = { effects: 1, ambience: 0.5, music: 0.5, interface: 0.75 };
@@ -77,10 +78,16 @@ export function resume() {
 
 function applyLevels() {
   if (!ctx) return;
-  master.gain.value = on ? masterLevel * duck : 0;
+  master.gain.value = on && !silent ? masterLevel * duck : 0;
   for (const g of GROUPS) groupGain[g].gain.value = groupLevel[g];
 }
 
+// Silence this page without touching the Sound setting (shared with the player's own browser): an agent's test tab
+// opens with `?mute`, so the sounds are asked for and logged as ever and nobody hears them (Michael, 2026-10-25).
+export function setSilent(v) {
+  silent = !!v;
+  applyLevels();
+}
 export function setOn(v) {
   on = !!v;
   applyLevels();
@@ -228,5 +235,5 @@ export function loop(name, { at = null, volume = 1, rate = 1 } = {}) {
 }
 
 export function state() {
-  return { context: ctx ? ctx.state : "none", on, master: masterLevel, duck, voices: voices.length, slots: slots.size, listener: [...listener] };
+  return { context: ctx ? ctx.state : "none", on, silent, master: masterLevel, duck, voices: voices.length, slots: slots.size, listener: [...listener] };
 }
