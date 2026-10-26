@@ -34,8 +34,14 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
     # so 200 files took 18 s on 2026-10-12 (docs/23, step 1).
     protocol_version = "HTTP/1.1"
 
+    def send_response(self, code, message=None):
+        self._status = code
+        super().send_response(code, message)
+
     def end_headers(self):
-        if "?v=" in self.path:
+        # Only a good answer is kept: an error (a file locked a moment on Windows, a 404) cached for a year
+        # would fail every later boot on that picture (2026-10-26, the review of #502).
+        if "?v=" in self.path and 200 <= getattr(self, "_status", 200) < 300:
             # A stamped file from the manifest: immutable until its stamp changes (docs/23).
             self.send_header("Cache-Control", "public, max-age=31536000, immutable")
         else:
