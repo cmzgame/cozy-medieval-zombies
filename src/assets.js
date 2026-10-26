@@ -56,7 +56,7 @@ const images = new Map();
 const IMAGE_RETRIES = [300, 1000, 2500]; // ms to wait before each try after the first
 export function loadImage(src) {
   if (!images.has(src)) {
-    images.set(src, new Promise((resolve, reject) => {
+    const pending = new Promise((resolve, reject) => {
       let attempt = 0;
       const tryLoad = () => {
         const img = new Image();
@@ -66,14 +66,16 @@ export function loadImage(src) {
             setTimeout(tryLoad, IMAGE_RETRIES[attempt++]);
             return;
           }
-          images.delete(src);
+          if (images.get(src) === pending) images.delete(src); // never a newer ask made while this one retried
           reject(new Error(`Failed to load image ${src}`));
         };
         // A retry asks again past any cache that kept the failure.
-        img.src = attempt ? `${url(src)}${url(src).includes("?") ? "&" : "?"}retry=${attempt}` : url(src);
+        const u = url(src);
+        img.src = attempt ? `${u}${u.includes("?") ? "&" : "?"}retry=${attempt}` : u;
       };
       tryLoad();
-    }));
+    });
+    images.set(src, pending);
   }
   return images.get(src);
 }
