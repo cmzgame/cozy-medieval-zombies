@@ -57,7 +57,7 @@ const domeAt = (x, hw, h) => Math.max(1, Math.round(h * Math.sqrt(Math.max(0, 1 
 // `serrated`), and its flowers where the design says, each kind its own colour and shape; or a tuft of moss (`mound`, with `tufts`).
 //   flowers: "spike" (a dense column up the stem's top half), "daisy" (white petals round an `eye`), "umbel" (a flat head), "cluster"
 //   (a round head at each tip), "star" (a small five-pixel star at each tip), "hood" (hooded blooms up the top of the stem), "bell" (bells
-//   hanging from the leaves), "none"; `glow` a pale pixel over each tip (the mana herb), `berries` hung from the leaves, `root` roots
+//   hanging from the leaves), "none"; `glow` a pale pixel over each tip (mageroot), `berries` hung from the leaves, `root` roots
 //   showing either side of the foot (madder).
 function herb(d, set) {
   const leaf = d.leaf || "#5a8a4a";

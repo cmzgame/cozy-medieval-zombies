@@ -129,6 +129,7 @@ export function swayOf(prop, height) { // exported for tools/checks/sway.js
 // slows as it drifts (whole pixels, fading).
 const SOIL = [[-15, 1], [-9, 3], [-3, 4], [4, 3], [10, 2], [16, 0]];
 function risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, k, shake = 0) {
+  k = Math.max(0, k); // a guest's clock a little behind the stamp draws the start, never a fade past whole
   const an = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
   const uv = gl.frameUV(sheet, name);
   const h = f[3] - sink;

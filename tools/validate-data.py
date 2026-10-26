@@ -287,7 +287,7 @@ for sid in sorted(sprites):
             fail(f"sprites.{sid}.mine: `{retired}` is retired (docs/46: an ore rock no longer comes back in place)")
 
 # Gathering (docs/46 step 2, #448): a `gather` block (by hand) or a `dig` block (a tool carried) names an item that exists, a count, seconds,
-# and the skill and level it is recorded at (open to all until the skills are built); a dig names a verb some tool lists; `night` is a flag.
+# and the skill and level it is recorded at (open to all until the skills are built); a dig names a verb some tool lists; no block has `night` (nothing is gathered only at night: Michael, 2026-10-25).
 # A node gathered is a gatherable (interactable, the law). A `mine` block may record its skill and level too.
 tool_verbs = {v for it in items for v in it.get("verbs", [])}
 for sid in sorted(sprites):
@@ -309,8 +309,8 @@ for sid in sorted(sprites):
             fail(f"{where}: a level from 1 to 10")
         if field == "dig" and g.get("tool") not in tool_verbs:
             fail(f"{where}: the tool's verb {g.get('tool')!r} is listed by no item")
-        if "night" in g and not isinstance(g["night"], bool):
-            fail(f"{where}: night is true or false")
+        if "night" in g:
+            fail(f"{where}: night is struck (Michael, 2026-10-25: no 'only at night' plants)")
         if "word" in g and not (isinstance(g["word"], str) and g["word"][:1].isupper()):
             fail(f"{where}: the menu's word, capitalised")
 
@@ -348,9 +348,10 @@ for path in sorted(glob.glob("data/maps/*.json")):
             fail(f"{where}: grows by the water {k['waterGroup']!r}, which the map has none of")
         if "where" in k and not (isinstance(k["where"], str) and k["where"] and k["where"][0].islower()):
             fail(f"{where}: where it grows, in words for a card (\"near the river\"), not {k['where']!r}")
-        for flag in ("own", "night"):
-            if flag in k and not isinstance(k[flag], bool):
-                fail(f"{where}: {flag} is true or false")
+        if "own" in k and not isinstance(k["own"], bool):
+            fail(f"{where}: own is true or false")
+        if "night" in k:
+            fail(f"{where}: night is struck (Michael, 2026-10-25: no 'only at night' plants)")
 rt = load("data/tuning.json").get("resources", {})
 if rt:
     d0, d1 = rt.get("days", [1, 2])

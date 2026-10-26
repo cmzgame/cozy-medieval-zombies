@@ -5,8 +5,8 @@
 // spot at random in the area (`rng`), grows that spot's chunk through a mutator (`map.growTile`: reading never grows, and a blank tile would
 // test free), and tests it by the one rule of where a node may stand (`map.resourceSpotProblem`); a spot that fails draws again, `tries`
 // times, then the debt waits for the next look. A take in the wild queues nothing (the wild comes back by new chunks). Step 2 (#448) adds
-// the herbs (each kind its own area and count), clay banks by the river, and salt rocks with the ore; a kind marked `night` (the
-// graveyard's herbs) grows its replacements only at night.
+// the herbs (each kind its own area and count), clay banks by the river, and salt rocks with the ore. No kind waits for night (Michael, 2026-10-25: "I don't want any 'only at night' plants"):
+// the graveyard's grave moss comes back at any hour, as every herb does.
 //
 // What is kept: the debts and the last boundary looked at, the host's alone, in the save (game.serialize) and out of game.syncParts as the
 // generator's state is (a replica never rolls them). What a comeback grows reaches a guest as its touched chunk, the new prop in it; a rock
@@ -74,11 +74,9 @@ export function step(bodies = []) {
   bucket = b;
   const at = b * RES.checkSeconds;
   let who = null;
-  const night = clock.getPhase() === "night";
   for (const kind of map.resourceKinds()) {
     const list = debts.get(kind.name);
     if (!list || !list.length) continue;
-    if (kind.night && !night) continue; // the graveyard's herbs come back only at night (step 2, #448): a debt fallen due by day waits for it
     for (let i = 0; i < list.length; i++) {
       const d = list[i];
       if (d.due > at) continue;

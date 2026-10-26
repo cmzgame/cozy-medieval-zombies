@@ -1,13 +1,13 @@
 // Herbs, clay, and salt (docs/46 step 2, #448). From the console, on a tab with `?nosave` (the valley):
 //   await __game.check("herbs")
-// Each herb kind stands to its count on its ground (the mana herb by water, nightshade and wolfsbane near trees, the graveyard's inside its
+// Each herb kind stands to its count on its ground (mageroot by water, nightshade and wolfsbane near trees, the graveyard's inside its
 // wall), clay banks by the river, salt rocks in the ore area; every node is a gatherable whose sheet is hard-pixelled and outlined all the way
 // round, the herbs and mushrooms walked through and the bank and the salt rock solid; every new item has its icon made at boot from its
 // design (an herb's the very pixels of its node), registered as its picture on the floor, and its card on the page over the bag says its full
 // name and its kind and no use that is not built (every card's text is in the row's detail, for reading); an herb is gathered by the menu's
-// label a guest sends, after its bar, to the bag, the node gone and a debt owed; a mushroom foraged; the graveyard's refused and greyed by
-// day and gathered at night; clay dug only with a shovel carried; salt mined with a pickaxe; past their days each comes back elsewhere in its
-// area (salt rising, the graveyard's only at night), its chunk marked. The world is put back from its own save at the end (run it solo).
+// label a guest sends, after its bar, to the bag, the node gone and a debt owed; a mushroom foraged; the graveyard's grave moss gathered by
+// day (no plant is night's alone: Michael, 2026-10-25); clay dug only with a shovel carried; salt mined with a pickaxe; past their days each comes back elsewhere in its
+// area by day (salt rising, the graveyard's too), its chunk marked. The world is put back from its own save at the end (run it solo).
 //
 // Two tabs (`?nosave&relay=none`): on the host `await __game.check("herbs", { keep: true })` skips the world's restore, stands every other
 // player beside a nettle, grows a sage elsewhere, and returns `kept`; on the guest `await __game.check("herbs", { guest: <kept> })` reads the
@@ -28,7 +28,7 @@ export async function run(game, opts = {}) {
   const RES = G.tuning.resources;
   const HERBS = ["sage", "nettle", "feverfew", "yarrow", "woad", "madder", "weld", "mana_herb", "nightshade", "wolfsbane", "grave_moss"];
   const ITEMS = [...HERBS, "mushroom", "clay", "salt"];
-  const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand, only at night.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
+  const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
   const KIND = { woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Forage", clay: "Material", salt: "Material" };
   const me = G.player;
   const cardText = (id) => info.textOf(info.cardFor(G.items.makeEntry(id))).join(" | ");
@@ -104,7 +104,7 @@ export async function run(game, opts = {}) {
     const inYard = nodesOf(kinds.grave_moss).every((p) => p.tile[0] >= gy[0] && p.tile[1] >= gy[1] && p.tile[0] < gy[0] + gy[2] && p.tile[1] < gy[1] + gy[3]);
     const ore = kindOf("ore");
     const salty = nodesOf(kinds.salt).every((p) => G.map.inResourceArea(ore, p.tile[0], p.tile[1]));
-    row("each on its ground: the mana herb within two tiles of water, clay banks of the river, the graveyard's inside its wall, salt in the ore area", wet && river && inYard && salty, `mana ${wet}, clay ${river}, graveyard ${inYard}, salt ${salty}`);
+    row("each on its ground: mageroot within two tiles of water, clay banks of the river, the graveyard's inside its wall, salt in the ore area", wet && river && inYard && salty, `mana ${wet}, clay ${river}, graveyard ${inYard}, salt ${salty}`);
 
     // ---- the art: the nodes' sheets, the items' icons ----
     const sheetPixels = (sheet) => {
@@ -331,13 +331,10 @@ export async function run(game, opts = {}) {
     row("a mushroom is foraged by its label (Herbalism 3, open to all): a mushroom in the bag, a debt on the mushrooms' record", count("mushroom") === 1 && !G.map.propById(shroom.id), `${count("mushroom")} mushroom; menu ${labelsOf(shroom).join(", ") || "(gone)"}`);
     const moss = nodesOf(kinds.grave_moss)[0];
     standBy(moss);
-    const byDay = G.verbs.run("gather", G.world, me, { prop: moss.id });
-    const dayLabels = labelsOf(moss);
-    G.clock.setHour(1);
-    const nightLabels = labelsOf(moss);
-    const byNight = G.verbs.run("gather", G.world, me, { prop: moss.id });
-    row("the graveyard's grave moss is refused and greyed by day, and gathered at night", !byDay.ok && dayLabels.includes("Gather grave moss (only at night) [off]") && nightLabels.includes("Gather grave moss") && byNight.ok && count("grave_moss") === 1, `day: ${byDay.reason}, ${dayLabels.join(", ")}; night: ${nightLabels.join(", ")}, ${byNight.ok}`);
     G.clock.setHour(12);
+    const dayLabels = labelsOf(moss);
+    const byDay = G.verbs.run("gather", G.world, me, { prop: moss.id });
+    row("the graveyard's grave moss is gathered by day, as any herb (no 'only at night' plants: Michael, 2026-10-25)", byDay.ok && dayLabels.includes("Gather grave moss") && !dayLabels.some((l) => /night/.test(l)) && count("grave_moss") === 1, `day: ${byDay.ok ? "gathered" : byDay.reason}; ${dayLabels.join(", ")}`);
     const bank = nodesOf(kinds.clay)[0];
     standBy(bank);
     const noShovel = G.verbs.run("dig", G.world, me, { prop: bank.id });
@@ -362,9 +359,9 @@ export async function run(game, opts = {}) {
     const taken = { nettle: nettle.tile, clay: bank.tile, salt: salt.tile, grave_moss: moss.tile };
     const due = Math.max(...Object.keys(taken).flatMap((n) => resources.owed(n).map((d) => d.due)));
     G.clock.setElapsed(Math.ceil(due / G.clock.DAY_LENGTH) * G.clock.DAY_LENGTH + G.clock.DAY_LENGTH / 2); // noon, the day after the last falls due
-    const byDayKinds = ["nettle", "clay", "salt"];
+    const byDayKinds = ["nettle", "clay", "salt", "grave_moss"];
     let looks = 0;
-    let night = 0; // a look an hour of the clock; past 20:00 it goes on to the next noon, so every look is by day and the graveyard's cannot grow by chance
+    let night = 0; // a look an hour of the clock; past 20:00 it goes on to the next noon, so every look is by day
     for (; looks < 30 && byDayKinds.some((n) => resources.owed(n).length); looks++) {
       G.game.begin(0);
       if (G.clock.getPhase() !== "day") night++;
@@ -374,14 +371,10 @@ export async function run(game, opts = {}) {
     if (night) row("every comeback look was by day", false, `${night} looks at night`);
     const grownOf = (n) => G.map.allProps().find((p) => !ids0.has(p.id) && kinds[n].sprites[p.sprite] !== undefined && G.map.inResourceArea(kinds[n], p.tile[0], p.tile[1]));
     const back = byDayKinds.map((n) => [n, grownOf(n)]);
-    row("past their days a nettle, a clay bank, and a salt rock stand at new spots in their areas, each where the rule allows", back.every(([n, p]) => p && (p.tile[0] !== taken[n][0] || p.tile[1] !== taken[n][1])), back.map(([n, p]) => `${n} ${p ? p.tile.join(",") : "none"}`).join("; ") + ` after ${looks} looks`);
+    row("past their days a nettle, a clay bank, a salt rock, and the graveyard's grave moss stand at new spots in their areas by day, each where the rule allows", back.every(([n, p]) => p && (p.tile[0] !== taken[n][0] || p.tile[1] !== taken[n][1])), back.map(([n, p]) => `${n} ${p ? p.tile.join(",") : "none"}`).join("; ") + ` after ${looks} looks`);
     const salt2 = grownOf("salt");
     const clay2 = grownOf("clay");
     row("the salt rock rose (its stamp on the sim clock), the herb simply appeared, the clay bank stands by the river", !!salt2 && Number.isFinite(salt2.risenAt) && grownOf("nettle") && grownOf("nettle").risenAt === undefined && !!clay2 && G.map.waterNear(clay2.tile[0], clay2.tile[1], 2, "river"), `salt risenAt ${salt2 && salt2.risenAt}, clay at ${clay2 && clay2.tile}`);
-    const mossOwedByDay = resources.owed("grave_moss").length;
-    G.clock.setHour(23.5);
-    for (let i = 0; i < 12 && resources.owed("grave_moss").length; i++) { G.game.begin(0); G.clock.setElapsed(G.clock.getElapsed() + RES.checkSeconds); }
-    row("the graveyard's waits for night to come back, and comes back at night inside the wall", mossOwedByDay === 1 && !resources.owed("grave_moss").length && !!grownOf("grave_moss"), `owed by day ${mossOwedByDay}, at night ${resources.owed("grave_moss").length}; ${grownOf("grave_moss") ? grownOf("grave_moss").tile : "none"}`);
 
     // ---- two tabs: a nettle beside every other player, and a sage grown for the guest to read ----
     if (keep) {
