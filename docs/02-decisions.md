@@ -245,6 +245,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- A `net.PROTOCOL` bump in a build Primary runs merges on a clean fresh review, said in the PR's Risks; the rest of `github.md` section 8's list still waits for Michael (2026-10-25, Protocol bumps on review)
 - Every tuning lever Michael means to keep turning and every world setting he names has its line in `docs/42-levers.md`, added by the ruling that names it (2026-10-24, The first real melee test)
 - The first priority is a final scope for The Valley, with every dev value real and placeholder sounds in (art may lag); the demo is cut from the finished valley (2026-10-18, The Valley's final scope is the first priority; finished means sounds)
 - References to real things outside the lore are data, `data/references.json`, shown on one wiki page; the first is the Onion-head Hat, after Cake's Comfort Eagle (2026-10-18, The Onion-head Hat; real-world references on one page; specific names; a lore issue)
@@ -291,6 +292,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Protocol bumps on review (Michael)
+
+Approving #455's `net.PROTOCOL` bump, Michael added: "Protocol bumps in the builds you're running for me can go in on review from now on; tell me in the PR." So a `PROTOCOL` bump in a build Primary runs merges on a clean fresh review, without `needs-michael`; the pull request says so in its Risks. The rest of `github.md` section 8's list (the save format beyond expendable worlds, rulings, the rig, the deploy, secrets, the files every session reads) still waits for his word. `github.md` section 8 step 6 still lists `net.PROTOCOL` among the things needing him; it is a file every session reads, so its pointer to this entry waits for his word too.
 
 ### 2026-10-25 — The off hand's swing moves the off arm (Michael's playtest; #423)
 
