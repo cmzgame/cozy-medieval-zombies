@@ -4,9 +4,10 @@
 // ui/hover-card.js draws what this returns. A card is { name, kind, state, lines, fine }: `lines` and `fine` are lists of lines, a line a list of segments { t, k } where `k`
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
-import { getItem, allItems, wearPerHit, wearPerShot, toolFor, countName, pluralName, namePlural } from "./items.js";
+import { getItem, allItems, wearPerHit, wearPerShot, toolFor, countName, pluralName, namePlural, nounName } from "./items.js";
 import { shotDamage, tunables as shot } from "./archery.js"; // a shot's damage by the draw and the flight's defaults (data/combat.json `bow`): the bow, a throw, a spell (#317)
 import { BURN } from "./burn.js"; // what burning does to the dead (data/combat.json `burn`): a fire arrow's and a fireball's line
+import { POISON, coatOf, coatWords, effectWords as poisonEffect } from "./poison.js"; // a poison's numbers, a blade's coat, a poisoned arrow's line (data/combat.json `poison`)
 import { propName } from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id
 import { beltAction, ROLE_WORD } from "./inventory.js"; // what a belt slot's key does by its role (2026-10-25)
 import { work, trees, potions as POTIONS } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6); the sapling and the sticks (docs/46 step 3); what a potion does (docs/47 section 4)
@@ -28,7 +29,7 @@ const seg = (t, k) => (k ? { t, k } : { t });
 const line = (...parts) => parts.map((p) => (typeof p === "string" ? seg(p) : p));
 
 // What a player calls the ground and the things a Use row names, where the sprite's id is not it.
-const WORDS = { floor_farm: "tilled soil", floor_farm_y: "tilled soil", floor_water: "water", floor_water_shallow: "water", floor_grass: "grass", floor_dirt: "bare earth", crop: "crops" };
+const WORDS = { floor_farm: "tilled soil", floor_farm_y: "tilled soil", floor_water: "water", floor_water_shallow: "water", floor_grass: "grass", floor_dirt: "bare earth", crop: "crops", blade: "a blade", arrow: "arrows" }; // `blade` a tag (docs/47 section 6), `arrow` the plain arrows a poison coats
 
 // A target of a Use row, named: a sprite id or a tag, as words.
 function nameOfOn(on) {
@@ -66,7 +67,7 @@ function getDefSafe(id) {
 export function usesOf(def) {
   const groups = new Map();
   for (const r of interactions.all()) {
-    if (r.use !== def.id && !(def.tags && def.tags.includes(r.use))) continue;
+    if (!interactions.usedBy(r, { id: def.id })) continue; // its id or a tag, or its id alone on an `exact` row (interactions.js)
     const verb = (r.verb || "use").toLowerCase();
     if (!groups.has(verb)) groups.set(verb, []);
     const name = nameOfOn(r.on);
@@ -187,7 +188,9 @@ function shotLines(def) {
     out.push(line(`Draw and release (left button): ${byDraw(b.damage ?? shot.damage)}, up to ${tiles(b.range ?? shot.range)}.`));
     const ammo = ammoOf(def);
     const first = ammo.slice(0, -1);
-    out.push(line(`Needs ${pluralName(ammo[ammo.length - 1])} carried${first.length ? `, ${listOr(first.map(pluralName))} first` : ""}${def.shots ? `; good for about ${def.shots} shots` : ""}.`));
+    // The order it takes them in (docs/47 section 6: fire arrows, then poisoned ones, then plain): "fire arrows first, then poisoned arrows".
+    const order = first.map((id, k) => (k === 0 ? `${pluralName(id)} first` : `then ${pluralName(id)}`)).join(", ");
+    out.push(line(`Needs ${pluralName(ammo[ammo.length - 1])} carried${first.length ? `, ${order}` : ""}${def.shots ? `; good for about ${def.shots} shots` : ""}.`));
   }
   // An arrow: the bows that shoot it, and where it stands in their order.
   const bows = allItems().filter((d) => d.bow && ammoOf(d).includes(def.id));
@@ -197,10 +200,18 @@ function shotLines(def) {
     const before = order.slice(0, i);
     const after = order.slice(i + 1);
     const dmg = bows.length === 1 ? ` (${byDraw(bows[0].bow.damage ?? shot.damage)})` : "";
-    out.push(line(`Shot from ${listOr(bows.map((d) => an(d.name.toLowerCase())))}${dmg}${after.length ? `, before any ${listOr(after.map(pluralName))}` : before.length ? `, when no ${listOr(before.map(pluralName))} are carried` : ""}.`));
+    const where = before.length && after.length ? `, after any ${listOr(before.map(pluralName))} and before any ${listOr(after.map(pluralName))}` : after.length ? `, before any ${listOr(after.map(pluralName))}` : before.length ? `, when no ${listOr(before.map(pluralName))} are carried` : "";
+    out.push(line(`Shot from ${listOr(bows.map((d) => an(d.name.toLowerCase())))}${dmg}${where}.`));
   }
   if (def.ignite === true) out.push(burnLine());
-  for (const r of interactions.all()) if (r.args && r.args.to === def.id && r.args.from) out.push(line(`Made from ${pluralName(r.args.from)}: `, seg("Use", "use"), ` them on ${nameOfOn(r.on)} (${(r.verb || "use").toLowerCase()}).`));
+  if (def.poisoned) out.push(line(poisonEffect(def.poisoned.tier))); // a poisoned arrow (docs/47 section 6)
+  // What makes it: a Use whose `args.to` it is. Used on a fire (the fire arrow's dip), "Use them on fire"; made by using something on them (a
+  // poison on arrows), "Use poison on them".
+  for (const r of interactions.all()) {
+    if (!(r.args && r.args.to === def.id && r.args.from)) continue;
+    if (r.on === r.args.from) out.push(line(`Made from ${pluralName(r.args.from)}: `, seg("Use", "use"), ` ${nounName(r.use)} on them (${(r.verb || "use").toLowerCase()}).`));
+    else out.push(line(`Made from ${pluralName(r.args.from)}: `, seg("Use", "use"), ` them on ${nameOfOn(r.on)} (${(r.verb || "use").toLowerCase()}).`));
+  }
   // A spell, the book's (docs/24): cast with a staff in the other hand, drawn and released as the bow is.
   const s = def.book && def.book.spell;
   if (s) {
@@ -256,9 +267,11 @@ export function cardFor(entry, opts = {}) {
   if (def.potion === "stamina") lines.push(line(seg("Drink", "word"), `: fills your stamina, and it comes back ${POTIONS.staminaMult === 2 ? "twice" : `${POTIONS.staminaMult} times`} as fast for ${POTIONS.staminaSeconds} seconds.`));
   if (def.potion === "mana") lines.push(line(seg("Drink", "word"), `: restores ${POTIONS.mana} mana at once.`));
   if (def.potion) lines.push(line(`${POTIONS.between} seconds between one potion and the next; the empty vial is kept.`));
+  // Its Use is the rows' (usesOf, below: "Use on a blade or arrows: coat."), said once (step 2's builder's note); what a coat is and does, from data/combat.json `poison`.
   if (def.poison) {
-    lines.push(line(seg("Use", "use"), " on a blade or on arrows."));
     lines.push(line(`${def.poison.tier > 1 ? "Strong" : "Ordinary"} poison: never drunk.`));
+    lines.push(line(`A vial coats a blade for ${POISON.hits} landed hits, or ${POISON.arrows} arrows; the empty vial is kept.`));
+    lines.push(line(poisonEffect(def.poison.tier)));
   }
   if (def.weapon) {
     const w = def.weapon;
@@ -267,6 +280,8 @@ export function cardFor(entry, opts = {}) {
     const a = w.alt;
     if (a && a.damage) lines.push(line(`${a.name ? a.name[0].toUpperCase() + a.name.slice(1) : "Other mode"} (middle button or Q): ${a.damage} damage${a.range ? `, reach ${a.range}` : ""}${a.stamina ? `; ${a.stamina} stamina` : ""}.`));
   }
+  // A blade's coat on this entry (docs/47 section 6): "Poisoned: 7 hits left." ("Strongly poisoned" for the strong tier).
+  if (coatOf(entry)) lines.push(line(coatWords(entry)));
   // What is thrown (the spear, on the middle button or Q, docs/21), shot (the bow, its arrows), or cast (a spellbook, a staff): #317.
   lines.push(...shotLines(def));
   if (def.rug) lines.push(line(seg("Place", "word"), ": lay on the floor."));

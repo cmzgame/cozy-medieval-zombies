@@ -1481,6 +1481,8 @@ async function boot() {
       assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
       assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
       assets.registerSheet("fire_arrow", archery.generateFireArrow()); // a fire arrow in flight (#14)
+      assets.registerSheet("poison_arrow", archery.generatePoisonArrow()); // a poisoned arrow in flight, and a strongly poisoned one (docs/47 section 6)
+      assets.registerSheet("strong_poison_arrow", archery.generateStrongPoisonArrow());
       // A thrown knife's and axe's spin and the picture lying where it came down, turned from its drawn art (docs/24 section 1). A failed
       // load leaves it flying and lying unseen, never the boot stopped.
       for (const d of items.allItems()) {

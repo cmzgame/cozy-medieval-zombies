@@ -673,6 +673,29 @@ for i in items:
             fail(f"items.{i['id']}.bow.ammo: a list of ammunition item ids")
     if "ignite" in i and i["ignite"] is not True:
         fail(f"items.{i['id']}.ignite: true or absent")
+    # A poisoned arrow (docs/47 section 6, #482): `poisoned` { tier: 1 or 2 } on ammunition alone, never beside `ignite` (fire and poison do not mix).
+    if "poisoned" in i:
+        if i.get("kind") != "ammo" or not (isinstance(i["poisoned"], dict) and i["poisoned"].get("tier") in (1, 2)) or "ignite" in i:
+            fail(f"items.{i['id']}.poisoned: {{ tier: 1 or 2 }} on ammunition that does not burn")
+    # The `blade` tag (docs/47 section 6: what a poison coats) is on exactly the items whose `repair` block says `edged`.
+    if ("blade" in i.get("tags", [])) != bool((i.get("repair") or {}).get("edged")):
+        fail(f"items.{i['id']}: the blade tag goes on exactly the edged weapons (repair.edged)")
+
+# The poisons' numbers (docs/47 section 6; data/combat.json `poison`, src/poison.js): the drain by stacks for each tier, as many as `max`,
+# the timer, a coat's hits, and the arrows a vial makes, each above 0.
+_po = load("data/combat.json").get("poison") or {}
+_dps = _po.get("dpsByStacks") or {}
+if not all(isinstance(_dps.get(t), list) and len(_dps[t]) == _po.get("max") and all(num(v) and v > 0 for v in _dps[t]) for t in ("ordinary", "strong")):
+    fail("combat.poison.dpsByStacks: `ordinary` and `strong`, each a number above 0 for every stack up to `max`")
+for k in ("max", "hits", "arrows"):
+    if not (isinstance(_po.get(k), int) and not isinstance(_po.get(k), bool) and _po[k] > 0):
+        fail(f"combat.poison.{k}: a whole number above 0")
+if not (num(_po.get("duration")) and _po["duration"] > 0):
+    fail("combat.poison.duration: seconds above 0")
+# An `exact` Use row (src/interactions.js `usedBy`) matches its `use` as an item id alone, never a tag, so that `use` must be an item's id.
+for _r in load("data/interactions.json").get("rows", []):
+    if "exact" in _r and (_r["exact"] is not True or _r.get("use") not in by_id):
+        fail(f"interactions: the exact row for {_r.get('use')!r} on {_r.get('on')!r}: `exact` is true, and its `use` an item id")
 
 # The farms and the mill (#201): every recipe's station is some sprite's `station` (or the cooking fire), the millstones grind grain, every crop's seed is in
 # both granaries' fixed tables (a seed source for every crop, never refilled), and no crop is a dead end (its harvest is an ingredient, by id or tag).

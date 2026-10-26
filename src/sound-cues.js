@@ -28,7 +28,7 @@ import { client } from "./client.js";
 
 const FRESH = 0.25; // seconds of sim time since the last run past which the ear starts again from a baseline (docs/40)
 const WALK = new Set(["walk", "carry_walk"]);
-const LANDS = new Set(["arrow", "fire_arrow"]); // the projectiles whose landing is `arrow_land` (a spear's and a spell's are later)
+const LANDS = new Set(["arrow", "fire_arrow", "poison_arrow", "strong_poison_arrow"]); // the projectiles whose landing is `arrow_land` (a spear's and a spell's are later)
 
 let steps = { nearest: 6, gap: 0.18, dead: "shuffle", default: "shuffle" }; // data/sounds.json `footsteps`
 let swingCfg = { heavyAt: 0.8, rise: 0.1 }; // data/sounds.json `swing`

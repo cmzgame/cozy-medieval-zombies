@@ -15,6 +15,8 @@ The lists are issues (wave 4 of the sweep, #70): the hand items of the starting 
 
 **The potions' step (#481, `docs/47` section 8):** the unfired vial, the clay vial, the three potions, and the two poisons are on dev art from one design each (`src/gather-art.js` `vial`: the body earthen, the colour on the wax seal and a glazed band), each a drawn pair owed, and a 38 by 38 portrait each once step 4 makes them holdable; the cauldron (the prop and the Cauldron item) is a dev box until its art is drawn.
 
+**The poisons' step (#482, `docs/47` section 8):** the poisoned arrow and the strongly poisoned arrow are a coloured block in the bag and on the floor and, in flight, the arrow's own generated picture with a green head, the strong one's darker (`archery.generatePoisonArrow`, `generateStrongPoisonArrow`): each a drawn pair owed, as the fire arrow's is.
+
 **Briefed, not yet sent (2026-10-19, #309):** `art/11-brief-fences-and-everyday-icons.md` asks for the log, apple, plank, torch (unlit and lit), bread, waterskin, tinderbox, stick, bandage, stone, the six seeds, and the starting outfit (tunic, breeches, boots, rope belt, burlap sack), and optionally the home chest's hatchet and shovel, each a full set, with the fence and its gate.
 
 ## Already delivered and in the game (for the record)
