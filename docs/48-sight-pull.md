@@ -1,6 +1,6 @@
 # 48 — Sight-pull: one of the dead drawn in brings the ones that see it
 
-**Status, 2026-10-25: a spec, ruled by Michael in session (`02`, 2026-10-25, Sight-pull ruled); not built.** Written from `origin/main` at 6c9e740 or later. One build step, one issue. A **default** is Primary's, Michael's to overrule; the rest is his ruling.
+**Status, 2026-10-26: built (#492), as written; ruled by Michael in session (`02`, 2026-10-25, Sight-pull ruled).** `huntsPlayer` and `pullDue` on the dead, the call (`callOthers`) in `src/entities/zombie.js`, `sightRange` shared by the three, the levers in `data/tuning.json` (`42`), `check("pull")` and a row in `tools/check.js`. One reading the build made where the doc left it open: a drawn-in one with a villager in sight is given the caller's memory, and its own next sight of the villager takes it back (no second memory is kept). A **default** is Primary's, Michael's to overrule; the rest is his ruling.
 
 ## 1. Why, in Michael's words
 

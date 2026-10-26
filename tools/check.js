@@ -2602,6 +2602,47 @@ check("throwing: one from the stack with its own uid, the axe's knockdown rolled
   return `one from a stack of 2 with its own uid, the hand empty after the last; the axe floored ${ax.down} of ${ax.hit}, the knife ${kn.down} of ${kn.hit}; no uid twice`;
 });
 
+// Sight-pull (docs/48, #492): one of the dead struck by a player calls, on its next step, the dead within the radius that see it, and they
+// join the hunt with its memory; one beyond stays; a killing blow calls no one; a joined one never calls; the marks are saved. The headless
+// hash runs with Zombie aggro off, so it never sees the pull: this row and the pane's check("pull") are its proof.
+check("sight-pull: a blow it lives through calls the dead near it that see it, once, and a killing blow calls no one", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: true } });
+  const S = gameMod.state;
+  const me = S.player;
+  S.zombies.length = 0;
+  S.villagers.length = 0;
+  rngMod.seed(4242);
+  // Open ground 12 by 5 tiles near the spawn, and the player well away from it (beyond the dead's sight).
+  const open = (x0, y0) => { for (let dx = -1; dx <= 11; dx++) for (let dy = -2; dy <= 2; dy++) { const x = x0 + dx, y = y0 + dy; if (!mapMod.isWalkableTile(x, y) || mapMod.tileAt(x, y).prop || mapMod.wallBetween(x, y, x + 1, y) || mapMod.wallBetween(x, y, x, y + 1)) return false; } return true; };
+  const ox = Math.round(me.gx), oy = Math.round(me.gy);
+  let spot = null;
+  for (let r = 0; r <= 40 && !spot; r++) for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) if ((Math.abs(dx) === r || Math.abs(dy) === r) && open(ox + dx, oy + dy)) spot = [ox + dx, oy + dy];
+  assert(spot, "no open ground near the spawn");
+  const [sx, sy] = spot;
+  me.gx = sx + 30;
+  me.gy = sy;
+  const add = (x, y) => { const z = zombieMod.createZombie(x, y); z.sightTimer = 1e9; z.idleTimer = 1e9; S.zombies.push(z); return z; };
+  const step = (n) => { for (let i = 0; i < n; i++) gameMod.step(1 / 60, null); };
+  const caller = add(sx + 3, sy);
+  const near = [add(sx + 4, sy), add(sx + 3, sy + 1)];
+  const far = add(sx + 11, sy);
+  assert(!caller.huntsPlayer && !caller.pullDue, "a new dead one starts hunting a player");
+  zombieMod.damageZombie(caller, 1, { from: [me.gx, me.gy] });
+  assert(caller.huntsPlayer && caller.pullDue && !near.some((z) => z.huntsPlayer), "the blow did not set the marks, or the call came before the struck one's step");
+  step(1);
+  assert(!caller.pullDue && near.every((z) => z.huntsPlayer && z.aggro && z.lastSeen && z.lastSeen[0] === caller.lastSeen[0]) && !far.huntsPlayer, `after its step: near ${near.map((z) => z.huntsPlayer)}, far ${far.huntsPlayer}`);
+  // The marks ride the save (docs/48: kept with the dead one's record, as aggro and lastSeen are).
+  const back = JSON.parse(JSON.stringify(gameMod.serialize())).characters.zombies.find((z) => z.id === near[0].id);
+  assert(back && back.huntsPlayer === true, `the save's record of a drawn-in one: huntsPlayer ${back && back.huntsPlayer}`);
+  // A killing blow calls no one.
+  const victim = add(sx + 8, sy + 2);
+  const by = add(sx + 9, sy + 2);
+  zombieMod.damageZombie(victim, 100000, { from: [me.gx, me.gy] });
+  step(2);
+  assert(victim.dead && !by.huntsPlayer, `a killing blow: dead ${victim.dead}, its neighbour hunts ${by.huntsPlayer}`);
+  return `the struck one called ${near.length} near it on its next step, the one 8 tiles off stayed; the marks are saved; a killing blow called no one`;
+});
+
 // An item's name counted in a sentence (src/items.js countName; docs/bugs.md, the butcher's "3 raw venisons"): a definition's `noun` "mass"
 // reads "some lard" and "3 raw venison", "pair" reads "shears", and anything else "a"/"an" and +s. Every yield and product an animal gives is
 // read in the skin, butcher, milk, and shear lines this way.

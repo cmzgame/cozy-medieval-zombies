@@ -14,7 +14,7 @@ Two kinds:
 - **Whether every landed hit cancels a bite's wind-up, or only one that staggers:** today every hit; a switch in code (`damageZombie` in `src/entities/zombie.js`), not yet data (2026-10-23).
 - **The bite's wind-up:** the dead's `attack` in `data/poses.json`, the bite on its fifth frame at 10 fps, 400 ms (`41` step 1).
 - **Bite tokens:** `zombie.biteTokens` 2 and `zombie.biteTokensPer` 3 in `data/tuning.json`: how many of the dead in reach of one target bite at once (`41` step 5).
-- **Sight-pull** (2026-10-25, `48`; not built): `zombie.pullRadius` 4 tiles in `data/tuning.json`, scaled by the light on the pulled one as a player's sight is (`sightDarkFraction`), 0 switching it off; the tell's mark a second (*defaults*, Primary's; the rule, one call and no chain, Michael's).
+- **Sight-pull** (2026-10-25, `48`; built 2026-10-26, #492): `zombie.pullRadius` 4 tiles in `data/tuning.json`, scaled by the light on the caller as a player's sight is (`sightDarkFraction`, the shared `sightRange`), 0 switching it off; the caller's line `zombie.pullText` "Hrraagh!", and the drawn-in one's `zombie.pullBubble` "!" for `pullBubbleSeconds` 1 (*defaults*, Primary's; the rule, one call and no chain, Michael's).
 - **The closing burst** (a trial, 2026-10-24, #385): `zombie.burstSpeed` 1.5 within `zombie.burstRange` 3 tiles of a target the dead one sees, in the chase; `burstSpeed` 1 switches it off.
 - **The floor:** `zombie.downTime` 0.8 s, `zombie.getUpTime` 0.6 s; a turned villager `zombie.turnDownTime` 2 s (`41` step 3).
 
