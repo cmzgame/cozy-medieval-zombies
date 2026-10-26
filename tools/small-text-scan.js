@@ -1,0 +1,480 @@
+// The small-text scan (#321, hardened by #324): reads style.css and the scripts under src/ as text and finds every size at or under the threshold
+// (src/ui/small-text.js, SMALL_TEXT_MAX_PX) that is not set in the clear sans-serif (`--font-small`), every absolute size above it whose rule names
+// no face of its own (it would inherit a small container's), and every font size the scan cannot classify, so a new form fails until it is taught.
+// `tools/check.js` runs it on the real files and on planted snippets ("small text"); the page's computed fonts are `check("smalltext")`'s, in the pane.
+//
+// The stylesheet, rule by rule (the innermost braces, so a rule inside @media is its own):
+// - The size is the rule's last `font-size` or `font:` (an `!important` one first), as the cascade reads it; every one of them is classified, and
+//   one the scan cannot classify fails. Absolute: px, pt, pc, in, cm, mm, Q, rem (16 px), and the keywords (xx-small 9 px ... xx-large 32, initial
+//   16). Relative to the parent: an em or a percent under 1 and `smaller` count as small whatever the parent is (a 0.9em in a 20 px heading is 18 px
+//   and is asked for the small font anyway), one at or over 1 and `larger` inherit the parent's face; `inherit`, `unset`, `revert` likewise.
+//   The functions (calc, min, max, clamp) and var() are read as a range: a length in a fluid or relative unit (vw, vh, em, % ...) is anything
+//   from 0 up; a range wholly at or under the threshold is small, wholly over it is big (fluid if any term was), and one that straddles it fails.
+//   var(--x) reads every `--x:` the stylesheet declares (and the fallback), the range of them all. A bare fluid size (`1vw`) fails.
+// - The shorthand: `font: [style] [variant] [weight] [stretch] size[/line-height] family`, its prefix words skipped (the stretch keywords too),
+//   its family the rest; `font: inherit` sets the family to inherited; a system font (`font: menu`) fails.
+// - The face is the rule's last `font-family` or the shorthand's family. Small: it starts with var(--font-small). Exempt, at any size: a monospace
+//   face first (ui-monospace, monospace, Consolas, Courier New, Menlo, Monaco; the debug corner, codes) or the titles' (Pirata One, var(--font-title)).
+//   A mention elsewhere in the rule (a custom property, `content:`) is no face.
+//
+// The scripts, after their comments are blanked (a small lexer: strings, templates, regular expressions), at each place a size is written:
+// - `X.style.fontSize = v`, `X.style["font-size"] = v`, `X.style.setProperty("font-size", v)`, `Object.assign(X.style, { fontSize: v })`:
+//   a literal v is classified as the stylesheet's are (a big one passes, `h.style.fontSize = "28px"`); any other needs the small family set on the
+//   same element X (its fontFamily, setProperty("font-family"), or the same Object.assign's fontFamily) within two lines, as SMALL_FONT_VAR,
+//   smallFamily(), or var(--font-small); a monospace family on X counts only on the sizing line itself.
+// - Any other object key `fontSize:` or `"font-size":` needs the small (or a monospace) family in the same object literal.
+// - `font-size:` or `font:` inside a string or template (an inline style, cssText): the same string names the small family (font-family: or the
+//   shorthand's), or monospace; a literal big size passes.
+// - `X.font = v` (a canvas's `ctx.font`, an element's `style.font`), an object key `font:`, `setProperty("font", v)`: the small family or
+//   monospace in the same expression, or a literal big size; a bare variable fails.
+// - Anything else that writes a font size (`s.fontSize = ...` through an alias of a style, a quoted "fontSize" or "font-size" the forms above do
+//   not consume) fails as unclassified. Reading one (`getComputedStyle(el).fontSize`, `getPropertyValue("font-size")`) is not writing it.
+
+const KEYWORD_PX = { "xx-small": 9, "x-small": 10, small: 13, medium: 16, large: 18, "x-large": 24, "xx-large": 32, initial: 16 };
+const ABS_PX = { px: 1, pt: 4 / 3, pc: 16, in: 96, cm: 96 / 2.54, mm: 96 / 25.4, q: 96 / 101.6, rem: 16 };
+const REL_UNIT = /^(?:em|%|ex|ch|cap|ic|lh|rlh|r?ex|r?ch|vw|vh|vi|vb|vmin|vmax|[sld]v(?:w|h|i|b|min|max)|cq(?:w|h|i|b|min|max))$/;
+const STRETCH = "ultra-condensed|extra-condensed|condensed|semi-condensed|semi-expanded|expanded|extra-expanded|ultra-expanded";
+const PREFIX = new RegExp(`^(?:normal|italic|oblique|small-caps|bold|bolder|lighter|${STRETCH}|-?[\\d.]+deg|\\d{1,4})$`, "i");
+const GLOBAL = /^(?:inherit|unset|revert|revert-layer)$/i;
+const SYSTEM_FONT = /^(?:caption|icon|menu|message-box|small-caption|status-bar)$/i;
+
+// Split at top-level separators (outside parentheses and quotes).
+function splitTop(s, sep) {
+  const out = [];
+  let depth = 0, q = null, start = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (q) { if (c === "\\") i++; else if (c === q) q = null; continue; }
+    if (c === '"' || c === "'") q = c;
+    else if (c === "(") depth++;
+    else if (c === ")") depth--;
+    else if (depth === 0 && (sep === " " ? /\s/.test(c) : c === sep)) { out.push(s.slice(start, i)); start = i + 1; }
+  }
+  out.push(s.slice(start));
+  return out.map((t) => t.trim()).filter((t) => t !== "");
+}
+
+// A size expression as a px range { lo, hi, rel } (rel: a fluid or relative term took part), or null when it cannot be read.
+function rangeOf(expr, vars, depth = 0) {
+  if (depth > 8) return null;
+  const toks = expr.match(/-?[\d.]+(?:e-?\d+)?[a-z%]*|[a-z-]+\(|--[\w-]+|[()+\-*/,]|\S/gi) || [];
+  let p = 0;
+  const peek = () => toks[p];
+  const num = (t) => /^-?[\d.]/.test(t);
+  const args = () => {
+    const list = [];
+    for (;;) {
+      const v = sum();
+      if (!v) return null;
+      list.push(v);
+      if (peek() === ",") { p++; continue; }
+      if (peek() === ")") { p++; return list; }
+      return null;
+    }
+  };
+  function atom() {
+    const t = toks[p++];
+    if (t === undefined) return null;
+    if (t === "(") { const v = sum(); if (toks[p++] !== ")") return null; return v; }
+    if (t === "-") { const v = atom(); return v && v.scalar ? { ...v, lo: -v.hi, hi: -v.lo } : null; }
+    if (num(t)) {
+      const m = t.match(/^(-?[\d.]+(?:e-?\d+)?)([a-z%]*)$/i);
+      if (!m) return null;
+      const n = Number(m[1]), u = m[2].toLowerCase();
+      if (u === "") return { lo: n, hi: n, scalar: true };
+      if (u in ABS_PX) return { lo: n * ABS_PX[u], hi: n * ABS_PX[u] };
+      if (REL_UNIT.test(u)) return { lo: 0, hi: Infinity, rel: true };
+      return null;
+    }
+    const fn = t.toLowerCase();
+    if (fn === "calc(") { const v = sum(); return toks[p++] === ")" ? v : null; }
+    if (fn === "min(" || fn === "max(" || fn === "clamp(") {
+      const a = args();
+      if (!a || a.some((v) => v.scalar)) return null;
+      const rel = a.some((v) => v.rel);
+      const mn = (x, y) => ({ lo: Math.min(x.lo, y.lo), hi: Math.min(x.hi, y.hi) });
+      const mx = (x, y) => ({ lo: Math.max(x.lo, y.lo), hi: Math.max(x.hi, y.hi) });
+      let r;
+      if (fn === "min(") r = a.reduce(mn);
+      else if (fn === "max(") r = a.reduce(mx);
+      else if (a.length === 3) r = mx(a[0], mn(a[1], a[2]));
+      else return null;
+      return { ...r, rel };
+    }
+    if (fn === "var(") {
+      const name = toks[p++];
+      if (!/^--/.test(name || "")) return null;
+      let fallback = null;
+      if (peek() === ",") {
+        p++;
+        const from = p;
+        let d = 0;
+        while (p < toks.length && !(d === 0 && toks[p] === ")")) { if (/\($/.test(toks[p])) d++; else if (toks[p] === ")") d--; p++; }
+        fallback = toks.slice(from, p).join(" ");
+      }
+      if (toks[p++] !== ")") return null;
+      const values = [...(vars[name] || []), ...(fallback ? [fallback] : [])];
+      if (values.length === 0) return null;
+      const rs = values.map((v) => rangeOf(v, vars, depth + 1));
+      if (rs.some((r) => !r || r.scalar)) return null;
+      return { lo: Math.min(...rs.map((r) => r.lo)), hi: Math.max(...rs.map((r) => r.hi)), rel: rs.some((r) => r.rel) };
+    }
+    return null;
+  }
+  function product() {
+    let v = atom();
+    while (v && (peek() === "*" || peek() === "/")) {
+      const op = toks[p++];
+      const w = atom();
+      if (!w) return null;
+      if (op === "*" && (v.scalar || w.scalar)) {
+        const [k, x] = v.scalar ? [v, w] : [w, v];
+        if (k.lo !== k.hi || k.lo < 0) return null;
+        v = { lo: x.lo * k.lo, hi: x.hi * k.lo, rel: x.rel, scalar: x.scalar };
+      } else if (op === "/" && w.scalar && w.lo === w.hi && w.lo > 0) v = { lo: v.lo / w.lo, hi: v.hi / w.lo, rel: v.rel, scalar: v.scalar };
+      else return null;
+    }
+    return v;
+  }
+  function sum() {
+    let v = product();
+    while (v && (peek() === "+" || peek() === "-")) {
+      const op = toks[p++];
+      const w = product();
+      if (!w || !!w.scalar !== !!v.scalar) return null;
+      v = op === "+" ? { lo: v.lo + w.lo, hi: v.hi + w.hi, rel: v.rel || w.rel, scalar: v.scalar } : { lo: v.lo - w.hi, hi: v.hi - w.lo, rel: v.rel || w.rel, scalar: v.scalar };
+    }
+    return v;
+  }
+  const v = sum();
+  return v && p === toks.length && !v.scalar ? v : null;
+}
+
+// One size value: "small", "big" (absolute, over the threshold: its rule must name a face), "rel" (over it but relative or fluid, or inherited:
+// the parent's face), or null (the scan cannot classify it).
+export function sizeOf(value, max, vars = {}) {
+  const v = value.replace(/!\s*important\s*$/i, "").trim().toLowerCase();
+  if (v in KEYWORD_PX) return KEYWORD_PX[v] <= max ? "small" : "big";
+  if (v === "smaller") return "small";
+  if (v === "larger" || GLOBAL.test(v)) return "rel";
+  const m = v.match(/^([\d.]+)(em|%)$/);
+  if (m) return (m[2] === "%" ? Number(m[1]) / 100 : Number(m[1])) < 1 ? "small" : "rel";
+  if (/^[\d.]+[a-z]+$/.test(v) && !(v.replace(/^[\d.]+/, "") in ABS_PX)) return null; // a bare fluid size (1vw), or a unit the scan does not know
+  const r = rangeOf(v, vars);
+  if (!r) return null;
+  if (r.hi <= max) return "small";
+  if (r.lo > max) return r.rel ? "rel" : "big";
+  return null; // straddles the threshold
+}
+
+// The shorthand's size and family: { size, family } (family "inherit" for a global keyword), or null when it cannot be read.
+export function shorthandOf(value) {
+  const v = value.replace(/!\s*important\s*$/i, "").trim();
+  if (GLOBAL.test(v) || /^initial$/i.test(v)) return { size: v.toLowerCase(), family: "inherit" };
+  if (SYSTEM_FONT.test(v) || /^var\(/i.test(v)) return null;
+  const toks = splitTop(v, " ");
+  let i = 0;
+  while (i < toks.length && PREFIX.test(toks[i]) && i < toks.length - 2) i++;
+  if (i >= toks.length) return null;
+  let size = toks[i++];
+  if (size.includes("/")) size = splitTop(size, "/")[0];
+  else if (toks[i] === "/") i += 2;
+  else if (toks[i] && toks[i].startsWith("/")) i++;
+  const family = toks.slice(i).join(" ");
+  return family ? { size, family } : null;
+}
+
+// A face: "small", "exempt" (monospace, the titles), "none" (inherited), or "other" (a face of its own).
+export function faceOf(family) {
+  const f = family.replace(/!\s*important\s*$/i, "").trim();
+  if (/^var\(\s*--font-small\s*[,)]/i.test(f)) return "small";
+  if (GLOBAL.test(f) || /^initial$/i.test(f)) return "none";
+  const first = splitTop(f, ",")[0].replace(/^["']|["']$/g, "").trim().toLowerCase();
+  if (/^(?:ui-monospace|monospace|consolas|courier new|menlo|monaco)$/.test(first) || /^var\(\s*--font-mono\b/.test(first)) return "exempt";
+  if (first === "pirata one" || /^var\(\s*--font-title\b/.test(first)) return "exempt";
+  return "other";
+}
+
+const lineAt = (text) => {
+  const starts = [0];
+  for (let i = 0; i < text.length; i++) if (text[i] === "\n") starts.push(i + 1);
+  const at = (idx) => {
+    let lo = 0, hi = starts.length - 1;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= idx) lo = mid; else hi = mid - 1; }
+    return lo + 1;
+  };
+  at.start = (n) => starts[n - 1]; // where line n begins
+  return at;
+};
+
+export function scanCss(cssText, max, file = "style.css") {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+  const line = lineAt(css);
+  const rules = [];
+  for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const decls = [];
+    let off = m.index + m[0].indexOf("{") + 1;
+    let depth = 0, q = null, start = 0;
+    const body = m[2];
+    for (let i = 0; i <= body.length; i++) {
+      const c = body[i];
+      if (q) { if (c === "\\") i++; else if (c === q) q = null; continue; }
+      if (c === '"' || c === "'") q = c;
+      else if (c === "(") depth++;
+      else if (c === ")") depth--;
+      else if (i === body.length || (c === ";" && depth === 0)) {
+        const d = body.slice(start, i);
+        const k = d.indexOf(":");
+        if (k > 0) decls.push({ prop: d.slice(0, k).trim().toLowerCase(), value: d.slice(k + 1).trim(), at: line(off + start + d.search(/\S/)) });
+        start = i + 1;
+      }
+    }
+    rules.push({ sel: m[1].trim().replace(/\s+/g, " "), decls });
+  }
+  const vars = {};
+  for (const r of rules) for (const d of r.decls) if (d.prop.startsWith("--")) (vars[d.prop] ||= []).push(d.value);
+  const bad = [], bigNoFace = [], unknown = [];
+  let small = 0;
+  const last = (list) => list.filter((d) => /!\s*important\s*$/i.test(d.value)).pop() || list[list.length - 1];
+  for (const { sel, decls } of rules) {
+    const sizes = [], faces = [];
+    for (const d of decls) {
+      if (d.prop === "font-size") {
+        const kind = sizeOf(d.value, max, vars);
+        if (kind === null) unknown.push(`${file}:${d.at} ${sel} (font-size: ${d.value})`);
+        sizes.push({ ...d, kind });
+      } else if (d.prop === "font") {
+        const sh = shorthandOf(d.value);
+        const kind = sh ? sizeOf(sh.size, max, vars) : null;
+        if (kind === null) { unknown.push(`${file}:${d.at} ${sel} (font: ${d.value})`); continue; }
+        sizes.push({ ...d, kind });
+        faces.push({ ...d, face: faceOf(sh.family) });
+      } else if (d.prop === "font-family") faces.push({ ...d, face: faceOf(d.value) });
+    }
+    if (sizes.length === 0) continue;
+    const size = last(sizes);
+    const face = faces.length ? last(faces).face : "none";
+    if (size.kind === "small") {
+      small++;
+      if (face !== "small" && face !== "exempt") bad.push(`${file}:${size.at} ${sel}`);
+    } else if (size.kind === "big" && face === "none") bigNoFace.push(`${file}:${size.at} ${sel}`);
+  }
+  return { small, bad, bigNoFace, unknown };
+}
+
+// The scripts' lexer: the text with its comments blanked (lengths and lines kept) and the ranges of its strings and templates (a template whole,
+// its ${} parts inside it).
+export function lexJs(src) {
+  const code = src.split("");
+  const strings = [];
+  const open = []; // the templates whose ${} we are inside: { start, depth }
+  const KW = new Set(["return", "typeof", "case", "in", "of", "delete", "void", "throw", "new", "else", "do", "yield", "await", "instanceof"]);
+  let depth = 0, i = 0;
+  const blank = (a, b) => { for (let k = a; k < b; k++) if (code[k] !== "\n") code[k] = " "; };
+  const regexHere = () => {
+    let k = i - 1;
+    while (k >= 0 && /\s/.test(code[k])) k--;
+    if (k < 0) return true;
+    if (/[\w$]/.test(code[k])) { let s = k; while (s > 0 && /[\w$]/.test(code[s - 1])) s--; return KW.has(src.slice(s, k + 1)) && code[s - 1] !== "."; } // `x.in / 2` divides
+    return !/[)\]"'`]/.test(code[k]);
+  };
+  const template = (start) => {
+    while (i < src.length) {
+      const c = src[i];
+      if (c === "\\") { i += 2; continue; }
+      if (c === "`") { i++; strings.push([start, i]); return; }
+      if (c === "$" && src[i + 1] === "{") { open.push({ start, depth }); depth++; i += 2; return; }
+      i++;
+    }
+  };
+  while (i < src.length) {
+    const c = src[i], n = src[i + 1];
+    if (c === "/" && n === "/") { const e = src.indexOf("\n", i); const end = e < 0 ? src.length : e; blank(i, end); i = end; continue; }
+    if (c === "/" && n === "*") { const e = src.indexOf("*/", i + 2); const end = e < 0 ? src.length : e + 2; blank(i, end); i = end; continue; }
+    if (c === "'" || c === '"') {
+      const s = i++;
+      while (i < src.length && src[i] !== c && src[i] !== "\n") i += src[i] === "\\" ? 2 : 1;
+      i++;
+      strings.push([s, i]);
+      continue;
+    }
+    if (c === "`") { const s = i++; template(s); continue; }
+    if (c === "/" && regexHere()) {
+      i++;
+      let cls = false;
+      while (i < src.length && src[i] !== "\n") {
+        const d = src[i];
+        if (d === "\\") { i += 2; continue; }
+        if (d === "[") cls = true;
+        else if (d === "]") cls = false;
+        else if (d === "/" && !cls) break;
+        i++;
+      }
+      i++;
+      continue;
+    }
+    if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      const t = open[open.length - 1];
+      if (t && t.depth === depth) { open.pop(); i++; template(t.start); continue; }
+    }
+    i++;
+  }
+  return { code: code.join(""), strings };
+}
+
+const SMALL_JS = /\bSMALL_FONT_VAR\b|\bsmallFamily\s*\(|var\(\s*--font-small\s*\)/;
+const MONO_JS = /monospace|Consolas/i;
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export function scanJs(files, max) {
+  const badJs = [], unknown = [];
+  let sites = 0;
+  for (const [name, text] of files) {
+    const { code, strings } = lexJs(text);
+    const line = lineAt(code);
+    const lines = code.split("\n");
+    const used = new Set(); // the indices a form has consumed
+    const stringAt = (idx) => strings.filter(([a, b]) => a <= idx && idx < b).sort((x, y) => x[1] - x[0] - (y[1] - y[0]))[0] || null;
+    const literal = (v) => {
+      const m = v.trim().match(/^(["'`])([^"'`$]*)\1$/);
+      return m ? m[2] : null;
+    };
+    const objectAt = (idx) => {
+      // the object literal round idx: from its `{` to its `}`
+      let d = 0, a = idx;
+      for (; a >= 0; a--) {
+        if (stringAt(a) && stringAt(a)[0] !== a) continue;
+        if (code[a] === "}") d++;
+        else if (code[a] === "{") { if (d === 0) break; d--; }
+      }
+      if (a < 0) return null;
+      let b = idx;
+      for (d = 0; b < code.length; b++) {
+        if (code[b] === "{") d++;
+        else if (code[b] === "}") { if (d === 0) break; d--; }
+      }
+      return [a, b + 1];
+    };
+    const sizeNeedsFace = (v) => {
+      // a literal size: its class; anything else needs the small face
+      const lit = literal(v);
+      if (lit === null) return "needs";
+      const kind = sizeOf(lit, max);
+      return kind === null ? "unknown" : kind === "small" ? "needs" : "ok";
+    };
+    const faceOnElement = (recv, at) => {
+      const l = line(at);
+      const R = `(?<![\\w$.])${esc(recv)}\\.style`;
+      const forms = [
+        new RegExp(`${R}\\s*(?:\\.fontFamily|\\[\\s*["'\`](?:fontFamily|font-family)["'\`]\\s*\\])\\s*=(?!=)\\s*([^;\\n]*)`, "g"),
+        new RegExp(`${R}\\.setProperty\\(\\s*["'\`]font-family["'\`]\\s*,\\s*([^;\\n]*)`, "g"),
+      ];
+      for (let k = Math.max(1, l - 2); k <= Math.min(lines.length, l + 2); k++) {
+        const ln = lines[k - 1];
+        for (const re of forms) for (const m of ln.matchAll(re)) if (SMALL_JS.test(m[1]) || (k === l && MONO_JS.test(m[1]))) return true;
+        for (const m of ln.matchAll(new RegExp(`Object\\.assign\\(\\s*${esc(recv)}\\.style\\s*,`, "g"))) {
+          const o = objectAt(code.indexOf("{", line.start(k) + m.index) + 1);
+          const body = o ? code.slice(o[0], o[1]) : "";
+          const fam = body.match(/(?:fontFamily|["'`]font-family["'`])\s*:\s*([^,}\n]*)/);
+          if (fam && (SMALL_JS.test(fam[1]) || (k === l && MONO_JS.test(fam[1])))) return true;
+        }
+      }
+      return false;
+    };
+    const report = (list, idx, what) => list.push(`${name}:${line(idx)} (${what})`);
+    // 1. Writes on an element's style.
+    const RECV = "([\\w$][\\w$.]*(?:\\[[^\\]\\n]*\\])*(?:\\.[\\w$]+)*)";
+    for (const m of code.matchAll(new RegExp(`${RECV}\\.style\\s*(?:\\.fontSize\\b|\\[\\s*(["'\`])(?:fontSize|font-size)\\2\\s*\\])\\s*=(?!=)\\s*([^;\\n]*)`, "g"))) {
+      used.add(m.index + m[0].search(/fontSize|font-size/));
+      const need = sizeNeedsFace(m[3]);
+      if (need === "unknown") report(unknown, m.index, `style.fontSize = ${m[3].trim()}`);
+      else if (need === "needs" && !faceOnElement(m[1], m.index)) report(badJs, m.index, `${m[1]}.style.fontSize without the small family on ${m[1]}`);
+    }
+    for (const m of code.matchAll(new RegExp(`${RECV}\\.style\\.setProperty\\(\\s*(["'\`])(font-size|font)\\2\\s*,\\s*([^;\\n]*)`, "g"))) {
+      m[4] = m[4].replace(/\)\s*$/, ""); // the call's own parenthesis
+      used.add(m.index + m[0].indexOf(m[3], m[0].indexOf("setProperty")));
+      if (m[3] === "font") {
+        if (!(SMALL_JS.test(m[4]) || MONO_JS.test(m[4]) || bigFont(m[4]))) report(badJs, m.index, `setProperty("font") without the small family`);
+        continue;
+      }
+      const need = sizeNeedsFace(m[4]);
+      if (need === "unknown") report(unknown, m.index, `setProperty("font-size", ${m[4].trim()})`);
+      else if (need === "needs" && !faceOnElement(m[1], m.index)) report(badJs, m.index, `${m[1]}.style.setProperty("font-size") without the small family on ${m[1]}`);
+    }
+    // 2. Object keys: fontSize, "font-size" (an Object.assign onto a style, or any other style object).
+    for (const m of code.matchAll(/(?:(?<![\w$.])fontSize|(["'`])font-size\1)\s*:(?!:)\s*([^,}\n]*)/g)) {
+      if (m[1] === undefined && stringAt(m.index)) continue; // inside a string: an inline style's, below
+      used.add(m.index + (m[1] ? 1 : 0));
+      const need = sizeNeedsFace(m[2]);
+      if (need === "unknown") { report(unknown, m.index, `fontSize: ${m[2].trim()}`); continue; }
+      if (need === "ok") continue;
+      const o = objectAt(m.index);
+      const body = o ? code.slice(o[0], o[1]) : "";
+      const fam = body.match(/(?:fontFamily|["'`]font-family["'`])\s*:\s*([^,}\n]*)/);
+      if (fam && (SMALL_JS.test(fam[1]) || MONO_JS.test(fam[1]))) continue;
+      const before = o ? code.slice(Math.max(0, o[0] - 200), o[0]) : "";
+      const assign = before.match(new RegExp(`Object\\.assign\\(\\s*${RECV}\\.style\\s*,\\s*$`));
+      if (assign && faceOnElement(assign[1], m.index)) continue;
+      report(badJs, m.index, "fontSize in a style object without the small family");
+    }
+    // 3. An inline style in a string or template: font-size: or font:.
+    for (const [a, b] of strings) {
+      const s = code.slice(a, b);
+      for (const m of s.matchAll(/(?<![\w-])(font-size|font)\s*:\s*([^;"'`]*)/g)) {
+        const at = a + m.index;
+        if (stringAt(at)[0] !== a) continue; // a string inside this template's ${}: its own turn
+        used.add(at);
+        const sameFace = /font-family\s*:\s*(?:var\(\s*--font-small\s*\)|\$\{\s*(?:SMALL_FONT_VAR|smallFamily\(\))\s*\})/.test(s) || MONO_JS.test(s);
+        if (m[1] === "font") {
+          if (!(SMALL_JS.test(m[2]) || MONO_JS.test(m[2]) || sameFace || bigFont(JSON.stringify(m[2])))) report(badJs, at, "an inline font: without the small family");
+          continue;
+        }
+        const v = m[2].replace(/\$\{[^}]*\}/g, "").trim() === m[2].trim() ? m[2].trim() : null;
+        const kind = v === null ? "small" : sizeOf(v, max);
+        if (kind === null) report(unknown, at, `an inline font-size: ${m[2].trim()}`);
+        else if (kind === "small" && !sameFace) report(badJs, at, "an inline font-size without the small family in the same string");
+      }
+    }
+    // 4. A font shorthand written from script: X.font = v, an object key font:.
+    function bigFont(v) {
+      const lit = literal(v);
+      if (lit === null) {
+        const t = v.trim().match(/^`([^`]*)`$/); // a template: its literal size, if it opens with one
+        if (!t) return false;
+        const sh = shorthandOf(t[1].replace(/\$\{[^}]*\}/g, "x"));
+        const kind = sh && !/\$\{/.test(sh.size) ? sizeOf(sh.size, max) : null;
+        return kind === "big" || kind === "rel";
+      }
+      const sh = shorthandOf(lit);
+      const kind = sh ? sizeOf(sh.size, max) : null;
+      return kind === "big" || kind === "rel";
+    }
+    for (const m of code.matchAll(/(?:\.font\s*=(?!=)|(?<![\w$.-])font\s*:(?!:))\s*([^;\n]*)/g)) {
+      if (stringAt(m.index)) continue;
+      used.add(m.index);
+      const rhs = m[0].startsWith(".") ? m[1] : m[1].split(/,(?![^(]*\))(?=\s*[\w$"']+\s*:)/)[0];
+      if (SMALL_JS.test(rhs) || MONO_JS.test(rhs) || bigFont(rhs.replace(/[,}\s]+$/, ""))) continue;
+      report(badJs, m.index, `font = ${rhs.trim()} without the small family in the same expression`);
+    }
+    // 5. The guard: anything else that writes a font size.
+    for (const m of code.matchAll(/fontSize\b(?=\s*(?:=(?!=)|:(?!:)))|(["'`])(?:fontSize|font-size)\1/g)) {
+      const at = m.index + (m[1] ? 1 : 0);
+      if (used.has(at) || used.has(m.index)) continue;
+      if (m[1]) {
+        const before = code.slice(Math.max(0, m.index - 40), m.index);
+        if (/getPropertyValue\(\s*$|removeProperty\(\s*$/.test(before)) continue; // a read, or taking it away
+      } else if (stringAt(m.index)) continue;
+      report(unknown, m.index, "a font size written in a form the scan does not classify");
+    }
+    sites += used.size;
+  }
+  return { badJs, unknown, sites };
+}
+
+export function scanSmallText(cssText, files, max) {
+  const css = scanCss(cssText, max);
+  const js = scanJs(files, max);
+  return { small: css.small, bad: css.bad, bigNoFace: css.bigNoFace, unknown: [...css.unknown, ...js.unknown], badJs: js.badJs, sites: js.sites };
+}

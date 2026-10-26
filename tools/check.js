@@ -203,6 +203,7 @@ const chartModule = await import("../src/chart.js");
 const floatersMod = await import("../src/floaters.js");
 const itemInfoMod = await import("../src/item-info.js");
 const smallTextMod = await import("../src/ui/small-text.js");
+const smallTextScan = await import("./small-text-scan.js"); // the scan the "small text" row runs (#321, #324)
 const rugsImport = await import("../src/rugs.js");
 const woodsImport = await import("../src/woods.js");
 const placementImport = await import("../src/placement.js");
@@ -1026,69 +1027,14 @@ check("woods: a door or a window of another wood than its wall: the leaf rules, 
   }
   return "leaf rules; a Winter Pine door in a mahogany wall and a spruce window in a daub one, in the record and the hash and restored; the wall's own wood stores nothing; refusals";
 });
-// Small text (#321): text at or under the threshold (ui/small-text.js, 15 UI px) is set in the clear sans-serif (`--font-small`), so a new small rule cannot slip in pixel-only.
-// `scanSmallText` reads style.css for every rule whose size is at or under the threshold, in any form the stylesheet could write it: `font-size` in px or rem (a rem is 16 px), a
-// percentage or an em or `smaller` (relative to the parent), the keywords (xx-small 9 px, x-small 10, small 13), and the `font:` shorthand with a style, variant, or weight before the
-// size (`font: bold 12px ...`); and it reads every script under src/ for text sized from script: `style.fontSize`, an inline `font-size:`, `font:`, and `ctx.font` or `.font =` anywhere,
-// each LINE needing the small font within two lines of it (a file that names --font-small once does not excuse a second size). Monospace (the debug corner, codes) and the Pirata One
-// titles are left as they are; a rule above the threshold names its own pixel font so it does not inherit a small container's.
-// Its limit: a relative size (an em, a percent, `smaller`) under 1 counts as small whatever its parent is (a 0.9em inside a 20 px heading is 18 px and would be asked for the
-// small font anyway); the page's computed fonts are what `check("smalltext")` reads, in the pane. The stylesheet is checked as text, not computed.
-const KEYWORD_PX = { "xx-small": 9, "x-small": 10, small: 13, medium: 16, large: 18, "x-large": 24, "xx-large": 32 };
-const SIZE_WORD = "(?:[\\d.]+(?:px|rem|em|%)|xx-small|x-small|small|medium|large|x-large|xx-large|smaller|larger)";
-function sizeOf(value, max) {
-  // "small", "big" (an absolute size over the threshold, which must name its own face), "bigRel" (a relative or fluid size over it), or null (not a size).
-  const v = value.trim().toLowerCase();
-  const m = v.match(/^([\d.]+)(px|rem|em|%)/);
-  if (m) {
-    const n = Number(m[1]);
-    if (m[2] === "px") return n <= max ? "small" : "big";
-    if (m[2] === "rem") return n * 16 <= max ? "small" : "big";
-    return (m[2] === "%" ? n / 100 : n) < 1 ? "small" : "bigRel"; // relative to the parent: a big one inherits the parent's face, which is the parent's to name
-  }
-  if (v.startsWith("clamp(")) return "bigRel";
-  if (v === "smaller") return "small";
-  if (v === "larger") return "bigRel";
-  if (v in KEYWORD_PX) return KEYWORD_PX[v] <= max ? "small" : "big";
-  return null;
-}
-function scanSmallText(cssText, files, max) {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
-  const bad = [];
-  const bigNoFace = [];
-  let small = 0;
-  const shorthand = new RegExp("(?:^|[;\\s])font\\s*:\\s*(?:(?:italic|oblique|normal|bold|bolder|lighter|small-caps|\\d{3})\\s+)*(" + SIZE_WORD + ")(?![\\w-])");
-  for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const sel = m[1].trim().replace(/\s+/g, " ");
-    const body = m[2];
-    if (/monospace|Pirata/.test(body)) continue;
-    const decl = body.match(/(?:^|[;\s])font-size\s*:\s*([^;}]+)/);
-    const sh = body.match(shorthand);
-    const kind = decl ? sizeOf(decl[1], max) : sh ? sizeOf(sh[1], max) : null;
-    if (kind === "small") {
-      small++;
-      if (!body.includes("var(--font-small)")) bad.push(sel);
-    } else if (kind === "big" && !/font-family/.test(body) && !(sh && !decl)) {
-      bigNoFace.push(sel); // a big size with no family of its own (a shorthand carries its family)
-    }
-  }
-  // Scripts: each sizing line needs the small font on it or within two lines of it; a monospace family is exempt.
-  const badJs = [];
-  const SIZING = /\.style\.fontSize\s*=|font-size\s*:\s*[\d.$]|\bfont\s*[:=]\s*[`"']?\s*(?:(?:italic|bold|normal|\d{3})\s+)*\$?\{?\d|\.font\s*=/;
-  const OK = /font-small|SMALL_FONT_VAR|smallFamily|monospace|Consolas/;
-  for (const [name, text] of files) {
-    const lines = text.split("\n");
-    lines.forEach((line, i) => {
-      if (!SIZING.test(line)) return;
-      const near = lines.slice(Math.max(0, i - 2), i + 3).join("\n");
-      if (!OK.test(near)) badJs.push(`${name}:${i + 1}`);
-    });
-  }
-  return { small, bad, bigNoFace, badJs };
-}
+// Small text (#321, #324): text at or under the threshold (ui/small-text.js, 15 UI px) is set in the clear sans-serif (`--font-small`), so a new small rule cannot slip in pixel-only.
+// The scan is tools/small-text-scan.js (its head says what it reads and how): every rule of style.css by its own size and its own family, every place a script under
+// src/ writes a font size, and a failure for any size it cannot classify. Below, it runs on the real files, then on planted snippets, each of which must pass or fail as named.
+// The page's computed fonts are what `check("smalltext")` reads, in the pane.
 const walkJs = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walkJs(path.join(dir, e.name)) : e.name.endsWith(".js") && e.name !== "small-text.js" ? [path.join(dir, e.name)] : []));
-check("small text: every size at or under the threshold is set in --font-small, in the stylesheet and in the scripts; the scan itself catches each form", () => {
+check("small text: every size at or under the threshold is set in --font-small, in the stylesheet and in the scripts, and every size is classified; the scan itself catches each form", () => {
   const { SMALL_TEXT_MAX_PX: MAX } = smallTextMod;
+  const { scanSmallText } = smallTextScan;
   const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
   assert(/--font-small:\s*system-ui/.test(css), ":root has no --font-small");
   // Pixel puts small text back in the interface's font, and (since every digit took the clear face, 2026-10-20) the interface's and the
@@ -1101,37 +1047,120 @@ check("small text: every size at or under the threshold is set in --font-small, 
   assert(real.bad.length === 0, `${real.bad.length} small rules are not in --font-small: ${real.bad.slice(0, 6).join(" | ")}`);
   assert(real.bigNoFace.length === 0, `${real.bigNoFace.length} rules above the threshold name no font-family (they would inherit a small container's): ${real.bigNoFace.slice(0, 6).join(" | ")}`);
   assert(real.badJs.length === 0, `text sized from script without the small font: ${real.badJs.join(", ")}`);
-  // The scan catches each form: a planted bad rule or line for every one, and a clean one for each that must pass.
+  assert(real.unknown.length === 0, `font sizes the scan cannot classify (teach it the form, or write the size plainly): ${real.unknown.join(", ")}`);
+  assert(real.sites >= 4, `the scan found only ${real.sites} places a script sizes text (floaters, the drag ghost, the map's names, the placeholders' codes)`);
   const planted = (c, f = []) => scanSmallText(c, f, MAX);
-  const mustCatch = {
+  const LISTS = ["bad", "bigNoFace", "unknown", "badJs"];
+  const only = (r, list) => LISTS.every((l) => r[l].length === (l === list ? 1 : 0));
+  // The stylesheet: each planted rule lands in exactly the one list named, and nowhere else.
+  const cssCatch = {
     "a px size": [".x { font-size: 12px; }", "bad"],
     "the shorthand": [".x { font: 12px \"Pixelify Sans\", sans-serif; }", "bad"],
     "the shorthand with a weight": [".x { font: bold 12px \"Pixelify Sans\", sans-serif; }", "bad"],
     "the shorthand with a style and a weight": [".x { font: italic 700 12px serif; }", "bad"],
+    "the shorthand with a stretch keyword": [".x { font: condensed 12px serif; }", "bad"],
+    "the shorthand with a line height": [".x { font: 600 italic 11px/1.2 serif; }", "bad"],
+    "the shorthand with oblique and small-caps": [".x { font: oblique small-caps 12px serif; }", "bad"],
     "a rem size": [".x { font-size: 0.8rem; }", "bad"],
+    "a rem size in capitals": [".x { font-size: 0.75REM; }", "bad"],
+    "a rule with no spaces and no last semicolon": [".p{font-size:12px}", "bad"],
+    "a pt size": [".x { font-size: 9pt; font-family: var(--font-ui); }", "bad"],
     "a percentage": [".x { font-size: 80%; }", "bad"],
     "an em under 1": [".x { font-size: 0.9em; }", "bad"],
     "smaller": [".x { font-size: smaller; }", "bad"],
     "a keyword": [".x { font-size: small; }", "bad"],
+    "a rule inside @media": ["@media (max-width: 600px) { .x { font-size: 12px; } }", "bad"],
+    "calc()": [".x { font-size: calc(10px + 2px); font-family: var(--font-ui); }", "bad"],
+    "min() with a small bound": [".x { font-size: min(12px, 2vw); font-family: var(--font-ui); }", "bad"],
+    "an all-small clamp()": [".x { font-size: clamp(8px, 1vw, 12px); font-family: var(--font-ui); }", "bad"],
+    "var() of a small size": [":root { --tiny: 10px; } .x { font-size: var(--tiny); font-family: var(--font-ui); }", "bad"],
+    "a second font-size, the small one last": [".x { font-size: 18px; font-size: 12px; font-family: var(--font-ui); }", "bad"],
+    "the small font named only in a custom property": [".x { font-size: 12px; font-family: var(--font-ui); --y: var(--font-small); }", "bad"],
+    "monospace named only in content:": [".x { font-size: 12px; content: \"monospace\"; }", "bad"],
+    "a later family overriding the small one": [".x { font-size: 12px; font-family: var(--font-small); font-family: var(--font-ui); }", "bad"],
     "a big px rule with no family": [".x { font-size: 18px; }", "bigNoFace"],
     "a big rem rule with no family": [".x { font-size: 1.5rem; }", "bigNoFace"],
+    "a big keyword with no family": [".x { font-size: large; }", "bigNoFace"],
+    "a big size after font: inherit": [".x { font: inherit; font-size: 20px; }", "bigNoFace"],
+    "a big calc() with no family": [".x { font-size: calc(10px + 10px); }", "bigNoFace"],
+    "a vw size": [".x { font-size: 1vw; font-family: var(--font-small); }", "unknown"],
+    "a clamp() across the threshold": [".x { font-size: clamp(10px, 2vw, 30px); font-family: var(--font-small); }", "unknown"],
+    "calc() of an em": [".x { font-size: calc(1em + 2px); font-family: var(--font-small); }", "unknown"],
+    "var() the stylesheet never declares": [".x { font-size: var(--nowhere); font-family: var(--font-small); }", "unknown"],
+    "a system font in the shorthand": [".x { font: menu; }", "unknown"],
+    "an unclassifiable first font-size before a classified one": [".x { font-size: 2vw; font-size: 12px; font-family: var(--font-small); }", "unknown"],
   };
-  for (const [what, [rule, list]] of Object.entries(mustCatch)) assert(planted(rule)[list].length === 1, `the scan missed ${what}: ${rule}`);
-  const mustPass = [".x { font-size: 12px; font-family: var(--font-small); }", ".x { font: bold 12px var(--font-small); }", ".x { font-size: 12px; font-family: monospace; }", ".x { font-size: 18px; font-family: var(--font-ui); }", ".x { font: 18px var(--font-ui); }", ".x { font-size: 18px; font-family: var(--font-ui); } /* a comment { font-size: 9px; } */", ".x { font-size: 1.3em; }"];
-  for (const rule of mustPass) {
+  for (const [what, [rule, list]] of Object.entries(cssCatch)) {
     const r = planted(rule);
-    assert(r.bad.length === 0 && r.bigNoFace.length === 0, `the scan flagged a clean rule: ${rule}`);
+    assert(only(r, list), `the scan read ${what} wrong (wanted one in ${list}): ${rule} -> ${JSON.stringify(r)}`);
   }
-  const jsBad = {
-    "a second style.fontSize in a file that already names --font-small": [["a.js", "const f = 'var(--font-small)';\n" + "x;\n".repeat(8) + "el.style.fontSize = `${n}px`;\n"]],
-    "ctx.font in a file outside src/ui": [["src/map.js", "ctx.font = \"11px sans-serif\";\n"]],
-    "an inline font-size in a template": [["b.js", "el.innerHTML = `<b style=\"font-size:12px\">x</b>`;\n"]],
-    "a font shorthand assignment": [["c.js", "ctx.font = `bold 12px ${family}`;\n"]],
+  const cssPass = [
+    ".x { font-size: 12px; font-family: var(--font-small); }", ".x { font: bold 12px var(--font-small); }", ".x { font: condensed bold 12px var(--font-small); }",
+    ".x { font-size: 12px; font-family: monospace; }", ".x { font: 12px/1.4 Consolas, monospace; }", ".x { font-size: 0.95em; font-family: ui-monospace, Consolas, monospace; }",
+    ".x { font-size: 12px; font-family: var(--font-title); }", ".x { font-size: 12px; font-family: \"Pirata One\"; }",
+    ".x { font-size: 18px; font-family: var(--font-ui); }", ".x { font: 18px var(--font-ui); }", ".x { font-size: 12pt; font-family: var(--font-ui); }",
+    ".x { font-size: 18px; font-family: var(--font-ui); } /* a comment { font-size: 9px; } */", ".x { font-size: 1.3em; }", ".x { font-size: inherit; }", ".x { font: inherit; }",
+    ".x { font-size: clamp(24px, 4.6vw, 50px); }", ".x { font-size: max(20px, 2vw); }", ".x { font-size: min(12px, 2vw); font-family: var(--font-small); }",
+    ".x { font-size: 12px; font-size: 18px; font-family: var(--font-ui); }", ".x { font-size: 12px !important; font-family: var(--font-small); }",
+    ".x { font-size: 12px; font-family: var(--font-small) !important; font-family: var(--font-ui); }",
+    ":root { --tiny: 10px; } .x { font-size: var(--tiny); font-family: var(--font-small); }", ".x { font-size: var(--big, 20px); font-family: var(--font-ui); }",
+  ];
+  for (const rule of cssPass) {
+    const r = planted(rule);
+    assert(LISTS.every((l) => r[l].length === 0), `the scan flagged a clean rule: ${rule} -> ${JSON.stringify(r)}`);
+  }
+  const at = planted(".a { color: red; }\n\n.b {\n  color: red;\n  font-size: 11px;\n}\n").bad[0] || "";
+  assert(at.startsWith("style.css:5 .b"), `a flagged rule is not named by its line: ${at}`);
+  // The scripts: each planted file lands in the one list named.
+  const js = (text) => [["src/x.js", text]];
+  const jsCatch = {
+    "a second style.fontSize in a file that already names --font-small": ["const f = 'var(--font-small)';\n" + "x;\n".repeat(8) + "el.style.fontSize = `${n}px`;\n", "badJs"],
+    "ctx.font with a pixel face": ["ctx.font = \"11px sans-serif\";\n", "badJs"],
+    "an inline font-size in a template": ["el.innerHTML = `<b style=\"font-size:12px\">x</b>`;\n", "badJs"],
+    "a font shorthand assignment": ["ctx.font = `bold 12px ${family}`;\n", "badJs"],
+    "ctx.font from a variable": ["ctx.font = f;\n", "badJs"],
+    "another element's monospace the line before": ["a.style.fontFamily = 'monospace';\nb.style.fontSize = '10px';\n", "badJs"],
+    "another element's small family": ["a.style.fontFamily = SMALL_FONT_VAR;\nb.style.fontSize = n + 'px';\n", "badJs"],
+    "a comment naming the small font": ["b.style.fontSize = '10px'; // not --font-small\n", "badJs"],
+    "a block comment naming smallFamily()": ["b.style.fontSize = '10px'; /* b.style.fontFamily = smallFamily() */\n", "badJs"],
+    "a string naming it two lines below": ["b.style.fontSize = '10px';\nx;\nconst s = 'see font-small';\n", "badJs"],
+    "monospace on the next line, the same element": ["b.style.fontSize = '10px';\nb.style.fontFamily = 'monospace';\n", "badJs"],
+    "Object.assign onto a style": ["Object.assign(el.style, { fontSize: '10px', color: 'red' });\n", "badJs"],
+    "style.setProperty('font-size')": ["el.style.setProperty('font-size', '10px');\n", "badJs"],
+    "a bracketed style key": ["el.style['font-size'] = `${n}px`;\n", "badJs"],
+    "cssText": ["el.style.cssText = 'font-size: 10px; color: red';\n", "badJs"],
+    "a quoted font-size key in a style object": ["const st = { \"font-size\": \"10px\" };\n", "badJs"],
+    "an inline font shorthand": ["el.innerHTML = '<i style=\"font: 11px serif\">x</i>';\n", "badJs"],
+    "style.font": ["el.style.font = '12px serif';\n", "badJs"],
+    "a style alias": ["const s = el.style;\ns.fontSize = '10px';\n", "unknown"],
+    "a size the scan cannot classify": ["el.style.fontSize = '1vw';\n", "unknown"],
+    "an inline size it cannot classify": ["el.innerHTML = '<b style=\"font-size: 2vw\">x</b>';\n", "unknown"],
   };
-  for (const [what, f] of Object.entries(jsBad)) assert(planted("", f).badJs.length >= 1, `the scan missed ${what}`);
-  const jsGood = [["d.js", "el.style.fontSize = `${n}px`;\nel.style.fontFamily = SMALL_FONT_VAR;\n"], ["e.js", "ctx.font = `11px ${smallFamily()}`;\n"], ["f.js", "ctx.font = \"bold 9px Consolas, monospace\";\n"]];
-  assert(planted("", jsGood).badJs.length === 0, "the scan flagged a clean script line");
-  return `${real.small} small rules in style.css, every one in --font-small; ${files.length} scripts scanned line by line; ${Object.keys(mustCatch).length + Object.keys(jsBad).length} planted bad forms all caught (threshold ${MAX} UI px)`;
+  for (const [what, [text, list]] of Object.entries(jsCatch)) {
+    const r = planted("", js(text));
+    assert(only(r, list), `the scan read ${what} wrong (wanted one in ${list}): ${JSON.stringify(text)} -> ${JSON.stringify(r)}`);
+  }
+  const jsPass = [
+    "el.style.fontSize = `${n}px`;\nel.style.fontFamily = SMALL_FONT_VAR;\n", "el.style.fontSize = `${T.fontPx}px`;\nif (T.fontPx <= MAX) el.style.fontFamily = SMALL_FONT_VAR;\n",
+    "ctx.font = `11px ${smallFamily()}`;\n", "ctx.font = \"bold 9px Consolas, monospace\";\n", "ctx.font = \"28px serif\";\n",
+    "h.style.fontSize = '28px';\n", "h.style.fontSize = `28px`;\n", "h.style.fontSize = '1.2em';\n",
+    "b.style.fontSize = '10px'; b.style.fontFamily = 'monospace';\n",
+    "Object.assign(el.style, { fontSize: `${n}px`, fontFamily: SMALL_FONT_VAR });\n", "Object.assign(el.style, { fontSize: '10px' });\nel.style.fontFamily = 'var(--font-small)';\n",
+    "el.style.setProperty('font-size', `${n}px`);\nel.style.setProperty('font-family', 'var(--font-small)');\n",
+    "el.innerHTML = `<b style=\"font-size:12px; font-family:${SMALL_FONT_VAR}\">x</b>`;\n", "el.style.cssText = 'font-size: 10px; font-family: var(--font-small)';\n",
+    "el.innerHTML = '<b style=\"font-size: 20px\">x</b>';\n", "el.innerHTML = '<code style=\"font: 12px Consolas, monospace\">x</code>';\n",
+    "const px = parseFloat(getComputedStyle(el).fontSize);\nconst v = cs.getPropertyValue('font-size');\nif (a.fontSize === b.fontSize) x();\n",
+    "const re = /'/; const u = \"http://x\";\nel.style.fontSize = '10px'; el.style.fontFamily = SMALL_FONT_VAR;\n",
+    "const r = `${(w.in / 1024).toFixed(1)} KB/s`; // a property named in, then a division\nel.style.fontSize = '10px';\nel.style.fontFamily = SMALL_FONT_VAR;\n",
+  ];
+  for (const text of jsPass) {
+    const r = planted("", js(text));
+    assert(LISTS.every((l) => r[l].length === 0), `the scan flagged a clean script: ${JSON.stringify(text)} -> ${JSON.stringify(r)}`);
+  }
+  const jsAt = planted("", js("x;\n\nb.style.fontSize = '10px';\n")).badJs[0] || "";
+  assert(jsAt.startsWith("src/x.js:3 "), `a flagged script line is not named by its file and line: ${jsAt}`);
+  const n = Object.keys(cssCatch).length + Object.keys(jsCatch).length, m = cssPass.length + jsPass.length;
+  return `${real.small} small rules in style.css, each in --font-small (or monospace, or the titles' face), every size classified; ${files.length} scripts, ${real.sites} places that size text, each with its small font; ${n} planted bad forms caught and ${m} clean ones passed (threshold ${MAX} UI px)`;
 });
 // The hover card (#262): every item's card says its own full name and a kind, no two read alike though six are drawn "Seed", food says what eating heals and fills,
 // and the word Use is its own segment. (The card on the page, its place and its look, is `check("hovercard")`'s, in the pane.)
