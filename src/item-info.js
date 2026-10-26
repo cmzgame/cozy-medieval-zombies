@@ -4,7 +4,8 @@
 // ui/hover-card.js draws what this returns. A card is { name, kind, state, lines, fine }: `lines` and `fine` are lists of lines, a line a list of segments { t, k } where `k`
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
-import { getItem, wearPerHit, wearPerShot, toolFor, countName, pluralName } from "./items.js";
+import { getItem, wearPerHit, wearPerShot, toolFor, countName, pluralName, namePlural } from "./items.js";
+import { propName } from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id
 import { beltDefault } from "./inventory.js"; // where the belt's key draws a thing by default (#285)
 import { work, trees } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6); the sapling and the sticks (docs/46 step 3)
 import * as interactions from "./interactions.js";
@@ -36,7 +37,8 @@ function nameOfOn(on) {
   if (on === "corpse") return "a body of the dead";
   if (on === "tile") return "the ground";
   if (WORDS[on]) return WORDS[on];
-  return on.replace(/^floor_/, "").replace(/_y$/, "").replace(/_/g, " ");
+  if (on.startsWith("floor_")) return on.replace(/^floor_/, "").replace(/_y$/, "").replace(/_/g, " "); // a floor's id, not a prop's
+  return propName(on); // a prop's sprite id by prop-names.js (the jack-o'-lantern, not "pumpkin"); an item's id or a tag in words
 }
 
 // "a, b or c"; past four, the first three and "more".
@@ -86,7 +88,7 @@ export function gatheredFrom(def) {
       if (!kind || !kind.where) continue;
       const where = kind.where;
       const night = kind.night || b.night ? ", only at night" : "";
-      const node = `${sd.name || sid.replace(/_\d+$/, "").replace(/_/g, " ")}s`;
+      const node = namePlural(propName(sid), sd);
       let text;
       if (field === "gather") text = b.word ? `${b.word} ${where}${night}.` : `Grows wild ${where}; gathered by hand${night}.`;
       else if (field === "dig") { const t = toolFor(b.tool); text = `Dug from the ${node} ${where}${t ? `, ${an(t.name.toLowerCase())} carried` : ""}.`; }
@@ -118,7 +120,7 @@ export function recipesOf(def) {
     if (!stations.isOpen(r)) continue; // a recipe a world rule keeps off is not on a card (docs/43 section 5)
     if (r.out && r.out.id === def.id && !madeAt.includes(r.station)) madeAt.push(r.station);
     if ((r.in || []).some((w) => w.id === def.id || (w.tag && def.tags && def.tags.includes(w.tag)))) {
-      const out = r.out && r.out.id ? getItem(r.out.id).name : r.label ? r.label : r.out && r.out.prop ? cap(r.out.prop.replace(/_/g, " ")) : r.id; // a recipe's own label first (the jack-o'-lantern's prop is "pumpkin")
+      const out = r.out && r.out.id ? getItem(r.out.id).name : r.label ? r.label : r.out && r.out.prop ? cap(propName(r.out.prop)) : r.id; // a recipe's own label first (the jack-o'-lantern's prop is "pumpkin")
       if (!goesInto.some((g) => g.name === out)) goesInto.push({ name: out, station: r.station });
     }
   }

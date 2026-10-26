@@ -11,14 +11,7 @@
 // A target: { kind: "item", entry } | { kind: "prop", prop } | { kind: "bracket", bracket } | { kind: "character", ch } | { kind: "tile", x, y, floor }.
 
 import { getItem } from "./items.js";
-import { getDef } from "./assets.js";
-
-// A prop's name: its definition's `name` ("apple tree", #422), else its sprite id in words.
-function propName(sprite) {
-  let def = null;
-  try { def = getDef(sprite); } catch { /* not loaded: the id */ }
-  return (def && def.name) || sprite.replace(/_\d+$/, "").replace(/_/g, " ");
-}
+import { propName } from "./prop-names.js"; // a prop's name: its recipe's label, its definition's `name` ("apple tree", #422), else its id in words
 
 let rows = [];
 export const NOTHING = "Nothing interesting happens.";

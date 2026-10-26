@@ -2335,6 +2335,7 @@ check("burn corpse: the done line says the hours the data gives", () => {
 });
 
 const placementMod = await import("../src/placement.js");
+const propNamesMod = await import("../src/prop-names.js"); // a prop's name in words, the one helper
 const woodsMod = await import("../src/woods.js");
 // The hover card's plurals and lower-cased names (docs/bugs.md: not reproduced, guarded): "Splits into 3 planks" and the sawpit's line add an "s"
 // to the item split into, and "Goes into" and "Builds" lower-case a recipe's or a build kind's name. No name that reaches those lines today has a
@@ -2354,7 +2355,7 @@ check("hover card: every name that reaches a plural or a lower-cased line reads 
   }
   for (const r of recipes) {
     const o = r.out || {};
-    const name = o.id ? byId.get(o.id).name : r.label || (o.prop ? o.prop.replace(/_/g, " ") : r.id);
+    const name = o.id ? byId.get(o.id).name : r.label || (o.prop ? propNamesMod.propName(o.prop) : r.id);
     if (/[A-Z]/.test(name.slice(1))) bad.push(`recipe ${r.id}'s "${name}" is lower-cased on a card's Goes into line`);
   }
   for (const k of placementMod.buildKinds()) {
@@ -2536,6 +2537,109 @@ check("crafting: no room beside the station refuses the make before it spends an
   const arrows = stationsMod.doneLine({ id: "arrow", count: 5 });
   assert(arrows === "Made 5 arrows.", `the arrows' line: "${arrows}"`);
   return `refused: "${refused.reason}"; ${reached.length} tiles filled; the job waited and landed; "${arrows}"`;
+});
+
+// A made prop's name (docs/bugs.md, 2026-10-25: "Made a pumpkin.", "Made a dyevat.", "Made a millstones.", a busy vat's "Pick up dyevat"):
+// every line that names a prop reads src/prop-names.js, the recipe's label first, then the definition's `name`, counted by its `noun` and
+// `article`. The done line and the no-room refusal for four made props, and a busy station's Pick up and its Use, by their own words.
+check("prop names: a made prop's done line and refusal, and a busy station's Pick up, name it in words (the jack-o'-lantern, the dye vat, the millstones)", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false, villageStations: true } });
+  const S = gameMod.state;
+  const me = S.player;
+  const bench = mapMod.allProps().find((q) => q.sprite === "workbench" && mapMod.peekTile(q.tile[0], q.tile[1]).prop === q);
+  assert(bench, "no workbench in the loaded chunks");
+  const stand = mapMod.nearestWalkable(bench.tile[0], bench.tile[1] + 1, (x, y) => !!mapMod.tileAt(x, y).prop || !bench.tiles.some(([bx, by]) => lineOfSight(x, y, bx, by)));
+  me.gx = stand[0];
+  me.gy = stand[1];
+  const want = {
+    jack_o_lantern: "a jack-o'-lantern",
+    dyevat: "a dye vat",
+    millstones: "a pair of millstones",
+    counter: "a counter",
+  };
+  const bad = [];
+  for (const [id, words] of Object.entries(want)) {
+    const r = stationsMod.recipe(id);
+    if (!r) { bad.push(`no recipe ${id}`); continue; }
+    const line = stationsMod.doneLine(r.out);
+    if (line !== `Made ${words}.`) bad.push(`${id}'s done line "${line}"`);
+  }
+  // No room beside the bench (every tile a body could walk to from it, a chest on each): each recipe's refusal names its prop the same way.
+  const reached = [];
+  const seen = new Set(bench.tiles.map(([x, y]) => `${x},${y}`));
+  let ring = bench.tiles.slice();
+  for (let step = 0; step < 18 && ring.length; step++) {
+    const next = [];
+    for (const [x, y] of ring) for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
+      const k = `${x + dx},${y + dy}`;
+      if (seen.has(k) || !mapMod.canStep(x, y, x + dx, y + dy)) continue;
+      seen.add(k);
+      next.push([x + dx, y + dy]);
+    }
+    reached.push(...next);
+    ring = next;
+  }
+  const chests = reached.filter(([x, y]) => !mapMod.tileAt(x, y).prop).map(([x, y]) => { const c = mapMod.createProp({ sprite: "chest", tile: [x, y] }); mapMod.placeProp(c, x, y); return c; });
+  const refusals = [];
+  try {
+    for (const [id, words] of Object.entries(want)) {
+      const why = stationsMod.roomProblem(bench, stationsMod.recipe(id));
+      refusals.push(why);
+      if (why !== `There is no room beside it for ${words}.`) bad.push(`${id}'s refusal "${why}"`);
+    }
+  } finally {
+    for (const c of chests) mapMod.removeProp(c);
+  }
+  // A busy station's Pick up (the village's stations movable by the world's rule): a dye vat, and the millstones, which are a plural.
+  assert(rulesMod.rules.villageStations, "the world was not made with the village's stations movable");
+  me.hands.main = null; // Pick up needs both hands empty
+  me.hands.off = null;
+  const made = [];
+  const at = (sprite) => {
+    const t = mapMod.nearestWalkable(Math.round(me.gx) + 2, Math.round(me.gy), (x, y) => !!mapMod.tileAt(x, y).prop || mapMod.besideDoor(x, y));
+    const p = mapMod.createProp({ sprite, tile: t });
+    mapMod.placeProp(p, t[0], t[1]);
+    made.push(p);
+    return p;
+  };
+  const labels = {};
+  try {
+    const vat = at("dyevat");
+    const stones = at("millstones");
+    const wheel = at("spinningwheel");
+    const read = (p) => interactMod.actionsForTarget({ kind: "prop", id: p.id }, me).map((a) => a.label);
+    labels.idle = read(vat);
+    vat.queue = [{ recipe: "none" }];
+    stones.queue = [{ recipe: "flour" }];
+    labels.vat = read(vat);
+    labels.stones = read(stones);
+    labels.wheel = read(wheel);
+    labels.heldVat = placementMod.holdsProblem(vat); // Take apart's refusal, which agrees with the plural as Pick up does
+    labels.heldStones = placementMod.holdsProblem(stones);
+    vat.queue = [];
+    stones.queue = [];
+  } finally {
+    for (const p of made) mapMod.removeProp(p);
+  }
+  const has = (list, label) => { if (!(list || []).includes(label)) bad.push(`no "${label}" in ${JSON.stringify(list)}`); };
+  has(labels.idle, "Pick up dye vat");
+  has(labels.idle, "Use the dye vat");
+  has(labels.vat, "Pick up dye vat (it is still making something)");
+  has(labels.stones, "Pick up millstones (they are still making something)");
+  has(labels.stones, "Use the millstones");
+  has(labels.wheel, "Use the spinning wheel");
+  if (labels.heldVat !== "It is still making something.") bad.push(`a busy vat's Take apart refusal "${labels.heldVat}"`);
+  if (labels.heldStones !== "They are still making something.") bad.push(`the busy millstones' Take apart refusal "${labels.heldStones}"`);
+  // The hover card's Use rows (item-info.usesOf) name a prop target by the same helper: the tinderbox and the torch light the jack-o'-lantern,
+  // never "pumpkin" (the card shows the first three targets; the list behind it is read whole).
+  for (const id of ["tinderbox", "torch"]) {
+    const on = itemInfoMod.usesOf(itemsMod.getItem(id)).flatMap((u) => u.on);
+    if (on.includes("pumpkin") || !on.includes("jack-o'-lantern")) bad.push(`the ${id}'s Use targets: ${on.join(", ")}`);
+  }
+  const fire = mapMod.fireName({ sprite: "pumpkin" });
+  if (fire !== "jack-o'-lantern") bad.push(`the jack-o'-lantern's fire is called "${fire}"`);
+  assert(!bad.length, bad.join("; "));
+  return `${Object.values(want).map((w) => `"Made ${w}."`).join(", ")}; ${refusals.length} refusals alike; "${labels.vat.find((l) => l.startsWith("Pick up"))}", "${labels.stones.find((l) => l.startsWith("Pick up"))}"`;
 });
 
 // A colour no dye gives, on a garment from the dead (docs/bugs.md: a looted hood's card read "#705848"): a plain word, read from the colour;

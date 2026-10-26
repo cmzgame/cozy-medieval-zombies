@@ -9,6 +9,7 @@ import * as stations from "../stations.js";
 import * as verbs from "../verbs.js";
 import { world } from "../world.js";
 import { getItem, toolFor, aName } from "../items.js";
+import { propName } from "../prop-names.js"; // a prop's name in words, the one helper
 import { canReach } from "../reach.js";
 import { emit } from "../events.js";
 import { showMessage } from "./prompt.js";
@@ -125,7 +126,7 @@ function title(station) {
 // What a recipe makes, named: an item by its definition, a prop by its sprite.
 function nameOfOut(r) {
   if (r.label) return r.label; // a recipe may name itself in data (six rows make "Rag")
-  if (r.out.prop) { const s = r.out.prop.replace(/_/g, " "); return s[0].toUpperCase() + s.slice(1); }
+  if (r.out.prop) { const s = propName(r.out.prop); return s[0].toUpperCase() + s.slice(1); }
   return getItem(r.out.id).name;
 }
 

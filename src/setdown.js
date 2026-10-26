@@ -13,6 +13,7 @@ import * as items from "./items.js";
 import * as grid from "./grid.js";
 import * as paintings from "./paintings.js";
 import { getDef } from "./assets.js";
+import { propName } from "./prop-names.js"; // a prop's name in words, the one helper
 import * as clock from "./clock.js";
 import { noteSnare } from "./entities/animal.js"; // the snares the step looks at (docs/45 section 2)
 import * as trees from "./trees.js"; // a sapling planted on open grass (docs/46 step 3)
@@ -64,7 +65,7 @@ export function entryOf(player, uid, bracket = false) {
 
 const nameOf = (sprite) => {
   const item = getDef(sprite).item;
-  return (item && items.hasItemDef(item) ? items.getItem(item).name : sprite.replace(/_\d+$/, "").replace(/_/g, " ")).toLowerCase();
+  return (item && items.hasItemDef(item) ? items.getItem(item).name : propName(sprite)).toLowerCase();
 };
 
 // Set the item `uid` down on (tx, ty): the host's click and a guest's `setdown` command. Says why not and returns false; otherwise the item

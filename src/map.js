@@ -10,6 +10,7 @@
 // floor; beyond them a chunk is wild, grown from the map's `wild` rule.
 
 import { getDef } from "./assets.js";
+import { propName } from "./prop-names.js"; // a prop's name in words, the one helper (the jack-o'-lantern by its recipe's label)
 import { douse, getItem, hasItemDef } from "./items.js";
 import { nextId } from "./world.js";
 import { storedLeaf, carriedLeaf } from "./woods.js"; // the wood of a door's or window's leaves (#334)
@@ -329,8 +330,8 @@ export function setLantern(b, lit) {
 }
 
 // A fire's name in a player's words: a lantern post is a lantern, the pumpkin prop a jack-o'-lantern, else its sprite's words.
-const FIRE_NAMES = { lantern_post: "lantern", pumpkin: "jack-o'-lantern" };
-export const fireName = (prop) => FIRE_NAMES[prop.sprite] || prop.sprite.replace(/_/g, " ");
+const FIRE_NAMES = { lantern_post: "lantern" }; // a fire called by its flame, not its prop
+export const fireName = (prop) => FIRE_NAMES[prop.sprite] || propName(prop.sprite);
 
 // A prop's fire on or off with nothing spent: a switch (a fireplace, a hearth, a lantern post) either way; any burner or a post's torch
 // put out (a campfire keeps the fuel left). Touches its chunk. Returns whether it changed.
