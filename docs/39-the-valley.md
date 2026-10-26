@@ -234,8 +234,8 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 - **Hunting bow** [built]: Ranged 1; made at the workbench [change: Crafting 4, a bow from each wood: oak the basic, mahogany a better one].
 - **Arrows** [built]: five from a stick and a feather at the workbench, fletched [built, #445] [change: Crafting 4, bound with fish glue]; lodged arrows return in a body's loot; picked up again 25% of the time when missed (Ranged 5) [to build].
 - **Fire arrows** [built]: arrows dipped in a lit fire.
-- **Throwing knives** [change: they throw, Ranged 3]: art only today; the Developer Chest only. The bandits' camp (`docs/29-world/08`) and Blacksmithing 3 (ruled 2026-10-23).
-- **Throwing axes** [change: they throw, Ranged 6]: as the knives; the woodcutters' camp and Blacksmithing 3 (ruled 2026-10-23).
+- **Throwing knives** [change: they throw, Ranged 3; ruled 2026-10-25, `24` section 1: the puller, 15 damage, 30% to break]: art only today; the Developer Chest only. The bandits' camp (`docs/29-world/08`) and Blacksmithing 3 (ruled 2026-10-23).
+- **Throwing axes** [change: they throw, Ranged 6; ruled 2026-10-25, `24` section 1: the stopper, 30 damage, knockdown 0.35, 10% to break]: as the knives; the woodcutters' camp and Blacksmithing 3 (ruled 2026-10-23).
 - **Crossbow** [to build]: Ranged 8 to fire, Crafting 8 to make. Its bolts are Crafting 8 with it, their tips Blacksmithing 3 (ruled 2026-10-23).
 - **Silver arrows** [to build]: Blacksmithing 5 [open #283].
 - **Poisoned arrows** [to build]: Potions 5.
