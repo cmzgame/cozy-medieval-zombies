@@ -86,7 +86,8 @@ const RAISED_ARM = 40; // degrees of pitch from which an arm (holding, swinging)
 
 function drawFrame(frame, spec, facing, anim, i) {
   const F = facingVectors(facing);
-  const p = pose(spec.variant, anim, i, spec.holding, anim === "attack_alt" ? spec.altStyle : anim === "attack_off" ? offStyleFor(spec) : styleFor(spec)); // the off hand's swing its own weapon's style (#423)
+  const left = spec.handed === "left"; // a left-handed figure's main arm is its left (Michael, 2026-10-25; rig.js pose)
+  const p = pose(spec.variant, anim, i, spec.holding, anim === "attack_alt" ? spec.altStyle : anim === "attack_off" ? offStyleFor(spec) : styleFor(spec), left); // the off hand's swing its own weapon's style (#423)
   const J = joints(p);
   const look = spec.look;
   const outfit = spec.outfit || {};
@@ -526,8 +527,8 @@ function drawFrame(frame, spec, facing, anim, i) {
     return { x: Math.round(q.x) - FEET_X, y: Math.round(q.y) - FEET_Y };
   };
   return {
-    main: hand(armR, 1),
-    off: hand(armL, -1),
+    main: left ? hand(armL, -1) : hand(armR, 1), // the main hand's thing in the left hand of a left-handed figure, the off hand's in the right
+    off: left ? hand(armR, 1) : hand(armL, -1),
     head: jp(J.head),
     neck: jp(J.neck),
     hip: jp(J.hip),

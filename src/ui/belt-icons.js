@@ -5,6 +5,7 @@
 // creation, its own PR), and the utility slot a pouch. The panel draws them faint (style.css `.hot-role`).
 
 import { iconURL, SIZE } from "./skill-icons.js";
+import { handSideOf } from "../handed.js";
 
 const SKIN = "#d8c0a0";
 const SHADE = "#a88c6c";
@@ -57,11 +58,10 @@ const DRAW = {
 export const ICON_SIZE = SIZE;
 
 // The icon's key for a slot's role and the player's handedness: the main hand is the favoured side, the off hand the other.
+// `handed` is a character or a handedness (handed.js handSideOf, "right" when absent), so the icons and the character screen's labels agree.
 export function roleIconKey(role, handed = "right") {
   if (role === "utility") return "utility";
-  const left = handed === "left";
-  const side = role === "main" ? (left ? "left" : "right") : left ? "right" : "left";
-  return `hand-${side}`;
+  return `hand-${handSideOf(handed, role)}`;
 }
 
 export function beltIconURL(key) {

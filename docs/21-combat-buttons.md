@@ -65,7 +65,9 @@ Ruled: **you can attack from behind the guard, for much less damage; walking wit
 
 What I would watch in play: the stamina bar is now the guard's whole clock; a zombie that hits you from the side every 1.2 s costs 5 stamina and 4 hp, so two or three sides at once end the guard in seconds. All numbers are in the shield's block in `data/items.json`.
 
-## Two rules of the hands
+## The rules of the hands
+
+- **Main and off, whichever arm** (Michael, 2026-10-25, `02`): a character is right- or left-handed, chosen with its identity, and that is only which arm the main hand is drawn and named as (the figure, the character screen's "Main hand (right)" and "Off-hand (left)", the belt's hand icons). The left mouse button is always the main hand, and the swing, the guard, the belt's choices, and every rule here read main and off, never left or right.
 
 - **Dragging one hand onto the other swaps them** (Michael, 2026-10-12): with a weapon in each hand, dragging either onto the other in the character panel swaps the two (main to off, off to main) when each is allowed in the other's hand; when it cannot (a shield never goes to the main hand), the one in the way goes to the bag as before.
 - **The hands remember** (2026-10-12): a two-handed item that pushes the off-hand item out remembers it (`player.offMemory`), and when a one-handed item next takes the main hand with the off hand empty, or the two-hander is unequipped or hung on the belt, the remembered item comes back once if it is still in the bag or on the belt; something put into the off hand by choice clears the memory. The debug corner's hands line ends with `guard no shield / ready / UP`, so a missing shield is the first thing it shows.

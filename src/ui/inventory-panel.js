@@ -20,6 +20,7 @@ import { cardFor, cardForSlot, cardForBeltSlot, cardForLockedSlot } from "../ite
 import { beltIconURL, roleIconKey } from "./belt-icons.js"; // the faint hand or pouch on an empty belt slot (2026-10-25)
 import { holdsWater, isTainted } from "../water.js"; // the brown drop on a tainted skin or bucket (docs/44)
 import { parseSlot, HIDEABLE, beltRole, beltPositions, BELT_ROLES } from "../inventory.js";
+import { handLabel, handSideOf } from "../handed.js"; // the hand slots named by side, "Main hand (right)" (Michael, 2026-10-25)
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
 const HOT_CELL = view.BASE_CELL; // the belt is HUD and keeps the base size
@@ -315,7 +316,9 @@ function slotHtml(id, entry, label, extra = "") {
 function dollHtml(player) {
   hiddenNow = player.hidden || [];
   const area = (name, html) => html.replace('class="doll-slot', `style="grid-area:${name}" class="doll-slot`);
-  const hand = (key, label) => area(key, slotHtml(`hand:${key}`, player.hands[key], label, " doll-hand"));
+  // The doll's left column is the character's right hand and its right column the left (the grid's areas `main` and `off`
+  // are named for a right-handed character): a left-handed character's main hand stands on the right (Michael, 2026-10-25).
+  const hand = (key, label) => area(handSideOf(player, key) === "right" ? "main" : "off", slotHtml(`hand:${key}`, player.hands[key], label, " doll-hand"));
   const worn = (k) => area(k === "hands" ? "gloves" : k, slotHtml(`worn:${k}`, player.worn[k], SLOT_NAMES[k]));
   const slot = `calc(${CELL}px + 2 * var(--kit-well-w, 5px))`; // a slot's box, the well's border included
   const cols = `${slot} ${CELL / 2}px ${slot} ${CELL / 2}px ${slot}`;
@@ -324,7 +327,7 @@ function dollHtml(player) {
       ${headerHtml("You", "", "character")}
       <div class="doll-grid" style="grid-template-columns:${cols};grid-auto-rows:${slot};grid-template-areas:${DOLL_AREAS.map((r) => `'${r}'`).join(" ")}">
         ${["waist", "head", "back", "chest", "legs", "feet", "hands"].map(worn).join("")}
-        ${hand("main", "Main hand")}${hand("off", "Off-hand")}
+        ${hand("main", handLabel(player, "main"))}${hand("off", handLabel(player, "off"))}
       </div>
     </div>`;
 }
@@ -372,7 +375,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
   if (!open && !character) return;
   if (drag && drag.from.kind === "bag" && drag.from.bag !== inv && drag.from.bag !== container) cancelDrag();
   CELL = view.panelCell();
-  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands, player.hidden], shownAs);
+  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands, player.hidden, player.handed], shownAs);
   if (sig === lastSignature) return;
   const hadContainer = lastSignature !== "" && /"container"/.test(lastSignature);
   lastSignature = sig;

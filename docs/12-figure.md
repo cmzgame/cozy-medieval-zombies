@@ -68,6 +68,8 @@ A hand that holds something raises its arm forward and keeps it there through th
 
 Held art is generated per facing like everything else (a hatchet from behind shows its back). An artist later supplies per-facing held sprites or a single sprite the generator rotates in whole 45-degree steps; both go through the same anchor.
 
+**Right- or left-handed** (Michael, 2026-10-25, `02`): the main arm is the right one, unless the character is left-handed (`player.handed`, chosen with its identity), and then it is the left. The rig works a pose out as ever, with the arms' arrays as off and main, and `pose(..., left)` turns them round at the end (the walk's free arm, which swings with the legs, keeps its side), so the main hand's thing is in the left hand and every pose (the swings, `attack_off`, the bow, the cast, the thrust, the held-out pose, the wave) on that side, and the sheet's joints name `main` and `off` as before; the sprite is never flipped, so the face, the hair's parting, and the garments stay as drawn. A left-handed sheet's key ends in `"left"` (`specKey`); a right-handed one's is the key it always was. The dead and villagers are right-handed. Visual only: nothing in the sim reads it.
+
 Furniture carried over the head keeps its own drawing (`02-decisions.md`, carrying), placed from the carry pose's hand points.
 
 ## Goobers
