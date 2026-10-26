@@ -956,7 +956,7 @@ function updateInventoryUi() {
   }
   if (input.wasPressed("KeyC")) panel.toggleCharacter();
   if (openBag && (!panel.isBagOpen() || panel.takeContainerClose())) openBag = null; // the bag or the container closed by its X
-  // The belt keys (1 to 4) are key events in my snapshot, performed by the world's step for my player, here or on the
+  // The belt keys (1 to 5) are key events in my snapshot, by the slot's role, performed by the world's step for my player, here or on the
   // host (interact.beltEvents, updateInteract; item 4: on a guest they changed only its own replica).
   if (openBag && openBag.address) {
     // On a guest the replica's objects are new with every frame: the grid is found again by its address.
@@ -1175,7 +1175,7 @@ function stepGame(dt) {
   // step, here or on the host (game.step), so a guest's boards and torch are the host's doing. They work with
   // any panel or menu open (Michael, 2026-10-15: only the pause menu stops the game), as the belt keys always have.
   const keyEv = interact.keyEvents(dt);
-  const beltEv = interact.beltEvents();
+  const beltEv = interact.beltEvents(client.me, settings.get("beltOrder")); // the number turned into the slot's role here, by my own key order
   const keys = keyEv || beltEv || drawCancelled ? { ...(keyEv || {}), ...(beltEv || {}), ...(drawCancelled ? { drawCancel: true } : {}) } : null;
   drawCancelled = false;
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;

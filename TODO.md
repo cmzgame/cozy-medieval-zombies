@@ -33,7 +33,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 - **Engine and tests:** the pathfinder's reused memory (#458), the item census in `check("sync")` (#459), a click under a tree's crown finding the herb (#464).
 - **Bugs:** two batches from `docs/bugs.md` (#454, #466), including a made counter landing on its own workbench.
 
-**The order ahead** (Michael, 2026-10-25), each a sit-down with him, **the belt's own discussion first** (pinned: "we come back to it before the sit downs"):
+**The order ahead** (Michael, 2026-10-25), each a sit-down with him, **the belt's own discussion first** (pinned: "we come back to it before the sit downs"; held 2026-10-25, `docs/02` The belt's slots have roles, built on `primary/belt-roles`, its PR open):
 1. **Potions**, first after the belt (Michael, 2026-10-25: "Put the potions sitting first, right after the belt discussion, before power items.") (Michael, 2026-10-25: "This may need its own sit, I want to make sure this system is built thoughtfully"): which herbs and how many go into each, and what making one takes (vials, water); with it, Herbalism 6 and 7's replacements (struck) and what the herb bed grows (`docs/02` open questions 35 and 36).
 2. Power items: gems (#281), trinkets (#282), silver (#283).
 3. Armour and difficulty (#133).
@@ -48,7 +48,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 **Ruled this evening** (`docs/02`, 2026-10-25, The evening's defaults ruled, and The evening's rulings): a newborn may appear in view in its pen; the rocks rise as read, with a shudder; every other default he was shown stands as built (Michael: "Anything not commented on is fine as-is"); the mana herb is Mageroot and grave moss keeps its name; no plant is only at night (grave moss at any hour; Herbalism 6 and 7 struck, their replacements open); pemmican's 3 and 35 as they are; eggs do not stack, open to change after a playtest; potions get their own sitting.
 
 **Waiting on Michael** (defaults built, his to confirm or overrule; each named in its PR's Risks):
-- **the belt (#467), pinned** for a discussion of its own before the sittings (Michael, 2026-10-25): the hand choice kept per kind of item in a slot rather than per slot; Equip to a hand also draws; an empty off-hand slot takes the off hand's item; the two Equip spellings;
+- **the belt's roles** (`primary/belt-roles`): the builder's readings where the ruling was silent, listed in `docs/02` (2026-10-25, The belt's slots have roles); #467's defaults are gone with the hand choice;
 - from before: the shared repair count and the plank for the rod and bow (#425); water's infection opening on "Bitten"; a tainted sip at full thirst; #426 brightness and Plants vs Zombies; #415 spikes; #419 the Stardew notebook; the loot rates; the rucksack's recipe; the burst against a bow, shield, or brace; #271's items 6 and 8 to 11; #393 the downed art; knockdown on cards; music; #324; the `needs-michael` issues.
 
 **Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`).

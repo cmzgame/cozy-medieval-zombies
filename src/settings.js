@@ -27,6 +27,7 @@ export const DEFAULTS = {
   nameTags: true, // another player's name over their head while in sight (docs/31/03)
   objectHighlight: true, // outline the game object under the cursor that has an action (src/highlight.js; #301); a testing setting, on
   smallText: "clear", // "clear": text at or under 15 UI px is set in the system's sans-serif; "pixel": in the pixel font like the rest (ui/small-text.js; #321)
+  beltOrder: "sequential", // the belt's number keys and places on screen (inventory.beltPositions): "sequential" 1 main, 2 off, 3 utility, the leather belt's 4 main, 5 off; "grouped" 1 and 2 main, 3 and 4 off, 5 utility. This client's own: the key goes out as the slot's role (Michael, 2026-10-25)
   floaters: true, // the floating numbers over heads: damage, heals, and gathers (ui/floaters.js; #294)
   soundOn: true, // the master switch (docs/40, section 1): on by default, nothing sounds before the first click (the browser's autoplay rule)
   soundVolume: 0.75, // the master volume: 0, 0.25, 0.5, 0.75, or 1 (docs/40)
@@ -62,6 +63,7 @@ export const REGISTRY = [
   { key: "cursor", group: "display", label: "Cursor", help: "The pointer: the system's own, or one of three hands.", choices: [["default", "Default"], ["human", "A hand"], ["severed", "A severed hand"], ["zombie", "A zombie hand"]] },
   { key: "nameTags", group: "display", label: "Names over heads", help: "Another player's name over their head while you can see them.", choices: SHOWN },
   { key: "smallText", group: "display", label: "Small text", help: "Very small text in a plain, clear font (Clear), or in the pixel font like the rest (Pixel).", choices: [["clear", "Clear"], ["pixel", "Pixel"]] },
+  { key: "beltOrder", group: "display", label: "Belt slot order", help: "Which number key is which belt slot. Sequential: 1 main hand, 2 off hand, 3 utility, and a leather belt adds 4 main hand and 5 off hand. Hands grouped: 1 and 2 main hand, 3 and 4 off hand, 5 utility.", choices: [["sequential", "Sequential"], ["grouped", "Hands grouped"]] },
   { key: "floaters", group: "display", label: "Floating numbers", help: "Damage, healing, and what you gather float up over heads.", choices: SHOWN },
   { key: "swingTimer", group: "display", label: "Swing timer", help: "A bar at the bottom of the screen while a swing recovers.", choices: ON_OFF },
   { key: "showSwingTargets", group: "display", label: "Swing targets", help: "A green outline on what your next swing would hit. Green means the swing lands.", choices: ON_OFF },

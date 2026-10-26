@@ -1,5 +1,5 @@
 {
-  "version": "f7ee8b98",
+  "version": "746940a0",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3016, "stamp": "87aeb2be"},
@@ -9,7 +9,7 @@
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
     "data/ground.json": {"size": 3492, "stamp": "fb2c261c"},
     "data/interactions.json": {"size": 4176, "stamp": "0cbd9fe3"},
-    "data/items.json": {"size": 51085, "stamp": "85746457"},
+    "data/items.json": {"size": 51069, "stamp": "7cd57bb4"},
     "data/kit.json": {"size": 939, "stamp": "628d28a8"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
     "data/loot.json": {"size": 7901, "stamp": "6cc83f31"},
@@ -835,7 +835,7 @@
     "data/talk/apprentice.json": {"size": 806, "stamp": "b1a25f39"},
     "data/talk/child.json": {"size": 721, "stamp": "30c61c33"},
     "data/talk/guest.json": {"size": 759, "stamp": "6d941b5e"},
-    "data/talk/guide.json": {"size": 13678, "stamp": "6575d3c0"},
+    "data/talk/guide.json": {"size": 13857, "stamp": "36690063"},
     "data/talk/innkeeper.json": {"size": 1044, "stamp": "dbcf0009"},
     "data/talk/neighbour.json": {"size": 715, "stamp": "1f20ffd6"},
     "data/talk/priest.json": {"size": 785, "stamp": "ebccec7f"},

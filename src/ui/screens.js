@@ -41,7 +41,7 @@ const CONTROLS = [
   ["Your things", [
     ["Tab", "Your bag"],
     ["C", "Your character"],
-    ["1 to 4", "Swap a belt slot with your hand"],
+    ["1 to 5", "Use a belt slot: a hand slot draws what is there into its hand (or eats it), the utility slot eats; the order is a setting"],
     ["Double-click", "Equip or unequip a thing; else move it across"],
     ["T", "Light or put out the torch in hand (a tinderbox lights it)"],
   ]],
