@@ -52,7 +52,7 @@ export async function run(game, opts = {}) {
     const A = I("throwing_axe");
     const k = K.thrown;
     const a = A.thrown;
-    row("the knife's numbers are Michael's: 15 damage, 13 tiles, a 0.3 stagger, no knockdown, 30% to break, stacks of 20", k.damage === 15 && k.range === 13 && k.staggerChance === 0.3 && !k.knockdown && k.breakChance === 0.3 && K.stack === 20 && !K.weapon, JSON.stringify(k));
+    row("the knife's numbers are Michael's: 18 damage (2026-10-26; 15 until then), 13 tiles, a 0.3 stagger, no knockdown, 30% to break, stacks of 20", k.damage === 18 && k.range === 13 && k.staggerChance === 0.3 && !k.knockdown && k.breakChance === 0.3 && K.stack === 20 && !K.weapon, JSON.stringify(k));
     row("the axe's numbers are Michael's: 30 damage, 9 tiles, always staggers, knocks down at 0.35, 10% to break, stacks of 10", a.damage === 30 && a.range === 9 && a.staggerChance === 1 && a.knockdown === 0.35 && a.breakChance === 0.1 && A.stack === 10 && !A.weapon, JSON.stringify(a));
     // Neither clears a wall: the highest point of a full-range throw is under the 80 px a shot must clear (archery.wallStops).
     const peak = (t) => { let m = 0; for (let u = 0; u <= 1; u += 0.01) m = Math.max(m, t.z0 * (1 - u) + 4 * t.arcMax * u * (1 - u)); return m; };
@@ -146,7 +146,7 @@ export async function run(game, opts = {}) {
       const hits = landed.filter((e) => e.hit === z);
       lodgedIn = (z.lodgedItems || []).filter((e) => e.id === "throwing_knife").length;
       const unbroken = hits.filter((e) => !e.broken).length;
-      row("a hit takes the knife's damage and lodges it in the body, unless it broke", hits.length === 6 && lodgedIn === unbroken && z.hp === 1000 - 6 * 15, `${hits.length} hits of 6, ${unbroken} unbroken, ${lodgedIn} lodged; hp ${z.hp} of 1000`);
+      row("a hit takes the knife's damage and lodges it in the body, unless it broke", hits.length === 6 && lodgedIn === unbroken && z.hp === 1000 - 6 * 18, `${hits.length} hits of 6, ${unbroken} unbroken, ${lodgedIn} lodged; hp ${z.hp} of 1000`);
       z.hp = 0;
       z.dead = true;
       const loot = lootOf(z);

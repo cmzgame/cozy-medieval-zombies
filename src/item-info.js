@@ -260,7 +260,10 @@ export function cardFor(entry, opts = {}) {
   }
   if (def.capacity) lines.push(line(seg("Drink", "word"), `: ${Math.round(entry.fill ?? 0)}% full; fill it at water.`));
   // Which water it holds (docs/44 section 3): the item's name never changes, the card says it, and a brown drop marks a tainted one's icon (inventory-panel.js).
-  if (holdsWater(entry)) lines.push(line(!isTainted(entry) ? "Clean water." : def.capacity ? "Tainted water: drinking it may make you Sick." : "Tainted water."));
+  // Tainted water is the card's first line, in the warning red with a bold lead (Michael's playtest, 2026-10-26: "needs to be way more
+  // noticeable"); clean water is a plain line where it stood.
+  if (holdsWater(entry) && !isTainted(entry)) lines.push(line("Clean water."));
+  else if (holdsWater(entry)) lines.unshift(def.capacity ? line(seg("Tainted water:", "warn"), seg(" drinking it may make you Sick.", "danger")) : line(seg("Tainted water.", "warn")));
   if (def.bandage) lines.push(line(seg("Apply", "word"), ": closes a bleeding wound."));
   // A potion, drunk (docs/47 section 4), its numbers from data/tuning.json `potions`; a poison, never drunk (section 6).
   if (def.potion === "heal") lines.push(line(seg("Drink", "word"), `: heals ${POTIONS.heal} at once.`));

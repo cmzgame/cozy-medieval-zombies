@@ -18,6 +18,7 @@ import * as figure from "./figure.js";
 import * as events from "./events.js";
 import * as items from "./items.js";
 import * as log from "./ui/log.js";
+import { TAINTED_ONLY } from "./entities/player.js";
 import * as world from "./world.js";
 import * as verbs from "./verbs.js";
 import * as placement from "./placement.js";
@@ -265,6 +266,10 @@ export function install() {
   // An auto-drink (docs/02 question 22): the word to the screen of the player who drank, a guest's here.
   events.on("drank", ({ who, auto }) => {
     if (auto && who && who !== (self() ? self().id : null) && net.isHost()) net.messageTo(who, "You drink from your waterskin.", 2);
+  });
+  // Thirsty with only tainted water carried (Michael's playtest, 2026-10-26): the line in the log of the player it is about, a guest's here.
+  events.on("taintedOnly", ({ who }) => {
+    if (who && who !== (self() ? self().id : null) && net.isHost()) net.logTo(who, TAINTED_ONLY, "result");
   });
   // A craft done: a line in the log of every guest whose player stands near (the stations step outside any acting player).
   events.on("craftDone", ({ out, tile }) => {

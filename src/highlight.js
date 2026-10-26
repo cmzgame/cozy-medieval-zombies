@@ -6,7 +6,7 @@
 // not paid every frame.
 // Chosen here (the builder's readings, Michael's to overrule): a character before an item before a prop, then the menu's first; the live dead are left to the cursor's zombie hand
 // and the swing outline, except one lying downed, outlined so it reads apart from a corpse (Michael, 2026-10-24, #385) (a corpse is a container, so it is outlined); a door, a shutter, and a wall bracket are edges, not sprites, and are not outlined yet; nothing in
-// placement, removal, or Use mode, with a panel under the pointer, with something carried, or out of sight.
+// placement or removal, with a panel under the pointer, with something carried, or out of sight; in the Use mode the outline is the mode's own target (forUse).
 
 import * as iso from "./iso.js";
 import * as map from "./map.js";
@@ -56,6 +56,21 @@ export function targetAt(sx, sy, player, visible = null) {
   const pa = real.find((a) => a.target.kind === "painting"); // a painting hung on a wall (#326)
   if (pa && seen(pa.mx, pa.my)) return { kind: "painting", tx: pa.target.tx, ty: pa.target.ty, edge: pa.target.edge };
   return null;
+}
+
+// In the Use mode (use.js) the outline is what the next click would be used on, the mode's own target (main.js useTargetAt): a character, a
+// prop by its pixels, or a tile's own prop (a crop on its plot, under a click on the soil round it); a bare tile and a bracket have none.
+// Shown whatever the Object Highlight setting says, as the mode's hover (Michael's playtest, 2026-10-26: "needs to highlight to show which
+// I am hovering over"). `t` is useTargetAt's answer, or null.
+export function forUse(t, player, visible = null) {
+  const seen = (tx, ty) => !visible || visible.has(tileKey(tx, ty));
+  target = null;
+  lastKey = "";
+  if (!t || !player || player.dead) return null;
+  if (t.kind === "character" && t.ch && t.ch !== player && seen(Math.round(t.ch.gx), Math.round(t.ch.gy))) target = { kind: "character", id: t.ch.id };
+  const prop = t.kind === "prop" ? t.prop : t.kind === "tile" ? map.peekTile(t.x, t.y)?.prop : null;
+  if (prop && prop.id && prop.tiles && prop.tiles.some(([tx, ty]) => seen(tx, ty))) target = { kind: "prop", id: prop.id };
+  return target;
 }
 
 // Every frame, from main.js: the target for the mouse as it stands. `blocked` is true when something else has the pointer (a mode, a panel).

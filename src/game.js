@@ -42,7 +42,7 @@ import * as rng from "./rng.js";
 import * as world from "./world.js";
 import * as loop from "./loop.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
-import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, setSiegeQuery, damagePlayer, autoDrink } from "./entities/player.js";
+import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, setSiegeQuery, damagePlayer, autoDrink, taintedOnlyNote } from "./entities/player.js";
 import { canPutDown } from "./placement.js";
 import { playAnimation } from "./sprites.js";
 import { createZombie, updateZombie, siegeHeldOn } from "./entities/zombie.js";
@@ -812,6 +812,7 @@ export function step(dt, snapshots = null) {
     // Auto-drinking (docs/02 question 22, ruled 2026-10-16): here, in the world's step, never in updatePlayer, which a
     // guest's prediction runs too. The word goes to whoever drank (main.js for this screen, host.js for a guest's).
     if (autoDrink(p)) events.emit("drank", { who: p.id, auto: true });
+    else if (taintedOnlyNote(p)) events.emit("taintedOnly", { who: p.id }); // every skin tainted: said once a Thirsty stage (main.js, host.js)
     bleed.update(p, dt);
     sick.update(p, dt); // Sick runs down here, on the authority, as the wound does (docs/44)
     mana.update(p, dt); // the mana bar regenerates here, on the authority, never in updatePlayer, which a guest predicts (docs/47 section 9)

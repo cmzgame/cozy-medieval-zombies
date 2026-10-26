@@ -90,7 +90,7 @@ export async function run(game) {
     const skin = G.items.makeEntry("waterskin", 1, { fill: 100 });
     G.inventory.stow(me, skin);
     me.hands.main = null;
-    row("a dry crop's menu offers Water with a skin and says it waits", labels({ kind: "prop", id: crop.id }).includes("Water") && labels({ kind: "prop", id: crop.id }).some((l) => /^Dry: waiting for water/.test(l)), labels({ kind: "prop", id: crop.id }).join(", "));
+    row("a dry crop's menu offers Water with the waterskin and says it waits", labels({ kind: "prop", id: crop.id }).includes("Water with the waterskin") && labels({ kind: "prop", id: crop.id }).some((l) => /^Dry: waiting for water/.test(l)), labels({ kind: "prop", id: crop.id }).join(", "));
     const watered = run1("water", { prop: crop.id, entry: skin.uid });
     row("watering costs the skin's fill and soaks the soil again", watered.ok && skin.fill === 100 - farming.get().soil.fillCost && farming.isWet(crop), `fill ${skin.fill}`);
     const t1 = G.clock.getElapsed();
@@ -369,10 +369,10 @@ export async function run(game) {
     restore.push(() => { for (const c of [...crops9, far]) { const t = G.map.propById(c.id); if (t) G.map.removeProp(t); } for (let ay = 0; ay < 3; ay++) for (let ax = 0; ax < 4; ax++) G.map.setFloor(plot[0] + ax, plot[1] + ay, "floor_grass"); });
     G.teleport(plot[0] + 1.2, plot[1] + 2.4);
     const onCrop = G.interact.actionsForTarget({ kind: "prop", id: crops9[4].id }, me);
-    row("carried at a plot, a crop's menu offers Pour the bucket (and Water with a skin as before)", onCrop.some((a) => a.label === "Pour the bucket" && a.enabled) && onCrop.some((a) => a.label.startsWith("Water")), onCrop.map((a) => a.label).join(", "));
+    row("carried at a plot, a crop's menu offers Water with the bucket (named, each vessel its own entry since Michael's playtest of 2026-10-26)", onCrop.some((a) => a.label === "Water with the bucket" && a.enabled), onCrop.map((a) => a.label).join(", "));
     G.teleport(plot[0] + 1.2, plot[1] + 1.8); // within the action's own reach, so the bar starts at once
     const stageDry = farming.stageOf(crops9[4], G.clock.getElapsed() + 5 * DAY);
-    const poured = G.interact.performByLabel(me, { kind: "prop", id: crops9[4].id }, "Pour the bucket");
+    const poured = G.interact.performByLabel(me, { kind: "prop", id: crops9[4].id }, "Water with the bucket");
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
     const now2 = G.clock.getElapsed();
     row("a guest's command pours it: all nine tiles are watered, and the tenth beyond the 3 by 3 is not", poured === true && crops9.every((c) => farming.isWet(c, now2)) && !farming.isWet(far, now2), `${crops9.filter((c) => farming.isWet(c, now2)).length} of 9 wet; the far one wet ${farming.isWet(far, now2)}`);
@@ -404,13 +404,13 @@ export async function run(game) {
     G.teleport(plot[0] + 1.2, plot[1] + 0.2); // in the row across the wall, close enough that only the wall refuses
     const behindB = G.interact.actionsForTarget({ kind: "prop", id: crops9[4].id }, me);
     const refused = G.verbs.run("pour", G.world, me, { tile: [plot[0] + 1, plot[1] + 1] });
-    row("from behind the wall the crop's menu offers no Pour, and the verb says there is a wall in the way", !behindB.some((a) => a.label.startsWith("Pour")) && !refused.ok && /wall/.test(refused.reason), `${behindB.map((a) => a.label).join(", ")}; ${refused.reason}`);
+    row("from behind the wall the crop's menu offers no Water with the bucket, and the verb says there is a wall in the way", !behindB.some((a) => a.label.startsWith("Water with the bucket")) && !refused.ok && /wall/.test(refused.reason), `${behindB.map((a) => a.label).join(", ")}; ${refused.reason}`);
     for (const ax of [0, 1, 2]) G.map.destroyWall(plot[0] + ax, plot[1] + 1, "n");
     for (const c of crops9) c.crop.wetUntil = G.clock.getElapsed() - 1;
     G.teleport(plot[0] + 1.2, plot[1] + 1.8);
     bucket.fill = 0;
-    const emptyMenu = G.interact.actionsForTarget({ kind: "prop", id: crops9[4].id }, me).find((a) => a.label.startsWith("Pour"));
-    row("an empty bucket's Pour says so in its label, disabled", !!emptyMenu && emptyMenu.label === "Pour the bucket (empty)" && !emptyMenu.enabled, emptyMenu ? emptyMenu.label : "none");
+    const emptyMenu = G.interact.actionsForTarget({ kind: "prop", id: crops9[4].id }, me).find((a) => a.label.startsWith("Water with the bucket"));
+    row("an empty bucket's Water with the bucket says so in its label, disabled", !!emptyMenu && emptyMenu.label === "Water with the bucket (empty)" && !emptyMenu.enabled, emptyMenu ? emptyMenu.label : "none");
     // The water is the entry's: it travels with the inventory and the save.
     bucket.fill = 70;
     const kept = JSON.parse(JSON.stringify(bucket));

@@ -11,7 +11,7 @@
 // at its end the skin is clean, its fill kept, the drop gone, the card "Clean water."; the fire's menu boils the fullest tainted skin, then is greyed
 // with why; Use on the fire is the same bar; a guest's three commands, run here by label, uid, and the fire's id, do the same; out of reach the
 // skin's menu is greyed with why and the verb refuses; a fire put out mid-bar boils nothing; a fireplace lit is a cooking fire that offers it;
-// filling a clean skin at the river or a pond taints it all, and every well and trough and the font say "(tainted)". The player, its bag, the rule,
+// a clean skin is never topped up at the river or a pond (Michael, 2026-10-26: its Fill says why), and every well and trough and the font say "(tainted)". The player, its bag, the rule,
 // and the loop are put back.
 
 export async function run(game, opts = {}) {
@@ -211,9 +211,10 @@ export async function run(game, opts = {}) {
       skinA.fill = 50; // clean, half full
       const tile = { kind: "tile", tile: bank.water };
       const labels = G.interact.actionsForTarget(tile, me).map((a) => a.label);
-      G.interact.performByLabel(me, tile, "Fill waterskins");
+      G.interact.performByLabel(me, tile, "Fill waterskins (they hold clean water)");
       for (let i = 0; i < 240 && me.action; i++) G.loop.advance(1 / 60);
-      row("a clean skin topped up at the water is tainted all through", skinA.fill === 100 && !skinA.clean && labels.includes("Drink from the water (tainted)"), `${JSON.stringify({ fill: skinA.fill, clean: !!skinA.clean })}; ${labels.join(", ")}`);
+      // Michael, 2026-10-26: Fill waterskins at a tainted source skips a skin holding clean water (it once tainted it all through).
+      row("a clean skin half full is never topped up at tainted water: its Fill says why and it stays clean", skinA.fill === 50 && skinA.clean === true && labels.includes("Fill waterskins (they hold clean water)") && labels.includes("Drink from the water (tainted)"), `${JSON.stringify({ fill: skinA.fill, clean: !!skinA.clean })}; ${labels.join(", ")}`);
     } else row("water with a bank near the player", false, "none within 120 tiles");
 
     if (opts.keep) {

@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills (2026-10-26, Fill waterskins skips clean water)
 - From the playtest: a bucket boiled and poured into skins; Burn corpse for a tinderbox alone, or Use a lit torch on a body; sleep fades to black and runs slower; container items open where they lie; a stack dropped on a matching stack fills it (2026-10-26, The playtest's rulings)
 - Honey goes into a clay jar made like a vial; eating it leaves the jar; a couple of jars at the cottage to start (2026-10-26, Honey goes into a clay jar)
 - The mana herb is Mageroot for now; grave moss keeps its name; no plant is gathered or grows back only at night, Herbalism 6 and 7 struck and their replacements open (2026-10-25, The evening's rulings)
@@ -106,7 +107,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### Combat
 
 - Sight-pull: one of the dead first turning to hunt a player calls once to the dead near it that see it, and those never call others; sound draws no one (2026-10-25, Sight-pull ruled)
-- Throwing knives pull and axes stop: the knife 15 and 30% to break, the axe 30, always staggering, knocking down at 0.35, 10% to break; they spin, and land or lodge like arrows (2026-10-25, Throwing knives and axes ruled)
+- Throwing knives do 18 damage, not 15 (2026-10-26, Throwing knives do 18)
+- Throwing knives pull and axes stop: the knife 18 (15 until 2026-10-26) and 30% to break, the axe 30, always staggering, knocking down at 0.35, 10% to break; they spin, and land or lodge like arrows (2026-10-25, Throwing knives and axes ruled)
 - Potions, poisons, and mana as `47`: clay vials, clean water, two herbs and a secondary at a cauldron, mana 100, the Fire Bolt 20 mana, poisons put on a blade or arrows with Use, a splash for every potion (2026-10-25, Potions, poisons, and mana ruled)
 - Repairs run out: one count per item, the grindstone to 60, 40, 20%, the anvil to 100, 80, 60%; Burn corpse destroys a body and all in it (2026-10-25, The dead ends ruled)
 - The melee feel pass accepted as the baseline; tuning goes on with the skills (2026-10-24, The melee baseline)
@@ -307,6 +309,14 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-26 — Fill waterskins skips clean water (Michael)
+
+Asked on #507 whether Fill waterskins should go on topping up the clean starting skin with tainted water (the auto-sip drinks only clean water, so the clean skin is the one never full, and the next Fill at a well tainted it all), Michael: "Yes: Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills." When every skin that could take water holds clean water, the line says why: "Your waterskins hold clean water: they won't be filled from tainted water." (*Primary's wording.*) A bucket's fill is unchanged. `docs/44` section 1.
+
+### 2026-10-26 — Throwing knives do 18 (Michael)
+
+From his playtest, of the knife's damage: "Make throwing knives do 18 damage, your initial suggestion, 15 is too low." The knife's `thrown.damage` in `data/items.json` is 18 (nine throws to kill one of the dead at 150, where 15 took ten); everything else of 2026-10-25's ruling stands. `docs/24` section 1 and `docs/42` carry the number.
+
 ### 2026-10-26 — The playtest's rulings: a bucket boiled and poured, burning the dead for a tinderbox alone, sleep fades and lasts longer, bags open where they lie, stacks fill a stack (Michael)
 
 From his playtest reports on the Playtest Checklist. Primary answered each with a recommendation; Michael adopted them with two changes of his own.
@@ -339,7 +349,7 @@ Asked whether a pulled zombie alerts its neighbours, and whether sound draws the
 
 Asked whether the throwing knives and axes (drawn, never thrown) had an issue, Michael wanted them to "work pretty much like the spear, low damage but perhaps an increased chance to knock down", the axe doing more damage and costing more to make, and asked whether a knockdown spoils them for pulling the dead at range. Primary answered that it does not (a floored one still hunts the thrower and comes when it is up; a knockdown only holds it off longer) and proposed a job for each. Michael: "Drop axe damage to 30 and knife to 15. Otherwise adopted, you can write the spec. Also make sure we get a spinning knife or axe art to send along the arc because it'll look awesome." And on where they end up: "on bodies of dead zombies or ground like arrows? I think yes, with knives having a 30% chance to break, and axes like a 10% chance to break". The spec is `docs/24` section 1.
 
-- **The knife pulls:** 15 damage, 13 tiles, fast and flat, a 0.3 stagger chance, no knockdown, 30% to break, stacks of 20.
+- **The knife pulls:** ~~15 damage~~ (18 since 2026-10-26, Throwing knives do 18), 13 tiles, fast and flat, a 0.3 stagger chance, no knockdown, 30% to break, stacks of 20.
 - **The axe stops:** 30 damage, 9 tiles, a short arc, always staggers, knocks down at 0.35, 10% to break, stacks of 10.
 - **They spin along the arc**, lodge in a body or land on the ground like arrows, and are swept up with E.
 - **Made at Blacksmithing 3**, the axe dearer: *Primary's default*, one iron bar makes ten knives, an iron bar and a plank two axes, so a knife's throw costs less than an axe's at these breaks (`24` has the arithmetic).

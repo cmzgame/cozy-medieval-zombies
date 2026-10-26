@@ -20,7 +20,7 @@ import { resolveFacing, frameName } from "./sprites.js";
 import { getItem, toolFor, aName, countName, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
 import { beltDraw, dropWord, beltAction, beltRole, beltPositions, BELT_EVENTS, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
-import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
+import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, equipProblem, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
 import * as names from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id (docs/bugs.md, 2026-10-25)
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
@@ -37,7 +37,7 @@ import * as loop from "./loop.js";
 import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
-import * as inspectMark from "./inspect-mark.js"; // the tile marked while an Inspect's line shows
+import * as inspectCard from "./ui/inspect-card.js"; // an Inspect's card, its patch marked while it shows (inspect-mark.js)
 import * as bucket from "./bucket.js"; // the bucket item: fill at water, pour on a plot (#199)
 import { lineOfSight } from "./visibility.js";
 import { canReach, reachProblem } from "./reach.js"; // one reach test: distance and a clear line (#208)
@@ -772,14 +772,20 @@ function cropActions(prop, player) {
     const days = Math.max(1, Math.ceil(farming.daysLeft(prop)));
     out.push(act({ ...base, kind: "harvest", label: farming.isWet(prop) ? `Growing (ready in about ${days} day${days > 1 ? "s" : ""})` : `Dry: waiting for water (about ${days} more day${days > 1 ? "s" : ""} of growth)`, enabled: false }));
   }
+  // Water, an entry for each vessel carried that can: the bucket first (it waters the 3 by 3), then the skin, each named, so the choice is the
+  // player's (Michael's playtest, 2026-10-26: the skin was used unasked with a full bucket carried). E never waters (a crop's E is its harvest).
+  const pour = bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world).filter((a) => a.kind === "pour");
+  out.push(...pour);
   const skin = farming.skinFor(player, null);
-  out.push(act({ ...base, kind: "water", label: skin ? "Water" : "Water (no water in a skin)", duration: soil.seconds.water, enabled: !!skin, perform: run("water") }));
+  if (skin) out.push(act({ ...base, kind: "water", label: `Water with the ${getItem(skin.id).name.toLowerCase()}`, duration: soil.seconds.water, enabled: true, perform: run("water") }));
+  else if (!pour.length) out.push(act({ ...base, kind: "water", label: "Water (no water carried)", duration: soil.seconds.water, enabled: false, perform: run("water") }));
   out.push(inspectCropAction(prop, base));
   return out;
 }
 
 // Inspect a crop (Michael, 2026-10-19): what it is, how long until it is ready, whether it is watered or fertilized, and what harvests
-// it, said in a line, with the patch's tile marked on the ground while the line shows (inspect-mark.js). It only reads the world, so it
+// it, said on a card above the patch with a close button (ui/inspect-card.js, Michael's playtest 2026-10-26; a line at the top until then),
+// with the patch's tile marked on the ground while the card shows (inspect-mark.js). It only reads the world, so it
 // runs on this client alone, a guest's too (`local`: never sent to the host), from wherever the patch is seen, never walking there.
 export const INSPECT_RANGE = 12; // tiles
 function inspectCropAction(prop, base) {
@@ -790,8 +796,7 @@ function inspectCropAction(prop, base) {
     range: INSPECT_RANGE,
     local: true,
     perform() {
-      showMessage(cropReport(prop), 6);
-      inspectMark.mark(prop.tiles);
+      inspectCard.open({ id: prop.id, tiles: prop.tiles, read: (p) => (p.crop ? cropReport(p) : "") });
       return true;
     },
   });
@@ -809,8 +814,7 @@ function inspectSaplingAction(prop) {
     range: INSPECT_RANGE,
     local: true,
     perform() {
-      showMessage(trees.report(prop), 6);
-      inspectMark.mark(prop.tiles);
+      inspectCard.open({ id: prop.id, tiles: prop.tiles, name: "Sapling", read: (p) => (p.sapling ? trees.report(p) : "") });
       return true;
     },
   });
@@ -941,7 +945,12 @@ const drinkLabel = (entry, pct) => `Drink (${water.isTainted(entry) ? "tainted, 
 // { tiles, mx, my, name, clean, onStart? }. A tainted Drink rolls what it may bring (sick.taintedDrink, the one roll a skin's Drink makes too), and
 // a Fill from a tainted source taints the whole skin (docs/44: mixing taints).
 function waterActions(source, player) {
-  const toFill = () => skinsOf(player).filter((it) => (it.fill ?? 0) < 100); // the belt's skin too (#215)
+  // Fill waterskins at a tainted source skips a skin holding clean water; an empty or a tainted one still fills (Michael, 2026-10-26: the
+  // auto-sip keeps the clean skin the one never full, and a Fill tainted it all). A clean source fills every skin not full.
+  const holdsClean = (it) => (it.fill ?? 0) > 0 && !water.isTainted(it);
+  const notFull = () => skinsOf(player).filter((it) => (it.fill ?? 0) < 100); // the belt's skin too (#215)
+  const toFill = () => notFull().filter((it) => source.clean || !holdsClean(it));
+  const keptClean = () => !toFill().length && notFull().some(holdsClean); // every skin that could take water holds clean water
   return [
     act({
       kind: "water",
@@ -960,7 +969,18 @@ function waterActions(source, player) {
         return true;
       },
     }),
-    act({
+    // Every skin skipped for its clean water: offered, and at once says why (by its label too, a guest's command).
+    keptClean() ? act({
+      kind: "fill",
+      label: "Fill waterskins (they hold clean water)",
+      tiles: source.tiles,
+      mx: source.mx,
+      my: source.my,
+      perform() {
+        showMessage(water.CLEAN_KEPT);
+        return false;
+      },
+    }) : act({
       kind: "fill",
       label: toFill().length ? "Fill waterskins" : "Fill waterskins (none to fill)",
       tiles: source.tiles,
@@ -1045,7 +1065,7 @@ function propActions(prop, player) {
   // A tree's own actions first, then Gather sticks (docs/46 step 3), the menu's alone: never E's, which opens doors (Primary on #461).
   if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop, player), ...trees.propActions(prop, player, act, world));
   if (prop.sapling) out.push(inspectSaplingAction(prop)); // a planted sapling: how long until it is a tree, the asking client's own line
-  if (prop.crop) out.push(...cropActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world).filter((a) => a.kind === "pour"));
+  if (prop.crop) out.push(...cropActions(prop, player)); // its Water entries are the bucket's and the skin's, each named (cropActions)
   out.push(...mineActions(prop, player));
   out.push(...gather.propActions(prop, player, act, world)); // an herb, a mushroom, a clay bank (docs/46 step 2): nothing on any other prop
   if (prop.water) out.push(...wellActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world));
@@ -1413,8 +1433,9 @@ export function unequip(player, entry) {
 export function equipFrom(player, entry, prefer = null) {
   if (!detach(player, entry)) return false;
   if (equip(player, entry, prefer)) return true;
+  const word = equipProblem(player, entry, prefer); // the spear's dual rule, said as itself
   if (!stow(player, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
-  showMessage("Your hands are full.");
+  showMessage(word || "Your hands are full.");
   return false;
 }
 

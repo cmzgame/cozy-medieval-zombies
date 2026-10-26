@@ -21,6 +21,8 @@ import { showMessage } from "./ui/prompt.js";
 
 export const NO_FIRE = "No lit fire in reach.";
 export const NO_TAINTED = "No tainted water carried.";
+// Fill waterskins at a tainted source with every skin that could take water holding clean water (Michael, 2026-10-26: the fill skips them).
+export const CLEAN_KEPT = "Your waterskins hold clean water: they won't be filled from tainted water.";
 
 // A source by its sprite (a well, a trough, the font) or a water floor: clean only if `tuning.water.clean` names it.
 export const cleanSource = (sprite) => !!sprite && (W.clean || []).includes(sprite);

@@ -155,14 +155,29 @@ function isWeapon(def) {
   return !!((def.weapon && !def.fire) || def.bow || def.thrown);
 }
 
-// A spear is never held beside another weapon (`noDual`, docs/21); a shield or a torch is fine.
+// A spear is never held beside another weapon (`noDual`, docs/21: "the spear and the halberd never" go in either hand, and the spear is
+// never dual wielded); a shield or a torch is fine, and so is anything that neither swings, shoots, nor is thrown. A tool with a weapon
+// block (the shovel, the hammer, the dirk) swings as a weapon, so it is one here.
 function dualRefused(hands, it) {
+  return !!dualPair(hands, it);
+}
+
+function dualPair(hands, it) {
   for (const slot of ["main", "off"]) {
     const other = hands[slot] && items.get(hands[slot].id);
     if (!other) continue;
-    if ((it.noDual && isWeapon(other)) || (other.noDual && isWeapon(it))) return true;
+    if (it.noDual && isWeapon(other)) return [it, other];
+    if (other.noDual && isWeapon(it)) return [other, it];
   }
-  return false;
+  return null;
+}
+
+// Why an item of this id would not go in a hand beside what `hands` holds by the dual rule, in words, or null (the drag's, the menu's
+// Equip's, and a guest's slot command's line: the spear's rule, never "No room to swap.", Michael's playtest 2026-10-26).
+export function dualWord(hands, id) {
+  const it = items.get(id);
+  const pair = it && dualPair(hands, it);
+  return pair ? `The ${pair[0].name.toLowerCase()} can't be held beside the ${pair[1].name.toLowerCase()}: it is never dual wielded.` : null;
 }
 
 // The hand an "either" item would take now: the preferred one if free, else

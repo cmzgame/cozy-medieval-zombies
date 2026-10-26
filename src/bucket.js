@@ -94,7 +94,9 @@ verbs.define("pour", {
     const why = farming.reachProblem(player, x, y);
     if (why) return why;
     if (!pick(player, target.entry, "pour")) return "The bucket is empty.";
-    if (!cropsAround(x, y).some((c) => !farming.isWet(c))) return "Nothing there needs water.";
+    // Any crop in the 3 by 3, wet or dry, as the waterskin's Water takes any crop (its soil wet again from now): the Use mode on a plot the
+    // map grew (wet until first looked at) said "Nothing there needs water." where the menu's Water watered it (Michael's playtest, 2026-10-26).
+    if (!cropsAround(x, y).length) return "Nothing is planted there.";
     return true;
   },
   perform(world, player, target) {
@@ -107,7 +109,10 @@ verbs.define("pour", {
   },
 });
 
-// The menu's entries for a tile when a bucket is carried (interact.js): Fill where there is water, Pour where something grows or is tilled.
+// The pour's menu label: the bucket named, as the skin's "Water with the waterskin" is.
+export const POUR_LABEL = "Water with the bucket";
+
+// The menu's entries for a tile when a bucket is carried (interact.js): Fill where there is water, Water with the bucket where something grows.
 export function tileActions(x, y, player, act, world) {
   const out = [];
   if (!bucketsOf(player).length) return out;
@@ -123,7 +128,8 @@ export function tileActions(x, y, player, act, world) {
   const canFill = !!pick(player, null, "fill");
   const canPour = !!pick(player, null, "pour");
   if (isSource(x, y)) out.push(act({ ...base, kind: "fill", label: canFill ? "Fill the bucket" : "Fill the bucket (full)", enabled: canFill, duration: seconds.fill, perform: run("fill") }));
-  // Offered where something in the 3 by 3 needs water: tilled soil with nothing growing, or a plot already wet, has nothing to pour on.
-  if (cropsAround(x, y).some((c) => !farming.isWet(c))) out.push(act({ ...base, kind: "pour", label: canPour ? "Pour the bucket" : "Pour the bucket (empty)", enabled: canPour, duration: seconds.pour, perform: run("pour") }));
+  // Offered where something grows in the 3 by 3 (tilled soil with nothing growing round it has nothing to water), wet or dry, as the skin's.
+  // Its label names the vessel, beside "Water with the waterskin" on a crop (Michael's playtest, 2026-10-26: a choice, never the skin first unasked).
+  if (cropsAround(x, y).length) out.push(act({ ...base, kind: "pour", label: canPour ? POUR_LABEL : `${POUR_LABEL} (empty)`, enabled: canPour, duration: seconds.pour, perform: run("pour") }));
   return out;
 }

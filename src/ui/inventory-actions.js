@@ -187,7 +187,8 @@ export function createInventoryActions(getPlayer) {
         // equip swaps whatever is in the way out to the bag or belt.
         if (!inventory.equip(player, entry, key)) {
           restoreTo(player, entry, from);
-          showMessage("No room to swap.");
+          // The true reason: the spear's dual rule (a shovel beside a spear, Michael's playtest 2026-10-26), else no room for what the hand held.
+          showMessage(inventory.equipProblem(player, entry, key) || "No room to swap.");
         }
         return;
       }
