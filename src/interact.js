@@ -20,7 +20,7 @@ import { resolveFacing, frameName } from "./sprites.js";
 import { getItem, toolFor, aName, countName, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
 import { beltDraw, dropWord, beltAction, beltRole, beltPositions, BELT_EVENTS, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
-import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, equipProblem, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
+import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, equipProblem, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer, containerBagOf, openedBagOf } from "./inventory.js";
 import { getDef } from "./assets.js";
 import * as names from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id (docs/bugs.md, 2026-10-25)
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
@@ -173,9 +173,18 @@ export function containerAt(player, a) {
     const bag = a.name === "output" ? stations.outputOf(pr) : pr.bag || null;
     return bag ? { bag, corpse: null, tiles: pr.tiles } : null;
   }
+  // A container item inside another container (Michael, 2026-10-26: a satchel or a belt in a chest or on a body opens where it lies): the item
+  // by its uid within the container that holds it, its tiles that container's, so it closes with it and its reach is its.
+  if (a.entryUid && a.within) {
+    const outer = a.within.within ? null : containerAt(player, a.within); // one level: a container in a container
+    const e = outer && outer.bag.items.find((q) => q.uid === a.entryUid);
+    const bag = e ? containerBagOf(e) : null;
+    return bag ? { bag, corpse: null, tiles: outer.tiles, outer } : null;
+  }
   if (a.entryUid && a.tile) {
     const e = map.itemsAt(a.tile[0], a.tile[1]).find((q) => q.uid === a.entryUid);
-    return e && e.bag ? { bag: e.bag, corpse: null, tiles: [a.tile] } : null;
+    const bag = e ? (e.bag || (getItem(e.id).beltSlots ? containerBagOf(e) : null)) : null; // a bag's grid, or a belt's slots as a view (inventory.slotsView)
+    return bag ? { bag, corpse: null, tiles: [a.tile] } : null;
   }
   if (a.characterId) {
     const c = allCharacters().find((q) => q.id === a.characterId);
@@ -184,6 +193,63 @@ export function containerAt(player, a) {
     return bag ? { bag, corpse: c, tiles: [[Math.round(c.gx), Math.round(c.gy)]] } : null;
   }
   return null;
+}
+
+// The address of an open container's grid, found again from the grid itself (the reverse of containerAt): the player's own bag, a body, a prop's
+// grid or a station's output, a container item on the floor, or one inside any of those, within the panels' closing distance of the player. So a
+// menu entry on an item in a container (its Open) can name where it lies for a guest and for the host's own panel. Null when it is none of these.
+export function addressOfBag(player, bag) {
+  if (!bag) return null;
+  if (bag === bagOf(player)) return { mine: true };
+  const r = Math.ceil(tuning.world.containerCloseDist) + 2;
+  const px = Math.round(player.gx);
+  const py = Math.round(player.gy);
+  const outers = []; // [address, bag] of every container near, for the search one level in
+  for (const c of allCharacters()) {
+    if (!c.loot || Math.hypot(c.gx - player.gx, c.gy - player.gy) > r) continue;
+    if (c.loot === bag) return { characterId: c.id };
+    outers.push([{ characterId: c.id }, c.loot]);
+  }
+  const seen = new Set();
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      const x = px + dx;
+      const y = py + dy;
+      const t = map.peekTile(x, y);
+      if (!t) continue;
+      const p = t.prop;
+      if (p && !seen.has(p)) {
+        seen.add(p);
+        if (p.bag === bag) return { propId: p.id };
+        if (p.output && p.output === bag) return { propId: p.id, name: "output" }; // read as it is: a hit test never makes an output bag (stations.outputOf would)
+        if (p.bag) outers.push([{ propId: p.id }, p.bag]);
+      }
+      for (const e of map.itemsAt(x, y)) {
+        const b = openedBagOf(e);
+        if (!b) continue;
+        if (b === bag) return { entryUid: e.uid, tile: [x, y] };
+        if (e.bag) outers.push([{ entryUid: e.uid, tile: [x, y] }, e.bag]);
+      }
+    }
+  }
+  for (const [address, outer] of outers) {
+    for (const e of outer.items) if (openedBagOf(e) === bag) return { entryUid: e.uid, within: address };
+  }
+  return null;
+}
+
+// Open a container item where it lies in another container (Michael, 2026-10-26): a satchel in a chest, a belt on a body. Its grid (or the belt's
+// view) opens as a container panel, Take All with it; a guest is told by the item's uid within the outer container's address (host.js `within`).
+function openWithin(player, entry, outerBag) {
+  const within = addressOfBag(player, outerBag);
+  if (!within || within.mine) return false;
+  const outer = containerAt(player, within);
+  const bag = containerBagOf(entry);
+  if (!outer || !bag) return false;
+  for (const [tx, ty] of outer.tiles) map.touch(tx, ty); // a bag's grid made on first use travels with what holds it
+  const address = { entryUid: entry.uid, within };
+  emit("containerOpened", { bag, tiles: outer.tiles, name: getItem(entry.id).name.toLowerCase(), entry, within, address });
+  return true;
 }
 
 function nameOf(entry) {
@@ -244,7 +310,7 @@ function itemActions(entry, tx, ty, player) {
       my: ty,
       perform() {
         map.touch(tx, ty); // the bag's grid made on first use travels with its tile (docs/31/05, item 6)
-        emit("containerOpened", { bag, tiles, name: def.name.toLowerCase(), entry, tile: [tx, ty] });
+        emit("containerOpened", { bag, tiles, name: def.name.toLowerCase(), entry, tile: [tx, ty], address: { entryUid: entry.uid, tile: [tx, ty] } });
         return true;
       },
     })];
@@ -254,6 +320,25 @@ function itemActions(entry, tx, ty, player) {
   }
   const out = [];
   const storable = canStoreIn(entry);
+  // A belt on the ground opens where it lies, its slots as a container with Take All (Michael, 2026-10-26, The playtest's rulings); E opens one
+  // that holds something and picks up an empty one, as before.
+  if (def.beltSlots) {
+    out.push(act({
+      kind: "container",
+      simple: !storable,
+      label: `Open ${def.name.toLowerCase()}`,
+      tiles,
+      mx: tx,
+      my: ty,
+      perform() {
+        const view = containerBagOf(entry);
+        if (!view) return false;
+        map.touch(tx, ty); // its slots made on first use and laid out in the view travel with its tile, as a bag's grid does
+        emit("containerOpened", { bag: view, tiles, name: def.name.toLowerCase(), entry, tile: [tx, ty], address: { entryUid: entry.uid, tile: [tx, ty] } });
+        return true;
+      },
+    }));
+  }
   out.push(pickUpAction(entry, tx, ty, player, storable));
   if (def.wear) out.push(wearAction(entry, tx, ty, player));
   return out;
@@ -1071,7 +1156,7 @@ function propActions(prop, player) {
   if (prop.water) out.push(...wellActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (stations.stationOf(prop).length) out.push(...stationActions(prop, player));
-  if (prop.fire && prop.fire.cooks && prop.fire.lit) out.push(boilAtFireAction(prop, player)); // Boil water at a lit cooking fire (docs/44)
+  if (prop.fire && prop.fire.cooks && prop.fire.lit) out.push(...[boilAtFireAction(prop, player)].filter(Boolean), ...boilBucketAtFire(prop, player)); // Boil water at a lit cooking fire (docs/44), a skin's and a bucket's
   out.push(...repair.propActions(prop, player, act, world), ...sawpit.propActions(prop, player, act, world), ...hives.propActions(prop, player, act, world), ...mana.propActions(prop, player, act)); // docs/43 section 6, and the altar's Pray (docs/47 section 5): each is nothing on a prop that is not its own
   if (canCarry(prop)) out.push(carryAction(prop, player));
   if (prop.snare) out.push(lookAtSnareAction(prop)); // a set snare (docs/45 section 2): what it holds, the asking client's own line
@@ -1084,8 +1169,18 @@ function propActions(prop, player) {
 // is water.boilAction's, the same as the Use mode's and the skin's menu's; a guest's choice of the label does the same on the host.
 function boilAtFireAction(prop, player) {
   const skin = water.taintedSkins(player)[0] || null;
+  if (!skin && water.taintedBucket(player)) return null; // tainted water is carried, in a bucket: its own entry follows, and this one says nothing untrue
   if (!skin) return act({ kind: "boil", label: `Boil water (${water.NO_TAINTED.replace(/\.$/, "").toLowerCase()})`, tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, enabled: false });
   return act(water.boilAction(player, skin.uid, prop));
+}
+
+// A bucket's boil at the fire (Michael, 2026-10-26, The playtest's rulings): its own entry beside the skin's, "Boil water in the bucket", for the
+// fullest bucket of tainted water carried, greyed with why when every bucket carried is empty or clean; nothing when no bucket is carried.
+function boilBucketAtFire(prop, player) {
+  if (!water.bucketsCarried(player).length) return [];
+  const b = water.taintedBucket(player);
+  if (!b) return [act({ kind: "boil", label: `${water.BOIL_BUCKET} (no tainted water in it)`, tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, enabled: false })];
+  return [act(water.boilAction(player, b.uid, prop, water.BOIL_BUCKET))];
 }
 
 // Boil water from a skin's own menu, in the bag or on the belt (docs/44 section 2): the nearest lit cooking fire in reach, greyed with why when there is
@@ -1630,6 +1725,9 @@ export function itemMenu(player, entry, bag, otherBag) {
   const mine = bag === bagOf(player);
   // Use: pick the thing up as what you are about to use on something (docs/30, law 2; Michael, 2026-10-12).
   out.push({ label: "Use", enabled: true, onSelect: () => use.begin(entry, { kind: "bag", bag }) });
+  // A container item in a chest or on a body opens where it lies, with Take All (Michael, 2026-10-26, The playtest's rulings); in your own bag a
+  // container is always empty (the container rule), so it has nothing to open.
+  if (isContainer(entry) && !mine && !bag.takeOnly) out.push({ label: `Open ${def.name.toLowerCase()}`, enabled: true, onSelect: () => { if (!openWithin(player, entry, bag)) showMessage("You cannot open that from here."); } });
   // A rug is laid from the bag: Place begins the ghost on the floor (placement.js; #327).
   if (def.rug && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginRug(entry) });
   // A painting is hung from the bag: Place begins the ghost on a wall's face (placement.js; #326).
@@ -1678,6 +1776,7 @@ export function itemMenu(player, entry, bag, otherBag) {
     const boil = mine ? boilSkinEntry(player, entry) : null; // a skin of yours, not one in a chest
     if (boil) out.push(boil);
   }
+  if (def.vessel && mine) { const boil = boilSkinEntry(player, entry); if (boil) out.push(boil); } // a bucket of tainted water (Michael, 2026-10-26)
   if (def.splitsInto && mine) {
     const s = def.splitsInto;
     const noAxe = toolProblem(player, tuning.world.splitTool); // splitting is hatchet work (#215)
@@ -1779,6 +1878,7 @@ export function slotMenu(player, slotId) {
     } else if (bdef.hands) {
       out.push({ label: `Equip (${bdef.hands === "both" ? "both hands" : `${bdef.hands} hand`})`, enabled: true, onSelect: () => beltEquip(player, i, bdef.hands === "both" ? "main" : bdef.hands) });
     }
+    if (bdef.vessel) { const boil = boilSkinEntry(player, entry); if (boil) out.push(boil); } // a bucket of tainted water on the belt (Michael, 2026-10-26)
     out.push({
       label: "Put in bag",
       enabled: !!bagOf(player),
@@ -1795,6 +1895,7 @@ export function slotMenu(player, slotId) {
     const entry = player.hands[key];
     if (!entry) return out;
     out.push({ label: "Unequip", enabled: true, onSelect: () => unequip(player, entry) });
+    if (getItem(entry.id).vessel) { const boil = boilSkinEntry(player, entry); if (boil) out.push(boil); } // a bucket held (the builder's reading: a bucket is a hand thing)
     out.push(dropEntry(entry));
   }
   return out;
@@ -2094,7 +2195,7 @@ function searchBodyAction(c) {
 // What a right-click on a character offers, by kind. Everyone, the player
 // included, can be set on fire and put out: a visual test with no effect
 // (fire.js, docs/05 "Burning"), from anywhere on screen.
-// Burn corpse (docs/43 section 7): on every body of the dead, greyed with what is lacking (a tinderbox and a log), or while it already burns;
+// Burn corpse (docs/43 section 7): on every body of the dead, greyed with what is lacking (a tinderbox; no log since 2026-10-26), or while it already burns;
 // a timed action that runs the `burncorpse` verb by the body's id, so a guest's choice of the label is the host's doing. Its card warns in red.
 function burnCorpseAction(c, player) {
   const need = burn.burnNeed(player);

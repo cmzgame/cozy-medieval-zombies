@@ -281,9 +281,10 @@ export function install() {
     }
   });
   // A container opened by a guest's player (the acting player, game.js): told to the guest.
-  events.on("containerOpened", ({ tiles: where, name, closeDist, prop, entry, tile, character, station }) => {
+  // A container item opened where it lies in another (Michael, 2026-10-26) is the item's uid `within` that container's address (interact.containerAt).
+  events.on("containerOpened", ({ tiles: where, name, closeDist, prop, entry, tile, character, station, within }) => {
     const by = S.acting;
-    if (by && by !== self() && net.isHost()) net.openedFor(by.id, { propId: prop ? prop.id : null, entryUid: entry ? entry.uid : null, tile: tile || null, characterId: character ? character.id : null, tiles: where, name, closeDist: closeDist || 0, station: !!station });
+    if (by && by !== self() && net.isHost()) net.openedFor(by.id, { propId: prop ? prop.id : null, entryUid: entry ? entry.uid : null, tile: tile || null, within: within || null, characterId: character ? character.id : null, tiles: where, name, closeDist: closeDist || 0, station: !!station });
   });
   // A dye vat a guest's player used (ui/dye-panel.js openFor): told to the guest, whose picker opens on its replica.
   events.on("dyeOpened", ({ prop, player: by }) => {

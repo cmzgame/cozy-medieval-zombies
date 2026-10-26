@@ -54,7 +54,8 @@ export function update(characters, dt) {
 }
 
 // ---- Burn corpse (docs/43 section 7; Michael, 2026-10-25) ----
-// A body of the dead set alight on purpose, with a flame carried (a tinderbox, `work.burnCorpse.flame`) and one log spent (`fuel`): it burns
+// A body of the dead set alight on purpose, with a flame carried (a tinderbox, `work.burnCorpse.flame`) and nothing spent (Michael, 2026-10-26, The
+// playtest's rulings: "no cost but a tinderbox"; a lit torch Used on the body does it too, data/interactions.json's row to this verb): it burns
 // `hours` game hours (map.HOUR_SECONDS each), giving light as any burning body does (fire.js), and then it and everything in it are gone, its
 // worn, its hands, its pockets, its grid, what lodged in it. The mark is `cremate` on the corpse (saved; in the slim record, so a guest's menu
 // greys the search; in the sync check's `dead` part); the burn is its `burning` and `burnLeft`, run down by `update` like any burn; the body
@@ -74,15 +75,12 @@ export function isBurnableBody(c) {
   return !!c && c.kind === "zombie" && c.dead && c.corpse;
 }
 
-// What a player lacks to burn a body, as the menu's reason, or null: a tinderbox and a log, carried anywhere on them.
-export function burnNeed(player) {
-  const flame = countAll(player, WK.burnCorpse.flame) > 0;
-  const fuel = countAll(player, WK.burnCorpse.fuel) > 0;
-  if (flame && fuel) return null;
-  const want = [];
-  if (!flame) want.push(article(itemName(WK.burnCorpse.flame)));
-  if (!fuel) want.push(article(itemName(WK.burnCorpse.fuel)));
-  return want.join(" and ");
+// What a player lacks to burn a body, as the menu's reason, or null: a tinderbox carried anywhere on them, or, for a Use, the lit torch used
+// (`uid`, the entry the Use mode picked up: a torch must be lit).
+export function burnNeed(player, uid = null) {
+  const used = uid != null ? carried(player, uid) : null;
+  if (used && used.id === "torch") return used.lit ? null : "a lit torch";
+  return countAll(player, WK.burnCorpse.flame) > 0 ? null : article(itemName(WK.burnCorpse.flame));
 }
 
 // Set a body alight to burn away. Returns whether it is burning now.
@@ -109,7 +107,8 @@ export function burnCard(player = null) {
     state: need ? `needs ${need}` : "",
     lines: [
       [{ t: "Burns the body and everything in it.", k: "warn" }],
-      [{ t: `Needs ${article(itemName(WK.burnCorpse.flame))} and ${article(itemName(WK.burnCorpse.fuel))} carried; the ${itemName(WK.burnCorpse.fuel)} is spent.` }],
+      [{ t: `Needs ${article(itemName(WK.burnCorpse.flame))} carried; nothing is spent.` }],
+      [{ t: "Use", k: "use" }, { t: " a lit torch on the body to burn it too." }],
       [{ t: `It burns about ${WK.burnCorpse.hours === 1 ? "a game hour" : `${WK.burnCorpse.hours} game hours`}, giving light.` }],
     ],
     fine: [],
@@ -130,14 +129,14 @@ verbs.define("burncorpse", {
     if (!isBurnableBody(c)) return c && c.kind === "zombie" && !c.dead ? "It is not dead yet." : "There is no body there to burn.";
     if (c.cremate || c.burning) return "It is already burning.";
     { const why = reachProblem(player, [[Math.round(c.gx), Math.round(c.gy)]], BODY_REACH); if (why) return why === "Too far away." ? "Too far from the body." : why; }
-    const need = burnNeed(player);
+    const need = burnNeed(player, target.entry);
+    if (need === "a lit torch") return "The torch is not lit.";
     if (need) return `You need ${need} to burn it.`;
     return true;
   },
   perform(world, player, target) {
     const c = bodyOf(target);
-    if (takeAll(player, WK.burnCorpse.fuel, 1) < 1) return false;
-    if (!burnCorpse(c)) return false;
+    if (!burnCorpse(c)) return false; // nothing is spent: the tinderbox or the torch is kept (Michael, 2026-10-26)
     const h = WK.burnCorpse.hours; // read from the data, as the card's line is (burnCard)
     return { ok: true, message: `The body catches. It will burn for about ${h === 1 ? "an hour" : `${h} hours`}, and nothing in it will be left.` };
   },

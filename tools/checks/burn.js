@@ -1,9 +1,9 @@
 // Burning made real (#14; Michael, 2026-10-15): a status like bleeding, capped at one, never more than its cap over a
 // burn, only on the dead; set by a torch's blow (its `ignite` chance), always by the fireball and a fire arrow; arrows
 // dipped in a lit fire become fire arrows, which a bow draws first and which lodge as plain ones; a body that dies
-// burning burns on; the old menu toggle is gone; Burn corpse (docs/43 section 7): greyed with why, a tinderbox and a log, the log spent, by
-// the label a guest sends and by Use, the body alight about a game hour with its light, then it and everything in it gone, its card's warning
-// in red on the page. From the console, on a ?nosave tab:
+// burning burns on; the old menu toggle is gone; Burn corpse (docs/43 section 7): greyed with why, a tinderbox alone and nothing spent (Michael,
+// 2026-10-26: no log), by the label a guest sends and by Use, the body alight about a game hour with its light, then it and everything in it
+// gone, its card's warning in red on the page. From the console, on a ?nosave tab:
 // await __game.check("burn")
 // It pauses the loop, works on open ground with the dead it brings and takes away, and puts the player's hands, place,
 // and settings back.
@@ -213,8 +213,8 @@ export async function run(game) {
       G.inventory.takeAll(p, "arrow", 3);
     }
 
-    // 8. Burn corpse (docs/43 section 7): on a body of the dead, greyed with what is lacking; a tinderbox and a log, the log spent; the body
-    // burns about a game hour, giving light, and it and everything in it are gone; its card warns in red; by the label a guest sends, and by Use.
+    // 8. Burn corpse (docs/43 section 7): on a body of the dead, greyed with what is lacking; a tinderbox alone, nothing spent (Michael, 2026-10-26);
+    // the body burns about a game hour, giving light, and it and everything in it are gone; its card warns in red; by the label a guest sends, and by Use.
     G.teleport(open[0], open[1]);
     p.hands.main = null;
     p.hands.off = null;
@@ -230,18 +230,17 @@ export async function run(game) {
     const body = corpseOf(p.gx + 1, p.gy);
     row("a fallen one of the dead is a body to burn", G.corpses.includes(body) && body.corpse, `corpse ${body.corpse}, in the corpses ${G.corpses.includes(body)}`);
     const flame0 = G.inventory.countAll(p, WB.flame);
-    const fuel0 = G.inventory.countAll(p, WB.fuel);
-    restoreCounts.push([WB.flame, flame0], [WB.fuel, fuel0]);
+    const fuel0 = G.inventory.countAll(p, "log");
+    restoreCounts.push([WB.flame, flame0], ["log", fuel0]);
     G.inventory.takeAll(p, WB.flame, 99);
-    G.inventory.takeAll(p, WB.fuel, 99);
+    G.inventory.takeAll(p, "log", 99);
     const bodyAddr = { kind: "character", id: body.id };
     const burnEntry = () => G.interact.actionsForTarget(bodyAddr, p).find((a) => /^Burn corpse/.test(a.label || ""));
     const none = burnEntry();
     p.hands.main = G.items.makeEntry(WB.flame, 1); // the tinderbox carried in a hand: anywhere on you will do
-    const noLog = burnEntry();
-    p.hands.off = G.items.makeEntry(WB.fuel, 1);
-    const ready = burnEntry();
-    row("Burn corpse is greyed with why, then offered with a tinderbox and a log", none && none.enabled === false && none.label === "Burn corpse (need a tinderbox and a log)" && noLog && noLog.enabled === false && noLog.label === "Burn corpse (need a log)" && ready && ready.enabled !== false && ready.label === "Burn corpse", [none, noLog, ready].map((a) => (a ? `${a.label}${a.enabled === false ? " (greyed)" : ""}` : "none")).join("; "));
+    const ready = burnEntry(); // no log: none is needed (Michael, 2026-10-26)
+    p.hands.off = G.items.makeEntry("log", 1); // a log carried, to show it is not spent
+    row("Burn corpse is greyed with why, then offered with a tinderbox alone, no log carried", none && none.enabled === false && none.label === "Burn corpse (need a tinderbox)" && ready && ready.enabled !== false && ready.label === "Burn corpse" && WB.fuel === undefined, [none, ready].map((a) => (a ? `${a.label}${a.enabled === false ? " (greyed)" : ""}` : "none")).join("; ") + `; fuel in the data ${WB.fuel}`);
     const card = ready && ready.card;
     row("its card warns in red: Burns the body and everything in it.", !!card && card.lines[0][0].k === "warn" && card.lines[0][0].t === "Burns the body and everything in it.", card ? card.lines.map((l) => l.map((s) => s.t).join("")).join(" / ") : "no card");
     // On the page: the menu entry's card, shown while the pointer is over it, the warning in --red, gone with the menu.
@@ -261,11 +260,11 @@ export async function run(game) {
       const gone = !hc.current();
       row("on the page the entry shows the card, its warning drawn in --red, gone with the menu", !!up && up.shown && !!warn && warn.textContent === "Burns the body and everything in it." && shownRed && gone, `card ${up ? up.key : "none"}, shown ${up && up.shown}, warning ${warn ? `"${warn.textContent}" ${getComputedStyle(warn).color}` : "none"} (--red ${red}), gone ${gone}`);
     }
-    // Performed by the label, as a guest's choice arrives: the bar, then the body alight, the log spent, the tinderbox kept.
+    // Performed by the label, as a guest's choice arrives: the bar, then the body alight, nothing spent: the tinderbox and the log kept.
     const ran = G.interact.performByLabel(p, bodyAddr, "Burn corpse");
     step(Math.ceil(WB.seconds * 60) + 3);
     const burningLights = G.burning.lights([body]).length;
-    row("by its label: the bar, then the body burns and gives light, the log spent and the tinderbox kept", ran && body.cremate && body.burning && Math.abs(body.burnLeft - (WB.hours * G.map.HOUR_SECONDS - 3 / 60)) < 0.2 && G.inventory.countAll(p, WB.fuel) === 0 && G.inventory.countAll(p, WB.flame) === 1 && burningLights === 1, `cremate ${body.cremate}, burning ${body.burning}, ${body.burnLeft.toFixed(2)} s left of ${WB.hours * G.map.HOUR_SECONDS}, logs ${G.inventory.countAll(p, WB.fuel)}, tinderboxes ${G.inventory.countAll(p, WB.flame)}, lights ${burningLights}`);
+    row("by its label: the bar, then the body burns and gives light, nothing spent (the tinderbox and the log kept)", ran && body.cremate && body.burning && Math.abs(body.burnLeft - (WB.hours * G.map.HOUR_SECONDS - 3 / 60)) < 0.2 && G.inventory.countAll(p, "log") === 1 && G.inventory.countAll(p, WB.flame) === 1 && burningLights === 1, `cremate ${body.cremate}, burning ${body.burning}, ${body.burnLeft.toFixed(2)} s left of ${WB.hours * G.map.HOUR_SECONDS}, logs ${G.inventory.countAll(p, "log")}, tinderboxes ${G.inventory.countAll(p, WB.flame)}, lights ${burningLights}`);
     const labels = G.interact.actionsForTarget(bodyAddr, p).map((a) => `${a.label}${a.enabled === false ? " (greyed)" : ""}`);
     row("while it burns: no search, no second burn, its grid out of reach", labels.includes("Search body (it is burning) (greyed)") && labels.includes("Burn corpse (already burning) (greyed)") && G.interact.containerAt(p, { characterId: body.id }) === null, labels.join("; "));
     const save = JSON.parse(JSON.stringify(G.game.serialize()));
@@ -278,22 +277,20 @@ export async function run(game) {
     // The tinderbox used on a body (the Use mode, a guest's `use` command): the same verb; refusals say why.
     const body2 = corpseOf(p.gx + 1, p.gy + 1);
     const tinder = p.hands.main;
+    p.hands.off = null; // no log carried: none is needed
     use.applyWith(tinder, { kind: "character", ch: body2 }, p);
-    const noFuel = !body2.cremate;
-    p.hands.off = G.items.makeEntry(WB.fuel, 1);
-    use.applyWith(tinder, { kind: "character", ch: body2 }, p);
+    const noFuel = !!body2.cremate;
     const twice = G.verbs.run("burncorpse", G.world, p, { character: body2.id });
     const alive = bring(p.gx - 2, p.gy);
     const living = G.verbs.run("burncorpse", G.world, p, { character: alive.id });
     const info = await import("/src/item-info.js");
     const tinderCard = info.textOf(info.cardFor(tinder)).join(" | ");
-    row("a tinderbox used on a body burns it; refused with no log, twice, and on the living; the tinderbox's card says so", noFuel && body2.cremate && !twice.ok && twice.reason === "It is already burning." && !living.ok && /burn/i.test(tinderCard || ""), `with no log ${noFuel ? "refused" : "burned"}; then ${body2.cremate ? "burning" : "not"}; again "${twice.reason}"; the living "${living.reason}"; card: ${tinderCard}`);
+    row("a tinderbox used on a body burns it with no log carried; refused twice and on the living; the tinderbox's card says so", noFuel && body2.cremate && !twice.ok && twice.reason === "It is already burning." && !living.ok && /burn/i.test(tinderCard || ""), `with no log ${noFuel ? "burned" : "refused"}; again "${twice.reason}"; the living "${living.reason}"; card: ${tinderCard}`);
     body2.burning = false; // put out by the check, so it is taken away below, not by the step
     body2.cremate = false;
     // The done line reads the hours from the data, as the card does: tried with the data's own and with two hours set for the call.
     const doneLine = (hours) => {
       const body3 = corpseOf(p.gx + 1, p.gy - 1);
-      p.hands.off = G.items.makeEntry(WB.fuel, 1);
       const h0 = WB.hours;
       WB.hours = hours;
       let res;

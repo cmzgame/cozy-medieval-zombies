@@ -2504,8 +2504,8 @@ check("burn corpse: the done line says the hours the data gives", () => {
       const z = gameMod.state.zombies.find((q) => !q.dead && !q.corpse);
       assert(z, "none of the dead to lay down");
       Object.assign(z, { dead: true, corpse: true, gx: me.gx + 1, gy: me.gy, cremate: false, burning: false });
-      me.hands.main = itemsMod.makeEntry(WB.flame, 1);
-      me.hands.off = itemsMod.makeEntry(WB.fuel, 1);
+      me.hands.main = itemsMod.makeEntry(WB.flame, 1); // a tinderbox alone: nothing is spent (Michael, 2026-10-26)
+      me.hands.off = null;
       WB.hours = h;
       const r = verbsMod.run("burncorpse", W, me, { ch: z });
       const want = `The body catches. It will burn for about ${h === 1 ? "an hour" : `${h} hours`}, and nothing in it will be left.`;
@@ -4277,6 +4277,300 @@ check("poison: the blade tag, a coat and poisoned arrows by Use (a guest's comma
     if (host) host.done();
     promptMod.setMessageSink(null);
     logMod.setSink(null);
+  }
+});
+
+// The playtest's features, first batch (#506; docs/02, 2026-10-26, The playtest's rulings): a bucket of tainted water boiled at a lit cooking fire by
+// its menus, the fire's menu, Use, and a guest's commands, its bar `bucketBoilSeconds`, and poured into skins by Use (clean into clean, tainted into
+// tainted or empty, tainted into clean refused in Michael's words); Burn corpse for a tinderbox alone, nothing spent, and a lit torch Used on a body;
+// sleep's speed 20; a belt on the ground and a satchel in a chest, a belt on a body, opened where they lie with Take All, by their addresses as a
+// guest's commands name them, the belt's view emptying the belt itself and taking nothing in; a stack dropped on a matching stack in a hand, a belt
+// slot, and a bag cell filling it to the limit, the rest staying, an entry with its own state never merging, a guest's commands the same.
+// The page's half (the cards read on the page, the fade, the "Zz", two tabs) is check("features1").
+check("playtest features (#506): the bucket boiled and poured, Burn corpse by a tinderbox or a lit torch, sleep at 20, container items opened where they lie, stacks filling stacks", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false, survival: true } });
+  const S = gameMod.state;
+  const me = S.player;
+  const W = tuningMod.water;
+  const bag = inventoryMod.bagOf(me);
+  const belt = inventoryMod.beltOf(me);
+  const mk = (id, n = 1, p = {}) => itemsMod.makeEntry(id, n, p);
+  const finish = () => { for (let i = 0; i < 1200 && me.action; i++) interactMod.updateAction(me, 0.1); };
+  const said = [];
+  const logged = [];
+  const opened = [];
+  const onOpen = (e) => opened.push(e);
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  logMod.setSink((t) => { logged.push(t); return true; });
+  eventsMod.on("containerOpened", onOpen);
+  const card = (e) => itemInfoMod.textOf(itemInfoMod.cardFor(e));
+  try {
+    // Open ground with a lit campfire beside it.
+    let spot = null;
+    const [bx, by, bw, bh] = json.bounds;
+    for (let y = by + 20; y < by + bh && !spot; y += 3) for (let x = bx + 20; x < bx + bw && !spot; x += 3) {
+      mapMod.ensureAround(x, y, 1);
+      let ok = true;
+      for (let dy = -1; dy <= 1 && ok; dy++) for (let dx = -1; dx <= 2 && ok; dx++) ok = mapMod.isWalkableTile(x + dx, y + dy) && !mapMod.tileAt(x + dx, y + dy).prop && mapMod.tileAt(x + dx, y + dy).room === 0 && !mapMod.drinkableAt(x + dx, y + dy) && !mapMod.itemsAt(x + dx, y + dy).length;
+      if (ok) spot = [x, y];
+    }
+    assert(spot, "no open ground in the valley");
+    me.gx = spot[0];
+    me.gy = spot[1];
+    const fire = mapMod.createProp({ sprite: "campfire", tile: [spot[0] + 1, spot[1]], fuel: 3, lit: true });
+    mapMod.placeProp(fire, spot[0] + 1, spot[1]);
+    bag.items.length = 0;
+    belt.fill(null);
+    me.hands.main = null;
+    me.hands.off = null;
+    const onFire = { kind: "prop", id: fire.id };
+    const fireLabels = () => interactMod.actionsForTarget(onFire, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}`);
+    const cap = itemsMod.getItem("bucket").vessel.capacity;
+
+    // ---- 1. a bucket boiled: its menu, the fire's, Use, a guest's two commands, the belt and the hand ----
+    assert(W.bucketBoilSeconds === 60 && W.boilSeconds === 30, `the levers: ${W.bucketBoilSeconds}, ${W.boilSeconds}`);
+    const b1 = mk("bucket", 1, { fill: cap });
+    gridMod.insert(bag, b1);
+    const boilOf = (e) => interactMod.itemMenu(me, e, bag, null).find((m) => m.label.startsWith("Boil water"));
+    assert(boilOf(b1) && boilOf(b1).enabled && boilOf(b1).label === "Boil water", `the bucket's menu: ${boilOf(b1) && boilOf(b1).label}`);
+    assert(fireLabels().includes(waterMod.BOIL_BUCKET) && !fireLabels().some((l) => l.startsWith("Boil water (")), `the fire's menu with a tainted bucket and no tainted skin: ${fireLabels().join(", ")}`);
+    boilOf(b1).onSelect();
+    assert(me.action && me.action.action.duration === W.bucketBoilSeconds, `the bucket's menu bar: ${me.action && me.action.action.duration}`);
+    finish();
+    assert(b1.clean === true && b1.fill === cap && !boilOf(b1), `the bucket's menu did not boil it: ${JSON.stringify(b1)}`);
+    assert(card(b1).includes("Clean water.") && fireLabels().includes(`${waterMod.BOIL_BUCKET} (no tainted water in it) [off]`), `clean: ${card(b1).join(" | ")}; ${fireLabels().join(", ")}`);
+    const b2 = mk("bucket", 1, { fill: 50 });
+    gridMod.insert(bag, b2);
+    interactMod.performByLabel(me, onFire, waterMod.BOIL_BUCKET);
+    assert(me.action && me.action.action.duration === W.bucketBoilSeconds && me.action.action.label === waterMod.BOIL_BUCKET, "the fire's menu did not start the bucket's bar");
+    finish();
+    assert(b2.clean === true && b2.fill === 50, `the fire's menu did not boil the bucket: ${JSON.stringify(b2)}`);
+    const b3 = mk("bucket", 1, { fill: cap });
+    gridMod.insert(bag, b3);
+    useMod.applyWith(b3, { kind: "prop", prop: fire }, me);
+    assert(me.action && me.action.action.duration === W.bucketBoilSeconds, "Use on the fire did not start the bucket's bar");
+    finish();
+    assert(b3.clean === true, "Use did not boil the bucket");
+    gridMod.remove(bag, b1); gridMod.remove(bag, b2); gridMod.remove(bag, b3);
+    const b4 = mk("bucket", 1, { fill: cap });
+    gridMod.insert(bag, b4);
+    assert(invActionsMod.performUseCommand(me, { uid: b4.uid, src: { kind: "bag", bag: { mine: true } }, target: { kind: "prop", id: fire.id } }, null) && me.action, "a guest's Use command did not start the bar");
+    finish();
+    const b5 = mk("bucket", 1, { fill: cap });
+    gridMod.insert(bag, b5);
+    assert(invActionsMod.performItemCommand(me, { op: "menu", label: "Boil water", uid: b5.uid, src: { kind: "bag", bag: { mine: true } } }) && me.action, "a guest's menu command did not start the bar");
+    finish();
+    assert(b4.clean && b5.clean, "a guest's commands did not boil the buckets");
+    gridMod.remove(bag, b4); gridMod.remove(bag, b5);
+    belt[2] = mk("bucket", 1, { fill: 30 });
+    const beltBoil = interactMod.slotMenu(me, "belt:2").find((m) => m.label === "Boil water");
+    me.hands.main = mk("bucket", 1, { fill: 30 });
+    const handBoil = interactMod.slotMenu(me, "hand:main").find((m) => m.label === "Boil water");
+    assert(beltBoil && handBoil, `the belt's and the hand's Boil water: ${!!beltBoil}, ${!!handBoil}`);
+    handBoil.onSelect();
+    finish();
+    assert(me.hands.main.clean === true, "the hand's Boil water did not boil the bucket");
+    belt[2] = null;
+    me.hands.main = null;
+    me.hands.off = null;
+
+    // ---- 2. a bucket poured into a skin ----
+    const pour = (b, s) => { logged.length = 0; useMod.applyWith(b, { kind: "item", entry: s }, me); return logged.join(" / "); };
+    const clean = mk("bucket", 1, { fill: cap, clean: true });
+    const empty = mk("waterskin", 1, { fill: 0 });
+    gridMod.insert(bag, clean);
+    gridMod.insert(bag, empty);
+    const l1 = pour(clean, empty);
+    assert(empty.fill === 100 && empty.clean === true && clean.fill === 0, `clean into an empty skin: ${JSON.stringify(empty)}, bucket ${clean.fill}; "${l1}"`);
+    const tainted = mk("bucket", 1, { fill: cap });
+    gridMod.insert(bag, tainted);
+    empty.fill = 40;
+    const l2 = pour(tainted, empty);
+    assert(l2 === waterMod.WOULD_TAINT && empty.fill === 40 && empty.clean === true && tainted.fill === cap, `tainted into clean: "${l2}", skin ${JSON.stringify(empty)}`);
+    const tSkin = mk("waterskin", 1, { fill: 30 });
+    gridMod.insert(bag, tSkin);
+    pour(tainted, tSkin);
+    assert(tSkin.fill === 100 && !tSkin.clean && tainted.fill === cap - 70, `tainted into tainted: ${JSON.stringify(tSkin)}, bucket ${tainted.fill}`);
+    const eSkin = mk("waterskin", 1, { fill: 0, clean: true });
+    gridMod.insert(bag, eSkin);
+    pour(tainted, eSkin);
+    assert(eSkin.fill === 30 && !eSkin.clean && tainted.fill === 0, `tainted into an empty skin: ${JSON.stringify(eSkin)}, bucket ${tainted.fill}`);
+    const l3 = pour(tainted, eSkin);
+    assert(l3 === "The bucket is empty.", `an empty bucket: "${l3}"`);
+    clean.fill = cap;
+    clean.clean = true;
+    tSkin.fill = 20;
+    pour(clean, tSkin);
+    assert(tSkin.fill === 100 && !tSkin.clean, `clean into a tainted skin stays tainted: ${JSON.stringify(tSkin)}`);
+    // A guest's Use command by the two uids; a skin in a chest is not carried.
+    clean.fill = cap;
+    clean.clean = true;
+    const gSkin = mk("waterskin", 1, { fill: 10, clean: true });
+    belt[2] = gSkin;
+    assert(invActionsMod.performUseCommand(me, { uid: clean.uid, src: { kind: "bag", bag: { mine: true } }, target: { kind: "item", uid: gSkin.uid, slot: "belt:2" } }, null) && gSkin.fill === 100 && gSkin.clean === true && clean.fill === 10, `a guest's pour into a belt skin: ${JSON.stringify(gSkin)}, bucket ${clean.fill}`);
+    belt[2] = null;
+    const bc = card(clean).join(" | ");
+    assert(/Use on [^|]*waterskin[^|]*: pour\./.test(bc) && /Use on fire[^|]*: boil\./.test(bc) && card(gSkin).some((l) => l.includes("fill it at water, or from a bucket.")), `the cards: ${bc} || ${card(gSkin).join(" | ")}`);
+    bag.items.length = 0;
+
+    // ---- 3. Burn corpse for a tinderbox alone, and a lit torch Used on a body ----
+    const WB = tuningMod.work.burnCorpse;
+    assert(WB.fuel === undefined, `the data still names a fuel: ${WB.fuel}`);
+    const lay = (dx) => { const z = S.zombies.find((q) => !q.dead && !q.corpse); Object.assign(z, { dead: true, corpse: true, gx: me.gx + dx, gy: me.gy + 0.5, cremate: false, burning: false }); return z; };
+    const z1 = lay(1);
+    const label = () => interactMod.actionsForTarget({ kind: "character", id: z1.id }, me).map((a) => a.label).find((l) => l.startsWith("Burn corpse"));
+    const lNone = label();
+    me.hands.main = mk("tinderbox");
+    const lReady = label();
+    const r1 = verbsMod.run("burncorpse", worldMod.world, me, { character: z1.id });
+    assert(lNone === "Burn corpse (need a tinderbox)" && lReady === "Burn corpse" && r1.ok && z1.cremate && inventoryMod.countAll(me, "tinderbox") === 1 && inventoryMod.countAll(me, "log") === 0, `${lNone}; ${lReady}; ${r1.reason || r1.message}; tinderboxes ${inventoryMod.countAll(me, "tinderbox")}`);
+    me.hands.main = mk("torch");
+    const z2 = lay(-1);
+    logged.length = 0;
+    useMod.applyWith(me.hands.main, { kind: "character", ch: z2 }, me);
+    const unlit = logged.join(" / ");
+    me.hands.main.lit = true;
+    useMod.applyWith(me.hands.main, { kind: "character", ch: z2 }, me);
+    assert(unlit === "The torch is not lit." && z2.cremate && z2.burning && me.hands.main.lit === true && me.hands.main.id === "torch", `a torch on a body: unlit "${unlit}", then cremate ${z2.cremate}`);
+    const z3 = lay(1.5);
+    const find = (id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null;
+    assert(invActionsMod.performUseCommand(me, { uid: me.hands.main.uid, src: { kind: "slot", id: "hand:main" }, target: { kind: "character", id: z3.id } }, find) && z3.cremate, "a guest's Use of a lit torch on a body did not burn it");
+    const bcard = burnMod.burnCard(me).lines.map((l) => l.map((s) => s.t).join("")).join(" | ");
+    assert(bcard.includes("Needs a tinderbox carried; nothing is spent.") && bcard.includes("Use a lit torch on the body to burn it too.") && card(me.hands.main).some((l) => l === "Use on a body of the dead: burn."), `the cards: ${bcard} || ${card(me.hands.main).join(" | ")}`);
+    for (const z of [z1, z2, z3]) Object.assign(z, { cremate: false, burning: false });
+    me.hands.main = null;
+
+    // ---- 4. sleep's speed ----
+    assert(tuningMod.player.sleepTimeScale === 20 && tuningMod.feel.sleepFadeSeconds === 1, `the levers: ${tuningMod.player.sleepTimeScale}, ${tuningMod.feel.sleepFadeSeconds}`);
+    me.sleeping = { bed: "none", since: loopMod.simTime(), hour: 22 };
+    const scale = gameMod.timeScaleNow();
+    me.sleeping = null;
+    assert(scale === 20 && gameMod.timeScaleNow() === 1, `asleep the world runs at ${scale}`);
+
+    // ---- 5. container items opened where they lie ----
+    const [tx, ty] = [Math.round(me.gx), Math.round(me.gy)];
+    const gBelt = mk("good_belt");
+    inventoryMod.ensureSlots(gBelt);
+    const sword = mk("sword");
+    const pem = mk("pemmican", 5);
+    gBelt.slots[0] = sword;
+    gBelt.slots[2] = pem;
+    mapMod.dropItem(tx, ty, gBelt);
+    const onBelt = { kind: "item", tile: [tx, ty], uid: gBelt.uid };
+    const beltName = itemsMod.getItem("good_belt").name.toLowerCase();
+    const bl = interactMod.actionsForTarget(onBelt, me);
+    const openA = bl.find((a) => a.label === `Open ${beltName}`);
+    assert(openA && openA.simple && bl.some((a) => a.label.startsWith("Pick up") && a.enabled === false), `the belt's menu: ${bl.map((a) => `${a.label}${a.simple ? " (E)" : ""}`).join(", ")}`);
+    opened.length = 0;
+    interactMod.performByLabel(me, onBelt, `Open ${beltName}`);
+    finish();
+    const ev = opened[0];
+    assert(ev && ev.bag && ev.bag.takeOnly && ev.bag.items.length === 2 && ev.address && ev.address.entryUid === gBelt.uid && interactMod.containerAt(me, ev.address).bag === ev.bag, `the belt's view: ${ev ? JSON.stringify({ n: ev.bag.items.length, a: ev.address }) : "nothing opened"}`);
+    assert(!gridMod.fits(ev.bag, "bread", 3, 0) && gridMod.add(ev.bag, "pemmican", 3) === 0 && pem.count === 5, "the belt's view took something in");
+    const outputs0 = [...mapMod.allProps()].filter((p) => p.output).length;
+    assert(interactMod.addressOfBag(me, ev.bag) && interactMod.addressOfBag(me, ev.bag).entryUid === gBelt.uid, "the view's address not found again");
+    assert([...mapMod.allProps()].filter((p) => p.output).length === outputs0, "addressOfBag made a prop's output bag (a hit test must change nothing)");
+    // Take All by its address, as a guest's command names it: the belt itself emptied, nothing doubled.
+    const tookBelt = invActionsMod.performItemCommand(me, { op: "takeall", bag: ev.address });
+    const census = gameMod.itemCensus();
+    assert(tookBelt && gBelt.slots.every((s) => !s) && inventoryMod.countAll(me, "pemmican") === 5 && inventoryMod.countAll(me, "sword") === 1 && census.dups.length === 0, `Take All from the belt: slots ${JSON.stringify(gBelt.slots.map((s) => s && s.id))}; dups ${census.dups.length}`);
+    assert(interactMod.actionsForTarget(onBelt, me).some((a) => a.label.startsWith("Pick up") && a.enabled !== false && a.simple), "the emptied belt is not picked up by E");
+    mapMod.takeItem(tx, ty, gBelt);
+    bag.items.length = 0;
+    belt.fill(null);
+    // A satchel holding something in a chest: Open on its menu there, by a guest's menu command, its Take All by the nested address.
+    const chest = mapMod.createProp({ sprite: "chest", tile: [spot[0], spot[1] + 1] });
+    mapMod.placeProp(chest, spot[0], spot[1] + 1);
+    const cBag = interactMod.propBag(chest);
+    chest.searched = true;
+    cBag.items.length = 0;
+    const sat = mk("satchel");
+    inventoryMod.ensureBag(sat);
+    gridMod.insert(sat.bag, mk("bread"));
+    gridMod.insert(sat.bag, mk("apple"));
+    gridMod.insert(cBag, sat);
+    const satName = itemsMod.getItem("satchel").name.toLowerCase();
+    const sMenu = interactMod.itemMenu(me, sat, cBag, bag).map((m) => m.label);
+    assert(sMenu.includes(`Open ${satName}`) && !interactMod.itemMenu(me, mk("satchel"), bag, null).some((m) => m.label.startsWith("Open")), `the satchel's menu in the chest: ${sMenu.join(", ")}`);
+    opened.length = 0;
+    assert(invActionsMod.performItemCommand(me, { op: "menu", label: `Open ${satName}`, uid: sat.uid, src: { kind: "bag", bag: { propId: chest.id } } }), "a guest's Open command did not run");
+    const ev2 = opened[0];
+    assert(ev2 && ev2.bag === sat.bag && ev2.within && ev2.within.propId === chest.id && ev2.address.entryUid === sat.uid && interactMod.containerAt(me, ev2.address).bag === sat.bag, `the satchel opened: ${ev2 ? JSON.stringify(ev2.address) : "nothing"}`);
+    invActionsMod.performItemCommand(me, { op: "takeall", bag: ev2.address });
+    assert(sat.bag.items.length === 0 && inventoryMod.countAll(me, "bread") === 1 && inventoryMod.countAll(me, "apple") === 1 && cBag.items.includes(sat), `Take All from the satchel in the chest: left ${sat.bag.items.length}`);
+    mapMod.removeProp(chest);
+    bag.items.length = 0;
+    // A belt on a body of the dead: Open on its menu in the body's grid, its view by the body's address.
+    const zb = lay(1);
+    zb.cremate = false;
+    const loot = characterMod.lootOf(zb);
+    const bBelt = mk("belt");
+    inventoryMod.ensureSlots(bBelt);
+    bBelt.slots[1] = mk("knife");
+    gridMod.insert(loot, bBelt);
+    opened.length = 0;
+    const bOpen = interactMod.itemMenu(me, bBelt, loot, bag).find((m) => m.label === `Open ${itemsMod.getItem("belt").name.toLowerCase()}`);
+    if (bOpen) bOpen.onSelect();
+    const ev3 = opened[0];
+    assert(ev3 && ev3.within && ev3.within.characterId === zb.id && ev3.bag.items.length === 1, `a belt on a body: ${ev3 ? JSON.stringify(ev3.address) : "nothing"}`);
+    invActionsMod.performItemCommand(me, { op: "takeall", bag: ev3.address });
+    assert(bBelt.slots.every((s) => !s) && inventoryMod.countAll(me, "knife") === 1, "Take All from the body's belt");
+    bag.items.length = 0;
+    belt.fill(null);
+
+    // ---- 6. a stack dropped on a matching stack fills it ----
+    const h = invActionsMod.createInventoryActions(() => me);
+    const a15 = mk("arrow", 15);
+    const a10 = mk("arrow", 10);
+    const put = (e) => { Object.assign(e, gridMod.findSpot(bag, e.id)); bag.items.push(e); }; // placed apart as they are (grid.insert would top one up)
+    put(a15);
+    put(a10);
+    assert(a15.count === 15 && a10.count === 10 && bag.items.length === 2, "the arrows are not two stacks in the bag");
+    const moved = gridMod.moveEntry(bag, bag, a10, a15.x, a15.y, false);
+    assert(moved === "partial" && a15.count === 20 && a10.count === 5 && bag.items.includes(a10), `bag cell onto bag cell: ${moved}, ${a15.count} and ${a10.count}`);
+    bag.items.length = 0;
+    me.hands.main = mk("throwing_knife", 12);
+    const k15 = mk("throwing_knife", 15);
+    put(k15);
+    h.placeInSlot(k15, { kind: "bag", bag }, "hand:main");
+    assert(me.hands.main.count === 20 && k15.count === 7 && bag.items.includes(k15), `bag onto a hand: hand ${me.hands.main.count}, bag ${k15.count}`);
+    said.length = 0;
+    h.placeInSlot(k15, { kind: "bag", bag }, "hand:main");
+    assert(said.includes(invActionsMod.STACK_FULL) && me.hands.main.count === 20 && k15.count === 7, `onto a full stack: "${said.join(" / ")}"`);
+    belt[2] = mk("pemmican", 12);
+    const p15 = mk("pemmican", 15);
+    bag.items.length = 0;
+    put(p15);
+    assert(invActionsMod.performItemCommand(me, { op: "slot", uid: p15.uid, src: { kind: "bag", bag: { mine: true } }, slot: "belt:2" }) && belt[2].count === 20 && p15.count === 7, `a guest's slot command onto a belt stack: ${belt[2].count}, ${p15.count}`);
+    belt[2].count = 8;
+    p15.count = 15;
+    assert(invActionsMod.performItemCommand(me, { op: "grid", uid: belt[2].uid, src: { kind: "slot", id: "belt:2" }, bag: { mine: true }, x: p15.x, y: p15.y, rot: false }) && p15.count === 20 && belt[2] && belt[2].count === 3, `a guest's grid command from a slot onto a bag stack: bag ${p15.count}, slot ${belt[2] && belt[2].count}`);
+    h.placeInGrid(belt[2], { kind: "slot", id: "belt:2" }, bag, p15.x, p15.y, false);
+    assert(belt[2] && belt[2].count === 3 && p15.count === 20, "a slot onto a full bag stack moved something");
+    p15.count = 10;
+    h.placeInGrid(belt[2], { kind: "slot", id: "belt:2" }, bag, p15.x, p15.y, false);
+    assert(!belt[2] && p15.count === 13, `the whole of a slot's stack poured in empties the slot: ${belt[2] && belt[2].count}, ${p15.count}`);
+    // An entry with its own state never merges: a coated stack of knives onto a plain one swaps, both whole, the coat kept; in the grid it is refused.
+    bag.items.length = 0;
+    me.hands.main = mk("throwing_knife", 5);
+    const coated = mk("throwing_knife", 6, { poison: { tier: 1, hits: 4 } });
+    gridMod.insert(bag, coated);
+    h.placeInSlot(coated, { kind: "bag", bag }, "hand:main");
+    assert(me.hands.main === coated && coated.count === 6 && coated.poison && bag.items.some((e) => e.id === "throwing_knife" && e.count === 5 && !e.poison), `a coated stack onto a plain one: hand ${me.hands.main.count} ${!!me.hands.main.poison}; bag ${bag.items.map((e) => `${e.id}x${e.count}${e.poison ? "p" : ""}`).join(",")}`);
+    const plain = bag.items.find((e) => e.id === "throwing_knife");
+    me.hands.main = null;
+    gridMod.insert(bag, coated);
+    assert(coated.count === 6 && plain.count === 5 && bag.items.includes(coated), "grid.insert poured a coated stack into a plain one");
+    assert(gridMod.moveEntry(bag, bag, coated, plain.x, plain.y, false) === null && coated.count === 6 && plain.count === 5, "a coated stack merged in the grid");
+    assert(itemsMod.hasOwnState({ id: "arrow", fill: 0 }) && !itemsMod.hasOwnState({ id: "arrow", count: 3, x: 1, y: 2, rot: false, uid: "e1" }) && !itemsMod.canMerge(mk("waterskin"), mk("waterskin")), "the own-state rule");
+    bag.items.length = 0;
+    belt.fill(null);
+    return `a bucket boiled in ${W.bucketBoilSeconds} s by its menu, the fire's, Use, a guest's two commands, the belt and the hand; poured clean into clean, tainted into tainted and empty, refused "${waterMod.WOULD_TAINT}", by a guest's Use too; Burn corpse with a tinderbox alone, a lit torch's Use, a guest's; sleep at 20; a belt on the ground, a satchel in a chest, a belt on a body opened and emptied by their addresses; stacks filled in a bag, a hand, a belt slot, by a guest's commands, the rest kept, a coated stack never merged`;
+  } finally {
+    promptMod.setMessageSink(null);
+    logMod.setSink(null);
+    eventsMod.off("containerOpened", onOpen);
   }
 });
 

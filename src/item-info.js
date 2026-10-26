@@ -258,7 +258,7 @@ export function cardFor(entry, opts = {}) {
     if (def.thirst) bits.push(`quenches thirst ${def.thirst}`);
     lines.push(line(seg("Eat", "word"), `: ${bits.join(", ") || "a bite"}.`));
   }
-  if (def.capacity) lines.push(line(seg("Drink", "word"), `: ${Math.round(entry.fill ?? 0)}% full; fill it at water.`));
+  if (def.capacity) lines.push(line(seg("Drink", "word"), `: ${Math.round(entry.fill ?? 0)}% full; fill it at water, or from a bucket.`)); // a bucket Used on it pours (Michael, 2026-10-26)
   // Which water it holds (docs/44 section 3): the item's name never changes, the card says it, and a brown drop marks a tainted one's icon (inventory-panel.js).
   // Tainted water is the card's first line, in the warning red with a bold lead (Michael's playtest, 2026-10-26: "needs to be way more
   // noticeable"); clean water is a plain line where it stood.

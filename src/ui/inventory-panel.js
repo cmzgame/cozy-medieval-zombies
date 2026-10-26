@@ -9,7 +9,7 @@
 // one cell in a cutout and shows the item's portrait.
 
 import { url as assetUrl } from "../assets.js"; // icons carry the manifest stamp (docs/23)
-import { getItem } from "../items.js";
+import { getItem, canMerge } from "../items.js";
 import * as grid from "../grid.js";
 import * as menu from "./context-menu.js";
 import * as view from "../view.js";
@@ -692,7 +692,7 @@ function updateDrag(clientX, clientY) {
   const y = at.cy - drag.grabY;
   const def = getItem(drag.entry.id);
   const under = grid.entryAt(at.bag, at.cx, at.cy);
-  const merges = !!(def.stack && under && under !== drag.entry && under.id === drag.entry.id && under.count < def.stack);
+  const merges = !!(def.stack && !at.bag.takeOnly && canMerge(under, drag.entry) && under.count < def.stack); // a stack with its own state never merges (Michael's playtest, 2026-10-26)
   const nested = !(handlers.canStore?.(drag.entry) ?? true); // the container rule: only empty containers go in
   const ok = !nested && (merges || grid.fits(at.bag, drag.entry.id, x, y, drag.rot, drag.entry));
   drag.target = { bag: at.bag, which: at.which, x: merges ? at.cx : x, y: merges ? at.cy : y, ok };

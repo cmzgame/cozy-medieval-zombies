@@ -40,6 +40,63 @@ export function ensureSlots(entry) {
   return entry.slots;
 }
 
+// ---- a container item opened where it lies (Michael, 2026-10-26, The playtest's rulings: "any item that holds things ... has Open on the
+// ground and in a chest, with Take All, as a body has") ----
+// A bag's grid is its own (`entry.bag`). A belt's slots are no grid, so they are opened as a view: a bag of one row whose items ARE the slots'
+// entries, laid side by side by their size, that takes nothing in (`takeOnly`, grid.js) and whose items' removal clears the slot it came from
+// (SlotItems.splice: every grid removal is a splice), so a Take, a drag out, Take All, and a guest's command by the view's address all empty the
+// belt itself, nothing copied and nothing doubled. Kept per belt entry (a WeakMap, never saved or sent) while its slots hold what it shows.
+class SlotItems extends Array {
+  static get [Symbol.species]() { return Array; } // a filter or a map of it is a plain list
+  splice(...args) {
+    const out = super.splice(...args);
+    for (const e of out) {
+      const k = this.slots ? this.slots.indexOf(e) : -1;
+      if (k >= 0) this.slots[k] = null;
+    }
+    return out;
+  }
+}
+const slotViews = new WeakMap(); // belt entry -> its view
+export function slotsView(entry) {
+  const slots = ensureSlots(entry);
+  if (!slots) return null;
+  const live = slots.filter(Boolean);
+  const had = slotViews.get(entry);
+  if (had && had.items.length === live.length && live.every((e) => had.items.includes(e))) return had;
+  const items = new SlotItems();
+  Object.defineProperty(items, "slots", { value: slots, enumerable: false });
+  let x = 0;
+  let rows = 1;
+  for (const e of live) {
+    const [w, h] = getItem(e.id).size || [1, 1];
+    e.x = x;
+    e.y = 0;
+    e.rot = false;
+    x += w;
+    rows = Math.max(rows, h);
+    items.push(e);
+  }
+  const view = { cols: Math.max(x, slots.length), rows, items, container: getItem(entry.id).name.toLowerCase(), takeOnly: true };
+  slotViews.set(entry, view);
+  return view;
+}
+
+// The grid a container item opens as, wherever it lies: a bag's own, a belt's view of its slots; null for anything else.
+export function containerBagOf(entry) {
+  const def = entry && getItem(entry.id);
+  if (!def) return null;
+  if (def.bag) return ensureBag(entry);
+  if (def.beltSlots) return slotsView(entry);
+  return null;
+}
+
+// The view or grid an entry already has, made by nothing (a hit test: which container is this bag?).
+export function openedBagOf(entry) {
+  if (!entry) return null;
+  return entry.bag || slotViews.get(entry) || null;
+}
+
 // The grid of the bag on the player's back, or null.
 export function bagOf(player) {
   return player.worn.back ? ensureBag(player.worn.back) : null;

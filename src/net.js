@@ -145,7 +145,10 @@ export function makeCode() {
 // none), and an animal's `po` ("tier/stacks" or null), so both records changed shape; an entry may carry `poison: { tier, hits }`, a blade's
 // coat; and the bow's arrows include two new items (`poison_arrow`, `strong_poison_arrow`) flown by their own pictures. An older guest drew no
 // poisoned body green, kept a poison it was once sent for ever, and knew neither arrow.
-export const PROTOCOL = 20;
+// 21 (2026-10-26, the playtest's features, #506): the `opened` message may name a container item inside another container (`within`, the outer
+// container's address, with the item's `entryUid`), and a belt's slots open as a container (inventory.slotsView); an older guest found no grid
+// for either and opened nothing.
+export const PROTOCOL = 21;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
