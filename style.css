@@ -619,6 +619,16 @@ html, body {
   cursor: default;
 }
 
+/* The current choice among a menu's entries (a belt slot's hand, #285): a gold mark before it, the label's text unchanged. */
+.menu-entry.checked::before {
+  content: "\2713";
+  color: var(--gold);
+  display: inline-block;
+  width: 0;
+  margin-left: -10px;
+  margin-right: 10px;
+}
+
 .menu-entry.disabled:hover {
   background: transparent;
 }

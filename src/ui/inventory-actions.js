@@ -108,6 +108,7 @@ export function createInventoryActions(getPlayer) {
         // Hand items, one at a time, or consumables as a stack.
         const belt = inventory.beltOf(player);
         if (!belt || !Number.isInteger(index) || index < 0 || index >= belt.length) return false; // a guest's command can name any index
+        if (def.noBelt) return false; // too long for the belt (Michael, 2026-10-19: the halberd; #285), a guest's slot command refused too (#226)
         if (def.hands) return entry.count === 1;
         return def.kind === "food" || !!def.capacity || def.belt === true; // a food, a skin, or a thing that says it rides the belt (the tinderbox)
       }
@@ -184,6 +185,11 @@ export function createInventoryActions(getPlayer) {
     },
     noRoom(intoBag) {
       showMessage(intoBag ? "No room in your bag." : "No room in there.");
+    },
+    // A drag let go over a slot that refused it (the slot shown red): the reason, when it is one a player could not guess (the halberd
+    // is too long for the belt, #285). A read and a line on this screen, so a guest's is its own.
+    slotRefused(entry, slotId) {
+      if (inventory.parseSlot(slotId).kind === "belt" && inventory.offBelt(entry)) showMessage(inventory.offBeltWord(entry));
     },
     // The Take All button on a container's panel (#10).
     takeAll(bag) {
@@ -389,7 +395,7 @@ export function performItemCommand(player, c) {
   if (c.op === "slot" && entry && typeof c.slot === "string") {
     // The same rule the host's own drag meets (the panel asks canPlace before it drops): a guest may not put an item where the host's player could not (#224).
     if (!h.canPlace(entry, c.slot)) {
-      showMessage("That does not go there.");
+      showMessage(inventory.parseSlot(c.slot).kind === "belt" && inventory.offBelt(entry) ? inventory.offBeltWord(entry) : "That does not go there.");
       return false;
     }
     h.placeInSlot(entry, from, c.slot);

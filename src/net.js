@@ -127,7 +127,9 @@ export function makeCode() {
 // guest read `arrows` as the positions in flight every frame.
 // 14 (2026-10-25, #341): a chunk's record may carry `parts`, the tiles of props anchored in another chunk ([lx, ly, id] each, only when there
 // are any), and installChunk stands them again from the registry; an older guest dropped those tiles whenever such a chunk came alone in a frame.
-export const PROTOCOL = 14;
+// 15 (2026-10-25, #285): a player's heavy record carries `beltHands`, the hand chosen per belt slot ({ id, hand } or null), so the record
+// changed shape; an older guest neither kept it nor marked the choice in its slot's menu and card (the key itself is the host's, either way).
+export const PROTOCOL = 15;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -253,7 +255,7 @@ const lastRoster = { zombies: "", villagers: "", corpses: "", animals: "" };
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
 const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock", "shoveCooldown"]); // shoveCooldown: the shove's recovery gates a swing too (docs/41, step 2)
-const HEAVY = new Set(["worn", "hidden", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+const HEAVY = new Set(["worn", "hidden", "beltHands", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame
