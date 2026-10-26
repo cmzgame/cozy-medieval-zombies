@@ -216,7 +216,7 @@ export async function run(game, opts = {}) {
     const insideOnWorld = inp.getMouse().inside;
     move(right.x, right.y);
     row("the pointer over the map is not over the world (input's inside false), and over the world's canvas it is", insideOnWorld === true && inp.getMouse().inside === false, `on the canvas ${insideOnWorld}, over the map ${inp.getMouse().inside}`);
-    mp.update({ player: me, players: G.game.state.players, places: (G.game.state.info && G.game.state.info.places) || [] });
+    mp.update({ player: me, players: [me], places: [] }); // mine alone, so a friend standing beside me draws nothing over it
     const mine = mp.markers().find((q) => q.self);
     const i = iso.FACINGS.indexOf(me.facing);
     const f = { x: Math.cos((i * Math.PI) / 4), y: Math.sin((i * Math.PI) / 4) };
@@ -247,6 +247,7 @@ export async function run(game, opts = {}) {
     row("my name on the map stands clear of the pointer in all eight facings", clear, `label at +${L.x}, -${L.y}; pointer r ${P.r}, point ${P.tip}`);
     const other = G.game.state.players.find((p) => p !== me && !p.dead);
     if (other) {
+      mp.update({ player: me, players: G.game.state.players, places: [] });
       const theirs = mp.markers().find((q) => q.id === other.id);
       row("another player's marker keeps its look, a dot in its colour", !theirs || theirs.shape === "dot", theirs ? theirs.shape : "off the map");
     }
