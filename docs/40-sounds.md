@@ -149,7 +149,7 @@ Each step verified in the browser pane through `window.__game`, with `?nosave`, 
 6. A villager walking 8 tiles away logs steps at a lower gain than the player's; one past the radius logs nothing.
 7. With Sound off, walking and swinging log nothing; with Volume at Off, the same; restored after.
 8. An `await` of a second of wall time between two steps loses no sound (the gap is sim time).
-9. Two tabs (`?nosave&relay=none`, `__game.net.open({ join })`, both stepped in turn): the guest's log has its own swing at its own click's step, and its own `hit` a round trip later, with the frame's floaters; two seconds of the guest's own walk log about eight steps on the guest, none doubled; the host's swing and footsteps log on the guest within a frame of the frame that carried them; the host's log has the guest's swing; `check("sync")` passes; the frame's bytes from `net.status().wire` are the same as without sound.
+9. Two tabs (`?nosave&mute&relay=none`, `__game.net.open({ join })`, both stepped in turn): the guest's log has its own swing at its own click's step, and its own `hit` a round trip later, with the frame's floaters; two seconds of the guest's own walk log about eight steps on the guest, none doubled; the host's swing and footsteps log on the guest within a frame of the frame that carried them; the host's log has the guest's swing; `check("sync")` passes; the frame's bytes from `net.status().wire` are the same as without sound.
 
 **Step 2: the door and the bow.** The creak recipes, the openings scan, the bow's draw loop, release, and landing. Acceptance:
 
