@@ -28,7 +28,7 @@
 
 ### The village (west bank) [built]
 
-- **Your cottage:** 11 by 7 inside (Michael, 2026-10-26, the demo pass: "make your starting cabin not tiny"; 7 by 5 before), a living room 7 wide and a bedroom 4; a fireplace, a table, four chairs, a bed, a shelf, two chests (one is the home chest: a hatchet, a shovel, a loaf of bread, a bucket); a well, a barrel, a woodpile; a fenced plot of potatoes and cabbages at mixed stages; two gates. Its herb bed, privy, lean-to, and the pumpkin by the door [to build].
+- **Your cottage:** 11 by 7 inside (Michael, 2026-10-26, the demo pass: "make your starting cabin not tiny"; 7 by 5 before), a living room 7 wide and a bedroom 4; a fireplace, a table, four chairs, a bed, a shelf, two chests (one is the home chest: a hatchet, a shovel, a loaf of bread, a bucket); a well, a barrel, a woodpile; a fenced plot of potatoes and cabbages at mixed stages; two gates; a fire pit lit in a small glade south of the gate (Michael, 2026-10-27, "so I can see one pretty quick") [built]. Its herb bed, privy, lean-to, and the pumpkin by the door [to build].
 - **The square:** cobble, the well, the market cross, four stalls (containers), a trough, the notice board (the quest board of a later version), the stocks, three lantern posts.
 - **The green:** the duck pond, the maypole, two benches, a woodpile. The willow by the pond [to build].
 - **The inn:** the taproom (a counter, four tables, two fireplaces, barrels, a cupboard, a shelf), three guest rooms with a bed and a chest each, a fenced yard (a well, a woodpile, a privy, a cart, a trough); the Innkeeper, the Guest, the Child.
@@ -109,7 +109,8 @@
 - **Fish traps**, set in the water (Fishing 7) [to build].
 - **Snares** (Beastlore 3) [built, #443: set from the bag near rabbits, holding one after six game hours; open to all until the skills].
 - **The feast's table:** any table, the feast laid on it (Cooking 10) [to build].
-- **A campfire** (ruled 2026-10-25, `43` section 3) [built]: built from the palette, three stone and two logs, outdoors; six logs of three hours; picked up only out and empty, as a Campfire item (5 by 5).
+- **A campfire** (ruled 2026-10-25, `43` section 3) [built]: made at the workbench from three stone and two logs (2026-10-27: the build menu holds only what cannot be carried), the Campfire item 3 by 3, set down outdoors with Place, cold and empty; six logs of three hours; picked up only out and empty.
+- **A fireplace and a fire pit** (ruled 2026-10-26, the fire rulings, `43` section 3) [built]: built from the palette, the Fireplace six stone along a flat wall indoors, the fire pit eight stone, 2 by 2, indoors or out; switches that cook and light their room; never moved; taken apart only out.
 - **Wall brackets** (ruled 2026-10-25, `43` section 4) [built]: made at the anvil (an iron bar, Blacksmithing 1), hung like a painting; the valley's four start holding an unlit torch.
 - **The Bloodbark Shrine** (Bloodbark from the Crimson Abbey, Woodcutting 10): a name only.
 
@@ -127,9 +128,10 @@
 - **Trough** [built]: drink and fill, as the well; tainted, as every fixed source (2026-10-25, `44`).
 - **Font** [built]: fill a bucket; tainted, as every fixed source (2026-10-25, `44`).
 - **Altar** [built]: Pray, a 3 s bar that refills mana and stamina (Faith 1, recorded) [built, #480]; it also removes bleeds at Faith 4 and restores health at Faith 6 [to build].
-- **Fireplace** [built]: lights its room, cooks; not carried; not made [change: a switch, on and off, no fuel (2026-10-25, `43` section 2)].
-- **Hearth** [built]: as the fireplace; built from the palette, six stone, against a wall indoors; a switch, no fuel (`43`).
-- **Campfire** [built in the data]: a fire (logs) that cooks [change: built, placed at the woodcutters' camp and the charcoal burners (`43` section 2)].
+- **Fireplace** [built]: lights its room, cooks; not carried; a switch, on and off, no fuel (2026-10-25, `43` section 3); built from the palette, six stone, two tiles along a flat wall indoors, its facing from the wall (2026-10-26, the fire rulings); taken apart only out.
+- ~~**Hearth**~~: replaced by the Fireplace in the palette (2026-10-27); the generated hearth is gone.
+- **Fire pit** [built]: 2 by 2, built from the palette, eight stone, on open ground indoors or out (never on water); a switch that cooks, lights its room indoors and radius 5 outdoors; never moved; taken apart only out (2026-10-26, the fire rulings). One lit by your cottage.
+- **Campfire** [built]: a fire (logs) that cooks; made at the workbench and set down from the bag (2026-10-27) [change: placed at the woodcutters' camp when it is built (`43` section 3)].
 - **Oven, forge, anvil, loom, workbench, millstones, charcoal clamp, dye vat:** stations, section 3.
 - **Lantern post** [built]: lights a held torch [change: put out and lit again, a switch (2026-10-25, overturning never out)].
 - **Torch post and wall bracket** [built]: hold a torch; the post made at the workbench (Crafting 1) and set down outdoors, five by the square and along the high street holding unlit torches; the bracket as above (`43` section 4).
@@ -148,7 +150,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Loom** [built] (the weaver's): linen cloth (two flax); two bandages (a cloth); a linen cap, linen breeches, a linen tunic (one, two, three cloth). Unlock: open to all today [change: Crafting 1 names linen cloth, bandages, and the cap] [change: the tunic and the breeches too, Crafting 1: they are clothes (ruled 2026-10-23)]. Woollen cloth and warm clothes (Crafting 6) [to build]; a leather jerkin at Crafting 3 (ruled 2026-10-23) [to build].
 - **Forge** [built] (the smithy's): an iron bar from two iron ore; burns charcoal. Unlock: Blacksmithing 1. Silver (Blacksmithing 5) [to build]; less charcoal a bar (Blacksmithing 2) [change: charcoal is the fire's fuel today, not an ingredient].
 - **Anvil** [built] (the smithy's; a smith's hammer in hand, except for forging the hammer itself): a dirk, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4) [built, #410: to 100, 80, then 60% for a unit of the item's material, on the count the grindstone shares], silver work (5), mail and plate (7) [to build].
-- **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire, and the oven, `43` section 3): a roast potato, the plain pottage (the stew, renamed), porridge, grilled perch, trout, and carp; and since #445 each raw meat cooked alone, the meat pottage, the hearty stew (two meats; its buff to build), eggs and bacon, cheese from milk, and pemmican. Unlock: Cooking 1 [change: the hearty stew at Cooking 4, eggs and bacon at 4, cheese at 3, pemmican at 7, open to all until the skills (ruled 2026-10-23)]. Boiling water safe (Cooking 1) [to build].
+- **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a fire pit, a campfire, and the oven, `43` section 3): a roast potato, the plain pottage (the stew, renamed), porridge, grilled perch, trout, and carp; and since #445 each raw meat cooked alone, the meat pottage, the hearty stew (two meats; its buff to build), eggs and bacon, cheese from milk, and pemmican. Unlock: Cooking 1 [change: the hearty stew at Cooking 4, eggs and bacon at 4, cheese at 3, pemmican at 7, open to all until the skills (ruled 2026-10-23)]. Boiling water safe (Cooking 1) [to build].
 - **Oven** [built] (the baker's): a loaf of bread (two flour), a pumpkin pie (a pumpkin and flour) [change: pie at Cooking 6]. The oven cooks the fire's recipes too (`43` section 3).
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: Cooking 1 (ruled 2026-10-23).
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: Blacksmithing 1 (ruled 2026-10-23).
@@ -429,7 +431,7 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 - **Lantern post** [built]: the village's lights; put out and lit again with a tinderbox or a lit torch, a switch with no fuel (2026-10-25, `43`).
 - **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), each a point of light of 3.4 tiles like a lantern post (`src/light.js`), light a torch held to them, and cannot be taken; put out and lit again (2026-10-25, `43`).
 - **A carried lantern** [to build]: more light than a torch on the belt; its fuel fish oil (Fishing 5); made at Blacksmithing 4 (ruled 2026-10-23).
-- **Fireplaces and hearths** [built]: light their room; switches, on with a flame and off with nothing, no fuel (2026-10-25, `43`).
+- **Fireplaces and fire pits** [built]: light their room; switches, on with a flame and off with nothing, no fuel (2026-10-25, `43`); the room's light dips a little with the fire's flicker, a lever (2026-10-27, `42`).
 - **Campfire, torch post, wall bracket, jack-o'-lantern** [built in the data]: section 2 (ruled 2026-10-25, `43`).
 - **The charcoal clamp** [built]: a tiny light.
 - **Candles** [to build]: from wax (Beastlore 5).
@@ -565,7 +567,7 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 1. Fire Bolt: small damage, a small splash, a small burn.
 2. Spells cost 10% less mana.
 3. Frost Bolt: medium damage, slows (learned in a region).
-4. Kindle: light a campfire, hearth, or torch without a tinderbox (a suggestion).
+4. Kindle: light a campfire, fireplace, or torch without a tinderbox (a suggestion).
 5. Blood Bolt: high damage, steals a little health (learned in a region).
 6. Burns from your spells last 25% longer.
 7. Pyroblast: big single-target damage, no splash.
@@ -772,13 +774,13 @@ Later, not at the start: gems inlaid in metal armour.
 ### Light and darkness
 - **The day** [built]: twelve real minutes; night never permanent.
 - **Darkness shortens sight** [built]: the dead fade past a soft edge unless in light; a torch gives it back; a belt torch a little.
-- **Fire lights rooms** [built]: a lit hearth or fireplace lights its whole room, lit as a switch with no fuel (2026-10-25, `43`).
+- **Fire lights rooms** [built]: a lit fireplace or fire pit lights its whole room, lit as a switch with no fuel (2026-10-25, `43`), its light dipping a little with the flicker (2026-10-27).
 - **The dead see fire** [built]: from far at night.
 - ~~**Lanterns never go out**~~ [change: put out and lit again (2026-10-25, `43`)]; **torches burn down** [built].
 
 ### Fire and fuel
 - **Fire is maintenance** [built]: a fire burns its fuel over game hours and goes out; a station's craft pauses while its fire is out and resumes when fed; "A fire has gone out."
-- **Fuel** [built]: logs for campfires, the oven, and the clamp; charcoal for the forge; fireplaces and hearths burn none, switches lit with a flame (2026-10-25, `43`). Lighting needs a flame carried (a tinderbox, a lit torch); feeding does not; the campfire holds six logs of three hours, and a log added to it cold does not light it.
+- **Fuel** [built]: logs for campfires, the oven, and the clamp; charcoal for the forge; fireplaces and fire pits burn none, switches lit with a flame (2026-10-25, `43`). Lighting needs a flame carried (a tinderbox, a lit torch); feeding does not; the campfire holds six logs of three hours, and a log added to it cold does not light it.
 - **Only bodies burn; nothing spreads** [built]; burning, a short damage over time, capped.
 - **Fire arrows** [built]: arrows dipped in a lit fire.
 
@@ -937,7 +939,7 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 - Chopping, a tree falling, a stump chopped; mining a rock, a rock crumbling; picking apples.
 - Tilling, planting, watering, pouring, filling at water; a well's winch; harvesting by tool (scythe, dig, cut, pull).
 - Casting the line; a bite on the line; a catch; a miss (the log line).
-- A fire lit (tinderbox), fed; burning, by kind (campfire, hearth, forge, oven, clamp); a fire going out (the log line, built).
+- A fire lit (tinderbox), fed; burning, by kind (campfire, fireplace, fire pit, forge, oven, clamp); a fire going out (the log line, built).
 - A torch lit, put out, spent (the log line, built).
 - Each station at work: the anvil, the loom, the workbench, the millstones, the forge's bellows; a craft done (the log line, built).
 - Sleep and waking.

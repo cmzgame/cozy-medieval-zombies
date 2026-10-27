@@ -2,7 +2,7 @@
 // the font are all tainted (`tuning.water.clean` names the sprites of any that are safe, none). A skin's water is tainted unless its entry is marked
 // `clean`; filling it at a tainted source taints the whole of it (mixing taints), and the kit's skin starts clean (data/kit.json, src/kit.js).
 //
-// Boiling (Cooking 1, open to all until the skills are built): one verb, `boil`, at a lit cooking fire (a fire that `cooks`: a fireplace, a hearth, a
+// Boiling (Cooking 1, open to all until the skills are built): one verb, `boil`, at a lit cooking fire (a fire that `cooks`: a fireplace, a fire pit, a
 // campfire, the oven), by the fire's prop id and the skin's uid, three ways in that cannot disagree: Use a tainted skin then click the fire
 // (data/interactions.json's row, `args.timed`), the skin's menu in the bag or on the belt (Boil water, greyed with why when no lit fire is in reach), and
 // the fire's menu (Boil water for the fullest tainted skin carried, greyed with why when none is). Each starts the same timed bar (`boilAction`,

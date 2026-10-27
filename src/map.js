@@ -196,7 +196,7 @@ export function burnHolders(dt) {
 }
 
 // A flame landing at a point lights what is made to be lit within `r` tiles (Michael, 2026-10-17, #156: "a campfire or a torch"): an
-// unlit campfire with fuel in it, a torch on a post, or a torch in a bracket that is out. Not a hearth, an oven, or a forge, and
+// unlit campfire with fuel in it, a torch on a post, or a torch in a bracket that is out. Not a fireplace, a fire pit, an oven, or a forge, and
 // nothing else burns or spreads. `clear(x, y)` says whether the flame reaches that point (no wall between it and the landing: the
 // fireball passes it, as its hit does); the default is that it does. The authority's, from a fireball's landing (archery.js).
 // Returns how many it lit.
@@ -340,7 +340,7 @@ export function putOutByHand(prop) {
   return !!(f && (f.switch || prop.sprite === "campfire" || (f.holds && f.has)));
 }
 
-// A prop's fire on or off with nothing spent: a switch (a fireplace, a hearth, a lantern post) either way; any burner or a post's torch
+// A prop's fire on or off with nothing spent: a switch (a fireplace, a fire pit, a lantern post) either way; any burner or a post's torch
 // put out (a campfire keeps the fuel left). Touches its chunk. Returns whether it changed.
 export function setFireLit(prop, lit) {
   const f = prop && prop.fire;
@@ -367,7 +367,7 @@ export function putOutBracket(b) {
 // it, a torch on a post, or a torch in a bracket that is out (`lightableProp`). Nothing else burns and nothing spreads. The authority's, from
 // the `light` verb (burn.js); each returns whether it lit, and touches the chunk so the wire and the save have it.
 // The one rule for what a fire can be lit as (the verb and a fireball's landing both ask it): a campfire with fuel in it, or a holder
-// (a post) with a torch in it. Not a hearth, an oven, or a forge: Michael named "a campfire or a torch".
+// (a post) with a torch in it. Not a fireplace, an oven, or a forge: Michael named "a campfire or a torch".
 export function lightableProp(prop) {
   const f = prop && prop.fire;
   return !!f && ((prop.sprite === "campfire" && f.burns && f.fuel > 0) || (!!f.holds && f.has));
@@ -2394,7 +2394,7 @@ function propBase(def, offset = [0, 0]) {
       room: !!f.room,
       burns: !!f.burns,
       cooks: !!f.cooks,
-      switch: !!f.switch, // a home light (a fireplace, a hearth, a lantern): on and off, no fuel, lit with a flame (docs/43, section 3)
+      switch: !!f.switch, // a home light (a fireplace, a fire pit, a lantern): on and off, no fuel, lit with a flame (docs/43, section 3)
       holds, // "torch": a post, lit while it holds one
       has,
       lit: holds ? has && def.lit !== false : def.lit ?? f.lit ?? !f.burns, // a post may be authored holding an unlit torch (docs/43 section 4)
