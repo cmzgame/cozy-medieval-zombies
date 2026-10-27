@@ -4995,6 +4995,47 @@ check("the fires: the campfire made at the workbench, 3 by 3 in the bag, set dow
   }
 });
 
+// The fires' flicker darkens a lit room a little, as a lever (Michael, 2026-10-27): the drawn weight of a lit room's light stays within
+// [world.litRoomFlickerMin, 1], reaches near both ends, and is 1 for a steady fire; the world's light (what the dead's sight reads) stays 1
+// in a lit room at every instant, so the flicker is the renderer's alone and nothing in the simulation moves with it.
+check("the fires: a lit room's drawn light dips with its fire's flicker within [the lever, 1]; the world's room light stays 1", () => {
+  const T = read("data/tuning.json");
+  const min = T.world.litRoomFlickerMin;
+  assert(min === 0.85 && tuningMod.world.litRoomFlickerMin === 0.85, `the lever: ${min}, the code's ${tuningMod.world.litRoomFlickerMin}`);
+  for (const sprite of ["fireplace", "fire_pit"]) {
+    const fl = getDef(sprite).fire.flicker;
+    let lo = 1;
+    let hi = 0;
+    for (let k = 0; k < 20000; k++) {
+      const w = lightMod.roomFlickerWeight(fl, lightMod.sourceSeed(12, 34), k * 0.013);
+      lo = Math.min(lo, w);
+      hi = Math.max(hi, w);
+    }
+    assert(lo >= min - 1e-9 && hi <= 1 + 1e-9 && lo < min + 0.01 && hi > 0.999, `${sprite}: the drawn weight ran ${lo.toFixed(4)} to ${hi.toFixed(4)}`);
+  }
+  assert(lightMod.roomFlickerWeight(null, 0, 3) === 1 && lightMod.roomFlickerWeight({ amp: 0.2, speed: 6 }, 1, 2, 1) === 1, "a steady fire, or the lever at 1, dips");
+  // The world's light: a lit fireplace's room at 1 at every step, its flicker known to the renderer.
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const fp = mapMod.allProps().find((p) => p.sprite === "fireplace" && mapMod.peekTile(p.tile[0], p.tile[1]).room > 0);
+  assert(fp, "no fireplace in a room");
+  mapMod.setFireLit(fp, true);
+  const id = mapMod.peekTile(fp.tile[0], fp.tile[1]).room;
+  clock.setHour(23);
+  const seen = new Set();
+  for (let i = 0; i < 120; i++) {
+    gameMod.begin(1 / 60);
+    gameMod.step(1 / 60);
+    lightMod.update();
+    seen.add(lightMod.roomAmbient(id));
+  }
+  const rec = lightMod.litRoomFlicker(id);
+  assert(seen.size === 1 && seen.has(1) && rec && rec.flicker === fp.fire.flicker && rec.seed === lightMod.sourceSeed(fp.tile[0], fp.tile[1]), `the world's room light: ${[...seen].join(",")}; the flicker ${JSON.stringify(rec)}`);
+  mapMod.setFireLit(fp, false);
+  lightMod.update();
+  assert(lightMod.litRoomFlicker(id) === null, "a room put out still flickers");
+  return `the fireplace's and the fire pit's rooms drawn ${min} to 1; the world's lit room 1 at every step`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;
