@@ -447,6 +447,7 @@ function nearestFlame(z) {
   let best = null;
   let bestD = Infinity;
   for (const s of light.allSources()) {
+    if ((s.layer || 0) !== (z.layer || 0)) continue; // a flame on another layer is behind a floor: seeing across storeys is docs/49 step 4's ray
     const d = Math.hypot(s.gx - z.gx, s.gy - z.gy);
     // A torch on the belt is a weaker flame (docs/02): seen from `beltLight` (0.6) as far.
     if (d > range * (s.strength ?? 1) || d >= bestD) continue;
