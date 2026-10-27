@@ -586,7 +586,7 @@ function containerActions(prop) {
 function fireActions(prop, player) {
   const f = prop.fire;
   if (!f || !f.burns) return [];
-  if (f.switch) return switchActions(prop, player); // a fireplace, a hearth: on and off, no fuel (docs/43, section 3)
+  if (f.switch) return switchActions(prop, player); // a fireplace, a fire pit: on and off, no fuel (docs/43, section 3)
   if (prop.sprite === campfire.SPRITE) return campfireActions(prop, player);
   const name = names.propName(prop.sprite);
   const fuelId = f.fuelItem;
@@ -628,7 +628,7 @@ function runVerb(name, player, target) {
 }
 
 // A home light (docs/43, section 3; Michael, 2026-10-25: fixed home lights are switches, portable lights cost fuel): a fireplace, a
-// hearth, a lantern on a post. Light it with a flame carried (a tinderbox or a lit torch, #168); put it out with nothing. It burns no fuel.
+// fire pit, a lantern on a post. Light it with a flame carried (a tinderbox or a lit torch, #168); put it out with nothing. It burns no fuel.
 function switchActions(prop, player) {
   const f = prop.fire;
   const name = map.fireName(prop);

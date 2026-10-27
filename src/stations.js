@@ -1,7 +1,7 @@
 // Stations (docs/30, sections 3 and 6; docs/31/08's habits): a station is a
 // prop whose definition names a `station` (the workbench, the anvil, the
 // forge, the oven, the loom...), or any lit fire that cooks (the cooking
-// hearth). Recipes are rows in data/recipes.json. A craft takes its seconds
+// hearth: a fireplace, a fire pit, a campfire). Recipes are rows in data/recipes.json. A craft takes its seconds
 // in the world's time, from the station's own queue, with ingredients taken
 // from the player's bag, belt, and hands and from every opened container
 // within reach; a recipe that needs fire pauses while the fire is out; the

@@ -105,7 +105,7 @@ export function leafHint(chosen, carried = "") {
 // ---- the carry rule ----
 
 // A prop can be lifted unless it is rooted (a tree, a well), built in (a
-// hearth, a torch post), or a fire that burns fuel (a campfire). A sprite's own
+// fireplace, a fire pit, a torch post), or a fire that burns fuel (a campfire). A sprite's own
 // `carry` flag, true or false, overrides the rule either way (docs/13); a village station's (`villageStation`) gives way to
 // the world rule Village stations (docs/43 section 5).
 export function canCarry(prop) {

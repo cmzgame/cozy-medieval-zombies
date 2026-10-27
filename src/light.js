@@ -5,7 +5,7 @@
 // sources plus the light you carry. See docs/07-lighting.md and docs/08.
 //
 // What changes from the parent: ambient is per tile (the clock outdoors, the
-// room's hearth and openings indoors), the static map is per chunk and
+// room's fire and openings indoors), the static map is per chunk and
 // computed one cell beyond the chunk so neighbours draw without seams, light
 // multiplies through what it crosses by each edge's transmission (sight is the
 // same blockers above a half), and every opening is a source on its darker
@@ -27,7 +27,7 @@ const PORTAL_OFF = 0.3; // tiles off the edge, on the darker side
 // Tunables Michael picks by eye (docs/07, "The look"). Live on window.__game.light.
 export const tunables = {
   dayCap: 0.92, // full day is never quite full: Halloween never ends here
-  unlitRoomCap: 0.88, // window-lit is slightly dimmer than hearth-lit
+  unlitRoomCap: 0.88, // window-lit is slightly dimmer than fire-lit
   openingDaylight: 0.5, // openness per open shutter or open door
   roomBounce: 0.5, // how much of the flat openness light an unlit room keeps; the portals pool the rest (docs/08)
 };

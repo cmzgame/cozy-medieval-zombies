@@ -1,11 +1,14 @@
 // The light verb (Michael, 2026-10-17, #156: "fire lights what is made to be lit"): a tinderbox or a lit torch used on an unlit
 // campfire with fuel, a torch on a post, a torch in a bracket that is out, or an unlit torch in a hand lights it (and an unlit torch
-// used on a burning fire is lit from it), and nothing else burns (not a hearth, an oven, or a forge); not through a wall, not from
+// used on a burning fire is lit from it), and nothing else burns (not a fireplace, an oven, or a forge); not through a wall, not from
 // afar; every refusal says why. It runs through data/interactions.json and the verb table (use.applyWith, the path a guest's Use
-// takes on the host) and through the holder's menu. Since docs/43 section 3: the home lights (a fireplace, a hearth, a lantern) are
-// switches, lit with a flame and put out with nothing; the campfire is built from the palette outdoors (three stone and two logs, the
-// logs its fuel), not lit by a log, picked up only out and empty as a 5 by 5 Campfire item, set down again, and taken apart for one
-// stone. From the console, on a tab with `?nosave`:
+// takes on the host) and through the holder's menu. Since docs/43 section 3: the home lights (a fireplace, a fire pit, a lantern) are
+// switches, lit with a flame and put out with nothing; the campfire is made at the workbench (2026-10-27), its 3 by 3 item set down
+// outdoors cold and empty by a guest's command, fed, not lit by a log, picked up only out and empty, and taken apart for half its make;
+// the Fireplace and the fire pit are the palette's (the fire rulings, 2026-10-26): the Fireplace along a west or a north wall by a guest's
+// command, the fire pit by the host's own click through the palette's ghost outdoors and by a guest's command indoors, each a switch that
+// cooks, refused Take apart while lit; the fire pit radius 5 outdoors and its room lit indoors, the room's drawn light dipping within
+// [world.litRoomFlickerMin, 1]. From the console, on a tab with `?nosave&mute`:
 //   await __game.check("kindle")
 // It builds on open ground and puts everything it made or moved back.
 
@@ -361,7 +364,9 @@ export async function run(game) {
         row("a campfire cannot be lit through a wall", !thru.ok && /wall/.test(thru.reason) && !wf.fire.lit, String(thru.reason));
       } else row("a free tile for the campfire behind the wall", false, `${tx0},${ty0} has a prop`);
     } else row("a bracket with room on both sides for the wall rows", false, "none in the loaded map");
-    // ---- The campfire (docs/43, section 3): built, picked up, set down, taken apart. Free building off, so it is paid for.
+    // ---- The campfire (docs/43, section 3; Michael, 2026-10-27): made at the workbench (check("craft") makes one), no longer the palette's;
+    // the Campfire item 3 by 3, set down outdoors cold and empty by a guest's command, fed and lit, picked up out and empty, taken apart for
+    // half its make. Free building off.
     {
       const campfireMod = await import("/src/campfire.js");
       const free0 = G.rules.rules.freeBuilding;
@@ -369,15 +374,18 @@ export async function run(game) {
       restore.push(() => { G.rules.set({ freeBuilding: free0 }); me.worn.back = back0; });
       G.rules.set({ freeBuilding: false });
       const said = () => (document.getElementById("message") || {}).textContent || "";
-      const entry = G.placement.buildKinds().find((k) => k.id === "campfire");
-      row("the build palette has a campfire: a prop on a tile, three stone and two logs, the logs its fuel", !!entry && entry.kind === "prop" && entry.sprite === "campfire" && entry.cost.stone === 3 && entry.cost.log === 2 && entry.fuel === "log", JSON.stringify(entry && entry.cost));
+      const rec = G.stations.recipe("campfire");
+      row("the campfire is made at the workbench from three stone and two logs, and the build palette has none (the build menu holds only what cannot be carried)", !G.placement.buildKinds().some((k) => k.id === "campfire" || k.sprite === "campfire") && !!rec && rec.station === "workbench" && rec.out.id === "campfire" && JSON.stringify(G.items.getItem("campfire").size) === "[3,3]", `${JSON.stringify(rec && rec.in)}; the item ${JSON.stringify(G.items.getItem("campfire").size)}`);
+      me.worn.back = G.items.makeEntry("small_sack", 1); // the sack (6 by 4) takes a 3 by 3 Campfire now
+      const held0 = bag.items.slice();
+      const sack = G.inventory.bagOf(me);
+      const item0 = G.items.makeEntry("campfire", 1); // as the workbench makes it: no mark, the player's own
+      const fitsSack = G.grid.insert(sack, item0);
       // Indoors is refused: the cottage the player woke in.
       const inside = [Math.round(meAt[0]), Math.round(meAt[1])];
       G.teleport(meAt[0], meAt[1]);
-      G.placement.performPlacement(me, { kind: "build", what: "campfire", tx: inside[0], ty: inside[1] });
-      G.loop.advance(1 / 60);
-      row("a campfire is built outdoors only", G.map.tileAt(inside[0], inside[1]).room > 0 && !(G.map.tileAt(inside[0], inside[1]).prop && G.map.tileAt(inside[0], inside[1]).prop.sprite === "campfire") && /Outdoors only/.test(said()), `"${said()}"`);
-      // A free tile out in the open, near the ground the rows above used.
+      G.placement.performPlacement(me, { kind: "campfire", uid: item0.uid, tx: inside[0], ty: inside[1] });
+      row("the Campfire item fits the sack, and is set down outdoors only", fitsSack && sack.items.includes(item0) && /Outdoors only/.test(said()), `in the sack ${fitsSack}; "${said()}"`);
       let spot = null;
       for (let r = 6; r < 14 && !spot; r++) for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) {
         const x = cx + dx, y = cy + dy;
@@ -388,20 +396,15 @@ export async function run(game) {
         const [fx, fy] = spot;
         G.teleport(fx, fy + 1.2);
         G.loop.advance(1 / 60);
-        const held0 = bag.items.slice(); // room in the bag for two logs: emptied here, put back after
-        restore.push(() => bag.items.splice(0, bag.items.length, ...held0));
-        bag.items.length = 0;
-        const stone0 = G.inventory.countAll(me, "stone");
-        const log0 = G.inventory.countAll(me, "log");
-        G.inventory.addItem(bag, "stone", 3);
-        G.inventory.addItem(bag, "log", 2);
-        G.placement.performPlacement(me, { kind: "build", what: "campfire", tx: fx, ty: fy });
-        for (let i = 0; i < 60 * 5; i++) G.loop.advance(1 / 60);
+        G.placement.performPlacement(me, { kind: "campfire", uid: item0.uid, tx: fx, ty: fy }); // a guest's set-down, by the item's uid
         const built = G.map.tileAt(fx, fy).prop;
         if (built && built.sprite === "campfire") restore.push(() => { if (G.map.propById(built.id)) G.map.removeProp(built); });
-        row("built: a cold campfire holding its two logs as fuel, made by the player, and the three stone and two logs paid", !!built && built.sprite === "campfire" && built.made === true && built.fire.fuel === 2 && built.fire.lit === false && built.fire.maxFuel === 6 && G.inventory.countAll(me, "stone") === stone0 && G.inventory.countAll(me, "log") === log0, built ? `fuel ${built.fire.fuel} of ${built.fire.maxFuel}, lit ${built.fire.lit}, made ${built.made}; stone ${G.inventory.countAll(me, "stone")}, logs ${G.inventory.countAll(me, "log")}` : "nothing built");
+        row("set down by a guest's command: a cold, empty campfire on one tile, the player's own, the item gone from the bag", !!built && built.sprite === "campfire" && built.made === true && built.fire.fuel === 0 && built.fire.lit === false && built.fire.maxFuel === 6 && built.tiles.length === 1 && !sack.items.includes(item0), built ? `fuel ${built.fire.fuel} of ${built.fire.maxFuel}, lit ${built.fire.lit}, made ${built.made}` : `nothing set down: "${said()}"`);
         if (built && built.sprite === "campfire") {
           row("each log burns three game hours: a full campfire burns eighteen", built.fire.hoursPerUnit === 3 && built.fire.maxFuel * built.fire.hoursPerUnit === 18, `${built.fire.hoursPerUnit} h a log, ${built.fire.maxFuel} logs`);
+          G.inventory.addItem(sack, "log", 2);
+          const fed = [0, 1].map(() => G.verbs.run("feed", G.world.world, me, { prop: built.id }).ok);
+          row("fed two logs as any fire, lighting nothing cold", fed.every(Boolean) && built.fire.fuel === 2 && !built.fire.lit, `fed ${fed.join(", ")}; fuel ${built.fire.fuel}, lit ${built.fire.lit}`);
           const labels = () => G.interact.actionsForProp(built, me).map((a) => a.label);
           const heldLabels = labels();
           G.placement.performPlacement(me, { kind: "remove", target: { type: "prop", id: built.id } });
@@ -410,89 +413,188 @@ export async function run(game) {
           built.fire.fuel = 0;
           built.fire.lit = false;
           G.map.touch(fx, fy);
-          // The sack (6 by 4) cannot take a 5 by 5 Campfire; a satchel (7 by 5) can.
-          me.worn.back = G.items.makeEntry("small_sack", 1);
-          const pick = () => G.interact.actionsForProp(built, me).find((a) => a.label === "Pick up campfire");
-          const p1 = pick();
-          const inSack = p1 ? p1.perform() : null;
-          const refusedSack = inSack === false && !!G.map.propById(built.id) && /No room/.test(said());
-          me.worn.back = G.items.makeEntry("satchel", 1);
-          const p2 = pick();
-          const inSatchel = p2 ? p2.perform() : null;
+          const p1 = G.interact.actionsForProp(built, me).find((a) => a.label === "Pick up campfire");
+          const up = p1 ? p1.perform() : null;
           const item = G.inventory.bagOf(me).items.find((e) => e.id === "campfire");
-          row("out and empty it is picked up as a Campfire item, 5 by 5: too big for the sack, taken by a satchel", refusedSack && inSatchel === true && !G.map.propById(built.id) && !!item && item.made === true && JSON.stringify(G.items.getItem("campfire").size) === "[5,5]", `sack: ${inSack}; satchel: ${inSatchel}; item ${!!item}, made ${item && item.made}`);
+          row("out and empty it is picked up into the sack as the 3 by 3 Campfire item, still the player's", up === true && !G.map.propById(built.id) && !!item && item.made === true, `picked up ${up}; item ${!!item}, made ${item && item.made}`);
           if (item) {
             const menu = G.interact.itemMenu(me, item, G.inventory.bagOf(me), null).map((m) => m.label);
-            G.placement.performPlacement(me, { kind: "campfire", uid: item.uid, tx: fx, ty: fy }); // a guest's set-down, by the item's uid
+            G.placement.performPlacement(me, { kind: "campfire", uid: item.uid, tx: fx, ty: fy });
             const again = G.map.tileAt(fx, fy).prop;
             if (again && again.sprite === "campfire") restore.push(() => { if (G.map.propById(again.id)) G.map.removeProp(again); });
-            row("its menu has Place, and set down by a guest's command it is a cold, empty campfire, still the player's own", menu.includes("Place") && !!again && again.sprite === "campfire" && again.fire.fuel === 0 && !again.fire.lit && again.made === true && !G.inventory.bagOf(me).items.some((e) => e.id === "campfire"), `${menu.join(", ")}; ${again ? `fuel ${again.fire.fuel}, made ${again.made}` : "nothing set down"}`);
+            row("its menu has Place, and set down again it is cold, empty, and the player's own", menu.includes("Place") && !!again && again.sprite === "campfire" && again.fire.fuel === 0 && !again.fire.lit && again.made === true, `${menu.join(", ")}; ${again ? `fuel ${again.fire.fuel}, made ${again.made}` : "nothing set down"}`);
             if (again && again.sprite === "campfire") {
               const ta = G.interact.actionsForProp(again, me).find((a) => /^Take apart/.test(a.label));
               const st0 = G.inventory.countAll(me, "stone");
+              const lg0 = G.inventory.countAll(me, "log");
               const ran = ta ? ta.perform() : null;
-              row("taken apart, it gives back half its stones (one), no logs, and asks for no tool", ta && ta.label === "Take apart (1 stone back)" && ran === true && !G.map.propById(again.id) && G.inventory.countAll(me, "stone") - st0 === 1, `${ta && ta.label}; ran ${ran}; +${G.inventory.countAll(me, "stone") - st0} stone`);
-              G.inventory.takeAll(me, "stone", 1);
+              row("taken apart, it gives back half its make (a stone and a log) and asks for no tool", ta && ta.label === "Take apart (1 stone, 1 log back)" && ran === true && !G.map.propById(again.id) && G.inventory.countAll(me, "stone") - st0 === 1 && G.inventory.countAll(me, "log") - lg0 === 1, `${ta && ta.label}; ran ${ran}; +${G.inventory.countAll(me, "stone") - st0} stone, +${G.inventory.countAll(me, "log") - lg0} log`);
             }
           }
         }
       }
+      me.worn.back = back0;
+      bag.items.splice(0, bag.items.length, ...held0);
     }
-    // ---- The hearth (docs/43, section 4): built from the palette inside a room, against a wall, six stone; a switch, out when built.
+    // ---- The built fires (Michael, 2026-10-26, the fire rulings): the Fireplace along a flat wall indoors and the 2 by 2 fire pit indoors or out,
+    // each from the palette, a switch out when built, cooking, never carried, refused Take apart while lit, half its stone back out.
     {
       const free0 = G.rules.rules.freeBuilding;
       restore.push(() => G.rules.set({ freeBuilding: free0 }));
       G.rules.set({ freeBuilding: false });
       const sd = await import("/src/setdown.js");
+      const lightMod = await import("/src/light.js");
+      const hour0 = G.clock.getHour();
+      restore.push(() => G.clock.setHour(hour0)); // the light rows read midnight
       const said = () => (document.getElementById("message") || {}).textContent || "";
-      const entry = G.placement.buildKinds().find((k) => k.id === "hearth");
-      row("the build palette has a hearth: a prop, six stone, standing indoors against a wall", !!entry && entry.kind === "prop" && entry.sprite === "hearth" && entry.stand === "wall" && entry.cost.stone === 6, JSON.stringify(entry && entry.cost));
-      // In the cottage the player woke in: a tile against a wall, and one in the open of the room.
+      const kinds = G.placement.buildKinds();
+      const fpE = kinds.find((k) => k.id === "fireplace");
+      const pitE = kinds.find((k) => k.id === "fire_pit");
+      row("the build palette has the Fireplace (six stone, against a wall) and the fire pit (eight stone, on the ground), and no hearth", !!fpE && fpE.sprite === "fireplace" && fpE.stand === "wall" && fpE.cost.stone === 6 && !!pitE && pitE.sprite === "fire_pit" && pitE.stand === "ground" && pitE.cost.stone === 8 && !kinds.some((k) => k.id === "hearth"), `${JSON.stringify(fpE && fpE.cost)} ${JSON.stringify(pitE && pitE.cost)}`);
+      const back0 = me.worn.back;
+      restore.push(() => { me.worn.back = back0; });
+      me.worn.back = G.items.makeEntry("rucksack", 1); // room for the stone
+      const sack = G.inventory.bagOf(me);
+      const tb = G.items.makeEntry("tinderbox", 1);
+      G.inventory.stow(me, tb);
+      restore.push(() => G.inventory.detach(me, tb));
+      const step = (n) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
+      // The Fireplace in the cottage the player woke in: a fit for each facing, refused outdoors and in the open of the room.
       const room = G.map.tileAt(Math.round(meAt[0]), Math.round(meAt[1])).room;
-      let wallTile = null;
+      const fits = {};
       let openTile = null;
-      for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) {
+      for (let dy = -7; dy <= 7; dy++) for (let dx = -8; dx <= 8; dx++) {
         const x = Math.round(meAt[0]) + dx, y = Math.round(meAt[1]) + dy;
         const t = G.map.peekTile(x, y);
         if (!t || t.room !== room) continue;
-        const why = sd.standProblem("wall", x, y);
-        if (!why && !wallTile && G.map.isWalkableTile(x, y + 1) && G.map.tileAt(x, y + 1).room === room && !G.map.tileAt(x, y + 1).prop) wallTile = [x, y];
-        if (why === "Against a wall" && !openTile) openTile = [x, y];
+        const f = sd.fitAt("wall", "fireplace", x, y);
+        if (!f.problem && !fits[f.facing]) fits[f.facing] = f;
+        if (f.problem === "Against a wall" && !openTile) openTile = [x, y];
       }
-      const outside = [];
-      for (let r = 3; r < 14 && !outside.length; r++) for (let dx = -r; dx <= r && !outside.length; dx++) { const x = Math.round(meAt[0]) + dx, y = Math.round(meAt[1]) + r; if (sd.standProblem("ground", x, y) === "" && !(G.map.peekTile(x, y).room > 0)) outside.push(x, y); }
-      row("a hearth is refused outdoors and in the open of a room", outside.length && sd.standProblem("wall", outside[0], outside[1]) === "Indoors only" && !!openTile, `outdoors: ${outside.length ? sd.standProblem("wall", outside[0], outside[1]) : "no tile"}; open floor: ${openTile ? sd.standProblem("wall", openTile[0], openTile[1]) : "none found"}`);
-      if (wallTile) {
-        const [hx, hy] = wallTile;
-        G.teleport(hx, hy + 1.2);
+      let outside = null;
+      for (let r = 3; r < 14 && !outside; r++) for (let dx = -r; dx <= r && !outside; dx++) { const x = Math.round(meAt[0]) + dx, y = Math.round(meAt[1]) + r; const t = G.map.peekTile(x, y); if (t && !(t.room > 0) && sd.fitAt("wall", "fireplace", x, y).problem === "Indoors only") outside = [x, y]; }
+      row("a Fireplace fits along a west wall (facing y, 1 by 2) and a north wall (facing x, 2 by 1), and is refused outdoors and in the open of a room", !!fits.y && !!fits.x && JSON.stringify(fits.y.footprint) === "[1,2]" && JSON.stringify(fits.x.footprint) === "[2,1]" && !!outside && !!openTile, `y ${fits.y ? `${fits.y.tx},${fits.y.ty}` : "none"}, x ${fits.x ? `${fits.x.tx},${fits.x.ty}` : "none"}; outdoors ${outside}; open floor ${openTile}`);
+      if (fits.y) {
+        const f = fits.y;
+        G.teleport(f.tx + 0.6, f.ty + 0.5);
         G.loop.advance(1 / 60);
-        const back0 = me.worn.back;
-        restore.push(() => { me.worn.back = back0; });
-        me.worn.back = G.items.makeEntry("rucksack", 1); // room for the six stone
         const st0 = G.inventory.countAll(me, "stone");
-        G.inventory.addItem(G.inventory.bagOf(me), "stone", 6);
-        G.placement.performPlacement(me, { kind: "build", what: "hearth", tx: hx, ty: hy });
-        for (let i = 0; i < 60 * 9; i++) G.loop.advance(1 / 60);
-        const h = G.map.tileAt(hx, hy).prop;
-        if (h && h.sprite === "hearth") restore.push(() => { if (G.map.propById(h.id)) G.map.removeProp(h); });
-        row("built against a wall: a hearth, a switch, out, made, the six stone paid", !!h && h.sprite === "hearth" && h.fire.switch === true && h.fire.lit === false && h.made === true && G.inventory.countAll(me, "stone") === st0, h ? `switch ${h.fire.switch}, lit ${h.fire.lit}, made ${h.made}; stone ${G.inventory.countAll(me, "stone")}` : `nothing built: "${said()}"`);
-        if (h && h.sprite === "hearth") {
-          const tb = G.items.makeEntry("tinderbox", 1);
-          G.inventory.stow(me, tb);
-          restore.push(() => G.inventory.detach(me, tb));
-          const lightIt = G.interact.actionsForProp(h, me).find((q) => q.label === "Light the hearth");
+        G.inventory.addItem(sack, "stone", 6);
+        G.placement.performPlacement(me, { kind: "build", what: "fireplace", tx: f.tx, ty: f.ty }); // a guest's command: the anchor alone
+        step(60 * 9);
+        const h = G.map.tileAt(f.tx, f.ty).prop;
+        if (h && h.sprite === "fireplace" && h.made) restore.push(() => { if (G.map.propById(h.id)) G.map.removeProp(h); });
+        row("built by a guest's command along the west wall: a Fireplace facing y on both its tiles, a switch, out, made, a station, the six stone paid", !!h && h.sprite === "fireplace" && h.made === true && h.facing === "y" && h.tiles.length === 2 && h.fire.switch && !h.fire.lit && G.stations.stationOf(h).length > 0 && G.inventory.countAll(me, "stone") === st0, h ? `facing ${h.facing}, ${h.tiles.length} tiles, lit ${h.fire.lit}, made ${h.made}; stone ${G.inventory.countAll(me, "stone")}` : `nothing built: "${said()}"`);
+        if (h && h.sprite === "fireplace" && h.made) {
+          const lightIt = G.interact.actionsForProp(h, me).find((q) => q.label === "Light the fireplace");
           const lit = lightIt ? lightIt.perform() : null;
-          const off = G.interact.actionsForProp(h, me).find((q) => q.label === "Put out the hearth");
+          const lockedLabel = (G.interact.actionsForProp(h, me).find((q) => /^Take apart/.test(q.label)) || {}).label;
+          const off = G.interact.actionsForProp(h, me).find((q) => q.label === "Put out the fireplace");
           const out = off ? off.perform() : null;
           const ta = G.interact.actionsForProp(h, me).find((q) => /^Take apart/.test(q.label));
           const s0 = G.inventory.countAll(me, "stone");
           const apart = ta ? ta.perform() : null;
-          row("lit with the tinderbox and put out with nothing; taken apart for half its stone", lit === true && out === true && ta && ta.label === "Take apart (3 stones back)" && apart === true && G.inventory.countAll(me, "stone") - s0 === 3, `${lit} ${out}; ${ta && ta.label}; +${G.inventory.countAll(me, "stone") - s0}`);
+          row("lit with the tinderbox, Take apart refused while it burns, put out with nothing, then taken apart for half its stone", lit === true && lockedLabel === "Take apart (put it out first)" && out === true && ta && ta.label === "Take apart (3 stones back)" && apart === true && G.inventory.countAll(me, "stone") - s0 === 3, `${lit} "${lockedLabel}" ${out}; ${ta && ta.label}; +${G.inventory.countAll(me, "stone") - s0}`);
           G.inventory.takeAll(me, "stone", 3);
         }
-      } else row("a tile against a wall in the cottage", false, "none");
+      }
+      // The fire pit outdoors by the host's own click (the palette's mode, the ghost, a click), and indoors by a guest's command.
+      let pitOut = null;
+      for (let r = 4; r < 16 && !pitOut; r++) for (let dy = -r; dy <= r && !pitOut; dy++) for (let dx = -r; dx <= r && !pitOut; dx++) {
+        const x = cx + dx, y = cy + dy;
+        const tiles = [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]].map(([a, b]) => G.map.peekTile(a, b));
+        if (!sd.fitAt("ground", "fire_pit", x, y).problem && tiles.every((t) => t && !(t.room > 0)) && G.map.isWalkableTile(x - 1, y) && G.map.isWalkableTile(x - 2, y)) pitOut = [x, y];
+      }
+      let pitIn = null;
+      for (let dy = -7; dy <= 7 && !pitIn; dy++) for (let dx = -8; dx <= 8 && !pitIn; dx++) {
+        const x = Math.round(meAt[0]) + dx, y = Math.round(meAt[1]) + dy;
+        const t = G.map.peekTile(x, y);
+        if (t && t.room === room && !sd.fitAt("ground", "fire_pit", x, y).problem) pitIn = [x, y];
+      }
+      row("open ground outdoors and a 2 by 2 of open floor in the cottage for the fire pit", !!pitOut && !!pitIn, `outdoors ${pitOut}, indoors ${pitIn}`);
+      if (pitOut) {
+        const inp = await import("/src/input.js");
+        const cv = document.getElementById("game");
+        const cam0 = { gx: G.camera.cam.gx, gy: G.camera.cam.gy };
+        const mouse0 = { ...inp.getMouse() };
+        const cvRect = cv.getBoundingClientRect();
+        cv.dispatchEvent(new MouseEvent("mousemove", { clientX: cvRect.left + 1000, clientY: cvRect.top + 500, bubbles: true }));
+        const sc = 1000 / inp.getMouse().x;
+        restore.push(() => {
+          G.placement.cancel();
+          G.camera.snapTo(cam0.gx, cam0.gy);
+          G.camera.applyOrigin(G.view.view.w, G.view.view.h);
+          if (mouse0.inside) cv.dispatchEvent(new MouseEvent("mousemove", { clientX: cvRect.left + mouse0.x * sc, clientY: cvRect.top + mouse0.y * sc, bubbles: true }));
+          else cv.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+        });
+        const [px, py] = pitOut;
+        G.teleport(px - 1.5, py + 0.5);
+        G.loop.advance(1 / 60);
+        G.inventory.addItem(sack, "stone", 8);
+        G.placement.beginBuild("fire_pit");
+        G.camera.snapTo(me.gx, me.gy);
+        G.camera.applyOrigin(G.view.view.w, G.view.view.h);
+        const p = G.iso.toScreen(px + 0.5, py + 0.5); // the footprint's middle: the ghost is centred on the cursor
+        cv.dispatchEvent(new MouseEvent("mousemove", { clientX: cvRect.left + p.x * sc, clientY: cvRect.top + p.y * sc, bubbles: true }));
+        G.placement.update(me);
+        inp.endStep();
+        const g = G.placement.state.ghost;
+        row("the palette's fire pit: the ghost is the 2 by 2 over the cursor, green on open ground", !!g && g.ok === true && g.tx === px && g.ty === py && JSON.stringify(g.footprint) === "[2,2]" && g.build === "fire_pit", g ? `${g.tx},${g.ty} ${JSON.stringify(g.footprint)} ${g.ok ? "green" : g.reason}` : "no ghost");
+        const clicked = G.placement.tryConfirm(me);
+        step(60 * 11);
+        G.placement.cancel();
+        const pit = G.map.tileAt(px, py).prop;
+        if (pit && pit.sprite === "fire_pit") restore.push(() => { if (G.map.propById(pit.id)) G.map.removeProp(pit); });
+        row("the host's click builds it after its bar: four tiles, made, a switch out, a cooking station, never carried, eight stone paid", clicked === true && !!pit && pit.sprite === "fire_pit" && pit.tiles.length === 4 && pit.tiles.every(([a, b]) => G.map.tileAt(a, b).prop === pit) && pit.made && pit.fire.switch && !pit.fire.lit && G.stations.stationOf(pit).length > 0 && !G.placement.canCarry(pit) && G.inventory.countAll(me, "stone") === 0, pit ? `${pit.tiles.length} tiles, made ${pit.made}, lit ${pit.fire.lit}, stone ${G.inventory.countAll(me, "stone")}` : `nothing built: "${said()}"`);
+        if (pit && pit.sprite === "fire_pit") {
+          G.verbs.run("light", G.world.world, me, { prop: pit.id });
+          G.clock.setHour(0);
+          G.loop.advance(1 / 60);
+          lightMod.update();
+          const src = lightMod.sources().find((s) => s.gx === pit.tile[0] && s.gy === pit.tile[1]);
+          const near = lightMod.lightAt(pit.tile[0] + 2.5, pit.tile[1] + 0.5);
+          const far = lightMod.lightAt(pit.tile[0] + 6, pit.tile[1] + 0.5);
+          row("lit outdoors it is a source of radius 5, lighting four tiles off brighter than six", pit.fire.lit && !!src && src.radius === 5 && near > far, `lit ${pit.fire.lit}; radius ${src && src.radius}; light ${near.toFixed(2)} at 2.5, ${far.toFixed(2)} at 6`);
+          const menu = G.interact.actionsForProp(pit, me).map((q) => q.label);
+          row("lit, it cooks (Use the fire pit), boils water, and Take apart is refused until it is put out", menu.some((l) => /^Use the fire pit|^Cook/.test(l)) && menu.includes("Take apart (put it out first)") && menu.includes("Put out the fire pit"), menu.join(", "));
+          G.verbs.run("putout", G.world.world, me, { prop: pit.id });
+          const ta = G.interact.actionsForProp(pit, me).find((q) => /^Take apart/.test(q.label));
+          const apart = ta ? ta.perform() : null;
+          row("out, taken apart for four stone", apart === true && ta.label === "Take apart (4 stones back)" && !G.map.propById(pit.id) && G.inventory.countAll(me, "stone") === 4, `${ta && ta.label}; ${G.inventory.countAll(me, "stone")} stone`);
+          G.inventory.takeAll(me, "stone", 4);
+        }
+      }
+      if (pitIn) {
+        const [ix, iy] = pitIn;
+        G.teleport(meAt[0], meAt[1]);
+        G.loop.advance(1 / 60);
+        G.inventory.addItem(sack, "stone", 8);
+        G.placement.performPlacement(me, { kind: "build", what: "fire_pit", tx: ix, ty: iy });
+        step(60 * 11);
+        const pit = G.map.tileAt(ix, iy).prop;
+        if (pit && pit.sprite === "fire_pit") restore.push(() => { if (G.map.propById(pit.id)) G.map.removeProp(pit); });
+        row("built indoors by a guest's command", !!pit && pit.sprite === "fire_pit" && pit.made === true, pit ? `${pit.sprite} at ${pit.tile}` : `nothing built: "${said()}"`);
+        if (pit && pit.sprite === "fire_pit") {
+          const lit0 = [...G.map.allProps()].filter((q) => q.fire && q.fire.room && q.fire.lit && G.map.tileAt(q.tile[0], q.tile[1]).room === room);
+          for (const q of lit0) G.map.setFireLit(q, false); // the cottage's own fireplace out, so the pit alone lights the room
+          restore.push(() => { for (const q of lit0) G.map.setFireLit(q, true); });
+          G.clock.setHour(0);
+          lightMod.update();
+          const dark = lightMod.roomAmbient(room);
+          G.verbs.run("light", G.world.world, me, { prop: pit.id });
+          G.loop.advance(1 / 60);
+          lightMod.update();
+          const rec = lightMod.litRoomFlicker(room);
+          let lo = 1, hi = 0;
+          for (let k = 0; k < 4000; k++) { const w = lightMod.roomFlickerWeight(rec && rec.flicker, rec && rec.seed, k * 0.017); lo = Math.min(lo, w); hi = Math.max(hi, w); }
+          const min = G.tuning.world.litRoomFlickerMin;
+          row("lit indoors it lights its whole room (the world's light 1 at midnight), and the room's drawn light dips with its flicker within [the lever, 1]", dark < 1 && lightMod.roomAmbient(room) === 1 && !!rec && lo >= min - 1e-9 && hi <= 1 && lo < min + 0.02, `dark ${dark.toFixed(2)}, lit ${lightMod.roomAmbient(room)}; drawn ${lo.toFixed(3)} to ${hi.toFixed(3)}, the lever ${min}`);
+          G.map.setFireLit(pit, false);
+        }
+      }
       G.teleport(meAt[0], meAt[1]);
     }
+
   } finally {
     if (G.player) Object.assign(G.player, needs0); // the needs and the health its steps and bites took
     for (const r of restore.reverse()) r();
