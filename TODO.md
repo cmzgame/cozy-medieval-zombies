@@ -23,48 +23,41 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-26, late: the demo pass merged; the playtest loop is running; the power items sitting is next)
+## Status (2026-10-27, evening: the engine rework merged; Michael shows the game to a friend tonight; floors, the storey fade, and roofs are next after it)
 
 **Michael is playtesting from the Playtest Checklist** (his private page, https://claude.ai/artifact/61HoYfV2iwDFboMeAikYws; the wiki's copy is the Playtest checklist page). It holds every tryable change since 2026-10-17, his ticks, a note per item, and a bug-report box. **The loop:**
 - he files reports there;
 - Primary reads the page's `reports` collection (ArtifactData), fixes the bugs in batches, asks him the design questions, and sets each report's `status` to where it went;
 - every merge with a player-visible change adds a row to the page's `items` and to the wiki's checklist.
 
-Every report filed so far has a status.
+**Merged on 2026-10-27, in the order Michael set** (each reviewed by a fresh agent, run by Primary in the pane and in two tabs; the wiki synced to `a0cf5a2`):
+1. **The fires** (#527): the Fireplace, the 2 by 2 Fire pit, the campfire crafted and 3 by 3 in the bag; and #531, a fire's light from its footprint's middle.
+2. **The depth buffer** (#530, `docs/51`): the frame sorted per pixel; walls, posts, piles, crops, the outline seam.
+3. **Walls 96** (#529, `docs/52`).
+4. **Torch on a wall** (#532, closes #523): Place torch with its bracket; no Wall bracket item. `net.PROTOCOL` 22.
+5. **Upper floors** (`docs/49`): steps 0 and 1, the map in layers (#533, save `VERSION` 4, older worlds refused); steps 2 and 3, storeys drawn and stairs walked (#534, `PROTOCOL` 24), the valley's tall house east of the cottage; Michael's playtest fixes (#540: one wall face, the stair's band, the landing's sides, the stair turned west) and the drawn stairs he approved (#541, art round 8).
+6. **Round rooms** (#536, `docs/50`, `PROTOCOL` 25): stone only, built only with Free building; Hollow Farm's dovecote; Michael's playtest fixes (#537) and the inside stone skirt (#539).
 
-**The demo pass** (#514, Michael, 2026-10-26: "make testing easier and more fun", before he shows the game to a friend who makes games; `docs/02`, The demo pass): the dev chest holds every weapon and tool, the basic materials, the potions, six seeds, the bearskin rug and one wide painting; your cottage is 11 by 7 inside, the spawn by its door; mana regenerates 0.667 a second, its bar between health and stamina; **art round 4**, drawn by Primary's own art agents from a brief (`tools/art-gen/round4/`, `docs/art/previews/round4/`, `docs/26`): the weapons, the tools, the first foods and materials, the home's barrel, chest, shelf, and woodpile; an item with drawn art lies on the floor as its picture. Still on dev art in the first minutes: the vials, potions, and herbs (generated designs) and the satchel.
+Also: #535 (two stale checks), #538 (ruling: floors in plank and stone, anywhere, a tile at a time, no physics), #542 (docs/42 to match).
 
-**Merged on 2026-10-26** (each reviewed by a fresh agent and run by Primary in the pane, in order on one page with `check("all", { only })`, and in two tabs; the wiki synced):
-- **The playtest fixes:**
-  - #501: throwables in hand slots, the belt's swap into the freed slot, the aim over every panel, the map marker, a lit cauldron's Take apart;
-  - #502: the art load retries a failed picture, and serve.py caches no error;
-  - #507: Delete world and every question asked on the page, the spear's line, the cooking list's scroll, the bucket's Use on a crop, Water with each vessel, the Inspect card, a right click cancels a ghost, the tainted-water warnings, Fill skipping clean skins, knife damage 18.
-- **The playtest features** (#508, ruled in #505): a bucket boiled and poured into skins; Burn corpse for a tinderbox or a lit torch; sleep fades, runs at 20, wakes early on any key or click; bags and belts open where they lie (take-only inside another container); a stack fills a matching stack. `net.PROTOCOL` 21.
-- **Sight-pull** (#504; `docs/48`): one of the dead first turning to a player calls once to those that see it, with no chain. GitHub's merge call timed out after the merge, so #504 was closed by hand, its merge `5eb40e61`.
-- **Rules:** honey goes into a clay jar (#499; built in #500, not yet); no browser dialog (#509, a rule and a check).
+**Held until after tonight** (Michael: "hold the rest (the transparency fix, roofs, etc) for after my hang out tonight"):
+1. **The storey fade** (`docs/49` section 6: a storey you stand behind fades; today the tall house hides a player north or west of it).
+2. **Floor building** (`docs/49` section 5 as #538 rewrote it, and plank and stone floors on the ground; on a round wall's crossed tiles drawn inside the curve).
+3. The rest of `docs/49` (3b ladders and hatches, 4 looking down, 5 shooting down, 7 more of the valley, 8 building upward), roofs (#512), Michael's ladder spec, then the power items sitting, armour, and so on: **the order to be talked through first** (no big build starts before that).
+
+**Known, small:** the upper corner post's stone foot shows at the seam between storeys; `check("depth")` row 17, one pixel on the 96 px corner post; faint wedges just outside a round wall at its diagonals, seen from inside (Michael's call); a full `check("all")` in a hidden pane takes about 36 minutes and times out (show the pane, or run checks one at a time).
 
 **Waiting on Michael:**
-- the halberd's second attack (#503; his idea: the thrust on hold-right plus left, middle mouse kept for true third attacks), for the armour sitting;
+- the halberd's second attack (#503), for the armour sitting;
 - the minimap (#498), for an interface sitting;
-- whether tools may be held beside the spear (today no: it is never dual wielded, and a swinging tool counts as a weapon).
-
-**Next:**
-1. Michael's further playtest reports, in batches.
-2. **The power items sitting:** gems (#281), trinkets (#282), silver (#283).
-3. Armour and difficulty (#133, with #503).
-4. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
-5. The demo, the business, and so on.
-6. Eventually, the regions.
+- whether tools may be held beside the spear;
+- the cauldron's state (#528) and the decor collectibles (#524), when he has the ideas.
 
 **Built but queued:** #483 throwing potions; #500 honey in clay jars.
-
-**Open lines of `docs/39` by issue** (counted 2026-10-25, evening, by line; 52 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #133 5 · #181 4 · #283 4 · #103 3 · #262, #104, #271, #261, #217, #106 1 each.
 
 **Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`). Primary's pane runs on its own `medieval` server (8010); the Secondary's on `medieval-second` (8011).
 
 **Not done, Michael's hand:** the finished builders' worktrees under `.claude/worktrees/agent-*` (all merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
-
-**The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
 ## Open work, by milestone
 
