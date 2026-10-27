@@ -42,8 +42,8 @@ def build(sq):
     p.storey(b, -1, rect=[1, 4, 4, 3], wall="wall_stone", floor="floor_dirt", props=[{"sprite": "barrel", "tile": [0, 0]}, {"sprite": "shelf", "tile": [3, 0]}])
     # The stairs: the ground to the first floor along x (the world's 4 to 6 on row 25, its landing at 7), and the first floor to the second
     # along y (the world's column 8, rows 24 to 26, its landing at row 27).
-    p.stair(b, [2, 2], "e", layer=0)
-    p.stair(b, [6, 1], "s", layer=1)
+    p.stair(b, [2, 2], "e", layer=0, toward_camera="the proving ground tries a stair climbing each way the camera sees hardest")
+    p.stair(b, [6, 1], "s", layer=1, toward_camera="the proving ground tries a stair climbing each way the camera sees hardest")
     sq["sets"].append(s)
     return sq
 

@@ -207,7 +207,7 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   if (o.faded && o.cuts && (o.cuts.near != null || o.cuts.far != null)) emitCutWall(sheet, name, edge, x, y, h, T, o, o.cuts);
   else wallPartQuad(sheet, name, x, y, o);
   gl.layer(L_ON);
-  if (!o.faded && !o.ghost) {
+  if (!o.faded && !o.ghost && !o.covered) {
     // A margin of a ground pixel all round: the drawn cap's edges are stair
     // steps that poke past the exact parallelogram, and those pixels took the
     // face's light, a dotted bright line along the cap at night (Michael,
@@ -241,8 +241,9 @@ function postBase(tx, ty, nE, nW, wS, wN) {
     postCache.clear();
     postFrame = gl.frameId();
   }
-  const keyed = tx > -4096 && tx < 4096 && ty > -4096 && ty < 4096; // a small whole number for the key, the map's every tile but the far wild
-  const key = keyed ? (tx + 4096) * 8192 + (ty + 4096) : -1;
+  const L = map.drawLayerNow();
+  const keyed = tx > -4096 && tx < 4096 && ty > -4096 && ty < 4096 && L > -64 && L < 64; // a small whole number for the key, the map's every tile but the far wild
+  const key = keyed ? ((L + 64) * 8192 + (tx + 4096)) * 8192 + (ty + 4096) : -1; // each storey's own (docs/49): the ground's post is not the first floor's
   const got = keyed ? postCache.get(key) : undefined;
   if (got !== undefined) return got;
   let base = null;
@@ -286,13 +287,33 @@ export function postAt(tx, ty, playerRoom) {
   return { sheet: base.sheet, near, thin: base.thin };
 }
 
+// The storeys' seam (docs/49 section 6; Michael's playtest, 2026-10-27: a notched ledge between the storeys and the ground's caps poking up
+// through the first floor's edge): a wall with a wall standing on it on the layer above is `covered` and draws no cap of its own; the
+// wall standing on one is `onWall`, and its face is drawn a step nearer than the one below, so where their pictures meet (the lower
+// picture's cap, drawn on its face's plane, under the upper face's foot) the upper face is the one seen: one face, two storeys tall.
+// The same for a post with a post over it, and for a door's or a window's frame top. On the ground with nothing over it, as before.
+const STACK_BIAS = 1;
+function wallOn(tx, ty, edge, layer) {
+  const t = map.peekTile(tx, ty, layer);
+  return t ? t[edge] || null : null;
+}
+function stackOf(tx, ty, edge) {
+  const L = map.drawLayerNow();
+  return { covered: !!wallOn(tx, ty, edge, L + 1), onWall: L !== 0 && !!wallOn(tx, ty, edge, L - 1) };
+}
+function postStack(tx, ty) {
+  const L = map.drawLayerNow();
+  const at = (l) => !!(wallOn(tx, ty, "n", l) || wallOn(tx - 1, ty, "n", l) || wallOn(tx, ty, "w", l) || wallOn(tx, ty - 1, "w", l));
+  return { covered: at(L + 1), onWall: L !== 0 && at(L - 1) };
+}
+
 // Corner posts.
 export function postDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
     const post = postAt(tx, ty, playerRoom);
     if (!post) continue;
     const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
-    out.push(makePost(tx, ty, post.sheet, vis, post.near, post.thin));
+    out.push(makePost(tx, ty, post.sheet, vis, post.near, post.thin, postStack(tx, ty)));
   }
 }
 
@@ -389,7 +410,9 @@ function emitCutWall(sheet, name, edge, x, y, h, T, o, cuts) {
   if (xR > xL) piece([[xL, Tp], [xR, Tp], [xR, B], [xL, B]]);
 }
 
-function makePost(tx, ty, sheet, vis, near, thin = null) {
+function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
+  const covered = !!(stack && stack.covered);
+  const lift = stack && stack.onWall ? STACK_BIAS : 0;
   const p = iso.toScreen(tx - 0.5, ty - 0.5);
   const x = Math.round(p.x);
   const y = Math.round(p.y);
@@ -417,16 +440,17 @@ function makePost(tx, ty, sheet, vis, near, thin = null) {
     key: (tx + ty - 1) * 1000 + 0.5,
     kind: "wall",
     post: { tx, ty }, // check("depth") finds its drawable
+    stack,
     emit() {
       if (hidden) return;
-      gl.surface(surf, DEPTH_BIAS.post, DEPTH_ROOM.post);
+      gl.surface(surf, DEPTH_BIAS.post + lift, DEPTH_ROOM.post);
       if (sheet.wall && sheet.wall.post) {
-        // The drawn post (docs/17), anchored on the vertex itself, its cap redrawn on the sky.
+        // The drawn post (docs/17), anchored on the vertex itself, its cap redrawn on the sky (none under a post on the storey above).
         const ps = getSheet(sheet.wall.post);
         const pf = ps.frames.idle_0;
         if (pf) {
           gl.quad(x - ps.anchor[0], y - ps.anchor[1], pf[2], pf[3], gl.frameUV(ps, "idle_0"), { world: [[tx - 1, ty], [tx, ty - 1], [tx, ty - 1], [tx - 1, ty]], heights: [pf[3], pf[3], 0, 0], color: [1, 1, 1, alpha], flags });
-          if (!faded) {
+          if (!faded && !covered) {
             const uv = gl.frameUV(ps, "idle_0");
             const pts = [];
             const uvs = [];
@@ -448,7 +472,7 @@ function makePost(tx, ty, sheet, vis, near, thin = null) {
       gl.holdOrder(true); // its two faces and its top meet at their edges: one step
       gl.poly([D, A, up(A), up(D)], gl.rgb(shade(color, 0.5), alpha), { world: [tx - 1, ty], heights: [0, 0, h, h], flags });
       gl.poly([A, B, up(B), up(A)], gl.rgb(shade(color, 0.62), alpha), { world: [tx, ty - 1], heights: [0, 0, h, h], flags });
-      gl.poly([up(A), up(B), up(C), up(D)], gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
+      if (!covered) gl.poly([up(A), up(B), up(C), up(D)], gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
       gl.holdOrder(false);
     },
   };
@@ -462,13 +486,13 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
       const far = map.tileAt(tx, ty - 1);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
       const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
-      out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub ? wallCuts("n", tx, ty, playerRoom) : null));
+      out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
     }
     if (t.w && !map.drawnByRing(t.w)) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
       const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
-      out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub ? wallCuts("w", tx, ty, playerRoom) : null));
+      out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
     }
   }
 }
@@ -494,7 +518,9 @@ function shakeOffset(tx, ty, edge) {
   return Math.round(((until - now) / SHAKE_MS) * 1.4); // a pixel, once, settling
 }
 
-export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null) {
+export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null, stack = null) {
+  const covered = !!(stack && stack.covered);
+  const lift = stack && stack.onWall ? STACK_BIAS : 0;
   const sheet = sheetFor(wall); // the wall's own sheet, or its shut leaves recoloured and its open ones another wood's (#334)
   const variant = wallVariant(wall);
   const sortDepth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
@@ -542,11 +568,12 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
     key: sortDepth * 1000,
     kind: "wall",
     wall: { tx, ty, edge }, // check("depth") finds its drawable
+    stack, // the storeys' seam (check("storeys") reads it)
     emit() {
-      gl.surface(face, 0, DEPTH_ROOM.wall);
+      gl.surface(face, lift, DEPTH_ROOM.wall);
       const tint = ghostTint || [1, 1, 1, alpha];
       if (sheet.wall) {
-        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts, face });
+        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts, face, covered });
       } else {
       // Swung leaves only for a whole, open, unboarded leaf.
       const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
@@ -567,7 +594,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
       const top = edge === "n"
         ? [[x, y - iso.HH - h], [x + iso.HW, y - h], [x + iso.HW + T, y - T / 2 - h], [x + T, y - iso.HH - T / 2 - h]]
         : [[x - iso.HW, y - h], [x, y - iso.HH - h], [x - T, y - iso.HH - h - T / 2], [x - iso.HW - T, y - h - T / 2]];
-      gl.poly(top, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
+      if (!covered) gl.poly(top, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
       if (open && outside > 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
       }
       gl.layer(L_OVER);

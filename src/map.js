@@ -2253,6 +2253,9 @@ export function loadedChunks() {
 // render/storeys.js `drawLayerOf`), which sets it for the drawables of that storey alone and puts it back in a `finally`: the walls',
 // props', and items' drawing read their layer's tiles through the same calls as the ground's. Never set during a step.
 let drawLayer = 0;
+export function drawLayerNow() {
+  return drawLayer;
+}
 export function withDrawLayer(layer, fn) {
   const was = drawLayer;
   drawLayer = layer;
@@ -2555,12 +2558,27 @@ function stairBlocks(gx, gy, r2, layer, sOn) {
     const px = -dy;
     const py = dx;
     const L = s.low;
-    const seg = (t0, o0, t1, o1) => pointSegDist2(gx, gy, L[0] + dx * t0 + px * o0, L[1] + dy * t0 + py * o0, L[0] + dx * t1 + px * o1, L[1] + dy * t1 + py * o1) < r2;
-    if (seg(0, 0.5, 3, 0.5) || seg(0, -0.5, 3, -0.5)) return true; // the sides
+    const seg = (t0, o0, t1, o1, rr = r2) => pointSegDist2(gx, gy, L[0] + dx * t0 + px * o0, L[1] + dy * t0 + py * o0, L[0] + dx * t1 + px * o1, L[1] + dy * t1 + py * o1) < rr;
+    // The sides: a stairwell's hold the whole body back from the hole; a stair's own hold its feet (STAIR_FEET), so a body walks up
+    // anywhere across the steps' width, the left or right third as well as the middle, and is never over the drawn side (Michael's
+    // playtest, 2026-10-27: the walkable band was narrower than the steps drawn).
+    const sr2 = well || Math.abs(off) >= 0.5 ? r2 : Math.min(r2, STAIR_FEET * STAIR_FEET); // from beside it, the whole body is held off the side
+    if (seg(0, 0.5, 3, 0.5, sr2) || seg(0, -0.5, 3, -0.5, sr2)) return true;
     if (well && seg(0, -0.5, 0, 0.5)) return true; // the stairwell's bottom end, over the stair's foot
-    if (!well && sOn !== s && seg(3, -0.5, 3, 0.5)) return true; // the top edge, to a body not on the stair
+    if (!well && sOn !== s && seg(3, -0.5, 3, 0.5, sr2)) return true; // the top edge, to a body not on the stair
   }
   return false;
+}
+// How far a body's feet are from a stair's middle line at most on its own layer (the half-width of its feet against the stair's sides).
+export const STAIR_FEET = 0.15;
+// A body's rise at `t` tiles up a stair (0 to 3): twelve treads, four a tile, each 8 px over the one before; the feet climb onto a
+// tread over the first third of its depth and stand on its top for the rest (render/storeys.js draws the treads to the same numbers).
+export const STAIR_TREADS = 12;
+export function stairRise(t) {
+  const u = Math.max(0, Math.min(3, t)) * (STAIR_TREADS / 3);
+  const k = Math.min(STAIR_TREADS - 1, Math.floor(u));
+  const f = u - k;
+  return (k + Math.min(1, f / 0.35)) * (96 / STAIR_TREADS);
 }
 // The stair a body at (gx, gy) on `layer` is on (its centre over its three tiles, or just past its top edge, where it is crossing to the
 // landing this step), or null.
@@ -2585,12 +2603,12 @@ export function stairStep(body) {
     // From the landing back over the top edge: on the stair below.
     const { t } = stairAlong(hit.s, body.gx, body.gy);
     body.layer = hit.s.layer;
-    body.rise = Math.max(0, Math.min(3, t)) * 32;
+    body.rise = stairRise(t);
     return;
   }
   if (hit) {
     const { t } = stairAlong(hit.s, body.gx, body.gy);
-    body.rise = Math.max(0, Math.min(3, t)) * 32;
+    body.rise = stairRise(t);
     return;
   }
   if (body.rise) {
@@ -2629,7 +2647,11 @@ function pointSegDist2(px, py, ax, ay, bx, by) {
 
 // Circle at float (gx, gy) with radius r against solid props and wall segments, on one layer (an empty tile, void or
 // earth or a hole, blocks as water does: no body stands on one).
-export function circleBlocked(gx, gy, r, layer = 0, sFrom = undefined) {
+export function circleBlocked(gx, gy, r0, layer = 0, sFrom = undefined) {
+  // On a stair the body is over what stands beside it on the stair's layer (a chair, a table, the foot of a wall): its feet alone are
+  // held, by the stair's own sides (stairBlocks), so it walks up the steps' whole width (Michael's playtest, 2026-10-27).
+  const sOn = sFrom !== undefined ? sFrom : stairIndex.size ? stairUnder(gx, gy, layer) : null;
+  const r = sOn ? Math.min(r0, STAIR_FEET) : r0;
   const r2 = r * r;
   const minX = Math.floor(gx - r + 0.5);
   const maxX = Math.floor(gx + r + 0.5);
@@ -2638,7 +2660,6 @@ export function circleBlocked(gx, gy, r, layer = 0, sFrom = undefined) {
   // On a stair (docs/49 section 4): its sides hold the body, and past its top edge nothing of its own layer is in the way (the landing is a
   // storey up, and the layer changes as the body crosses); a stairwell's void is not solid to a body on the layer above (its edges are).
   // Whether the body is on a stair is the moving body's own, from where it stands before the move (`sFrom`, moveCircle's), never from where it would be: a body under a landing on the stair's own layer is not on the stair and its top edge holds it (the review of #534).
-  const sOn = sFrom !== undefined ? sFrom : stairIndex.size ? stairUnder(gx, gy, layer) : null;
   if (stairIndex.size && stairBlocks(gx, gy, r2, layer, sOn)) return true;
   for (let ty = minY; ty <= maxY + 1; ty++) {
     for (let tx = minX; tx <= maxX + 1; tx++) {

@@ -281,13 +281,17 @@ class Place:
         b.setdefault("floors", []).append(f)
         return f
 
-    def stair(self, b, at, dir, layer=0, material="wood"):
+    def stair(self, b, at, dir, layer=0, material="wood", toward_camera=None):
         """A stair of building `b` (docs/49 section 4): three tiles on `layer` from its low end `at` (relative to the building's corner) climbing
         one storey in `dir` ("n", "e", "s", "w"), with its landing, the tile beyond the third step on the layer above, which the map
         floors and nothing stands on, and the tile before its bottom step, which must be walkable. Checked here, and again by the
         loader: the five tiles in a line inside the storeys they belong to, the landing free of any prop, no stair crossing another.
-        The stairwell over its three tiles is void (map.loadMap), a hole in the ground floor over a cellar's."""
+        The stairwell over its three tiles is void (map.loadMap), a hole in the ground floor over a cellar's.
+        A stair climbs away from the camera, north or west (Michael, 2026-10-27: climbing east or south its treads fold onto one line on
+        screen): one climbing east or south is refused unless `toward_camera` says why it must (the proving ground's, which tries each)."""
         d = {"n": (0, -1), "e": (1, 0), "s": (0, 1), "w": (-1, 0)}[dir]
+        if dir in ("e", "s") and not toward_camera:
+            raise ValueError(f"the stair at {at} climbs {dir}, toward the camera: turn it to climb n or w, or say why it must in toward_camera")
         layer = int(layer)
         if material not in ("wood", "stone"):
             raise ValueError(f"a stair is wood or stone, not {material!r}")

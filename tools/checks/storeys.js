@@ -115,6 +115,30 @@ export async function run(game) {
     G.loop.advance(1 / 60);
     const hideOut = st.hiderFor(me);
     row("outside, no storey of the house is hidden", b.layers.every((l) => !hideOut(b.rects[l][0], b.rects[l][1], l)));
+    // 5b. The storeys' seam (Michael's playtest, 2026-10-27): a wall or post of the house with one on the storey above draws no cap of
+    // its own, and the one standing on it is drawn a step nearer, so the two read as one face; a wall with nothing over it keeps its cap.
+    const seen = [];
+    scene.probe.skip = (d) => {
+      if (d.kind === "wall" && d.stack) seen.push({ L: map.drawLayerNow(), at: d.wall || d.post, edge: d.wall ? d.wall.edge : null, stack: d.stack });
+      return false;
+    };
+    try {
+      G.loop.advance(0);
+    } finally {
+      scene.probe.skip = null;
+    }
+    const inHouse = (q) => q.at.tx >= b.rect[0] - 1 && q.at.tx <= b.rect[0] + b.rect[2] + 1 && q.at.ty >= b.rect[1] - 1 && q.at.ty <= b.rect[1] + b.rect[3] + 1;
+    const mine = seen.filter(inHouse);
+    const wallAt = (q, l) => {
+      const t = map.peekTile(q.at.tx, q.at.ty, l);
+      return !!(t && t[q.edge]);
+    };
+    const walls = mine.filter((q) => q.edge);
+    const wrong = walls.filter((q) => q.stack.covered !== wallAt(q, q.L + 1) || q.stack.onWall !== (q.L !== 0 && wallAt(q, q.L - 1)));
+    const covered = walls.filter((q) => q.L === 0 && q.stack.covered).length;
+    const onWall = walls.filter((q) => q.L === 1 && q.stack.onWall).length;
+    const posts = mine.filter((q) => !q.edge);
+    row("the seam: a wall of the house with a wall over it draws no cap, the wall on it is drawn a step nearer; the posts alike", walls.length > 10 && covered > 10 && onWall > 10 && !wrong.length && posts.some((q) => q.L === 0 && q.stack.covered) && posts.some((q) => q.L === 1 && q.stack.onWall), `${walls.length} walls (${covered} covered on the ground, ${onWall} on a wall upstairs), ${posts.length} posts; ${wrong.length} wrong${wrong.length ? `: ${wrong.slice(0, 3).map((q) => `${q.at.tx},${q.at.ty},${q.edge} L${q.L}`).join(" ")}` : ""}`);
     // 6. Back down: from the landing over the top edge, the rise falling, off the foot on the ground.
     G.teleport(s.landing[0], s.landing[1]);
     me.layer = 1;
