@@ -586,7 +586,7 @@ function containerActions(prop) {
 function fireActions(prop, player) {
   const f = prop.fire;
   if (!f || !f.burns) return [];
-  if (f.switch) return switchActions(prop, player); // a fireplace, a hearth: on and off, no fuel (docs/43, section 3)
+  if (f.switch) return switchActions(prop, player); // a fireplace, a fire pit: on and off, no fuel (docs/43, section 3)
   if (prop.sprite === campfire.SPRITE) return campfireActions(prop, player);
   const name = names.propName(prop.sprite);
   const fuelId = f.fuelItem;
@@ -628,7 +628,7 @@ function runVerb(name, player, target) {
 }
 
 // A home light (docs/43, section 3; Michael, 2026-10-25: fixed home lights are switches, portable lights cost fuel): a fireplace, a
-// hearth, a lantern on a post. Light it with a flame carried (a tinderbox or a lit torch, #168); put it out with nothing. It burns no fuel.
+// fire pit, a lantern on a post. Light it with a flame carried (a tinderbox or a lit torch, #168); put it out with nothing. It burns no fuel.
 function switchActions(prop, player) {
   const f = prop.fire;
   const name = map.fireName(prop);
@@ -2010,21 +2010,37 @@ export function hitsAt(sx, sy, wanted = (prop) => prop.interactable) {
       const prop = map.peekTile(tx + dx, ty + dy)?.prop; // a hit test never grows a chunk (docs/23a, A4)
       if (!prop || seen.has(prop) || !wanted(prop)) continue;
       seen.add(prop);
-      const r = propRect(prop, prop.tile[0], prop.tile[1]);
-      if (!r || !pointInRect(sx, sy, r)) continue;
+      // Its pixels: every slice a sliced piece draws, each at its own tile (a fireplace's second tile, the fire pit's three columns, whose
+      // back tile draws nothing), else its one frame at its anchor.
       const sheet = getSheet(prop.sprite, prop.tiles.length);
-      const name = idleFrame(sheet, prop, 0);
-      const f = sheet.frames[name];
-      const px = Math.floor(sx - r.x) + (sheet.bounds ? sheet.bounds.x : 0) + f[0];
-      const py = Math.floor(sy - r.y) + (sheet.bounds ? sheet.bounds.y : 0) + f[1];
       const al = alphaOf(sheet);
-      if (px < 0 || py < 0 || px >= al.w || py >= al.h || al.a[py * al.w + px] === 0) continue;
+      const slices = sheet.sliced ? prop.tiles.length : 1;
+      let name = null;
+      let px = 0;
+      let py = 0;
+      let depth = prop.tile[0] + prop.tile[1];
+      for (let i = 0; i < slices && !name; i++) {
+        const [stx, sty] = prop.tiles[i] || prop.tile;
+        depth = stx + sty; // the slice's own tile, as the renderer sorts it (a fire pit's side columns sit deeper than its back tile)
+        const r = propRect(prop, stx, sty);
+        if (!r || !pointInRect(sx, sy, r)) continue;
+        const n = idleFrame(sheet, prop, i);
+        const f = sheet.frames[n];
+        if (!f) continue;
+        const x = Math.floor(sx - r.x) + (sheet.bounds ? sheet.bounds.x : 0) + f[0];
+        const y = Math.floor(sy - r.y) + (sheet.bounds ? sheet.bounds.y : 0) + f[1];
+        if (x < 0 || y < 0 || x >= al.w || y >= al.h || al.a[y * al.w + x] === 0) continue;
+        name = n;
+        px = x;
+        py = y;
+      }
+      if (!name) continue;
       let crown = false;
       if (isTree(prop)) {
         const t = trunkOf(sheet, name);
         crown = !(py > t.line && px >= t.l && px <= t.r);
       }
-      hits.push({ prop, depth: prop.tile[0] + prop.tile[1], crown });
+      hits.push({ prop, depth, crown });
     }
   }
   return hits.sort((a, b) => b.depth - a.depth); // stable: a tie keeps the search's order, as the old single pass did

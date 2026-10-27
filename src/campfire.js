@@ -1,9 +1,9 @@
-// The campfire (docs/43, section 3; Michael, 2026-10-25): built from the build palette on open ground outdoors (three stone and two logs,
-// the two logs its starting fuel), it holds six logs of three game hours each; a log on a cold one lights nothing (#168: a flame is
-// needed); Put out keeps the fuel left; it is picked up only when out and empty (no log tricks), as a Campfire item, and set down
-// again with the ghost; taken apart, it gives back half its stones (the logs were fuel). The world's side: headless, on the
-// authority; the host's own clicks and a guest's commands both come here. The fire's own rules (burning, lighting, putting out) are
-// map.js's and burn.js's, as every fire's.
+// The campfire (docs/43, section 3; Michael, 2026-10-25 and 2026-10-27): made at the workbench as the Campfire item (three stone and two
+// logs, data/recipes.json; the build menu holds only what cannot be carried), 3 by 3 in the bag, set down from it with Place on open ground
+// outdoors, one tile, cold and empty, and fed logs as any fire; it holds six logs of three game hours each; a log on a cold one lights
+// nothing (#168: a flame is needed); Put out keeps the fuel left; it is picked up only when out and empty (no log tricks), as the item
+// again; taken apart, it gives back half its make (placement.partsOf). The world's side: headless, on the authority; the host's own clicks
+// and a guest's commands both come here. The fire's own rules (burning, lighting, putting out) are map.js's and burn.js's, as every fire's.
 
 import * as map from "./map.js";
 import * as inventory from "./inventory.js";
@@ -50,7 +50,8 @@ export function pickUpProblem(prop) {
 }
 
 // Pick it up into the bag as a Campfire item; true when it came up. A campfire a player made comes up made, so it can be taken apart
-// again where it is set down; the village's own does not.
+// again where it is set down; the village's own comes up marked `made: false`, and is never taken apart. One made at the workbench
+// carries no mark: it is the player's own.
 export function pickUp(player, prop) {
   if (!prop || prop.sprite !== SPRITE || map.propById(prop.id) !== prop) return false;
   const why = pickUpProblem(prop) || reachFor(player, prop.tile[0], prop.tile[1]);
@@ -59,7 +60,7 @@ export function pickUp(player, prop) {
     return false;
   }
   const bag = inventory.bagOf(player);
-  const entry = items.makeEntry(ITEM, 1, prop.made ? { made: true } : {});
+  const entry = items.makeEntry(ITEM, 1, { made: !!prop.made });
   if (!bag || !grid.insert(bag, entry)) {
     showMessage(bag ? "No room in your bag." : "You have no bag.");
     return false;
@@ -77,7 +78,7 @@ export function entryOf(player, uid) {
 }
 
 // Set the Campfire item `uid` down on (tx, ty): the host's click and a guest's `campfire` command. Says why not and returns false;
-// otherwise the item leaves the bag and an empty, cold campfire stands there.
+// otherwise the item leaves the bag and an empty, cold campfire stands there, the player's own unless the item was the village's.
 export function place(player, uid, tx, ty) {
   const entry = entryOf(player, uid);
   if (!entry) return false;
@@ -90,7 +91,7 @@ export function place(player, uid, tx, ty) {
     return false;
   }
   grid.remove(inventory.bagOf(player), entry);
-  makeFire(tx, ty, 0, !!entry.made);
+  makeFire(tx, ty, 0, entry.made !== false);
   showMessage("You set the campfire down.");
   return true;
 }

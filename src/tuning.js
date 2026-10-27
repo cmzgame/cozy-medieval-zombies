@@ -148,6 +148,7 @@ export const world = {
   pickReach: 1.6, // tiles from a fruit tree's trunk a picker may stand (#190)
   fenceHp: 90, // the hit points of a fence: the dead strike it down, one alone slowly, a crowd faster (Michael, 2026-10-17, #147; 2026-10-18, #174); a gate has `fenceGateFactor` of it
   fenceGateFactor: 0.5, // a gate goes first
+  litRoomFlickerMin: 0.85, // a lit room's drawn light at its fire's flicker's lowest, 1 at its brightest (light.js roomFlickerWeight; Michael, 2026-10-27, docs/42): the renderer's alone, the world's room light stays 1
 };
 
 // How many of the dead a world starts with, by its Starting population rule (docs/38 and `02`, #130): the factor that

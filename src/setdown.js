@@ -42,6 +42,102 @@ export function standProblem(rule, tx, ty) {
   return "";
 }
 
+// ---- a prop of several tiles built from the palette (the Fireplace along a wall, the 2 by 2 fire pit; Michael, 2026-10-26, the fire rulings) ----
+
+// A sprite's footprint in a facing: its definition's `facingFootprint` for that facing, else its `footprint`, else one tile.
+export function footprintOf(sprite, facing = null) {
+  const d = getDef(sprite);
+  const ff = d.facingFootprint && (d.facingFootprint[facing] || d.facingFootprint[(d.facings || [])[0]]);
+  const fp = ff || d.footprint || [1, 1];
+  return [fp[0], fp[1]];
+}
+
+// The facing a prop of this sprite would take when it is not chosen by a wall (the first, or none).
+const firstFacing = (sprite) => (getDef(sprite).facings || [])[0] || null;
+
+// Whether an edge is a plain solid wall a fire can back onto: a wall (not a door, a window, or a gap), unbroken, not a fence or bars.
+function flatWall(w) {
+  return !!w && w.kind === "wall" && !w.broken && !map.wallRule(w.sprite).seeThrough;
+}
+
+// Whether a tile's floor is water (the river, the pond, a shallow ford): drunk from, or walked slower.
+function onWater(t) {
+  if (!t) return false;
+  const r = map.floorRule(t.floor);
+  return !!r.drink || r.walk !== 1;
+}
+
+// Why the footprint of `sprite` in `facing`, its anchor at (tx, ty), cannot stand by `rule`, or "". Every tile open floor with nothing on it
+// (a read never grows a chunk), off the water, clear of a door's two tiles (the dead go for a door and must stand there, #134), with no wall
+// between two of its tiles, and every tile in one room or all outdoors; then the rule: "outdoors" none indoors, "ground" indoors or out, and
+// "wall" indoors with its back on a flat wall along its whole length: a facing "y" (it backs onto a west wall, docs/17's drawn fireplace) the
+// west edge of every tile, a facing "x" (its mirror) the north edge of every tile.
+export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite)) {
+  const [w, h] = footprintOf(sprite, facing);
+  if (w * h === 1) return standProblem(rule, tx, ty) || (onWater(map.peekTile(tx, ty)) ? "Not on water" : ""); // one tile: the set-down's rule, a wall on any side for "wall"
+  let room = null;
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) {
+      const x = tx + dx;
+      const y = ty + dy;
+      const t = map.peekTile(x, y);
+      if (!t || !map.isWalkableTile(x, y) || t.prop || t.rug) return "No room";
+      if (onWater(t)) return "Not on water";
+      if (map.besideDoor(x, y)) return "Not beside a door";
+      if ((dx > 0 && map.wallBetween(x - 1, y, x, y)) || (dy > 0 && map.wallBetween(x, y - 1, x, y))) return "No room";
+      const r = t.room > 0 ? t.room : 0;
+      if (room === null) room = r;
+      else if (r !== room) return "No room";
+    }
+  }
+  if (rule === "outdoors" && room > 0) return "Outdoors only";
+  if (rule === "wall") {
+    if (!(room > 0)) return "Indoors only";
+    const along = facing === "x" ? "n" : "w"; // the edge it backs onto
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) if (!flatWall(map.peekTile(tx + dx, ty + dy)[along])) return "Against a wall";
+  }
+  return "";
+}
+
+// Where a prop of `sprite` built by `rule` stands when the cursor is on (cx, cy): { tx, ty, facing, footprint, problem }. A wall-backed prop
+// with facings (the Fireplace) tries, for each anchor in turn (the tile under the cursor, then the one above it along y, then the one left of
+// it along x, so either of its two tiles may be pointed at), each facing in order, and takes the first that fits; a guest's command names
+// the anchor alone, and the host's `fitAt` picks the same facing there by the same order. Anything else is centred on the cursor, as a
+// carried prop's ghost is.
+export function fitFor(rule, sprite, cx, cy) {
+  const d = getDef(sprite);
+  if (rule === "wall" && d.facings && d.facings.length > 1) {
+    cx = Math.round(cx); // the tile under the cursor
+    cy = Math.round(cy);
+    let first = null;
+    for (const [ax, ay] of [[cx, cy], [cx, cy - 1], [cx - 1, cy]]) {
+      const f = fitAt(rule, sprite, ax, ay);
+      if (!f.problem) return f;
+      if (!first) first = f;
+    }
+    return { ...first, tx: cx, ty: cy };
+  }
+  const facing = firstFacing(sprite);
+  const [w, h] = footprintOf(sprite, facing);
+  const tx = Math.round(cx - (w - 1) / 2); // the footprint centred on the cursor's grid point (unrounded), as a carried prop's ghost is
+  const ty = Math.round(cy - (h - 1) / 2);
+  return { tx, ty, facing, footprint: [w, h], problem: fitProblem(rule, sprite, tx, ty, facing) };
+}
+
+// The fit with its anchor at (tx, ty): for a wall-backed prop with facings, the first facing in order that fits there (else the first's
+// refusal); otherwise its one facing. What the host builds for a command that names the anchor.
+export function fitAt(rule, sprite, tx, ty) {
+  const d = getDef(sprite);
+  const facings = rule === "wall" && d.facings && d.facings.length > 1 ? d.facings : [firstFacing(sprite)];
+  let first = null;
+  for (const facing of facings) {
+    const f = { tx, ty, facing, footprint: footprintOf(sprite, facing), problem: fitProblem(rule, sprite, tx, ty, facing) };
+    if (!f.problem) return f;
+    if (!first) first = f;
+  }
+  return first;
+}
+
 // Why this player cannot reach (tx, ty) from where they stand, or "".
 export function reachFor(player, tx, ty) {
   const why = reachProblem(player, [[tx, ty]], REACH);

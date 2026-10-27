@@ -258,7 +258,7 @@ export async function run(game) {
     // figure with its hair (read off its sheet, the feet at FEET_Y) passes under.
     const B = G.figure.BODY;
     const crown = Math.round(B.head + B.headRy);
-    const ps = me.sprite; // the player's own sheet (its frames the figure's 48 by 72, the feet at FEET_Y 66)
+    const ps = G.assets.getSheet(me.sprite); // the player's own sheet (its frames the figure's 48 by 72, the feet at FEET_Y 66)
     const all = ps ? Object.keys(ps.frames) : [];
     const names = all.some((n) => n.startsWith("idle")) ? all.filter((n) => n.startsWith("idle")) : all; // standing: a swing's raised arm is not the figure's height
     const withHair = names.length ? Math.max(...names.map((n) => 66 - topRow(ps, n))) : NaN;

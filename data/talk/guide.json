@@ -262,7 +262,7 @@
   },
   "fire": {
    "say": [
-    "A fire burns its fuel down over the hours and goes out. Logs feed a hearth, a campfire, or the oven; the forge wants charcoal.",
+    "A fire burns its fuel down over the hours and goes out. Logs feed a campfire or the oven; the forge wants charcoal. A fireplace or a fire pit only wants lighting.",
     "A station with a fire only works while it is lit, and waits for you if it goes out.",
     "T lights the torch in your hand. A tinderbox does the lighting."
    ],

@@ -8,7 +8,7 @@
 //   setdown  an item from the bag set down on the tile under the cursor as its prop (a Campfire item, a torch post, a decoration;
 //            docs/43 sections 3 and 4; src/campfire.js, src/setdown.js), by the prop's rule for where it stands;
 //   bracket  a wall bracket from the bag, hung on the face of the wall under the cursor as a painting is (docs/43 section 4; src/setdown.js);
-//   build  a wall, door, or window on the tile edge under the cursor, paid for, or a prop on a tile (a campfire: an entry of `kind` prop),
+//   build  a wall, door, or window on the tile edge under the cursor, paid for, or a prop on its tiles (the Fireplace, the fire pit: an entry of `kind` prop),
 //          in logs or planks (data/build.json) unless the Free building
 //          setting is on, and built over a few seconds like boarding.
 //
@@ -33,7 +33,7 @@ import * as rugs from "./rugs.js"; // a rug laid from the bag (#327)
 import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag (#326)
 import * as woods from "./woods.js"; // a wall in a wood, and a door or window of another wood than its wall (#334)
 import * as stations from "./stations.js"; // a made prop's recipe, for what taking it apart gives back (docs/43, section 2)
-import * as campfire from "./campfire.js"; // a campfire built from the palette, picked up, set down again (docs/43, section 3)
+import * as campfire from "./campfire.js"; // a campfire made at the workbench, set down from the bag, picked up again (docs/43, section 3)
 import * as setdown from "./setdown.js"; // an item set down as its prop, a bracket hung on a wall (docs/43, section 4)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
@@ -105,7 +105,7 @@ export function leafHint(chosen, carried = "") {
 // ---- the carry rule ----
 
 // A prop can be lifted unless it is rooted (a tree, a well), built in (a
-// hearth, a torch post), or a fire that burns fuel (a campfire). A sprite's own
+// fireplace, a fire pit, a torch post), or a fire that burns fuel (a campfire). A sprite's own
 // `carry` flag, true or false, overrides the rule either way (docs/13); a village station's (`villageStation`) gives way to
 // the world rule Village stations (docs/43 section 5).
 export function canCarry(prop) {
@@ -242,18 +242,38 @@ export function wallKindOf(what) {
   return (buildData[what] && buildData[what].kind) || what;
 }
 
-// A build entry that stands a prop on a tile, not a wall on an edge (docs/43, section 3: the campfire): `kind: "prop"`, its `sprite`.
+// A build entry that stands a prop on its tiles, not a wall on an edge (the Fireplace, the fire pit, the feeding trough): `kind: "prop"`, its `sprite`.
 export const isPropBuild = (what) => !!(buildData[what] && buildData[what].kind === "prop");
 
-// Why a prop build cannot go on (tx, ty), or "": its own rule for where it stands (`stand`: a campfire open ground outdoors, a hearth indoors
-// against a wall; docs/43 sections 3 and 4), then the cost.
-function propBuildBlock(player, what, tx, ty) {
+// Where a prop build with its anchor at (tx, ty) stands: { tx, ty, facing, footprint, problem } by its own rule (`stand`: the Fireplace
+// indoors with its back on a flat wall, its facing chosen from the wall; the fire pit on open ground, indoors or out; setdown.fitAt).
+function propBuildFit(what, tx, ty) {
   const d = buildData[what];
-  return setdown.standProblem(d.stand || "ground", tx, ty) || shortfall(player, what);
+  return setdown.fitAt(d.stand || "ground", d.sprite, tx, ty);
+}
+
+// Every tile of a fit's footprint.
+function fitTiles(f) {
+  const out = [];
+  for (let dy = 0; dy < f.footprint[1]; dy++) for (let dx = 0; dx < f.footprint[0]; dx++) out.push([f.tx + dx, f.ty + dy]);
+  return out;
+}
+
+// Why this player cannot reach a fit from where they stand, or "": its nearest tile by distance and a clear line (#208).
+function fitReach(player, f) {
+  const why = reachProblem(player, fitTiles(f), setdown.REACH);
+  return why === TOO_FAR ? "Too far" : why || "";
+}
+
+// Why a prop build cannot go on (tx, ty), or "": its own rule for where it stands, then the cost.
+function propBuildBlock(player, what, tx, ty) {
+  const f = propBuildFit(what, tx, ty);
+  return f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
 function propBuildReason(player, what, tx, ty) {
-  return setdown.reachFor(player, tx, ty) || propBuildBlock(player, what, tx, ty);
+  const f = propBuildFit(what, tx, ty);
+  return fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
 function buildBlock(player, what, tx, ty, edge, leaf = "") {
@@ -590,14 +610,18 @@ function targetName(t) {
 // cloth) gives nothing back: which item it was is not kept.
 export function partsOf(t) {
   if (t.type === "prop") {
-    const item = getDef(t.prop.sprite).item; // a prop set down from an item (a torch post: docs/43, section 4) is taken apart by the item's recipe
+    // A prop set down from an item is taken apart by the item's recipe: the item its definition names (a torch post: docs/43, section 4), or
+    // the item whose Place sets it down (the campfire, made at the workbench since 2026-10-27).
+    const item = getDef(t.prop.sprite).item || (items.allItems().find((d) => d.place === t.prop.sprite) || {}).id;
     const r = stations.recipes().find((q) => q.out && (q.out.prop === t.prop.sprite || (item && q.out.id === item)));
     if (r) {
       const back = (r.in || []).filter((i) => i.id).map((i) => ({ id: i.id, count: Math.floor((i.count || 1) / 2) })).filter((i) => i.count > 0);
-      return { back, tool: r.uses || tuning.world.boardTool };
+      // Its recipe's tool; a made prop or a smith's make with none named wants the hammer, and an item made by hand with none (the
+      // campfire's stones and logs) wants none, as it wanted none to build when it was the palette's.
+      return { back, tool: r.uses || (r.out.prop || r.tool ? tuning.world.boardTool : null) };
     }
-    // Built from the palette (a campfire): half its cost but its fuel (the campfire's logs were fuel, not materials), with the entry's
-    // tool, or none if it names none (a campfire wants no tool to build or to take apart).
+    // Built from the palette (the Fireplace, the fire pit, a feeding trough): half its cost but its fuel (a build's `fuel` item is its
+    // starting fuel, not a material), with the entry's tool, or none if it names none (a built fire wants no tool to build or to take apart).
     const id = Object.keys(buildData).find((k) => buildData[k].kind === "prop" && buildData[k].sprite === t.prop.sprite);
     const d = id ? buildData[id] : null;
     const back = !d || t.prop.free ? [] : Object.entries(d.cost || {}).filter(([k]) => k !== d.fuel).map(([k, n]) => ({ id: k, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
@@ -615,6 +639,7 @@ export function holdsProblem(prop) {
   if ([prop.bag, prop.output].some((b) => b && b.items && b.items.length)) return "Empty it first.";
   if (prop.queue && prop.queue.length) return propIsPlural(prop.sprite) ? "They are still making something." : "It is still making something."; // the millstones are a plural, as Pick up says
   const f = prop.fire;
+  if (f && f.burns && f.switch && f.lit) return "Put it out first."; // a built fire (the Fireplace, the fire pit) comes apart only out, as every built thing (the fire rulings, 2026-10-26)
   if (f && f.burns && !f.switch) {
     if (f.lit) return map.putOutByHand(prop) ? "Put it out first." : "Let it burn down first."; // a campfire is put out by hand; a station's fire (the cauldron, the oven, the forge) only burns down
     if (f.fuel > 0) return "It still has fuel in it; let it burn down."; // a campfire's logs, as its Pick up asks (docs/43, section 3)
@@ -755,11 +780,12 @@ function buildGhost(player) {
   const g = iso.toGrid(m.x, m.y);
   const what = state.build.what;
   if (isPropBuild(what)) {
-    // A prop on the tile under the cursor (a campfire), drawn as the carried prop's ghost is, with its own line.
-    const tx = Math.round(g.gx);
-    const ty = Math.round(g.gy);
-    const reason = propBuildReason(player, what, tx, ty);
-    return { kind: "prop", prop: { sprite: buildData[what].sprite }, tx, ty, footprint: [1, 1], ok: reason === "", reason, build: what, label: `Click to build (${costText(what)}) · Esc cancel` };
+    // A prop on the tiles under the cursor (the Fireplace along the wall it backs onto, its facing from that wall; the fire pit centred on the
+    // cursor), drawn as the carried prop's ghost is, with its own line.
+    const d = buildData[what];
+    const f = setdown.fitFor(d.stand || "ground", d.sprite, g.gx, g.gy); // the cursor's grid point: fitFor rounds a wall's tile and centres a footprint
+    const reason = fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
+    return { kind: "prop", prop: { sprite: d.sprite, facing: f.facing, footprint: f.footprint }, tx: f.tx, ty: f.ty, footprint: f.footprint, ok: reason === "", reason, build: what, label: `Click to build (${costText(what)}) · Esc cancel` };
   }
   const { tx, ty, edge } = pickEdge(g.gx, g.gy);
   const leaf = takesLeaf(what) ? state.build.leaf || "" : "";
@@ -885,7 +911,7 @@ export function tryConfirm(player) {
       return true;
     }
     if (g.build) {
-      // A prop build (a campfire): the tile, no edge.
+      // A prop build: its anchor tile, no edge (the host finds the same facing there, setdown.fitAt).
       if (sender) sender({ kind: "build", what: g.build, tx: g.tx, ty: g.ty });
       else startPropBuild(player, g.build, g.tx, g.ty);
       return true;
@@ -1009,16 +1035,18 @@ export function performPlacement(player, cmd) {
   return false;
 }
 
-// A prop built from the palette (a campfire), timed as a wall is: nothing spent until the bar completes, everything checked again then.
-// The build's fuel item (`fuel` in its entry: the campfire's logs) is the prop's starting fuel, not a material.
+// A prop built from the palette (the Fireplace, the fire pit, a feeding trough), timed as a wall is: nothing spent until the bar completes,
+// everything checked again then, the prop standing on its fit's tiles in its fit's facing. A build's fuel item (`fuel` in its entry) is the
+// prop's starting fuel, not a material; none has one since the campfire left the palette (Michael, 2026-10-27).
 function startPropBuild(player, what, tx, ty) {
   const d = buildData[what];
+  const f0 = propBuildFit(what, tx, ty);
   const action = {
     kind: "build",
     label: `Building ${d.label.toLowerCase()}`,
-    tiles: [[tx, ty]],
-    mx: tx,
-    my: ty,
+    tiles: fitTiles(f0),
+    mx: tx + (f0.footprint[0] - 1) / 2,
+    my: ty + (f0.footprint[1] - 1) / 2,
     range: BUILD_REACH + 0.6,
     duration: d.seconds || 0,
     enabled: true,
@@ -1030,8 +1058,12 @@ function startPropBuild(player, what, tx, ty) {
         return false;
       }
       const fuel = d.fuel && !rules.freeBuilding ? costOf(what)[d.fuel] || 0 : d.fuel ? (d.cost || {})[d.fuel] || 0 : 0; // its fuel, paid for or free
+      const f = propBuildFit(what, tx, ty); // its facing found again now, by the same order the ghost and a guest's command use
       spend(player, what);
-      const prop = d.sprite === campfire.SPRITE ? campfire.makeFire(tx, ty, fuel, true) : (() => { const q = map.createProp({ sprite: d.sprite, tile: [tx, ty] }); q.made = true; map.placeProp(q, tx, ty); return q; })();
+      const prop = map.createProp({ sprite: d.sprite, tile: [tx, ty], footprint: f.footprint, ...(f.facing ? { facing: f.facing } : {}) });
+      prop.made = true;
+      if (prop.fire && fuel) prop.fire.fuel = Math.min(prop.fire.maxFuel, fuel);
+      map.placeProp(prop, tx, ty);
       if (rules.freeBuilding) prop.free = true; // it cost nothing, so taking it apart gives nothing back (docs/43, section 2)
       return true;
     },

@@ -913,69 +913,87 @@ function drawGlow(ctx, x, y, r, a) {
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
 }
 
-// Hearth: a stone block against a wall with a dark firebox on its front-left
-// face. Anchor is the tile centre.
-export function generateHearth(ph) {
-  const h = 40;
-  const fw = TW;
-  const fh = TH + h;
-  const frames = 3;
-  const { canvas, ctx } = makeCanvas(fw * frames, fh * 2);
-  const color = ph.color || "#7b7670";
-  const inset = 4;
-  const hw = HW - inset;
-  const hh = HH - inset / 2;
-  const frameMap = {};
-  for (let i = 0; i < frames; i++) {
-    const ox = i * fw;
-    const cx = ox + HW;
-    const cy = h + HH;
-    // The block.
-    const top = [[cx, cy - hh - h], [cx + hw, cy - h], [cx, cy + hh - h], [cx - hw, cy - h]];
-    const left = [[cx - hw, cy], [cx, cy + hh], [cx, cy + hh - h], [cx - hw, cy - h]];
-    const right = [[cx, cy + hh], [cx + hw, cy], [cx + hw, cy - h], [cx, cy + hh - h]];
-    ctx.fillStyle = shade(color, 0.72);
-    poly(ctx, left);
-    ctx.fill();
-    ctx.fillStyle = shade(color, 0.55);
-    poly(ctx, right);
-    ctx.fill();
-    ctx.fillStyle = color;
-    poly(ctx, top);
-    ctx.fill();
-    // Brick seams on the faces.
-    ctx.strokeStyle = shade(color, 0.45);
-    ctx.lineWidth = 1;
-    for (let yy = 8; yy < h; yy += 8) {
-      ctx.beginPath();
-      ctx.moveTo(cx - hw, cy - yy);
-      ctx.lineTo(cx, cy + hh - yy);
-      ctx.lineTo(cx + hw, cy - yy);
-      ctx.stroke();
-    }
-    // Firebox: a dark arch on the left face.
-    const lerp = (t, up) => [cx - hw + (cx - (cx - hw)) * t, cy + hh * t - up];
-    const box = [lerp(0.2, 2), lerp(0.8, 2), lerp(0.8, 24), lerp(0.2, 24)];
-    ctx.fillStyle = "#1a1210";
-    poly(ctx, box);
-    ctx.fill();
-    frameMap[`idle_${i}`] = [ox, 0, fw, fh];
-    // Flame frame: fire in the firebox and a glow spilling out of it.
-    const fy = fh;
-    const fc = lerp(0.5, 4);
-    drawGlow(ctx, fc[0], fy + fc[1] - 6, 22, 0.45 + 0.1 * (i % 2));
-    drawFlame(ctx, fc[0] - 5, fy + fc[1], 9, 14 + i * 2, i);
-    drawFlame(ctx, fc[0] + 4, fy + fc[1], 8, 11 + ((i + 1) % 3) * 2, (i + 1) % 3);
-    frameMap[`flame_${i}`] = [ox, fy, fw, fh];
+// The fire pit (the fire rulings, 2026-10-26: "a stone base and short walls, a rack over that can hold pots with legs to hold it up"),
+// dev art until its drawn art lands: one picture over its 2 by 2 footprint, the stone ring and its short walls, the ashes in it, two
+// A-frame legs at its left and right corners with a bar between and a pot hung from it; and three flame frames. Returned for
+// assets.sliceSheet, which cuts it into its three screen columns as it will the drawn one: `anchor` the centre of its anchor (back) tile,
+// `at` the flames' base in the picture, `base` the pin in each flame frame.
+export function generateFirePit(ph) {
+  const W = TW * 2;
+  const H = 116;
+  const { canvas, ctx } = makeCanvas(W, H);
+  const stone = ph.color || "#6f6a62";
+  const cx = W / 2; // the footprint's middle on screen: the back tile's centre is HH above it
+  const cy = 80;
+  const wall = 7; // the short walls' height
+  const ring = (hw, hh, up) => [[cx, cy - hh - up], [cx + hw, cy - up], [cx, cy + hh - up], [cx - hw, cy - up]];
+  const outer = ring(54, 27, 0);
+  const rim = ring(54, 27, wall);
+  ctx.fillStyle = shade(stone, 0.72);
+  poly(ctx, [outer[3], outer[2], rim[2], rim[3]]);
+  ctx.fill();
+  ctx.fillStyle = shade(stone, 0.55);
+  poly(ctx, [outer[2], outer[1], rim[1], rim[2]]);
+  ctx.fill();
+  ctx.fillStyle = stone;
+  poly(ctx, rim);
+  ctx.fill();
+  // The stones' seams down the faces.
+  ctx.fillStyle = shade(stone, 0.4);
+  for (let u = 6; u < 54; u += 9) {
+    const y = Math.round(cy + u / 2 - wall); // a face's top edge u pixels in from its side corner
+    ctx.fillRect(cx - 54 + u, y, 1, wall);
+    ctx.fillRect(cx + 54 - u, y, 1, wall);
   }
-  return {
-    image: canvas,
-    frames: frameMap,
-    anchor: [HW, h + HH],
-    animations: { idle: { fps: 5, loop: true, frames } },
-    facings: [],
-    mirror: {},
-  };
+  // The ashes and the embers inside.
+  ctx.fillStyle = "#2a1d16";
+  poly(ctx, ring(38, 19, wall));
+  ctx.fill();
+  ctx.fillStyle = "#4a3324";
+  poly(ctx, ring(24, 12, wall - 1));
+  ctx.fill();
+  for (const [dx, dy] of [[-12, 1], [-5, -4], [3, 3], [10, -1], [-1, 6], [15, 4]]) {
+    ctx.fillStyle = "#c8501e";
+    ctx.fillRect(cx + dx, cy - wall + dy, 2, 1);
+  }
+  // The rack: an A-frame at each side corner, a bar across, a pot hung in the middle.
+  const wood = "#5a3f2a";
+  ctx.strokeStyle = wood;
+  ctx.lineWidth = 2;
+  for (const [ax, f1, f2] of [[cx - 44, cx - 50, cx - 37], [cx + 44, cx + 37, cx + 50]]) {
+    ctx.beginPath();
+    ctx.moveTo(f1, cy - 6);
+    ctx.lineTo(ax, 22);
+    ctx.lineTo(f2, cy - 3);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "#3c3c40";
+  ctx.beginPath();
+  ctx.moveTo(cx - 44, 23);
+  ctx.lineTo(cx + 44, 23);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx + 0.5, 23);
+  ctx.lineTo(cx + 0.5, 36);
+  ctx.stroke();
+  ctx.fillStyle = "#2e2e33";
+  ctx.beginPath();
+  ctx.ellipse(cx, 44, 11, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#4a4a52";
+  ctx.fillRect(cx - 10, 37, 20, 2);
+  // The flames, three frames, each pinned at `base`.
+  const flames = [];
+  for (let i = 0; i < 3; i++) {
+    const f = makeCanvas(30, 34);
+    drawGlow(f.ctx, 15, 22, 15, 0.45 + 0.1 * (i % 2));
+    drawFlame(f.ctx, 9, 32, 9, 14 + ((i + 1) % 3) * 3, (i + 1) % 3);
+    drawFlame(f.ctx, 21, 32, 9, 13 + ((i + 2) % 3) * 3, (i + 2) % 3);
+    drawFlame(f.ctx, 15, 33, 11, 21 + i * 2, i);
+    flames.push(f.canvas);
+  }
+  return { canvas, anchor: [cx, cy - HH], at: [cx, cy - 2], base: [15, 32], flames };
 }
 
 // Campfire: a ring of stones and crossed logs on the ground. Anchor is the

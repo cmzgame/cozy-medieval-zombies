@@ -184,14 +184,14 @@ export async function run(game, opts = {}) {
     finish();
     row("a fire put out mid-bar boils nothing, and an unlit fire offers no Boil water", !skinG.clean && !fireMenu().some((l) => l.startsWith("Boil water")), `${skinG.clean}; ${fireMenu().join(", ")}`);
     // A fireplace lit is a cooking fire: it offers Boil water too (a switch since docs/43 section 3).
-    const fp = [...G.map.allProps()].find((p) => p.sprite === "fireplace" || p.sprite === "hearth");
+    const fp = [...G.map.allProps()].find((p) => p.sprite === "fireplace" || p.sprite === "fire_pit");
     if (fp) {
       const lit0 = fp.fire.lit;
       G.map.setFireLit(fp, true);
       const labels = G.interact.actionsForTarget({ kind: "prop", id: fp.id }, me).map((a) => a.label);
       row(`a ${fp.sprite} lit is a cooking fire that offers Boil water`, labels.some((l) => l.startsWith("Boil water")), labels.join(", "));
       G.map.setFireLit(fp, lit0);
-    } else row("a fireplace or a hearth in the loaded map", false, "none");
+    } else row("a fireplace or a fire pit in the loaded map", false, "none");
 
     // Mixing taints, and no fixed source is clean.
     const sources = [...G.map.allProps()].filter((p) => p.water);

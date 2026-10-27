@@ -1,7 +1,7 @@
 // Stations (docs/30, sections 3 and 6; docs/31/08's habits): a station is a
 // prop whose definition names a `station` (the workbench, the anvil, the
 // forge, the oven, the loom...), or any lit fire that cooks (the cooking
-// hearth). Recipes are rows in data/recipes.json. A craft takes its seconds
+// hearth: a fireplace, a fire pit, a campfire). Recipes are rows in data/recipes.json. A craft takes its seconds
 // in the world's time, from the station's own queue, with ingredients taken
 // from the player's bag, belt, and hands and from every opened container
 // within reach; a recipe that needs fire pauses while the fire is out; the
@@ -23,7 +23,7 @@ import { emit } from "./events.js";
 import { rules } from "./rules.js"; // a recipe a world rule keeps off (docs/43 section 5)
 
 export const REACH = 2.6; // tiles: the click's reach (interact.js CLICK_REACH); containers this close feed a craft
-const OUTPUT = [3, 2]; // the output bag's grid
+const OUTPUT = [3, 3]; // the output bag's grid: 3 by 3 since the Campfire item, 3 by 3, is made at the workbench (2026-10-27; 3 by 2 before), so a made one lands in it
 
 let rows = [];
 const active = new Set(); // stations with something in their queue
@@ -240,6 +240,12 @@ export function outputOf(prop) {
 let bodies = () => [];
 export function setBodies(fn) {
   bodies = fn;
+}
+
+// Whether a body (a player, a villager, one of the dead, an animal, a body lying) stands on any of these tiles: a built prop never goes up
+// over one (the review of #527: a 2 by 2 fire pit built within reach covered its builder, and could cover one of the dead).
+export function bodyOnTiles(tiles) {
+  return bodies().some((c) => c && tiles.some(([tx, ty]) => Math.hypot(c.gx - tx, c.gy - ty) < 0.7));
 }
 
 // Whether a made prop of this footprint may stand with its anchor at (x, y): every one of its tiles walkable, empty, bare of items, not

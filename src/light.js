@@ -5,7 +5,7 @@
 // sources plus the light you carry. See docs/07-lighting.md and docs/08.
 //
 // What changes from the parent: ambient is per tile (the clock outdoors, the
-// room's hearth and openings indoors), the static map is per chunk and
+// room's fire and openings indoors), the static map is per chunk and
 // computed one cell beyond the chunk so neighbours draw without seams, light
 // multiplies through what it crosses by each edge's transmission (sight is the
 // same blockers above a half), and every opening is a source on its darker
@@ -27,7 +27,7 @@ const PORTAL_OFF = 0.3; // tiles off the edge, on the darker side
 // Tunables Michael picks by eye (docs/07, "The look"). Live on window.__game.light.
 export const tunables = {
   dayCap: 0.92, // full day is never quite full: Halloween never ends here
-  unlitRoomCap: 0.88, // window-lit is slightly dimmer than hearth-lit
+  unlitRoomCap: 0.88, // window-lit is slightly dimmer than fire-lit
   openingDaylight: 0.5, // openness per open shutter or open door
   roomBounce: 0.5, // how much of the flat openness light an unlit room keeps; the portals pool the rest (docs/08)
 };
@@ -38,7 +38,7 @@ function clamp01(v) {
 
 // ---- ambient ----
 
-let litRooms = new Set(); // room ids with a lit hearth, refreshed each step
+let litRooms = new Map(); // room id -> its lit fire's flicker ({ flicker, seed }, or null for a steady one), refreshed each step
 let curSources = []; // lit static sources, refreshed each step
 let carried = []; // the lights in players' hands, one per carrier: { owner, gx, gy, radius, flicker, strength }
 let burners = []; // burning characters as lights (fire.js), evaluated like the carrier
@@ -48,13 +48,13 @@ let lastSourcesDesc = "";
 // Once per logic step, after the rooms are current: lit rooms, then fires
 // and mounted torches, then the portals, which need the ambients.
 export function update() {
-  litRooms = new Set();
+  litRooms = new Map();
   curSources = [];
   for (const p of map.fires()) {
     if (!p.fire.lit) continue;
     if (p.fire.room) {
       const id = map.tileAt(p.tile[0], p.tile[1]).room;
-      if (id > 0) litRooms.add(id);
+      if (id > 0 && !litRooms.has(id)) litRooms.set(id, p.fire.flicker ? { flicker: p.fire.flicker, seed: sourceSeed(p.tile[0], p.tile[1]) } : null); // the first lit fire in it sets its flicker
     }
     if (p.fire.radius > 0) curSources.push({ gx: p.tile[0], gy: p.tile[1], radius: p.fire.radius, intensity: 1, kind: p.sprite, flicker: p.fire.flicker });
   }
@@ -153,9 +153,10 @@ export function openness(room) {
   return Math.min(1, s.open + s.leak);
 }
 
-// A lit hearth lights its whole room. Without one, the room keeps a share of
+// A lit fire that lights its room (a fireplace, a fire pit) lights its whole room. Without one, the room keeps a share of
 // the flat daylight its openings admit (the rest is pooled by the portals),
-// down to night-dark when shuttered.
+// down to night-dark when shuttered. This is the world's light (the dead's sight reads it): a lit room is 1, steady; its flicker is the
+// renderer's alone (`drawnRoomWeight`).
 export function roomAmbient(id) {
   if (litRooms.has(id)) return 1;
   const room = map.getRoom(id);
@@ -308,9 +309,35 @@ map.onEvict(forgetChunk);
 // maps, so the ray grid is untouched.
 export function flickerWeight(flicker, seed, t) {
   if (!flicker) return 1;
+  return 1 - flicker.amp * (0.35 + 0.65 * flickerDip(flicker, seed, t));
+}
+
+// How far down its flicker a flame is this instant, 0 (its brightest) to 1 (its lowest): the two sines' product, the one shape the
+// fire's own pool and its room's dip both follow.
+function flickerDip(flicker, seed, t) {
   const a = Math.sin(t * flicker.speed + seed) * 0.5 + 0.5;
   const b = Math.sin(t * flicker.speed * 1.73 + seed * 2.1) * 0.5 + 0.5;
-  return 1 - flicker.amp * (0.35 + 0.65 * a * b);
+  return a * b;
+}
+
+// A source's seed, from where it stands (the fire's own pool and its room's dip share it, so they move together).
+export function sourceSeed(gx, gy) {
+  return (gx * 7.3 + gy * 3.1) % 6.28;
+}
+
+// The fires' flicker darkens a lit room a little (Michael, 2026-10-27: "it can flicker down from now in light, it'll still be mostly lit,
+// and the flicker darkening it for a second is realistic"; "tunable is better"): the drawn weight of a lit room's light this instant, from 1
+// at its fire's brightest down to `min` at its lowest (`world.litRoomFlickerMin` in data/tuning.json, docs/42), in time with the fire's own
+// pool. Pure, and the renderer's alone (render/area.js, on the wall clock): the world's light (`roomAmbient`, which the dead's sight reads)
+// stays 1, so nothing in the simulation flickers, nothing crosses the wire, and host and guest step the same world.
+export function roomFlickerWeight(flicker, seed, t, min = W.litRoomFlickerMin) {
+  if (!flicker) return 1;
+  return 1 - (1 - min) * flickerDip(flicker, seed, t);
+}
+
+// The flicker a lit room's light follows ({ flicker, seed }), or null: a room not lit by a fire, or lit by a steady one.
+export function litRoomFlicker(id) {
+  return litRooms.get(id) || null;
 }
 
 // Grid position of the centre of cell i (0..N-1) along one axis of chunk c.
@@ -359,7 +386,7 @@ function build(cx, cy, sig) {
   for (const l of curSources) {
     if (!reaches(l, cx, cy)) continue;
     const own = l.flicker ? new Float32Array(N * N) : null;
-    if (own) layers.push({ contrib: own, flicker: l.flicker, seed: (l.gx * 7.3 + l.gy * 3.1) % 6.28 });
+    if (own) layers.push({ contrib: own, flicker: l.flicker, seed: sourceSeed(l.gx, l.gy) });
     // Only the cells within the radius.
     const i0 = Math.max(0, Math.floor((l.gx - l.radius - x0) * RES + 0.5));
     const i1 = Math.min(N - 1, Math.ceil((l.gx + l.radius - x0) * RES + 0.5));
