@@ -57,6 +57,8 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `46-natural-resources.md` — **spec.** Natural resources (#288): one comeback rule (random spots within defined areas, a steady count) for ore, stone, clay, herbs, and mushrooms; rocks rising from the ground; trees from saplings; sticks under trees; three build steps.
 - `47-potions-poisons-mana.md` — **spec.** Potions, poisons, and mana: clay vials, clean water, two herbs and a secondary at a cauldron, the mana bar and spell costs, poisons put on with Use, the splash; four build steps.
 - `48-sight-pull.md` — **spec.** Sight-pull: one of the dead first drawn to a player calls once to the dead near it that see it, scaled by the light, with no chain; sound stays out; one build step.
+- `51-depth-buffer.md` — **spec.** A depth buffer for the renderer: a depth per vertex from each thing's true geometry (a figure's plane through the front of its footprint, a prop's two faces split at its front corner, a wall's near face), the flat things first without writing depth, opaque art in one pass with an alpha test, the translucent few in a third tested pass, the biases and the range, `check("depth")`; one build step ahead of upper floors.
+- `52-wall-heights.md` — **spec.** Walls 96 px tall, three crates: the door's top at 64, the window from 24 to 64 on purpose, every material the same, the castle taller by storeys; what changes in the game, with the art of `art/13`; one build step.
 
 ## Records: `history/`
 

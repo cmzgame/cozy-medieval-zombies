@@ -8,6 +8,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Walls are 96 px tall, three crates: the door's top at 64, the window's top at 64 and its sill low and big on purpose (24, a default), every wall material the same (a fence stays 36) and the castle taller by storeys, never by walls (2026-10-26, Walls 96 px tall)
+- The renderer gets a depth buffer: the flat things first without writing depth, opaque art with an alpha test in one pass, the translucent few in a tested pass after, the ghost and the marker on top, so the frame sorts per pixel and nothing clips a wall (2026-10-26, A depth buffer)
 - The demo pass: the dev chest holds every weapon and tool, the basic materials, the potions, seeds, the bearskin rug and one wide painting; your cottage 11 by 7 inside; mana regenerates 0.667 a second and its bar sits between health and stamina (2026-10-26, The demo pass)
 - Any key or click wakes a sleeper early, the screen fading back in; the menu's Burn corpse works with a lit torch in hand as well as a tinderbox (2026-10-26, Waking early, and Burn corpse by a lit torch)
 - Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills (2026-10-26, Fill waterskins skips clean water)
@@ -91,7 +93,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Only trees are seen through; walls have their own fade (2026-10-11, Only trees are seen through)
 - The ground is baked per chunk; cobble inside a dirt verge; authored surfaces cover their tiles (2026-10-11, The ground is scoped: milestone 9; 2026-10-11, Authored surfaces cover their tiles)
 - Mushrooms, rocks, pumpkins, and crops are game objects; the well is a fixture with a use (2026-10-11, Mushrooms and rocks become game objects that wiggle; 2026-10-11, The well's bucket; milestone 10 done)
-- Walls are 80 px tall, stone 16 px thick and wood 14; doors a hair shorter; openings fixed in pixels (2026-10-11, Walls 80 px tall and 18 px thick; 2026-10-11, Wall thickness per material)
+- ~~Walls are 80 px tall; doors a hair shorter; openings fixed in pixels~~ (superseded 2026-10-26, Walls 96 px tall: 96, the door's top 64, the window 24 to 64, the bracket 48); stone 16 px thick and wood 14 (2026-10-11, Wall thickness per material)
 - Open shutters fold back about 160 degrees; open doors stand at 90 (2026-10-11, Cottage shutters, and a wall height preview)
 - A post wherever the material changes, in the heavier; boards are drawn overlays; facings a drawing and its mirror (2026-10-11, The building batch arrived; 2026-10-11, Rulings on the village art plan)
 - Furniture is solid (2026-10-12, The engine upgrade is the next task)
@@ -312,6 +314,20 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-26 — Walls 96 px tall: three crates, a two-crate door, a big window (Michael)
+
+Michael, on the 80 px walls: "I just really like the predictability of height in Zomboid", where a one-tile storage box is the measuring stick and three stack from floor to ceiling. Here a one-tile cube is 32 px tall and a wall 80, two and a half crates. The research found the 2026-10-11 preview of 96 had been biased by a door that scaled with the wall (that entry says so), the openings then frozen at their 64-px sizes; a fair comparison in the pane (an 80 wall and a 96 wall side by side with the same door, a crate at each, the player between) read well at 96: the player half the wall's height, as in Zomboid. **Ruled:** walls 96 px, "the new height"; the door "4 halves or two full crates high" (64); "the slightly exaggerated window, not requiring it to sit above two box halves, or one full box as zomboid does", because "you get a LOT from having bigger windows, you can see more, it makes shooting easier, etc. ... exaggerated windows are for fun not for realism"; and "all walls will conform to this, no more weird tall castle walls": a castle is taller by storeys (`49`). The spec is `docs/52`; the art request `docs/art/13`; the sill (24) and the bracket (48) are the spec's defaults.
+
+- **Walls 96 px tall, every material; the door's top at 64; the window's top at 64.**
+- **The window is big on purpose:** its sill need not clear a crate.
+- **No taller castle walls:** the castle plan's 112 and 128 px materials are withdrawn.
+
+### 2026-10-26 — A depth buffer: the frame sorted per pixel (Michael)
+
+Michael asked why props against walls show two thirds of their outline and clip into walls, and whether a depth buffer was an option. The frame is one list sorted by a number per tile; a picture that spills past its tile is covered by the next tile's wall, and only figures get a correction. A depth buffer sorts per pixel instead: each vertex gets a depth from its thing's true geometry (the style bible's `X + Y + Z`, a plane per face), the flat things draw first without writing depth, opaque art draws in one pass with an alpha test, and the translucent few in a tested pass after. **Ruled:** build it, as its own step ahead of upper floors ("Write the full depth buffer spec"). The spec is `docs/51`.
+
+- **A depth buffer,** the flat things first without writing depth, opaque art in one pass with an alpha test at half, the translucent things (the faded near walls, canopies with holes, the dark-dimmed dead, the soft sheets) in a tested pass after, the ghosts and the marker on top.
 
 ### 2026-10-26 — A dyed thing's pictures show its dye (Michael)
 
@@ -1871,11 +1887,11 @@ Claude Design delivered all of brief 16 and more (`village_art`: 20 wall segment
 
 ### 2026-10-11 — Walls 80 px tall and 18 px thick; doors a hair shorter (Michael)
 
-**Ruled:** walls are 80 px tall (`height` in `wall_*.json`; the preview setting is gone) and ~~18 px thick (`WALL_T`, from 12)~~ (superseded 2026-10-11: Wall thickness per material: stone 16, wood 14, 18 the default the log walls keep); the door's top drops from 51 to 48 px; windows and brackets keep their fixed heights; the light's climb up a wall goes from 56 to 70 px to match. The corner posts are the wall's thickness, so they thickened with it. **The corner strategy is dev art** (a square post covering each join): Claude Design may propose corner and end pieces. Claude Design's seven questions before drawing are answered in `16-village-art-brief.md`, paste-ready.
+**Ruled:** ~~walls are 80 px tall~~ (superseded 2026-10-26, Walls 96 px tall) (`height` in `wall_*.json`; the preview setting is gone) and ~~18 px thick (`WALL_T`, from 12)~~ (superseded 2026-10-11: Wall thickness per material: stone 16, wood 14, 18 the default the log walls keep); ~~the door's top drops from 51 to 48 px; windows and brackets keep their fixed heights; the light's climb up a wall goes from 56 to 70 px to match~~ (superseded 2026-10-26, Walls 96 px tall: the door's top 64, the window 24 to 64, the bracket 48, the climb 84). The corner posts are the wall's thickness, so they thickened with it. **The corner strategy is dev art** (a square post covering each join): Claude Design may propose corner and end pieces. Claude Design's seven questions before drawing are answered in `16-village-art-brief.md`, paste-ready.
 
 ### 2026-10-11 — The wall preview at 80, with openings fixed in pixels (Michael)
 
-Michael on the 96 px preview: too tall, try halfway (80 px); and the door got "comically large" because the openings scaled with the wall, which biased the comparison. **Ruled:** ~~the preview offers 64 and 80~~ (superseded 2026-10-11: Walls 80 px tall and 18 px thick; doors a hair shorter: 80 px, the setting gone); doors, windows, and torch brackets are fixed in pixels from the floor at their 64 px sizes (door top 51, window sill 22 and top 51, bracket 32: `DOOR_TOP`, `WINDOW_SILL`, `WINDOW_TOP`, `BRACKET_UP` in `placeholders.js`, used by the wall art and the swung leaves), so a taller wall only adds wall above them. At 64 nothing visible changes. The Claude Design brief's sizes follow whichever height Michael picks.
+Michael on the 96 px preview: too tall, try halfway (80 px); and the door got "comically large" because the openings scaled with the wall, which biased the comparison. **Ruled:** ~~the preview offers 64 and 80~~ (superseded 2026-10-11: Walls 80 px tall and 18 px thick; doors a hair shorter: 80 px, the setting gone); ~~doors, windows, and torch brackets are fixed in pixels from the floor at their 64 px sizes (door top 51, window sill 22 and top 51, bracket 32: `DOOR_TOP`, `WINDOW_SILL`, `WINDOW_TOP`, `BRACKET_UP` in `placeholders.js`, used by the wall art and the swung leaves), so a taller wall only adds wall above them.~~ (superseded 2026-10-26, Walls 96 px tall: the openings grow with the wall, the door to 64, the window to 24 to 64) At 64 nothing visible changes. The Claude Design brief's sizes follow whichever height Michael picks.
 
 ### 2026-10-11 — Cottage shutters, and a wall height preview (Michael)
 
