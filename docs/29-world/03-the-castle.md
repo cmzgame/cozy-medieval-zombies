@@ -16,7 +16,7 @@ Seven things make it read as a castle rather than a big stone house. Every one i
 6. **The bailey's floor tells the story.** Cobble over most of it, worn to dirt at the stables and the smithy, the kitchen garden's dark soil, the pleasure garden's lawn. Authored decals: straw by the stables, soot by the forge, a cart's ruts from the gate to the kitchens.
 7. **The garrison.** Thirty to forty of the dead inside the walls in tabards and kettle helms (`wardrobes.json` entries once the character art lands: a tabard is a tunic with a second colour, a kettle helm is a hat), a dozen in the hall in finery, two in the gatehouse. The densest place on the map and the richest: the armoury is where the good weapons are until the smith works.
 
-What is deliberately not here: battlements you walk on, a keep you climb, a dungeon you go down to. Each is an upper floor or a basement, both `05`-someday, and nothing in this plan forecloses them: the gatehouse towers have a `stairs` prop at the back wall (decoration now, a `stairs` opening when floors come), and the chapel's crypt is a ground-floor annex that could one day be a stair down.
+What is deliberately not here: battlements you walk on, a keep you climb, a dungeon you go down to. Each is an upper floor or a basement, ~~both `05`-someday~~ (a spec since 2026-10-26, `49`: a three-tile stair with its landing, a cellar by hatch and ladder; the castle is planned by storeys when it is generated), and nothing in this plan forecloses them: the gatehouse towers have a `stairs` prop at the back wall (decoration now, a `stairs` opening when floors come), and the chapel's crypt is a ground-floor annex that could one day be a stair down.
 
 ## The plan
 
