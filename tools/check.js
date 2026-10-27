@@ -5811,6 +5811,11 @@ check("round rooms, step 1: a door point takes a door and a window, and a door t
   const d = mapMod.tileAt(4, 2).n;
   assert(d.kind === "door" && d.sprite === "wall_stone" && d.underRound && d.underBuilt && !mapMod.isRingWall(d), `the door: ${JSON.stringify(d)}`);
   assert(mapMod.buildWall(2, 4, "w", "window", "wall_stone") && mapMod.tileAt(2, 4).w.kind === "window", "no window at the west door point");
+  // The dead break in at a door point as at any door (the siege's breach, map.breachTargets): standing outside it, going through into the room.
+  mapMod.rebuildRooms();
+  const ringRoom = mapMod.getRoom(mapMod.roomAt(4, 4));
+  const breach = mapMod.breachTargets(ringRoom, 4, 0.5);
+  assert(breach.length === 1 && breach[0].tx === 4 && breach[0].ty === 2 && breach[0].edge === "n" && breach[0].stand.join(",") === "4,1" && breach[0].into.join(",") === "4,2", `the breach of the ring's room: ${JSON.stringify(breach.map((b) => [b.tx, b.ty, b.edge, b.stand, b.into]))}`);
   mapMod.destroyWall(4, 2, "n", true);
   const w = mapMod.tileAt(4, 2).n;
   assert(w && w.kind === "wall" && mapMod.isRingWall(w) && mapMod.ringOfWall(w) && w.built, `taken away, the door left ${JSON.stringify(w)}`);
