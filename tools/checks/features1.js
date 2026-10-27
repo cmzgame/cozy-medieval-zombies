@@ -200,10 +200,10 @@ export async function run(game, opts = {}) {
       }
       // The host asleep: a "Zz" over it on my screen, from its record's `sleeping`; never a line in the log.
       const host = G.game.state.players.find((p) => p.id === kept.host);
-      const lines0 = (await import("/src/ui/log.js")).lines().length;
+      const lines0 = (await import("/src/ui/log.js")).count();
       speech.updateSpeech(G.game.state.others, G.visible, me, 0);
       const zz = [...document.querySelectorAll("#speech .speech")].find((el) => el.textContent === "Zz");
-      const lines1 = (await import("/src/ui/log.js")).lines().length;
+      const lines1 = (await import("/src/ui/log.js")).count();
       row("on a guest the sleeping host has a \"Zz\" over it, drawn from its record, and nothing in my log", !!host && !!host.sleeping && !!zz && zz.classList.contains("speech-zz") && lines1 === lines0, `host asleep ${!!(host && host.sleeping)}, bubble ${!!zz}; log ${lines0} to ${lines1}`);
     } catch (e) {
       rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });
@@ -314,18 +314,18 @@ export async function run(game, opts = {}) {
       // Poured by the Use mode: clean into an empty skin; tainted into a clean skin refused in Michael's words.
       const skin = mk("waterskin", 1, { fill: 0 });
       G.grid.insert(bag, skin);
-      let n0 = log.lines().length;
+      let n0 = log.count();
       use.begin(bucket, { kind: "bag", bag });
       use.apply({ kind: "item", entry: skin, bag }, me);
-      const said1 = log.lines().slice(n0).join(" / ");
+      const said1 = log.since(n0).join(" / ");
       row("Use the clean bucket on an empty skin: the skin full of clean water, the bucket empty, the line in the log", skin.fill === 100 && skin.clean === true && bucket.fill === 0 && /You fill the waterskin from the bucket/.test(said1), `skin ${skin.fill} ${!!skin.clean}, bucket ${bucket.fill}; "${said1}"`);
       skin.fill = 40;
       const t = mk("bucket", 1, { fill: cap });
       G.grid.insert(bag, t);
-      n0 = log.lines().length;
+      n0 = log.count();
       use.begin(t, { kind: "bag", bag });
       use.apply({ kind: "item", entry: skin, bag }, me);
-      const said2 = log.lines().slice(n0).join(" / ");
+      const said2 = log.since(n0).join(" / ");
       row("Use a tainted bucket on a skin holding clean water: refused, \"That would taint the clean water.\" in the log, nothing moved", said2 === "That would taint the clean water." && skin.fill === 40 && skin.clean === true && t.fill === cap, `"${said2}"; skin ${skin.fill} ${!!skin.clean}, bucket ${t.fill}`);
       const cs = await cardOver(skin);
       row("the waterskin's card on the page says it fills at water or from a bucket", !!cs && cs.text.some((l) => l.includes("fill it at water, or from a bucket.")), cs ? cs.text.join(" | ") : "no block");
@@ -359,15 +359,15 @@ export async function run(game, opts = {}) {
       const body2 = lay(ox - 1, oy + 1);
       const torch = mk("torch");
       me.hands.main = torch;
-      let n0 = log.lines().length;
+      let n0 = log.count();
       use.begin(torch, { kind: "slot", id: "hand:main" });
       use.apply({ kind: "character", ch: body2 }, me);
-      const unlit = log.lines().slice(n0).join(" / ");
+      const unlit = log.since(n0).join(" / ");
       torch.lit = true;
-      n0 = log.lines().length;
+      n0 = log.count();
       use.begin(torch, { kind: "slot", id: "hand:main" });
       use.apply({ kind: "character", ch: body2 }, me);
-      const lit = log.lines().slice(n0).join(" / ");
+      const lit = log.since(n0).join(" / ");
       row("Use an unlit torch on a body: \"The torch is not lit.\"; a lit one burns it, the torch kept and still lit", unlit === "The torch is not lit." && body2.cremate && body2.burning && me.hands.main === torch && torch.lit && /The body catches/.test(lit), `unlit "${unlit}"; lit "${lit}"; cremate ${body2.cremate}`);
       // The menu's Burn corpse with a lit torch in hand and no tinderbox (Michael, 2026-10-26: "the menu's Burn corpse works with a lit torch in
       // hand too"), greyed only with neither.
@@ -445,10 +445,10 @@ export async function run(game, opts = {}) {
       // A friend asleep: a "Zz" over them, never in the log; none over myself.
       const friend = { id: "zz-friend", kind: "player", name: "Friend", gx: me.gx + 1, gy: me.gy, sleeping: { bed: "b" }, line: null, dead: false };
       const vis = new Set([visibility.tileKey(Math.round(friend.gx), Math.round(friend.gy)), visibility.tileKey(Math.round(me.gx), Math.round(me.gy))]);
-      const n0 = log.lines().length;
+      const n0 = log.count();
       speech.updateSpeech([friend], vis, me, 0);
       const zz = [...document.querySelectorAll("#speech .speech")].find((el) => el.textContent === "Zz");
-      const zzLogged = log.lines().length !== n0;
+      const zzLogged = log.count() !== n0;
       speech.updateSpeech([], vis, me, 0);
       const self = { ...me, sleeping: { bed: "b" }, line: null };
       speech.updateSpeech([self], vis, self, 0);
