@@ -204,7 +204,6 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       case "flat": sheet = placeholders.generateFlat(ph); break;
       case "wall": sheet = placeholders.generateWall(ph); break;
       case "pumpkin": sheet = placeholders.generatePumpkin(ph); break;
-      case "hearth": sheet = placeholders.generateHearth(ph); break;
       case "campfire": sheet = placeholders.generateCampfire(ph); break;
       case "torch_post": sheet = placeholders.generateTorchPost(ph); break;
       case "lantern_post": sheet = placeholders.generateLanternPost(ph); break;
@@ -456,8 +455,20 @@ export function replaceSheet(id, next) {
 export function getSheet(id, tileCount = 1) {
   const key = tileCount > 1 ? `${id}#${tileCount}` : id;
   const s = sheets.get(key);
-  if (!s) throw new Error(`Sprite sheet not loaded: ${key}`);
-  return s;
+  if (s) return s;
+  // A sheet sliced from drawings (sheetFromDrawings: every facing's slices, whatever the count asked) is the same sheet at any count, and a
+  // headless one is frames alone: the one-tile key answers for it (a prop built with a footprint no map named).
+  const one = tileCount > 1 ? sheets.get(id) : null;
+  if (one && (one.sliced || headless)) return one;
+  throw new Error(`Sprite sheet not loaded: ${key}`);
+}
+
+// A definition's own footprint: its first facing's (`facingFootprint`), else its `footprint`, else one tile. The sheet a prop of it is drawn
+// from is keyed by that many tiles (`getSheet(id, n)`).
+export function footprintOf(def) {
+  const ff = def && def.facingFootprint && def.facings && def.facingFootprint[def.facings[0]];
+  const fp = ff || (def && def.footprint) || [1, 1];
+  return [fp[0], fp[1]];
 }
 
 // The half-height of a tile: a "top vertex" anchor sits this far above the tile centre.
@@ -638,6 +649,7 @@ async function sheetFromDrawings(def) {
     animations: {},
     flames,
     flameFps: (def.fire && def.fire.fps) || 6,
+    sliced: true, // the same at any tile count (getSheet)
   };
 }
 

@@ -1485,7 +1485,10 @@ async function boot() {
       mapJson = json; // kept for a restore (save.js); the map is read whole, and each world's own rules (trees, population) shape what it makes of it (#130)
       // Everything is loaded already; this adds the two-tile variants, and a name the manifest lacks fails here with its id.
       await assets.loadMapSprites(json);
-      for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
+      for (const k of placement.buildKinds()) { // what can be built must be drawable, at its own footprint (the Fireplace's two tiles, the fire pit's four)
+        const fp = assets.footprintOf(await assets.loadSpriteDef(k.sprite));
+        await assets.loadSprite(k.sprite, { tileCount: fp[0] * fp[1] });
+      }
       for (const r of stations.recipes()) if (r.out && r.out.prop && r.out.footprint) await assets.loadSprite(r.out.prop, { tileCount: r.out.footprint[0] * r.out.footprint[1] }); // what can be made must be drawable at its own footprint (docs/43 section 4: a made counter, cart, stall)
       for (const d of items.allItems()) if (d.rug) { // a rug laid from the bag must be drawable: its 2 by 3 sheet (#327)
         const sd = await assets.loadSpriteDef(d.rug);
