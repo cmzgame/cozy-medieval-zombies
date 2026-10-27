@@ -436,7 +436,7 @@ function nearestSeenPlayer(z, players) {
 // light on them, and a clear line.
 function canSeeCharacter(z, c, d) {
   const range = sightRange(T.sight, c.gx, c.gy);
-  return d <= range && lineOfSight(z.gx, z.gy, c.gx, c.gy);
+  return d <= range && (c.layer || 0) === (z.layer || 0) && lineOfSight(z.gx, z.gy, c.gx, c.gy, z.layer || 0);
 }
 
 // With the setting on, the nearest living villager in sight (docs/19). Only asked
@@ -471,7 +471,7 @@ function nearestFlame(z) {
     const d = Math.hypot(s.gx - z.gx, s.gy - z.gy);
     // A torch on the belt is a weaker flame (docs/02): seen from `beltLight` (0.6) as far.
     if (d > range * (s.strength ?? 1) || d >= bestD) continue;
-    if (!lineOfSight(z.gx, z.gy, s.gx, s.gy)) continue;
+    if (!lineOfSight(z.gx, z.gy, s.gx, s.gy, z.layer || 0)) continue;
     best = s;
     bestD = d;
   }
@@ -595,7 +595,7 @@ function callOthers(z, others) {
   let drawn = 0;
   for (const o of others) {
     if (o === z || o.kind !== "zombie" || o.dead || o.huntsPlayer || (isDown(o) && !o.gettingUp)) continue;
-    if (Math.hypot(o.gx - z.gx, o.gy - z.gy) > r || !lineOfSight(o.gx, o.gy, z.gx, z.gy)) continue;
+    if (Math.hypot(o.gx - z.gx, o.gy - z.gy) > r || (o.layer || 0) !== (z.layer || 0) || !lineOfSight(o.gx, o.gy, z.gx, z.gy, z.layer || 0)) continue;
     o.huntsPlayer = true;
     o.aggro = true;
     if (!o.breach) o.lastSeen = z.lastSeen ? z.lastSeen.slice() : addr(z.gx, z.gy, z.layer || 0); // a breacher keeps its door (docs/48)
@@ -1094,7 +1094,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     case "attack": {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
-        if (distTo(z, tgt) <= biteReach(z, tgt) + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy)) {
+        if (distTo(z, tgt) <= biteReach(z, tgt) + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy, z.layer || 0)) {
           if (tgt.kind === "player") emit("playerHit", { zombie: z, damage: T.damage, victim: tgt });
           else emit("villagerHit", { zombie: z, villager: tgt, damage: T.damage });
         }

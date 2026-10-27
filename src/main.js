@@ -293,7 +293,7 @@ function afterWorldSet() {
   light.update();
   if (!glError) ground.invalidateAll();
   for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-  visible = visibility.computeVisible(Math.round(client.me.gx), Math.round(client.me.gy), tiles);
+  visible = visibility.computeVisible(Math.round(client.me.gx), Math.round(client.me.gy), tiles, client.me.layer || 0);
   lastAutosave = loop.simTime();
 }
 
@@ -1230,11 +1230,11 @@ function stepGame(dt) {
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
   // bulk of a step's cost and fed the catch-up spiral behind the freezes.
-  const key = `${px},${py}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}|${V.w}x${V.h}`;
+  const key = `${px},${py},${client.me.layer || 0}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}|${V.w}x${V.h}`;
   if (key !== visKey) {
     const t1 = performance.now();
     tiles = camera.viewportTiles(V.w, V.h);
-    visible = visibility.computeVisible(px, py, tiles);
+    visible = visibility.computeVisible(px, py, tiles, client.me.layer || 0); // seen from my own layer (docs/49)
     visKey = key;
     timing.vis = performance.now() - t1;
   }
@@ -1314,7 +1314,7 @@ async function restoreWorld(snap) {
   soundCues.reset();
   light.update();
   if (!glError) ground.invalidateAll();
-  visible = visibility.computeVisible(Math.round(at.gx), Math.round(at.gy), tiles);
+  visible = visibility.computeVisible(Math.round(at.gx), Math.round(at.gy), tiles, at.layer || 0);
   lastAutosave = loop.simTime();
 }
 
@@ -1333,10 +1333,10 @@ function stepWithScreenUp(dt, guest) {
   const px = Math.round(player.gx);
   const py = Math.round(player.gy);
   playerRoom = map.roomAt(px, py);
-  const key = `${px},${py}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}|${V.w}x${V.h}`;
+  const key = `${px},${py},${player.layer || 0}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}|${V.w}x${V.h}`;
   if (key !== visKey) {
     tiles = camera.viewportTiles(V.w, V.h);
-    visible = visibility.computeVisible(px, py, tiles);
+    visible = visibility.computeVisible(px, py, tiles, player.layer || 0); // seen from my own layer (docs/49)
     visKey = key;
   }
   refreshFigure();
@@ -1618,7 +1618,7 @@ async function boot() {
         tiles = camera.viewportTiles(V.w, V.h);
         light.update();
         for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-        visible = visibility.computeVisible(Math.round(client.me.gx), Math.round(client.me.gy), tiles);
+        visible = visibility.computeVisible(Math.round(client.me.gx), Math.round(client.me.gy), tiles, client.me.layer || 0);
         setInWorld(true);
       }
     } },

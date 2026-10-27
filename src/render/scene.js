@@ -239,7 +239,7 @@ export function renderScene(args) {
         emitFloors(tilesL, L, DEPTH_BIAS.liftedFloor, hidden);
         emitRugs(tilesL);
       }
-      const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 ? playerRoom : 0;
+      const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
       const drawables = [];
       wallDrawables(tilesL, visible, roomHere, drawables);
       postDrawables(tilesL, visible, roomHere, drawables);

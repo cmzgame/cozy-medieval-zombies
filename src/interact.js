@@ -930,7 +930,7 @@ function farmTileActions(tx, ty, player) {
   const soil = farming.get().soil;
   const t = map.peekTile(tx, ty);
   if (!t || t.prop) return out;
-  if (!lineOfSight(player.gx, player.gy, tx, ty)) return out; // a wall in the way: not offered, rather than offered and refused (the verbs refuse it too)
+  if (!lineOfSight(player.gx, player.gy, tx, ty, player.layer || 0)) return out; // a wall in the way: not offered, rather than offered and refused (the verbs refuse it too)
   const base = { tiles: [[tx, ty]], mx: tx, my: ty };
   const run = (verb, args = {}) => () => {
     const r = verbs.run(verb, world, player, { tile: [tx, ty], ...args });
@@ -1426,9 +1426,9 @@ export function approachTile(action, player) {
       for (let dx = -2; dx <= 2; dx++) {
         const x = tx + dx;
         const y = ty + dy;
-        if (!map.isWalkableTile(x, y)) continue;
+        if (!map.isWalkableTile(x, y, player.layer || 0)) continue;
         if (Math.hypot(dx, dy) > action.range) continue;
-        if (!lineOfSight(x, y, tx, ty)) continue; // a tile with a clear line to it, so a player behind a wall walks round (#208)
+        if (!lineOfSight(x, y, tx, ty, player.layer || 0)) continue; // a tile with a clear line to it, so a player behind a wall walks round (#208)
         const d = Math.hypot(player.gx - x, player.gy - y);
         if (d < bestD) {
           bestD = d;
@@ -2355,7 +2355,7 @@ function characterActions(c, player) {
   if (c.kind === "villager") {
     // Talk (docs/34): a simple action, so E does it when the villager is the nearest thing within reach (the prompt names it, and a door nearer wins);
     // it runs on the host as the talking player, who is told to open the panel (`talkStarted`).
-    if (lineOfSight(player.gx, player.gy, c.gx, c.gy)) out.push(act({ // a wall in the way: not offered, rather than offered and refused (#230)
+    if ((c.layer || 0) === (player.layer || 0) && lineOfSight(player.gx, player.gy, c.gx, c.gy, player.layer || 0)) out.push(act({ // a wall in the way: not offered, rather than offered and refused (#230)
       kind: "talk",
       label: `Talk to ${c.name}`,
       tiles: [[Math.round(c.gx), Math.round(c.gy)]],
