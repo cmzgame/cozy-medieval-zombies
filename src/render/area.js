@@ -23,6 +23,8 @@ let staticKey = "";
 let ambientKey = "";
 let fogKey = "";
 let fogVisible = null;
+let ambientBase = null; // the ambient as the world has it (a lit room 1), composed when the key changes
+let flickerRooms = []; // the lit rooms in the area whose fire flickers: [{ rec: { flicker, seed }, cells: [index, ...] }]
 let lightEpoch = -1;
 let wasDynamic = false; // the last frame had a carried light or a flicker in it: one more composition clears it
 
@@ -39,6 +41,8 @@ export function ensureArea(w, h) {
   ambientKey = "";
   fogKey = "";
   ambientArea = new Uint8Array(areaTiles * areaTiles);
+  ambientBase = new Uint8Array(areaTiles * areaTiles);
+  flickerRooms = [];
   fogArea = new Uint8Array(areaTiles * areaTiles);
 }
 const CORE_GAIN = 1.4;
@@ -142,12 +146,30 @@ export function buildArea(tiles, visible, drawAll, camGx, camGy) {
   }
   // Ambient: the rooms (the world), the fires (the sources), the clock, quantised as the texture is.
   const aKey = `${c0x},${c0y}|${map.worldVersion}|${light.getSourcesVersion()}|${Math.round(light.outdoorAmbient() * 255)}|${Math.round(clock.nightFactor() * 255)}|${areaChunks}|${epoch}`;
+  // A lit room's light dips with its fire's flicker (Michael, 2026-10-27; light.roomFlickerWeight, `world.litRoomFlickerMin`): drawn here
+  // alone, per frame on the wall clock as a flame's own pool is, from the world's steady ambient; the world's light never moves with it.
   if (aKey !== ambientKey) {
     ambientKey = aKey;
+    const rooms = new Map();
     for (let ty = 0; ty < areaTiles; ty++) {
       for (let tx = 0; tx < areaTiles; tx++) {
-        ambientArea[ty * areaTiles + tx] = Math.round(light.ambientAt(ox + tx, oy + ty) * 255);
+        const i = ty * areaTiles + tx;
+        ambientBase[i] = Math.round(light.ambientAt(ox + tx, oy + ty) * 255);
+        const id = map.tileAt(ox + tx, oy + ty).room;
+        const rec = id > 0 ? light.litRoomFlicker(id) : null;
+        if (!rec) continue;
+        if (!rooms.has(id)) rooms.set(id, { rec, cells: [] });
+        rooms.get(id).cells.push(i);
       }
+    }
+    flickerRooms = [...rooms.values()];
+    ambientArea.set(ambientBase);
+    if (!flickerRooms.length) gl.uploadAmbient(ambientArea, areaTiles, areaTiles);
+  }
+  if (flickerRooms.length) {
+    for (const r of flickerRooms) {
+      const w = light.roomFlickerWeight(r.rec.flicker, r.rec.seed, now);
+      for (const i of r.cells) ambientArea[i] = Math.round(ambientBase[i] * w);
     }
     gl.uploadAmbient(ambientArea, areaTiles, areaTiles);
   }

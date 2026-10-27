@@ -197,7 +197,7 @@ function lightTarget(player, target, flame) {
   }
   const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
   const f = prop && prop.fire;
-  // A home light is a switch (docs/43, section 3): a fireplace, a hearth, a lantern post, turned on with a flame, burning nothing.
+  // A home light is a switch (docs/43, section 3): a fireplace, a fire pit, a lantern post, turned on with a flame, burning nothing.
   if (f && f.switch) return f.lit ? { reason: "It is already lit." } : { light: () => map.setFireLit(prop, true), prop, message: `You light the ${map.fireName(prop)}.` };
   if (!f || !(prop.sprite === "campfire" || f.holds)) return { reason: "That cannot be lit." }; // a campfire or a torch: not an oven or a forge
   if (prop.sprite === "campfire") {
@@ -251,7 +251,7 @@ function reaches(player, prop, at) {
 
 // ---- put out and add fuel (docs/43, section 3; Michael, 2026-10-25: "Put out" everywhere, never "douse") ----
 // What a target is to put out, or why not: { reason } or { put(), name, at|prop }. A lantern (in a bracket or on a post), a torch in a
-// bracket or on a post, a campfire (it keeps its fuel), a fireplace or a hearth. Nothing is needed to put a light out.
+// bracket or on a post, a campfire (it keeps its fuel), a fireplace or a fire pit. Nothing is needed to put a light out.
 function putOutTarget(target) {
   if (target.bracket) {
     const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);

@@ -1,0 +1,28 @@
+{
+ "campfire": {
+  "icon": [
+   57,
+   57
+  ],
+  "portrait": false,
+  "held": {
+   "mode": "fixed",
+   "image": "campfire_world.png",
+   "grip": [
+    7,
+    1
+   ]
+  },
+  "sizes": {
+   "campfire_world.png": [
+    16,
+    14
+   ],
+   "campfire_icon.png": [
+    57,
+    57
+   ]
+  },
+  "notes": "the Campfire as a thing (3 by 3 in the bag, 5 by 5 today): the held picture is the packed campfire, two logs bundled with two turns of rope and a carrying loop, hand-pixelled at 16 by 14, hung from the hand by the top of the loop (grip); the stones ride inside the bundle, too small to show. The icon is the campfire itself, unlit, built again at 1.38 times the prop's size (55 by 37, centred on 57 by 57), round 4's bucket exception: the same design drawn larger. No portrait, in the brief's shape and as the Cauldron's (a furniture item carried in the hand). It does not stack: no corner kept clear."
+ }
+}

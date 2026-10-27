@@ -233,12 +233,12 @@ export async function run(game) {
         return { ok: res.ok && !!got, detail: res.ok ? (got ? `${got.id} in the output` : "no item") : res.reason };
       };
       const bench2 = [];
-      for (const id of ["cupboard", "desk", "bookcase", "counter", "chair", "cart", "stall", "barrel", "jack_o_lantern", "torch_post"]) {
+      for (const id of ["cupboard", "desk", "bookcase", "counter", "chair", "cart", "stall", "barrel", "jack_o_lantern", "torch_post", "campfire"]) {
         const r = make(bench, id);
         bench2.push(`${id}: ${r.ok ? "ok" : r.detail}`);
         if (!r.ok) row(`the workbench makes the ${id.replace(/_/g, " ")} (docs/43 section 4)`, false, r.detail);
       }
-      row("the workbench makes the cupboard, desk, bookcase, counter, chair, cart, stall, barrel, jack-o'-lantern, and torch post (docs/43 section 4)", bench2.every((x) => x.endsWith(": ok")), bench2.join("; "));
+      row("the workbench makes the cupboard, desk, bookcase, counter, chair, cart, stall, barrel, jack-o'-lantern, torch post (docs/43 section 4), and the Campfire item, 3 by 3 in its output (2026-10-27)", bench2.every((x) => x.endsWith(": ok")), bench2.join("; "));
       // A made prop lands on tiles that are all free: a counter's three once stood over the workbench's own, and the bench left the map
       // (its record kept), so a second run of this check found another bench behind a wall.
       const benchHeld = bench.tiles.every(([x, y]) => map.peekTile(x, y).prop === bench);

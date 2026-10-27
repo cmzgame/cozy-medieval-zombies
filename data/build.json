@@ -109,29 +109,27 @@
     "seconds": 3,
     "tool": "build"
   },
-  "campfire": {
-    "label": "Campfire",
+  "fireplace": {
+    "label": "Fireplace",
     "kind": "prop",
-    "sprite": "campfire",
-    "cost": {
-      "stone": 3,
-      "log": 2
-    },
-    "fuel": "log",
-    "seconds": 4,
-    "note": "docs/43 section 3 (Michael, 2026-10-25): built on open ground outdoors only, no skill and no tool; its two logs are its starting fuel, not materials (Take apart gives back half its stones)",
-    "stand": "outdoors"
-  },
-  "hearth": {
-    "label": "Hearth",
-    "kind": "prop",
-    "sprite": "hearth",
+    "sprite": "fireplace",
     "stand": "wall",
     "cost": {
       "stone": 6
     },
     "seconds": 8,
-    "note": "docs/43 section 4 (step 3): built inside a room, against a wall; a switch (section 3), out when built; no tool (the builder's default, as the campfire's)"
+    "note": "the Fireplace (Michael, 2026-10-26, the fire rulings under Round rooms: a spec; it replaced the generated hearth): the drawn fireplace, two tiles along a flat wall indoors, its facing from the wall it backs onto (src/setdown.js fitFor); a switch (docs/43 section 3), out when built; cooks; never moved; taken apart out for half its stone; no tool (the builder's default, as the hearth's was)"
+  },
+  "fire_pit": {
+    "label": "Fire pit",
+    "kind": "prop",
+    "sprite": "fire_pit",
+    "stand": "ground",
+    "cost": {
+      "stone": 8
+    },
+    "seconds": 10,
+    "note": "the fire pit (Michael, 2026-10-26, the fire rulings): 2 by 2 on open ground, indoors or out, never on water (roads are fine), clear of a door's two tiles; a switch, out when built; cooks; never moved; taken apart out for half its stone; the cost and the seconds Primary's and the builder's defaults; no tool, as the Fireplace"
   },
   "feed_trough": {
     "label": "Feeding trough",

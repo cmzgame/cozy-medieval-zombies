@@ -18,8 +18,8 @@
   "y": {
    "image": "data/art/village/fireplace.png",
    "anchor": [
-    63.0,
-    50.0
+    56,
+    60
    ]
   },
   "x": {
@@ -35,26 +35,26 @@
   "switch": true,
   "maxFuel": 4,
   "flicker": {
-   "amp": 0.18,
-   "speed": 6
+   "amp": 0.24,
+   "speed": 7
   },
   "at": [
-   42.0,
-   67.5
+   47,
+   83
   ],
   "frames": [
-   "data/art/village/fire_0.png",
-   "data/art/village/fire_1.png",
-   "data/art/village/fire_2.png"
+   "data/art/village/fireplace_fire_0.png",
+   "data/art/village/fireplace_fire_1.png",
+   "data/art/village/fireplace_fire_2.png"
   ],
   "base": [
-   9,
-   15
+   13,
+   20
   ],
   "fps": 6,
   "fuel": "log",
   "hoursPerUnit": 3
  },
  "carry": false,
- "note": "the drawn fireplace (docs/17): backs against a west wall as drawn (y), a north wall as its mirror (x); the hearth's fire, with drawn flames"
+ "note": "the drawn fireplace (art round 6, redrawn to match the fire pit and the campfire): a big stone hearth on a flagstone slab, an arched firebox with its voussoirs and keystone proud of the coursed face, a fire laid on firedogs and an iron crane with a pot, stepped corbels under a thick oak mantle that stands out at the front and both sides (a candle, a jug, a bowl on it), a chimney breast to a weathered slope at 68; backs against a west wall as drawn (y), a north wall as its mirror (x); its three flame frames stand in the firebox, already cut where the jambs, the arch, the logs, and the pot stand in front of them (the mirrored facing needs them mirrored too: see the art's README)"
 }
