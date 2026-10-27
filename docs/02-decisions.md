@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- The demo pass: the dev chest holds every weapon and tool, the basic materials, the potions, seeds, the bearskin rug and one wide painting; your cottage 11 by 7 inside; mana regenerates 0.667 a second and its bar sits between health and stamina (2026-10-26, The demo pass)
 - Any key or click wakes a sleeper early, the screen fading back in; the menu's Burn corpse works with a lit torch in hand as well as a tinderbox (2026-10-26, Waking early, and Burn corpse by a lit torch)
 - Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills (2026-10-26, Fill waterskins skips clean water)
 - From the playtest: a bucket boiled and poured into skins; Burn corpse for a tinderbox alone, or Use a lit torch on a body; sleep fades to black and runs slower; container items open where they lie; a stack dropped on a matching stack fills it (2026-10-26, The playtest's rulings)
@@ -310,6 +311,16 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-26 — The demo pass: the dev chest for trying everything, a roomier cottage, mana twice as fast and between health and stamina, real art for the first fifteen minutes (Michael)
+
+Michael, before showing the game to a friend who makes games: "basically a 'make testing easier and more fun' pass."
+
+- **The dev chest:** "Remove all decorations from the dev chest by default except for the bearskin rug and one painting, preferably one of the ones that is two wall segments wide", and "Add to the dev chest most of the things you need to try stuff ... Keep the spread of weapons, but add the skilling items too." It holds every weapon (the throwing knives 40 and axes 20, from 100 each, to make room), every tool (the hatchet, pickaxe, hoe, scythe, shovel, fishing rod, dirk, smith's hammer, shears, lead, and the bucket), the materials most recipes start from, the three potions, six seeds, the bearskin rug, and the wide castle painting; `tools/check.js` proves the list fits its 10 by 14 grid. It stands beside the spawn, two tiles east.
+- **Your cottage is roomier:** "Is it possible to give it more tiles inside so it's not so cramped?" 11 by 7 inside, from 7 by 5: the living room 7 wide, the bedroom 4, two more chairs, and the yard and fence grown with it. *Primary's reading:* the spawn moved to the living room by the door, so the guide outside stays within three tiles of it (`docs/34`).
+- **Mana regenerates twice as fast:** "Double the mana regen rate. This is probably permanent." `player.manaRegen` 0.667 a second, two points every three seconds (`docs/42`).
+- **The mana bar sits between health and stamina:** "move mana up and stamina to the bottom of that stack."
+- **Real art for the first fifteen minutes:** "Anything that you'd see in the first 15 minutes of play should ideally have real art, excluding dev box and bag. Barrel is one of the oldest models in the game." Drawn this time by Primary's own art agents (art round 4) rather than Claude Design, from a brief written to its house style (`tools/art-gen/round4/`, the previews in `docs/art/previews/round4/`): the weapons, the tools, the food and materials a player meets first, and the home's barrel, chest, shelf, and woodpile. Each item came as its icon, its picture, and for a held thing its portrait; what was left generated, and why, is in the pull request.
 
 ### 2026-10-26 — Waking early, and Burn corpse by a lit torch (Michael)
 

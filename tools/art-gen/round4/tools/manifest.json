@@ -1,0 +1,440 @@
+{
+ "pickaxe": {
+  "icon": [
+   19,
+   38
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "angles",
+   "angles": [
+    {
+     "src": "pickaxe_world.png",
+     "grip": [
+      9,
+      23
+     ]
+    },
+    {
+     "src": "pickaxe_world_22_5.png",
+     "grip": [
+      4,
+      22
+     ]
+    },
+    {
+     "src": "pickaxe_world_45.png",
+     "grip": [
+      6,
+      18
+     ]
+    },
+    {
+     "src": "pickaxe_world_67_5.png",
+     "grip": [
+      7,
+      14
+     ]
+    },
+    {
+     "src": "pickaxe_world_90.png",
+     "grip": [
+      7,
+      9
+     ]
+    }
+   ]
+  },
+  "sizes": {
+   "pickaxe_world.png": [
+    19,
+    31
+   ],
+   "pickaxe_world_22_5.png": [
+    19,
+    30
+   ],
+   "pickaxe_world_45.png": [
+    25,
+    25
+   ],
+   "pickaxe_world_67_5.png": [
+    30,
+    19
+   ],
+   "pickaxe_world_90.png": [
+    31,
+    19
+   ]
+  },
+  "notes": "Iron pick head, two points, on a wooden haft with a leather wrap. Head up at 0 deg; grip on the wrap. Icon = the 0 deg world picture pixel for pixel, centred. Portrait = the same shape at 0 deg, drawn at 1.15x."
+ },
+ "hoe": {
+  "icon": [
+   19,
+   57
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "angles",
+   "angles": [
+    {
+     "src": "hoe_world.png",
+     "grip": [
+      11,
+      34
+     ]
+    },
+    {
+     "src": "hoe_world_22_5.png",
+     "grip": [
+      5,
+      36
+     ]
+    },
+    {
+     "src": "hoe_world_45.png",
+     "grip": [
+      9,
+      32
+     ]
+    },
+    {
+     "src": "hoe_world_67_5.png",
+     "grip": [
+      10,
+      23
+     ]
+    },
+    {
+     "src": "hoe_world_90.png",
+     "grip": [
+      11,
+      11
+     ]
+    }
+   ]
+  },
+  "sizes": {
+   "hoe_world.png": [
+    14,
+    46
+   ],
+   "hoe_world_22_5.png": [
+    21,
+    47
+   ],
+   "hoe_world_45.png": [
+    36,
+    42
+   ],
+   "hoe_world_67_5.png": [
+    43,
+    29
+   ],
+   "hoe_world_90.png": [
+    46,
+    14
+   ]
+  },
+  "notes": "A flat iron plate hung at right angles from a gooseneck at the haft's top, its worn edge bright. Blade up at 0 deg, plate to the left (-u, the lit side); grip a third of the way up. Icon = the 0 deg world picture pixel for pixel, centred. Portrait = the same shape at 0 deg, drawn at 1.10x, its shaft shortened to 30 so the head stays big."
+ },
+ "scythe": {
+  "icon": [
+   19,
+   57
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "angles",
+   "angles": [
+    {
+     "src": "scythe_world.png",
+     "grip": [
+      15,
+      41
+     ]
+    },
+    {
+     "src": "scythe_world_22_5.png",
+     "grip": [
+      5,
+      39
+     ]
+    },
+    {
+     "src": "scythe_world_45.png",
+     "grip": [
+      8,
+      35
+     ]
+    },
+    {
+     "src": "scythe_world_67_5.png",
+     "grip": [
+      9,
+      27
+     ]
+    },
+    {
+     "src": "scythe_world_90.png",
+     "grip": [
+      10,
+      15
+     ]
+    }
+   ]
+  },
+  "sizes": {
+   "scythe_world.png": [
+    19,
+    52
+   ],
+   "scythe_world_22_5.png": [
+    23,
+    49
+   ],
+   "scythe_world_45.png": [
+    39,
+    44
+   ],
+   "scythe_world_67_5.png": [
+    48,
+    33
+   ],
+   "scythe_world_90.png": [
+    52,
+    19
+   ]
+  },
+  "notes": "A long curved blade off the top of a gently bent snath, the nib (second hand grip) standing off part way up, a leather wrap at the end grip where the hand holds. Icon = the 0 deg world picture pixel for pixel, centred. Portrait = the same shape at 45 deg, drawn at 1.10x, its shaft shortened to 33 so the head stays big."
+ },
+ "fishing_rod": {
+  "icon": [
+   19,
+   57
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "angles",
+   "angles": [
+    {
+     "src": "fishing_rod_world.png",
+     "grip": [
+      3,
+      47
+     ]
+    },
+    {
+     "src": "fishing_rod_world_22_5.png",
+     "grip": [
+      4,
+      41
+     ]
+    },
+    {
+     "src": "fishing_rod_world_45.png",
+     "grip": [
+      6,
+      30
+     ]
+    },
+    {
+     "src": "fishing_rod_world_67_5.png",
+     "grip": [
+      7,
+      14
+     ]
+    },
+    {
+     "src": "fishing_rod_world_90.png",
+     "grip": [
+      7,
+      3
+     ]
+    }
+   ]
+  },
+  "sizes": {
+   "fishing_rod_world.png": [
+    11,
+    55
+   ],
+   "fishing_rod_world_22_5.png": [
+    28,
+    49
+   ],
+   "fishing_rod_world_45.png": [
+    44,
+    37
+   ],
+   "fishing_rod_world_67_5.png": [
+    53,
+    19
+   ],
+   "fishing_rod_world_90.png": [
+    55,
+    11
+   ]
+  },
+  "notes": "A long thin hazel rod whose top third bends over, a cork handle, line wound on the winder above it, a short loose line and a red float hanging from the tip ring (in the tool's own frame, so it trails along the rod when tilted). Icon = the 0 deg world picture pixel for pixel, centred. Portrait = the same shape at 45 deg, drawn at 1.10x, its shaft shortened to 38 so the head stays big."
+ },
+ "hammer": {
+  "icon": [
+   19,
+   38
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "angles",
+   "angles": [
+    {
+     "src": "hammer_world.png",
+     "grip": [
+      8,
+      22
+     ]
+    },
+    {
+     "src": "hammer_world_22_5.png",
+     "grip": [
+      4,
+      22
+     ]
+    },
+    {
+     "src": "hammer_world_45.png",
+     "grip": [
+      6,
+      19
+     ]
+    },
+    {
+     "src": "hammer_world_67_5.png",
+     "grip": [
+      7,
+      15
+     ]
+    },
+    {
+     "src": "hammer_world_90.png",
+     "grip": [
+      7,
+      8
+     ]
+    }
+   ]
+  },
+  "sizes": {
+   "hammer_world.png": [
+    16,
+    30
+   ],
+   "hammer_world_22_5.png": [
+    18,
+    30
+   ],
+   "hammer_world_45.png": [
+    25,
+    26
+   ],
+   "hammer_world_67_5.png": [
+    29,
+    20
+   ],
+   "hammer_world_90.png": [
+    30,
+    16
+   ]
+  },
+  "notes": "Smith's cross-peen hammer: a square polished face on the left, the wedge peen on the right, a plain wooden handle swelled at the end. Head up at 0 deg. Icon = the 0 deg world picture pixel for pixel, centred. Portrait = the same shape at 0 deg, drawn at 1.25x."
+ },
+ "knife": {
+  "icon": [
+   19,
+   19
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "rotate",
+   "image": "knife_world.png",
+   "grip": [
+    3,
+    12
+   ]
+  },
+  "sizes": {
+   "knife_world.png": [
+    7,
+    18
+   ]
+  },
+  "notes": "The Dirk (item id `knife`): a straight single-edged steel blade, the back on the left, a small brass guard, a carved dark-wood grip, a brass cap pommel. Hand-pixelled at 1x, point up; rotate mode turns it about the grip. Icon = the world picture centred (it does not stack). Portrait = the same design as a shape on the diagonal at 2.35x."
+ },
+ "shears": {
+  "icon": [
+   19,
+   38
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "fixed",
+   "image": "shears_world.png",
+   "grip": [
+    2,
+    18
+   ]
+  },
+  "sizes": {
+   "shears_world.png": [
+    9,
+    29
+   ]
+  },
+  "notes": "Sheep shears of the old spring kind: one bar of iron bent into a bow at the bottom, two leather-wrapped arms, two long blades sprung a little apart at the points. Upright, points up; grip on the left arm's wrap. Icon = the world picture pixel for pixel, centred. Portrait = the same shape drawn at 1.20x."
+ },
+ "lead": {
+  "icon": [
+   19,
+   38
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "fixed",
+   "image": "lead_world.png",
+   "grip": [
+    9,
+    11
+   ]
+  },
+  "sizes": {
+   "lead_world.png": [
+    17,
+    25
+   ]
+  },
+  "notes": "A coiled hemp lead (darker than the rope belt so the two never mix up): three turns, the tail hanging from the front turn into a spliced eye bound with pale twine. Held fixed by the coil's front turn, so the tail and eye hang to about the feet. Icon = the world picture pixel for pixel, centred. Portrait = the same shape drawn at 1.50x."
+ },
+ "bucket": {
+  "icon": [
+   38,
+   38
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "fixed",
+   "image": "bucket_world.png",
+   "grip": [
+    7,
+    1
+   ]
+  },
+  "sizes": {
+   "bucket_world.png": [
+    14,
+    19
+   ]
+  },
+  "notes": "An empty coopered bucket: seven staves, two iron hoops, an iron bail from ear to ear, the dark inside showing at the mouth. World picture 14x19 so it hangs from the hand (14 px above the feet) without sinking far below them; grip on the top of the bail. The 2 x 2 icon is the same design drawn at 1.45x (the world picture would sit lost in a 38 px square), the portrait at 1.60x."
+ }
+}
