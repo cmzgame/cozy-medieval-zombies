@@ -17,7 +17,7 @@ Measured from the floor at the wall's foot. **Ruled:** the wall, the door, the w
 - **Torch bracket: 48** (3 halves, from 32; *default*), riding higher on the taller wall, under the window's top.
 - **Fences: 36, unchanged.** A fence is not a wall's height and keeps its own art (`art/11`, `wall_fence`). The gate and boards on a fence too.
 - **Wall thickness unchanged:** stone 16, wood 14, log 18 (`02`, Wall thickness per material).
-- **The drawn furniture keeps its sizes** (rounds 4 and 5): the tallest, the shelf and the cupboard, are about a figure and a quarter, about 60% of a 96 wall, a cupboard against a ceiling; nothing is scaled (`art/12`).
+- **The drawn furniture keeps its sizes** (rounds 4 and 5): the tallest, the shelf and the cupboard, are about a figure and a quarter, about 60% of a 96 wall, a cupboard against a ceiling; nothing is scaled (`art/13`).
 
 **Every wall material conforms** (a fence is not a wall: 36, above): oak, spruce, mahogany, Winter Pine, Bloodbark, daub, log, stone, and the castle's future ashlar. The castle plan's taller materials (`29-world/03`, 112 px curtain walls and 128 px towers) are withdrawn: a castle is taller by storeys (`49`), not by walls. Its arrow slit stays an art variant of the window, at the window's opening (section 4 has the one question it raises).
 
@@ -39,7 +39,7 @@ Measured from the floor at the wall's foot. **Ruled:** the wall, the door, the w
 
 ## 5. What changes in the game (one build, with the art)
 
-- **Data:** `height: 96` in every `wall` block of `data/sprites/wall_*.json` for the eight wall materials (not `wall_fence`, `wall_boards`, `wall_boards_gate`); the regenerated images and anchors from `art/12` dropped in by `27`'s checklist.
+- **Data:** `height: 96` in every `wall` block of `data/sprites/wall_*.json` for the eight wall materials (not `wall_fence`, `wall_boards`, `wall_boards_gate`); the regenerated images and anchors from `art/13` dropped in by `27`'s checklist.
 - **Constants** (`src/placeholders.js`): `DOOR_TOP` 48 to 64, `WINDOW_SILL` 22 to 24, `WINDOW_TOP` 51 to 64, `BRACKET_UP` 32 to 48. These feed the dev walls' openings (`generateWall`), the swung leaves and shutters (`render/walls.js`), the open-door click tests, and the flight through an opening (`archery.wallStops`).
 - **The wall's height where code reads it:** `data/combat.json`'s `bow.wallHeight` 80 to 96 (it feeds `archery.tunables.wallHeight`); `interact.js` `WALL_FACE` 80 to 96 (the door and window faces under the cursor); `paintings.js` `WALL_FACE` 80 to 96 (the face test for hanging a painting; at 80 the top 16 px would take none); `placement.js`'s own `|| 72` fallback and `render/walls.js`'s, to 96; `render/scene.js` `night.climb` 70 to 84 (a pool climbs seven eighths of the wall, as 56 of 64 and 70 of 80 were; the one setting also climbs trees and tall props, which brighten by the same ratio under a torch, accepted).
 - **A fence stops an arrow at its own height, not the wall's:** `archery.wallStops` tests every wall at `wallHeight` today, so a 36 px fence would stop a flight under 96; it reads the wall's own sheet height (`wall.height` of its definition) instead. Pre-existing, made worse by 96, and needed by `49`'s parapet.
