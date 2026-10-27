@@ -34,7 +34,7 @@ const WORDS = { floor_farm: "tilled soil", floor_farm_y: "tilled soil", floor_wa
 // A target of a Use row, named: a sprite id or a tag, as words.
 function nameOfOn(on) {
   if (on === "fire") return "fire";
-  if (on === "bracket") return "wall bracket";
+  if (on === "bracket") return "a torch on a wall"; // the light verb's rows: a torch in a bracket, a player's or the map's (#523: no Wall bracket item)
   if (on === "character") return "person";
   if (on === "zombie") return "the dead";
   if (on === "corpse") return "a body of the dead";
@@ -290,7 +290,7 @@ export function cardFor(entry, opts = {}) {
   if (def.rug) lines.push(line(seg("Place", "word"), ": lay on the floor."));
   if (def.painting) lines.push(line(seg("Place", "word"), ": hang on a wall's face."));
   if (def.place === "campfire") lines.push(line(seg("Place", "word"), ": set down outdoors as a campfire, cold and empty.")); // docs/43, section 3
-  // docs/43, section 4: set down as its prop, by where it may stand; food placed as decoration does not come back food; a bracket hung as a painting is.
+  // docs/43, section 4: set down as its prop, by where it may stand; food placed as decoration does not come back food; a torch on a wall.
   if (def.place && def.place !== "campfire") lines.push(line(seg("Place", "word"), def.stand === "natural" ? ": plant on open grass outdoors." : def.stand === "outdoors" ? ": set down outdoors." : ": set down on the floor."));
   // A station of your own set down from the bag (the cauldron, docs/47 section 3): what it makes and the fire under it, from its definition and the recipes.
   const placed = def.place && def.place !== "campfire" ? getDefSafe(def.place) : null;
@@ -307,7 +307,7 @@ export function cardFor(entry, opts = {}) {
     lines.push(line(`Grows into ${n ? an(n) : "a tree"} in about ${trees.sapling.days} game days; it waits while anyone stands on it.`));
   }
   if (def.placeAs) lines.push(line(seg("Place as decoration", "word"), ": set down on the floor; picked up again, it is a decoration, not food."));
-  if (def.bracket) lines.push(line(seg("Place", "word"), ": hang on a wall's face, to hold a torch."));
+  if (def.wallMount) lines.push(line(seg("Place torch", "word"), ": on a wall's face, in a bracket that comes with it; picked up again, the bracket goes too.")); // #523
   // The hands, and where a two-handed thing rides the belt (2026-10-25: a main-hand slot draws it into both hands, the utility slot stores
   // it, an off-hand slot refuses it).
   if (def.hands) {

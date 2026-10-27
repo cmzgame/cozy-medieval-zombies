@@ -24,7 +24,7 @@ Every fire kind is a definition, not a case. A sprite definition declares `fire:
 | Fire | Radius | Burns | Cooks | Placed |
 |---|---|---|---|---|
 | Torch, held | 3 | **itself, while lit**: it burns down (below) | no | either hand; lit with a tinderbox (`T`); on the belt at 0.6 of its light (`world.beltLight`, a little over half, so its 1.8 tiles are above the dark radius's 1.5: a belt torch sees a bit further than none, Michael, 2026-10-17, #158), unseen |
-| Torch, mounted | 3 | itself, while lit, at the wall rate | no | a bracket on a wall edge, or a torch post; a fireball landing on one that is out lights it |
+| Torch, mounted | 3 | itself, while lit, at the wall rate | no | a bracket on a wall edge (the map's own, or the one a torch put on a wall with Place torch brings with it, #523), or a torch post; a fireball landing on one that is out lights it |
 | **Lantern** (the village's own) | 3.4 (`lantern_post.json`'s `fire.radius`, the one number for post and bracket), steady, no flicker | **none**: a switch, put out and lit again by hand (`43`) | no | a lantern bracket on a wall edge or a lantern post (`lantern_post`); placed by the map generator, not taken, mounted, or carried off |
 | Campfire | 4 | logs, three hours each, holds six | yes | outdoors; made at the workbench (three stone, two logs) and set down from the bag, cold; a fireball landing on one with fuel in it lights it |
 | Fireplace | its whole room, plus a pool of 3 through its openings | **none**: a switch, lit with a flame and put out with nothing (`43`) | yes | built indoors against a flat wall |

@@ -1,5 +1,5 @@
 {
-  "version": "b28ccd77",
+  "version": "f1c11c1a",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3364, "stamp": "72416da6"},
@@ -9,12 +9,12 @@
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
     "data/ground.json": {"size": 3492, "stamp": "fb2c261c"},
     "data/interactions.json": {"size": 5308, "stamp": "85b232e4"},
-    "data/items.json": {"size": 68361, "stamp": "c4f58ca0"},
+    "data/items.json": {"size": 68114, "stamp": "e54bbc9e"},
     "data/kit.json": {"size": 939, "stamp": "628d28a8"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
     "data/loot.json": {"size": 8999, "stamp": "8213dd05"},
     "data/poses.json": {"size": 6215, "stamp": "170f76da"},
-    "data/recipes.json": {"size": 29396, "stamp": "9e21d440"},
+    "data/recipes.json": {"size": 29175, "stamp": "0a51fe6f"},
     "data/references.json": {"size": 899, "stamp": "81bd77a4"},
     "data/sounds.json": {"size": 9375, "stamp": "95740ac7"},
     "data/tuning.json": {"size": 7273, "stamp": "b78bea50"},

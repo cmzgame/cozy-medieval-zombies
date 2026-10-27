@@ -10,8 +10,8 @@ import * as map from "../map.js";
 import { tileKey } from "../visibility.js";
 import { getItem } from "../items.js";
 import * as gl from "../gl.js";
-import { flameFrame, frameQuad } from "./scene.js";
-import { postAt } from "./walls.js";
+import { DEPTH_BIAS, DEPTH_ROOM, flameFrame, frameQuad } from "./scene.js";
+import * as depth from "./depth.js"; // a figure's billboard through its front, an arrow's through its ground point (docs/51)
 import { seenAlpha } from "../sight.js";
 import { sight as sightTuning } from "../tuning.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
@@ -45,10 +45,12 @@ export function arrowDrawables(arrows, visible, out) {
     const alpha = archeryTunables.shadowAlpha * (1 - 0.6 * h);
     const world = [a.gx, a.gy];
     const key = (a.gx + a.gy) * 1000;
+    const surf = depth.billboard(a.gx, a.gy); // the plane through its ground point: its picture z above it is z nearer (docs/51)
     out.push({
       key: key + 0.2,
       kind: "arrowShadow",
       emit() {
+        gl.setPass(gl.PASS_FLAT); // on the ground: the flat pass, in its place in the order (docs/51 section 4)
         gl.poly([[x - rx, y], [x - rx / 2, y - ry], [x + rx / 2, y - ry], [x + rx, y], [x + rx / 2, y + ry], [x - rx / 2, y + ry]], gl.rgb("#000000", alpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
       },
     });
@@ -56,6 +58,7 @@ export function arrowDrawables(arrows, visible, out) {
       key: key + 3,
       kind: "arrow",
       emit() {
+        gl.surface(surf, 0);
         // A projectile drawn to flicker (the fireball: three frames a direction) loops them by the wall clock, as flames do.
         const fl = sheet.flicker ? `_${Math.floor(performance.now() / 90) % sheet.flicker}` : "";
         // A thrown knife or axe turns along its arc (docs/24 section 1): its step by its own age, not the way it points.
@@ -106,47 +109,6 @@ export function emitMarker(m) {
 const SWING_OUTLINE = [0.38, 1, 0.38, 1];
 const SWING_OUTLINE_OFFSETS = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
 
-// A figure's sort sum, kept on the right side of the walls and posts beside
-// it (Michael, 2026-10-12: standing against a wall's outer face near the top
-// end of a segment, or just round a corner, the wall or the post drew over
-// him). A wall sorts by its midpoint, a post by its vertex, a figure by where
-// it stands, and near a segment's end those disagree with what is in front.
-// Each wall segment and post is a box on the ground (the thickness either side
-// of its line); a figure past the box's near side on either axis stands in
-// front of it and sorts just after it, one past its far side on either axis
-// stands behind it and sorts just before, and one that is both (beyond a
-// segment's end, round a corner) or neither leaves it out.
-const WALL_HALF = 0.28; // tiles: half the thickest wall (18 px), a little over
-function besideWalls(gx, gy) {
-  const s = gx + gy;
-  let lo = -Infinity;
-  let hi = Infinity;
-  const side = (x0, x1, y0, y1, k) => {
-    if (gx < x0 - 1 || gx > x1 + 1 || gy < y0 - 1 || gy > y1 + 1) return; // too far to overlap on screen
-    const front = gx >= x1 || gy >= y1;
-    const behind = gx <= x0 || gy <= y0;
-    if (front && !behind) lo = Math.max(lo, k);
-    else if (behind && !front) hi = Math.min(hi, k);
-  };
-  const x0 = Math.round(gx);
-  const y0 = Math.round(gy);
-  for (let ty = y0 - 1; ty <= y0 + 2; ty++) {
-    for (let tx = x0 - 1; tx <= x0 + 2; tx++) {
-      const t = map.tileAt(tx, ty);
-      // A west wall lies on x = tx - 0.5 over y in [ty - 0.5, ty + 0.5], a north
-      // wall on y = ty - 0.5 over x in [tx - 0.5, tx + 0.5]; both sort at
-      // tx + ty - 0.5. The post at the tile's top vertex sorts at tx + ty - 1.
-      if (t.w) side(tx - 0.5 - WALL_HALF, tx - 0.5 + WALL_HALF, ty - 0.5, ty + 0.5, tx + ty - 0.5);
-      if (t.n) side(tx - 0.5, tx + 0.5, ty - 0.5 - WALL_HALF, ty - 0.5 + WALL_HALF, tx + ty - 0.5);
-      if (postAt(tx, ty, 0)) side(tx - 0.5 - WALL_HALF, tx - 0.5 + WALL_HALF, ty - 0.5 - WALL_HALF, ty - 0.5 + WALL_HALF, tx + ty - 1 + 0.0005);
-    }
-  }
-  if (lo > hi) return s; // between things that disagree: where it stands
-  if (s <= lo) return lo + 0.01;
-  if (s >= hi) return hi - 0.01;
-  return s;
-}
-
 // A burning figure's flames, embers, and smoke (fire.js): each a small sprite at
 // a height above a world point, unlit (fire is its own light) and unfogged,
 // sorted just after the figure. The flames ride the figure; the rest stay put.
@@ -175,10 +137,12 @@ export function fireDrawables(particles, visible, out) {
       color = [1, 1, 1, 0.8 * (1 - u)];
     }
     const world = [gx, gy];
+    const surf = depth.figure(gx, gy); // the burning body's own surface, a little nearer than the body (docs/51 section 3)
     out.push({
-      key: besideWalls(gx, gy) * 1000 + 2.5,
+      key: (gx + gy) * 1000 + 2.5, // the depth buffer orders it against the walls (docs/51); the key orders the translucent pass
       kind: "fire",
       emit() {
+        gl.surface(surf, DEPTH_BIAS.figure + DEPTH_BIAS.particle);
         frameQuad(getSheet("burn"), name, x, y, { world, heights: 0, color, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
       },
     });
@@ -267,22 +231,28 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
     const carried = e.carrying || null;
     const carrySheet = carried ? getSheet(carried.sprite, carried.tiles.length) : null;
     const lift = joints && joints.main ? Math.max(24, -joints.main.y + 2) : 30;
+    // Its depth (docs/51 section 3): a billboard through the front of its body, (gx + r, gy + r), over the ground by the figure's bias; its
+    // held things, its torch's flame, and what it carries on the same surface, each a step nearer in the order drawn.
+    const surf = depth.figure(e.gx, e.gy);
     out.push({
-      key: besideWalls(e.gx, e.gy) * 1000 + (e.dead ? 0 : 2),
+      key: (e.gx + e.gy) * 1000 + (e.dead ? 0 : 2), // where it stands: the depth buffer orders it against the walls and posts (docs/51)
       kind: "entity",
       entity: e,
       rect,
       vis: true,
       occluded: false,
       emit() {
+        gl.surface(surf, DEPTH_BIAS.figure, DEPTH_ROOM.figure);
         const world = [e.gx, e.gy];
         const target = client.targets.has(e.id) && fade >= sightTuning.seenAt;
         if (target) {
           // The next swing would hit this one (docs/14): a one-pixel outline, eight copies of the
-          // sprite flat green just behind it, unlit and unfogged so it reads at night.
+          // sprite flat green just behind it, unlit and unfogged so it reads at night (a step behind its surface, docs/51).
+          gl.setBehind(true);
           for (const [ox, oy] of SWING_OUTLINE_OFFSETS) {
             frameQuad(sheet, name, x + ox, y + oy, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: SWING_OUTLINE, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID }, r.flip);
           }
+          gl.setBehind(false);
         }
         if (hl.isCharacter(e.id) && !target) hl.outline(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0 }, r.flip); // Object Highlight: the one under the cursor that can be acted on (#301) // the green swing outline wins: it says this swing lands (docs/41; the review of #390)
         const drawHeld = (h) => {
@@ -296,6 +266,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
         if (carried) {
           // Each footprint slice at its offset from the anchor, lifted over the head.
           const [cw, ch] = carried.footprint;
+          gl.holdOrder(true); // its slices side by side: one step
           let i = 0;
           for (let dy = 0; dy < ch; dy++) {
             for (let dx = 0; dx < cw; dx++, i++) {
@@ -305,6 +276,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
               frameQuad(carrySheet, cn, Math.round(o.x), Math.round(o.y) - lift, { world, heights: cf ? [cf[3] + lift, cf[3] + lift, lift, lift] : lift, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
             }
           }
+          gl.holdOrder(false);
         }
       },
     });

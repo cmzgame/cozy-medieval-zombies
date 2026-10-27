@@ -149,7 +149,8 @@ export function fireHoursLeft(prop) {
 // A bracket is state on a wall edge: `wall.bracket = { side, torch }`, where
 // side is +1 for the near side of the edge (south of a north edge, east of a
 // west edge) and -1 for the far side. A post is a prop whose fire `holds` a
-// torch. A torch burns down while it is lit; a lantern (`bracket.lantern`, a `lantern_post`) burns nothing and is put out and lit again
+// torch. A torch a player put on a wall (Place torch, docs/43 section 4, #523) is a bracket of its own, `made`, drawn with it and gone
+// with it: taken, burnt out, or its wall gone. A torch in any bracket keeps its entry's `uid`, `wear`, and `lit` there. A torch burns down while it is lit; a lantern (`bracket.lantern`, a `lantern_post`) burns nothing and is put out and lit again
 // (docs/43, section 3, 2026-10-25, striking 2026-10-17's "never goes out": light will draw the dead, so a light must be snuffable).
 
 const bracketSet = new Set(); // { tx, ty, edge, wall }
@@ -171,10 +172,15 @@ export function burnHolders(dt) {
     const before = hundredth(br.wear);
     br.wear += k;
     if (br.wear >= 1) {
-      br.torch = false;
-      delete br.wear;
-      delete br.lit;
-      touchWall(b.wall);
+      if (br.made) {
+        removeBracket(b); // a torch a player put on a wall: its bracket goes with it (#523)
+      } else {
+        br.torch = false;
+        delete br.wear;
+        delete br.lit;
+        delete br.uid;
+        touchWall(b.wall);
+      }
       emit("torchSpent", { x: b.tx, y: b.ty });
     } else if (b.wall.at && before !== hundredth(br.wear)) markDirty(b.wall.at[0], b.wall.at[1]);
     else unsavedWall(b.wall, false);
@@ -229,19 +235,45 @@ export function addBracket(tx, ty, edge, side, torch = false, lantern = false, l
   return b;
 }
 
-// A bracket a player made, hung on the camera face of a wall (docs/43 section 4; src/setdown.js): empty, `made`, so it is theirs to take down
-// again. Touches the wall's chunk, so a guest's replica gets it and rebuilds its bracket list (net.js).
-export function hangBracket(tx, ty, edge) {
+// A torch put on the camera face of a wall from a player's own hands, belt, or bag (Place torch, docs/43 section 4, #523; src/setdown.js),
+// on a bracket drawn with it: `made`, so the bracket goes with the torch. The torch keeps its own entry's uid, its wear, and whether it is
+// lit. Touches the wall's chunk, so the save has it and a guest's replica gets it and rebuilds its bracket list (net.js).
+export function mountTorch(tx, ty, edge, entry) {
   const wall = peekTile(tx, ty) && peekTile(tx, ty)[edge];
-  if (!wall || wall.bracket) return null;
-  wall.bracket = { side: 1, torch: false, made: true };
+  if (!wall || wall.bracket || !entry) return null;
+  wall.bracket = { side: 1, torch: true, made: true, wear: entry.wear || 0, lit: !!entry.lit };
+  if (entry.uid != null) wall.bracket.uid = entry.uid;
   const b = { tx, ty, edge, wall };
   bracketSet.add(b);
   touch(tx, ty);
   return b;
 }
 
-// A bracket taken off its wall (an empty one a player made). Touches the wall's chunk.
+// The torch in a bracket as an entry, put out (a torch leaving a holder is doused, #156), with its own uid when it kept one, else a new one.
+export function torchEntryOf(br) {
+  return { id: "torch", count: 1, wear: br.wear || 0, lit: false, uid: br.uid != null ? br.uid : nextId("e") };
+}
+
+// The floor tile a bracket looks onto: its own tile for the near side (+1), the one across the edge for the far side.
+export function bracketFloor(b) {
+  if (b.wall.bracket.side > 0) return [b.tx, b.ty];
+  return b.edge === "n" ? [b.tx, b.ty - 1] : [b.tx - 1, b.ty];
+}
+
+// A wall about to go (taken down, struck down, or stamped over by a door or a window): the torch in its bracket falls to the floor on the
+// bracket's side, put out, as a painting falls (#523: a torch is never lost with its wall); the bracket is forgotten. A lantern is the
+// village's and goes with its wall.
+function releaseBracket(wall) {
+  const br = wall && wall.bracket;
+  if (!br) return;
+  for (const b of [...bracketSet]) {
+    if (b.wall !== wall) continue;
+    bracketSet.delete(b);
+    if (br.torch && !br.lantern) dropItem(...bracketFloor(b), torchEntryOf(br));
+  }
+}
+
+// A bracket taken off its wall (a torch a player put there, taken with it). Touches the wall's chunk.
 export function removeBracket(b) {
   if (!b || !b.wall || !b.wall.bracket) return false;
   delete b.wall.bracket;
@@ -300,9 +332,12 @@ export function setHolder(target, has, entry = null) {
     if (has && entry) {
       b.wear = entry.wear || 0;
       b.lit = !!entry.lit;
+      if (entry.uid != null) b.uid = entry.uid; // the torch keeps its own entry's uid in the bracket (#523)
+      else delete b.uid;
     } else {
       delete b.wear;
       delete b.lit;
+      delete b.uid;
     }
     touchWall(target.bracket.wall);
   } else {
@@ -989,7 +1024,7 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf
     // Stamped over a wall (or a broken opening): the new one is of the same material, so a door in a wood wall is a wood door,
     // and it remembers the wall it replaced, which the removal tool puts back (never a hole where a wall stood).
     sprite = existing.sprite;
-    for (const b of [...bracketSet]) if (b.wall === existing) bracketSet.delete(b);
+    releaseBracket(existing); // a torch on it falls to the floor (#523)
   }
   const wall = createWall(kind, sprite);
   if (existing && existing.kind === "wall") {
@@ -1053,13 +1088,13 @@ function releaseHangings(tx, ty, edge) {
 }
 
 // Take a wall, door, or window off an edge, and whatever hangs on it (its
-// boards go with it, a torch bracket is forgotten, a painting falls to the floor).
+// boards go with it, a torch bracket is forgotten and the torch in it falls to the floor, a painting falls to the floor).
 export function destroyWall(tx, ty, edge, restoreUnder = false) {
   const t = growTile(tx, ty);
   const wall = t[edge];
   if (!wall) return false;
   releaseHangings(tx, ty, edge);
-  for (const b of [...bracketSet]) if (b.wall === wall) bracketSet.delete(b);
+  releaseBracket(wall);
   t[edge] = null;
   if (restoreUnder && wall.under) {
     // The removal tool takes a built door or window out of the wall it was stamped into, and the wall is back.
