@@ -1,1 +1,46 @@
-{"name": "cauldron", "placeholder": {"kind": "box", "color": "#34343a", "height": 22, "inset": 10, "label": "Cauldron"}, "fire": {"radius": 1.6, "burns": true, "cooks": false, "maxFuel": 3, "flicker": {"amp": 0.18, "speed": 6}, "fuel": "log", "hoursPerUnit": 2}, "station": "cauldron", "carry": false, "item": "cauldron", "note": "the cauldron (docs/47 section 3, #481): one prop with its fire under it, burning logs as the oven does and cooking nothing (`cooks` false: it boils no water and bakes nothing), brewing only while lit. The witch's at the mere is the map's (tools/mapgen/valley.py), never carried and not a village station; your own is the Cauldron item set down with Place (src/setdown.js) and picked up while it is out and empty. A dev box until its art is drawn"}
+{
+ "name": "cauldron",
+ "anchorVertex": "top",
+ "facings": [
+  "y"
+ ],
+ "drawings": {
+  "y": {
+   "image": "data/art/village/cauldron.png",
+   "anchor": [
+    23,
+    18
+   ]
+  }
+ },
+ "fire": {
+  "radius": 1.6,
+  "burns": true,
+  "cooks": false,
+  "maxFuel": 3,
+  "flicker": {
+   "amp": 0.18,
+   "speed": 6
+  },
+  "fuel": "log",
+  "hoursPerUnit": 2,
+  "at": [
+   23,
+   37
+  ],
+  "frames": [
+   "data/art/village/cauldron_fire_0.png",
+   "data/art/village/cauldron_fire_1.png",
+   "data/art/village/cauldron_fire_2.png"
+  ],
+  "base": [
+   14,
+   12
+  ],
+  "fps": 6
+ },
+ "station": "cauldron",
+ "carry": false,
+ "item": "cauldron",
+ "note": "the cauldron (docs/47 section 3, #481): one prop with its fire under it, burning logs as the oven does and cooking nothing (`cooks` false: it boils no water and bakes nothing), brewing only while lit. The witch's at the mere is the map's (tools/mapgen/valley.py), never carried and not a village station; your own is the Cauldron item set down with Place (src/setdown.js) and picked up while it is out and empty. Drawn (art round 5): a black iron pot on three short legs over a ring of fieldstones, three logs and ash under it, two lugs and a bail; one drawing, lit from the top left and never mirrored (round, so one facing); its three flame frames stand under the pot, already cut where the pot, its legs, and the front log stand in front of them"
+}

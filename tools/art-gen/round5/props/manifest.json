@@ -1,0 +1,58 @@
+{
+ "cauldron": {
+  "icon": [
+   38,
+   38
+  ],
+  "portrait": false,
+  "held": {
+   "mode": "fixed",
+   "image": "cauldron_world.png",
+   "grip": [
+    7,
+    1
+   ]
+  },
+  "sizes": {
+   "cauldron_world.png": [
+    16,
+    18
+   ],
+   "cauldron_icon.png": [
+    38,
+    38
+   ]
+  },
+  "notes": "the Cauldron as a thing (2 by 2 in the bag): the prop's black iron pot on three legs with two lugs and its bail up, no fire ring; the world picture is hand-pixelled at 16 by 18 and hangs from the hand by the top of the bail (grip), as the bucket does; the icon is the same design drawn larger (27 by 35, centred on 38 by 38), the bucket's exception in round 4, since the 16 px picture would be lost in a 38 px square. It does not stack: no corner kept clear."
+ },
+ "satchel": {
+  "icon": [
+   38,
+   38
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "fixed",
+   "image": "satchel_world.png",
+   "grip": [
+    7,
+    1
+   ]
+  },
+  "sizes": {
+   "satchel_world.png": [
+    15,
+    17
+   ],
+   "satchel_icon.png": [
+    38,
+    38
+   ],
+   "satchel_portrait.png": [
+    38,
+    38
+   ]
+  },
+  "notes": "the Linen satchel (2 by 2 bag, worn on the back): undyed linen in round 4's cloth tones, a round-cornered body with a gusset on its shaded side, a flap with a stitched hem closed by a wooden toggle on a leather loop, a long shoulder strap sewn to the gussets with a brass buckle; held by the top of the strap (grip). The dye regions' key tones, should the pictures ever be recoloured: Cloth #ece4ce #d8ceb2 #bcb092 #9a8e70 (stitch #8a7c5c), Strap #94825e #7a6a4a #5e5038 #463c2a (the item's own colours are #c8b890 and #7a6a4a). How it looks worn is the figure's, not drawn here."
+ }
+}
