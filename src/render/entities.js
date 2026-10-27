@@ -10,7 +10,8 @@ import * as map from "../map.js";
 import { tileKey } from "../visibility.js";
 import { getItem } from "../items.js";
 import * as gl from "../gl.js";
-import { flameFrame, frameQuad } from "./scene.js";
+import { DEPTH_BIAS, flameFrame, frameQuad } from "./scene.js";
+import * as depth from "./depth.js"; // a figure's billboard through its front, an arrow's through its ground point (docs/51)
 import { postAt } from "./walls.js";
 import { seenAlpha } from "../sight.js";
 import { sight as sightTuning } from "../tuning.js";
@@ -45,10 +46,12 @@ export function arrowDrawables(arrows, visible, out) {
     const alpha = archeryTunables.shadowAlpha * (1 - 0.6 * h);
     const world = [a.gx, a.gy];
     const key = (a.gx + a.gy) * 1000;
+    const surf = depth.billboard(a.gx, a.gy); // the plane through its ground point: its picture z above it is z nearer (docs/51)
     out.push({
       key: key + 0.2,
       kind: "arrowShadow",
       emit() {
+        gl.setPass(gl.PASS_FLAT); // on the ground: the flat pass, in its place in the order (docs/51 section 4)
         gl.poly([[x - rx, y], [x - rx / 2, y - ry], [x + rx / 2, y - ry], [x + rx, y], [x + rx / 2, y + ry], [x - rx / 2, y + ry]], gl.rgb("#000000", alpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
       },
     });
@@ -56,6 +59,7 @@ export function arrowDrawables(arrows, visible, out) {
       key: key + 3,
       kind: "arrow",
       emit() {
+        gl.surface(surf, 0);
         // A projectile drawn to flicker (the fireball: three frames a direction) loops them by the wall clock, as flames do.
         const fl = sheet.flicker ? `_${Math.floor(performance.now() / 90) % sheet.flicker}` : "";
         // A thrown knife or axe turns along its arc (docs/24 section 1): its step by its own age, not the way it points.
@@ -175,10 +179,12 @@ export function fireDrawables(particles, visible, out) {
       color = [1, 1, 1, 0.8 * (1 - u)];
     }
     const world = [gx, gy];
+    const surf = depth.figure(gx, gy); // the burning body's own surface, a little nearer than the body (docs/51 section 3)
     out.push({
       key: besideWalls(gx, gy) * 1000 + 2.5,
       kind: "fire",
       emit() {
+        gl.surface(surf, DEPTH_BIAS.figure + DEPTH_BIAS.particle);
         frameQuad(getSheet("burn"), name, x, y, { world, heights: 0, color, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
       },
     });
@@ -267,6 +273,9 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
     const carried = e.carrying || null;
     const carrySheet = carried ? getSheet(carried.sprite, carried.tiles.length) : null;
     const lift = joints && joints.main ? Math.max(24, -joints.main.y + 2) : 30;
+    // Its depth (docs/51 section 3): a billboard through the front of its body, (gx + r, gy + r), over the ground by the figure's bias; its
+    // held things, its torch's flame, and what it carries on the same surface, each a step nearer in the order drawn.
+    const surf = depth.figure(e.gx, e.gy);
     out.push({
       key: besideWalls(e.gx, e.gy) * 1000 + (e.dead ? 0 : 2),
       kind: "entity",
@@ -275,14 +284,17 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
       vis: true,
       occluded: false,
       emit() {
+        gl.surface(surf, DEPTH_BIAS.figure);
         const world = [e.gx, e.gy];
         const target = client.targets.has(e.id) && fade >= sightTuning.seenAt;
         if (target) {
           // The next swing would hit this one (docs/14): a one-pixel outline, eight copies of the
-          // sprite flat green just behind it, unlit and unfogged so it reads at night.
+          // sprite flat green just behind it, unlit and unfogged so it reads at night (a step behind its surface, docs/51).
+          gl.setBehind(true);
           for (const [ox, oy] of SWING_OUTLINE_OFFSETS) {
             frameQuad(sheet, name, x + ox, y + oy, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: SWING_OUTLINE, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID }, r.flip);
           }
+          gl.setBehind(false);
         }
         if (hl.isCharacter(e.id) && !target) hl.outline(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0 }, r.flip); // Object Highlight: the one under the cursor that can be acted on (#301) // the green swing outline wins: it says this swing lands (docs/41; the review of #390)
         const drawHeld = (h) => {

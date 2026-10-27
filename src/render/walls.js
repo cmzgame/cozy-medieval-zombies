@@ -11,7 +11,8 @@ import { tileKey } from "../visibility.js";
 import { WALL_T, WOOD, METAL, DOOR_TOP, WINDOW_SILL, WINDOW_TOP, BRACKET_UP } from "../placeholders.js";
 import * as gl from "../gl.js";
 import { GHOST_FLAGS, ghostColor } from "./props.js";
-import { NEAR_WALL_ALPHA, flameFrame, frameQuad } from "./scene.js";
+import { NEAR_WALL_ALPHA, DEPTH_BIAS, flameFrame, frameQuad } from "./scene.js";
+import * as depth from "./depth.js"; // the walls' faces, caps, leaves, and posts on their true planes (docs/51)
 import { emitHangings } from "./paintings.js"; // what hangs on a wall's face (#326)
 import { sheetFor } from "../woods.js"; // a door or window of another wood than its wall (#334)
 
@@ -71,7 +72,10 @@ function emitSwungLeaves(wall, edge, x, y, h, outside, opts) {
     const v = [perp[0] * len * outside, perp[1] * len * outside];
     const p0 = lerp(0.18, y0);
     const p1 = lerp(0.18, y1);
+    // The leaf stands square to the wall through its hinge, 0.18 of the edge from its far end (docs/51 section 3), then the wall's face again.
+    if (opts.face) gl.setPlane(edge === "n" ? depth.planeX(opts.tx - 0.32) : depth.planeY(opts.ty + 0.32));
     emitPlankLeaf([p0, p1, [p1[0] + v[0], p1[1] + v[1]], [p0[0] + v[0], p0[1] + v[1]]], 2, outside > 0 ? 0.95 : 0.7, opts);
+    if (opts.face) gl.setPlane(opts.face);
     return;
   }
   // Each shutter is a quarter of the edge wide, hinged at its jamb, and turned
@@ -168,9 +172,26 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
   const outside = open && !o.ghost ? map.outsideSign(tx, ty, edge) : 0;
   const leaves = (far) => (wall.kind === "door" ? [`leaf${far}_${side}`] : [`shutter${far}_left_${side}`, `shutter${far}_right_${side}`]);
+  // A door's open leaf stands square to its wall through its hinge and takes that plane (docs/51 section 3); shutters fold back flat
+  // against the wall and keep its face's. The hinge is the leaf picture's edge against the wall: a north wall's near leaf runs down-left
+  // from it (its right edge), its far leaf up-right (its left edge); a west wall's the other way round.
+  const leafQuad = (p, far) => {
+    if (wall.kind === "door" && o.face && parts && parts.frames[p]) {
+      const lf = parts.frames[p];
+      const la = (parts.frameAnchors && parts.frameAnchors[p]) || parts.anchor;
+      const left = x - la[0];
+      const hingeX = (edge === "n") !== far ? left + lf[2] : left;
+      const [hx, hy] = depth.faceAtColumn(edge, tx, ty, far ? -T : T, hingeX);
+      gl.setPlane(depth.leaf(edge, hx, hy));
+      wallPartQuad(parts, p, x, y, o);
+      gl.setPlane(o.face);
+      return;
+    }
+    wallPartQuad(parts, p, x, y, o);
+  };
   // A leaf swung away from the camera stands behind the wall: drawn only when
   // the wall is translucent, just before it (docs/17, ruling 2).
-  if (outside < 0 && o.faded) for (const p of leaves("_far")) wallPartQuad(parts, p, x, y, o);
+  if (outside < 0 && o.faded) for (const p of leaves("_far")) leafQuad(p, true);
   if (o.faded && o.cuts && (o.cuts.near != null || o.cuts.far != null)) emitCutWall(sheet, name, edge, x, y, h, T, o, o.cuts);
   else wallPartQuad(sheet, name, x, y, o);
   if (!o.faded && !o.ghost) {
@@ -186,7 +207,7 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   }
   if (boards) wallPartQuad(getSheet(sheet.wall.boards || "wall_boards"), `boards_${boards}_${side}_${n}`, x, y, o);
   if (mid) wallPartQuad(parts, mid, x, y, o); // the swinging leaf in place of the open one, while it swings
-  else if (outside > 0) for (const p of leaves("")) wallPartQuad(parts, p, x, y, o);
+  else if (outside > 0) for (const p of leaves("")) leafQuad(p, false);
 }
 
 function isNearWall(tx, ty, edge, playerRoom) {
@@ -344,11 +365,18 @@ function makePost(tx, ty, sheet, vis, near) {
   const hidden = false;
   const alpha = faded ? NEAR_WALL_ALPHA : 1;
   const flags = vis ? gl.FLAG_NOFOG : 0;
+  // Its depth (docs/51 section 3): the two faces of its square, split at its near corner's column, a little over the walls meeting at it.
+  // A drawn post is centred on the vertex, a pixel proud of the wall (its cap below); the generated one's square has the vertex for its
+  // near corner.
+  const hs = sheet.wall && sheet.wall.post ? (T / 2 + 1) / depth.UNIT : 0;
+  const surf = depth.ridge(tx - 0.5 + hs, ty - 0.5 + hs);
   return {
     key: (tx + ty - 1) * 1000 + 0.5,
     kind: "wall",
+    post: { tx, ty }, // check("depth") finds its drawable
     emit() {
       if (hidden) return;
+      gl.surface(surf, DEPTH_BIAS.post);
       if (sheet.wall && sheet.wall.post) {
         // The drawn post (docs/17), anchored on the vertex itself, its cap redrawn on the sky.
         const ps = getSheet(sheet.wall.post);
@@ -423,7 +451,7 @@ function shakeOffset(tx, ty, edge) {
 export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null) {
   const sheet = sheetFor(wall); // the wall's own sheet, or its shut leaves recoloured and its open ones another wood's (#334)
   const variant = wallVariant(wall);
-  const depth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
+  const sortDepth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
   const p = iso.toScreen(tx, ty);
   const x = Math.round(p.x) + shakeOffset(tx, ty, edge);
   const y = Math.round(p.y);
@@ -442,6 +470,9 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
   const b = edge === "n" ? [x + iso.HW, y] : [x, y - iso.HH];
   const wa = edge === "n" ? [tx - 0.4, ty - 0.2] : [tx - 0.2, ty - 0.4];
   const wb = edge === "n" ? [tx + 0.4, ty - 0.2] : [tx - 0.2, ty + 0.4];
+  // Its depth (docs/51 section 3): the wall's true near face, a plane; its cap redrawn on the sky, its boards, leaves, shutters, hangings,
+  // bracket, and flame on it, each a step nearer than the one before.
+  const face = depth.wallFace(edge, tx, ty, T);
   const br = wall.bracket && wall.bracket.side > 0 ? wall.bracket : null;
   let bx = 0;
   let by = 0;
@@ -456,17 +487,19 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
     }
   }
   return {
-    key: depth * 1000,
+    key: sortDepth * 1000,
     kind: "wall",
+    wall: { tx, ty, edge }, // check("depth") finds its drawable
     emit() {
+      gl.surface(face, 0);
       const tint = ghostTint || [1, 1, 1, alpha];
       if (sheet.wall) {
-        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts });
+        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts, face });
       } else {
       // Swung leaves only for a whole, open, unboarded leaf.
       const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
       const outside = open ? map.outsideSign(tx, ty, edge) : 0;
-      const leafOpts = { world: [tx, ty], flags, alpha };
+      const leafOpts = { world: [tx, ty], flags, alpha, face, tx, ty };
       if (open && outside < 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
       // The face: the frame, its bottom corners on the edge's ends so the
       // light is read along the foot and height climbs to the top.

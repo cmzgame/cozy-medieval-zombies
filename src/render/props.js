@@ -9,7 +9,8 @@ import { tileKey } from "../visibility.js";
 import { getItem } from "../items.js";
 import * as gl from "../gl.js";
 import { projectileSheet } from "./entities.js";
-import { OCCLUDER_MIN_HEIGHT, frameQuad } from "./scene.js";
+import { OCCLUDER_MIN_HEIGHT, DEPTH_BIAS, frameQuad } from "./scene.js";
+import * as depth from "./depth.js"; // a slice's two front faces, or a canopy's billboard (docs/51)
 import { makeWall } from "./walls.js";
 import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim milliseconds (docs/23a, C2)
 import * as hl from "./highlight.js"; // Object Highlight (#301)
@@ -138,6 +139,7 @@ function risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, k, shake = 0) {
   const puff = 1 - fade * fade * fade; // fast at the start, slowing: one puff
   const soil = gl.rgb("#4a3a28", fade);
   const dust = gl.rgb("#9a8a6a", 0.7 * fade);
+  gl.holdOrder(true); // the soil and the dust are one layer over the rock (docs/51: the emit order)
   for (const [dx, dy] of SOIL) {
     const sx = x + Math.round(dx * (0.6 + 0.4 * k));
     const sy = y + dy;
@@ -146,6 +148,7 @@ function risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, k, shake = 0) {
     const py = sy - 2 - Math.round(puff * 6);
     gl.poly([[px - 1, py - 1], [px + 1, py - 1], [px + 1, py + 1], [px - 1, py + 1]], dust, { world: [tx, ty], flags: gl.FLAG_STANDING });
   }
+  gl.holdOrder(false);
 }
 
 // The frame of a playing click animation (the well's bucket), or null when it
@@ -197,6 +200,9 @@ export function propDrawables(tiles, visible, out) {
       : null;
     // A hive in sight has its bees by day (#441): the far ones before it, the near ones after.
     const swarm = f && vis && i === 0 && getDef(prop.sprite).hive ? bees.beesFor(prop, f, x, y, an) : null;
+    // Its depth (docs/51 section 3): the slice's own footprint tile's two front faces, split at its front corner; a tree's or any canopy's
+    // a billboard through that corner. Its flames, its bees, and its outline on the same surface.
+    const surf = depth.propSlice(tx, ty, !!getDef(prop.sprite).canopy);
     const d = {
       key: (tx + ty) * 1000 + 1,
       kind: "prop",
@@ -206,7 +212,11 @@ export function propDrawables(tiles, visible, out) {
       occluder: false,
       bees: swarm, // what `check("bees")` reads of the frame
       sheet, // and the sheet it draws from (`check("apples")`: a picked tree drawn bare)
+      prop, // and the prop, by which check("depth") finds its drawable
+      tile: [tx, ty],
+      surf,
       emit() {
+        gl.surface(surf, DEPTH_BIAS.prop);
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         if (swarm) bees.emit(swarm, true, [tx, ty]);
         if (sink > 0) risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, (loop.simTime() - prop.risenAt) / RES.riseSeconds, shudderOf(prop));
@@ -216,7 +226,7 @@ export function propDrawables(tiles, visible, out) {
         if (furnFlame) frameQuad(sheet, furnFlame, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
     };
-    if (hl.isProp(prop.id) && !sink) lit.push({ d, sheet, name, f, x, y, tx, ty, prop }); // a rising rock is outlined once it is up
+    if (hl.isProp(prop.id) && !sink) lit.push({ d, sheet, name, f, x, y, tx, ty, prop, surf }); // a rising rock is outlined once it is up
     out.push(d);
   }
   if (lit.length) highlightProp(lit, out);
@@ -238,8 +248,14 @@ function highlightProp(lit, out) {
     get outlined() {
       return lit.filter((s) => !s.d.occluder);
     },
+    highlightOf: lit[0].prop, // check("depth") finds the outline's drawable
+    // Each slice's copies on that slice's own depth surface, a step behind it (docs/51 section 3), so a slice in front of a wall keeps its
+    // whole outline and one behind a wall loses the part the wall covers.
     emit() {
-      for (const s of this.outlined) hl.outline(s.sheet, s.name, s.x, s.y, { world: [s.tx, s.ty], heights: s.f ? [s.f[3], s.f[3], 0, 0] : 0 }, false, 0, s.f ? swayOf(s.prop, s.f[3]) : 0);
+      for (const s of this.outlined) {
+        gl.surface(s.surf, DEPTH_BIAS.prop);
+        hl.outline(s.sheet, s.name, s.x, s.y, { world: [s.tx, s.ty], heights: s.f ? [s.f[3], s.f[3], 0, 0] : 0 }, false, 0, s.f ? swayOf(s.prop, s.f[3]) : 0);
+      }
     },
   });
 }
@@ -254,6 +270,9 @@ export function floorItemDrawables(tiles, visible, out) {
     const x = Math.round(p.x);
     const y = Math.round(p.y);
     const vis = visible.has(tileKey(tx, ty));
+    // Its depth (docs/51 section 3): the tile's two front faces, split at its front corner, a little over the ground; what lies flat (a
+    // landed arrow, a thrown knife) is drawn in the flat pass, in the pile's place.
+    const surf = depth.ridge(tx + 0.5, ty + 0.5);
     out.push({
       key: (tx + ty) * 1000 + 0.8,
       kind: "prop",
@@ -261,7 +280,10 @@ export function floorItemDrawables(tiles, visible, out) {
       rect: { x: x - 16, y: y - 14, w: 32, h: 18 },
       canOcclude: false,
       occluder: false,
+      tile: [tx, ty], // check("depth") finds its drawable
+      items,
       emit() {
+        gl.surface(surf, DEPTH_BIAS.floorItem);
         items.forEach((e, i) => {
           const lit = hl.isItem(e.uid); // Object Highlight (#301)
           // An arrow that landed lies where it fell, pointing as it flew (docs/20); a thrown knife or axe too, as its own picture turned to
@@ -269,8 +291,10 @@ export function floorItemDrawables(tiles, visible, out) {
           if (e.at && (e.id === "arrow" || e.id === "spear" || projectileSheet(e.id)?.frames[`${e.id}_${e.angle || 0}`])) {
             const sp = iso.toScreen(e.at[0], e.at[1]);
             const sheet = projectileSheet(e.id);
-            if (sheet && lit) hl.outline(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0 });
-            if (sheet) frameQuad(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
+            gl.withPass(gl.PASS_FLAT, () => {
+              if (sheet && lit) hl.outline(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0 });
+              if (sheet) frameQuad(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
+            });
             return;
           }
           const def = getItem(e.id);
