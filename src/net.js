@@ -157,7 +157,9 @@ export function makeCode() {
 // guest's aim point (`aimAt`, [gx, gy] or [gx, gy, layer]); the dead's and villagers' slim records (`layer` and `rise` when not 0); and a
 // player's `layer` moves from the heavy part to the light record (with `rise` when not 0), so a stair's crossing resends no bag. An older
 // guest would drop an upper chunk onto the ground and keep a body on the layer it last saw it on.
-export const PROTOCOL = 23;
+// 24 (2026-10-27, docs/49 steps 2 and 3): a flight's launch record names its layer off the ground (`l`), and a flight hits and lands on its
+// own layer alone; an older guest would draw an upstairs arrow on the ground.
+export const PROTOCOL = 24;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).

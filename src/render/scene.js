@@ -260,10 +260,8 @@ export function renderScene(args) {
           d.emit = () => withLift(r, emit);
         }
       }
-      if (L === 0) {
-        arrowDrawables(arrows, visible, drawables);
-        fireDrawables(fire, visible, drawables);
-      }
+      if (arrows && arrows.length) arrowDrawables(arrows.filter((a) => (a.layer || 0) === L), visible, drawables); // a flight on its own layer (docs/49)
+      if (L === 0) fireDrawables(fire, visible, drawables);
       drawables.sort((a, b) => a.key - b.key);
       if (L === VL) {
         computeOcclusion(drawables, player);

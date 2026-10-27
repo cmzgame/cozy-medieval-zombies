@@ -5334,8 +5334,8 @@ check("upper floors, step 1: the save keeps every layer: a prop, a wall, and an 
   assert(lit.length === 1, `${lit.length} brackets on the first floor`);
   return `a stick on the landing, a wall on the second floor, a stone floor in the cellar, all on their layers after the restore`;
 });
-check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 23)", () => {
-  assert(netMod.PROTOCOL === 23, `PROTOCOL ${netMod.PROTOCOL}`);
+check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 24 since steps 2 and 3)", () => {
+  assert(netMod.PROTOCOL === 24, `PROTOCOL ${netMod.PROTOCOL}`);
   const s2 = netMod.cleanSnap({ aimAt: [3.5, 4.5] });
   const s3 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 1] });
   const s0 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 0] });

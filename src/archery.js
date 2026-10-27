@@ -132,6 +132,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     poison: poisonTier, // the body it hits is poisoned at this tier (a poisoned arrow; docs/47 section 6); a thrown thing's coat is on its `item`
     speed,
     z0,
+    layer: (shooter && shooter.layer) || 0, // the flight is on its shooter's layer and hits only there until shooting down is built (docs/49 step 5)
     shooter,
     damage,
     knockback,
@@ -278,7 +279,7 @@ export function update(dt) {
     // A shot that bursts on contact (the fireball, Michael 2026-10-15: "it's a fireball, not an arrow"): the first of the
     // dead within its contact radius, short of where a wall would stop it, takes the hit and the flight ends there.
     if (a.contact > 0 && a.t < end) {
-      const body = bodyAt(a.gx, a.gy, a.contact, { z: a.z, ahead: a, spell: a.vanish });
+      const body = bodyAt(a.gx, a.gy, a.contact, { z: a.z, ahead: a, spell: a.vanish, layer: a.layer || 0 });
       if (body) {
         flying.splice(i, 1);
         land(a, body);
@@ -305,7 +306,7 @@ function land(a, met = null) {
   // landing point, if one is there (docs/20: hits are checked at landing only).
   let hit = null;
   if (met) hit = met; // met on the way (a contact burst)
-  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, { z: a.z, spell: a.vanish }); // never through a wall (#13)
+  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, { z: a.z, spell: a.vanish, layer: a.layer || 0 }); // never through a wall (#13), nor a floor (docs/49)
   let keep = true;
   const broken = a.breakChance > 0 && rng.chance(a.breakChance);
   // A poisoned arrow's tier, or a coated thrown thing's landing hit, which spends one of its coat (a miss spends none; docs/47 section 6).
@@ -346,7 +347,7 @@ function land(a, met = null) {
     map.kindleNear(gx, gy, tunables.kindleRadius, (px, py) => clearBetween(gx, gy, px, py, a.z), a.layer || 0); // and it lights a campfire or a mounted torch there, not through a wall
   }
   // What lands is the thrown item itself (a spear keeps whatever it carries) or a fresh arrow.
-  if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground }); // a thrown knife or axe lies as its picture at this angle too (render/props.js)
+  if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground }, a.layer || 0); // a thrown knife or axe lies as its picture at this angle too (render/props.js)
   emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, broken, stoppedBy: a.stopWhy });
 }
 
@@ -373,6 +374,7 @@ function bodyAt(gx, gy, r = tunables.hitRadius, o = null) {
   let tameD = r;
   for (const z of targets()) {
     if (z.dead) continue;
+    if (o && (z.layer || 0) !== (o.layer || 0)) continue; // a body on another layer is behind a floor (docs/49; the flight's own layer until step 5)
     const d = Math.hypot(z.gx - gx, z.gy - gy);
     const isTame = z.kind === "animal" && !isWild(z);
     if (d > (isTame ? tameD : bestD)) continue;
@@ -451,7 +453,7 @@ function groundAt(a, t) {
 // What a guest steps a flight from, sent once: everything `pose` reads, its fixed end, and its age `age` at the frame (net.js passes the
 // host's clock's age, so a flight that came down between two frames is still sent with the right birth).
 export function launchRecord(a, age = a.t) {
-  return { id: a.id, p: a.projectile, x: rounded(a.x0, 1e4), y: rounded(a.y0, 1e4), dx: rounded(a.dx, 1e6), dy: rounded(a.dy, 1e6), s: rounded(a.s, 1e4), T: rounded(a.T, 1e6), H: rounded(a.H, 100), z0: a.z0, v: a.speed, ...(a.flat ? { f: 1 } : {}), e: rounded(endAge(a), 1e6), t: rounded(age, 1e6) };
+  return { id: a.id, ...(a.layer ? { l: a.layer } : {}), p: a.projectile, x: rounded(a.x0, 1e4), y: rounded(a.y0, 1e4), dx: rounded(a.dx, 1e6), dy: rounded(a.dy, 1e6), s: rounded(a.s, 1e4), T: rounded(a.T, 1e6), H: rounded(a.H, 100), z0: a.z0, v: a.speed, ...(a.flat ? { f: 1 } : {}), e: rounded(endAge(a), 1e6), t: rounded(age, 1e6) };
 }
 
 // A flight that came down, sent once: its id, its age then, and where it came down.
@@ -472,7 +474,7 @@ export function applyFlights(store, news, h) {
     if (store.byId.has(L.id)) { store.stats.again++; continue; } // sent again for a joiner (net.js): known already
     if (![L.x, L.y, L.dx, L.dy, L.s, L.T, L.e, L.t].every(finite)) continue;
     store.stats.go++;
-    const a = { kind: "arrow", id: L.id, projectile: typeof L.p === "string" ? L.p : "arrow", x0: L.x, y0: L.y, dx: L.dx, dy: L.dy, s: L.s, T: Math.max(1e-6, L.T), H: finite(L.H) ? L.H : 0, z0: finite(L.z0) ? L.z0 : tunables.z0, speed: finite(L.v) ? L.v : tunables.speed, flat: !!L.f, end: L.e, born: h - L.t, hostEnd: null, landAt: null, fix: null, t: 0, gx: L.x, gy: L.y, z: 0, frame: 0, done: false };
+    const a = { kind: "arrow", id: L.id, layer: Number.isInteger(L.l) && Math.abs(L.l) <= 8 ? L.l : 0, projectile: typeof L.p === "string" ? L.p : "arrow", x0: L.x, y0: L.y, dx: L.dx, dy: L.dy, s: L.s, T: Math.max(1e-6, L.T), H: finite(L.H) ? L.H : 0, z0: finite(L.z0) ? L.z0 : tunables.z0, speed: finite(L.v) ? L.v : tunables.speed, flat: !!L.f, end: L.e, born: h - L.t, hostEnd: null, landAt: null, fix: null, t: 0, gx: L.x, gy: L.y, z: 0, frame: 0, done: false };
     pose(a);
     store.byId.set(a.id, a);
   }
