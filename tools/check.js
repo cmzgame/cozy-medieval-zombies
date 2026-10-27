@@ -2240,7 +2240,7 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
   assert(itemsMod.getItem("mana_herb").name === "Mageroot" && itemsMod.getItem("grave_moss").name === "Grave moss", "the names Michael gave moved (Mageroot, grave moss; 2026-10-25)");
   // The art: every design outlined all the way round, its icon fitting 19 by 19, the herbs' icons their nodes' pictures.
   const designs = itemsMod.allItems().filter((d) => d.icon && d.icon.placeholder).map((d) => [d.id, typeof d.icon.placeholder === "string" ? getDef(d.icon.placeholder).placeholder : d.icon.placeholder]);
-  for (const sid of ["clay_bank", "salt_rock", ...HERBS.map((n) => `herb_${n}`)]) designs.push([sid, getDef(sid).placeholder]);
+  for (const sid of ["clay_bank", "salt_rock", ...HERBS.map((n) => `herb_${n}`)]) if (getDef(sid).placeholder) designs.push([sid, getDef(sid).placeholder]); // a drawn node (art round 5) is checked for its outline when it is wired
   for (const [id, d] of designs) {
     const p = gatherArt.pixelsOf(d);
     const at = new Map(p.px.map(([x, y, c]) => [`${x},${y}`, c]));

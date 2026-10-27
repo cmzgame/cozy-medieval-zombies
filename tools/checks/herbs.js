@@ -2,8 +2,8 @@
 //   await __game.check("herbs")
 // Each herb kind stands to its count on its ground (mageroot by water, nightshade and wolfsbane near trees, the graveyard's inside its
 // wall), clay banks by the river, salt rocks in the ore area; every node is a gatherable whose sheet is hard-pixelled and outlined all the way
-// round, the herbs and mushrooms walked through and the bank and the salt rock solid; every new item has its icon made at boot from its
-// design (an herb's the very pixels of its node), registered as its picture on the floor, and its card on the page over the bag says its full
+// round, the herbs and mushrooms walked through and the bank and the salt rock solid; every new item has its icon drawn (art rounds 4 and 5)
+// or made at boot from its design (an herb's the very pixels of its node), and its picture on the floor, and its card on the page over the bag says its full
 // name and its kind and no use that is not built (every card's text is in the row's detail, for reading); an herb is gathered by the menu's
 // label a guest sends, after its bar, to the bag, the node gone and a debt owed; a mushroom foraged; the graveyard's grave moss gathered by
 // day (no plant is night's alone: Michael, 2026-10-25); clay dug only with a shovel carried; salt mined with a pickaxe; past their days each comes back elsewhere in its
@@ -27,7 +27,7 @@ export async function run(game, opts = {}) {
   const reach = await import("/src/reach.js");
   const RES = G.tuning.resources;
   const HERBS = ["sage", "nettle", "feverfew", "yarrow", "woad", "madder", "weld", "mana_herb", "nightshade", "wolfsbane", "grave_moss"];
-  const ITEMS = [...HERBS, "mushroom", "salt"]; // clay has drawn art since art round 4 (2026-10-26)
+  const ITEMS = [...HERBS, "mushroom", "clay", "salt"];
   const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
   const KIND = { woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Forage", clay: "Material", salt: "Material" };
   const GOES = { sage: "Goes into: healing potion.", yarrow: "Goes into: healing potion.", nettle: "Goes into: stamina potion.", mana_herb: "Goes into: mana potion.", mushroom: "Goes into: mana potion.", nightshade: "Goes into: poison.", wolfsbane: "Goes into: strong poison.", grave_moss: "Goes into: poison, strong poison.", clay: "Goes into: unfired vial." }; // the potions' step (docs/47, #481)
@@ -141,7 +141,7 @@ export async function run(game, opts = {}) {
       const r = outlinedHard(sheetPixels(sheet));
       if (!def.interactable || !sheet.image || r.soft || r.bare) badSheets.push(`${sid}: interactable ${!!def.interactable}, ${r.soft} soft, ${r.bare} edge pixels not the outline`);
     }
-    row("every node's sheet is generated from its design, a gatherable, hard-pixelled, with the dark outline all the way round", badSheets.length === 0, badSheets.join("; ") || `${nodeSprites.length} sheets`);
+    row("every node's sheet (drawn since art round 5, or generated from its design) is a gatherable, hard-pixelled, with the dark outline all the way round", badSheets.length === 0, badSheets.join("; ") || `${nodeSprites.length} sheets`);
     for (const sid of ["mushroom_0", "clay_bank", "salt_rock", "herb_sage"]) {
       const p = nodesOf(G.map.resourceKindOf(sid))[0];
       if (p) row(`a ${sid.replace(/_\d$/, "")} is ${sid === "clay_bank" || sid === "salt_rock" ? "solid (walked round, swayed by a click)" : "walked through (swayed by a body, the law's non-solid gatherable)"}`, p.interactable && p.solid === (sid === "clay_bank" || sid === "salt_rock"), `${p.id}: interactable ${p.interactable}, solid ${p.solid}`);
@@ -149,13 +149,18 @@ export async function run(game, opts = {}) {
     const badIcons = [];
     for (const id of ITEMS) {
       const def = G.items.getItem(id);
+      // Drawn (art rounds 4 and 5, 2026-10-26): the icon a file 19 by 19 and the floor picture (`floor_<id>`) its drawn world picture;
+      // generated: the icon made at boot from its design (an herb's its node's own pixels) and registered as the floor picture (`icon_<id>`).
+      const drawn = !!(def.icon && !def.icon.placeholder);
       let sheet = null;
-      try { sheet = G.assets.getSheet(`icon_${id}`); } catch { sheet = null; }
-      if (!def.icon || !/^data:image\/png/.test(def.icon.src || "") || !sheet || sheet.image.width !== 19 || sheet.image.height !== 19) { badIcons.push(`${id}: src ${def.icon && def.icon.src ? def.icon.src.slice(0, 15) : "none"}, sheet ${sheet ? `${sheet.image.width}x${sheet.image.height}` : "none"}`); continue; }
+      try { sheet = G.assets.getSheet(drawn ? `floor_${id}` : `icon_${id}`); } catch { sheet = null; }
+      if (drawn) {
+        if (def.icon.src !== `data/art/items/${id}_icon.png` || def.icon.size.join() !== "19,19" || !sheet) { badIcons.push(`${id}: drawn, src ${def.icon.src}, floor ${!!sheet}`); continue; }
+      } else if (!def.icon || !/^data:image\/png/.test(def.icon.src || "") || !sheet || sheet.image.width !== 19 || sheet.image.height !== 19) { badIcons.push(`${id}: src ${def.icon && def.icon.src ? def.icon.src.slice(0, 15) : "none"}, sheet ${sheet ? `${sheet.image.width}x${sheet.image.height}` : "none"}`); continue; }
       const r = outlinedHard(sheetPixels(sheet));
       if (r.soft || r.bare) badIcons.push(`${id}: ${r.soft} soft, ${r.bare} not outlined`);
-      if (HERBS.includes(id)) {
-        // The herb's icon is its node's picture, pixel for pixel, centred.
+      if (!drawn && HERBS.includes(id) && !G.assets.getDef(`herb_${id}`).image) {
+        // A generated herb's icon is its node's picture, pixel for pixel, centred.
         const n = sheetPixels(G.assets.getSheet(`herb_${id}`));
         const ic = sheetPixels(sheet);
         const ox = Math.floor((19 - n.width) / 2);
@@ -165,7 +170,7 @@ export async function run(game, opts = {}) {
         if (diff) badIcons.push(`${id}: icon differs from its node by ${diff} values`);
       }
     }
-    row("every new item's icon is made at boot from its design (an herb's its node's own pixels), 19 by 19, outlined, and registered as its picture on the floor", badIcons.length === 0, badIcons.join("; ") || `${ITEMS.length} icons`);
+    row("every new item's icon is drawn (19 by 19, lying on the floor as its drawn picture, outlined) or made at boot from its design (an herb's its node's own pixels, registered as its floor picture)", badIcons.length === 0, badIcons.join("; ") || `${ITEMS.length} icons, ${ITEMS.filter((id) => !G.items.getItem(id).icon.placeholder).length} drawn`);
 
     // ---- the sway: a click within reach and a body walking through (the gatherables law) ----
     {
@@ -309,7 +314,7 @@ export async function run(game, opts = {}) {
       // Since the potions (docs/47, #481) a brewing herb, the mushroom, and clay say what they go into; nothing else is a use, and none is made anywhere.
       const goes = GOES[id] || null;
       const rest = goes ? text.replace(goes, "") : text;
-      if (!text.startsWith(name) || !text.includes(kind) || !text.includes(SOURCE[id]) || (goes && !text.includes(goes)) || /Use|Eat|Goes into|Made at/.test(rest) || !img || !/^data:image\/png/.test(img.getAttribute("src"))) wrong.push(`${id}: "${text}", icon ${img ? "drawn" : "none"}`);
+      if (!text.startsWith(name) || !text.includes(kind) || !text.includes(SOURCE[id]) || (goes && !text.includes(goes)) || /Use|Eat|Goes into|Made at/.test(rest) || !img || !/^data:image\/png|data\/art\/items\//.test(img.getAttribute("src"))) wrong.push(`${id}: "${text}", icon ${img ? "drawn" : "none"}`);
     }
     (await import("/src/ui/hover-card.js")).hide();
     row("over the bag each new item shows its icon and its card: its full name, its kind, and where it is gathered, and no use that is not built", wrong.length === 0, wrong.length ? wrong.join("; ") : read.join(" || "));

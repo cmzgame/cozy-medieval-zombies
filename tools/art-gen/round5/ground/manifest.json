@@ -1,0 +1,68 @@
+{
+  "mushroom": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "mushroom_world.png",
+      "grip": [
+        6,
+        10
+      ]
+    },
+    "world_size": [
+      16,
+      15
+    ],
+    "notes": "two picked brown mushrooms (the drawn nodes' brown kind, mushroom_2 and _3): a big one standing with a crumb of soil on its pulled foot, a small one lying on its side in front, gills and the cut stalk showing. Not stackable today (no stack in data/items.json); the small one reaches the cell's lower right, so a stack count would sit on it."
+  },
+  "salt": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "salt_world.png",
+      "grip": [
+        8,
+        6
+      ]
+    },
+    "world_size": [
+      18,
+      14
+    ],
+    "notes": "a small heap of coarse white salt crystals: every grain a tiny block, bright top-left and shaded right, two loose grains at the foot. Not stackable today; the heap fills the cell's bottom, so a stack count would sit on it."
+  },
+  "_nodes": {
+    "clay_bank": {
+      "image": "clay_bank.png",
+      "definition": "clay_bank.json",
+      "size": [
+        34,
+        16
+      ],
+      "anchor": [
+        16,
+        15
+      ]
+    },
+    "salt_rock": {
+      "image": "salt_rock.png",
+      "definition": "salt_rock.json",
+      "size": [
+        27,
+        26
+      ],
+      "anchor": [
+        13,
+        25
+      ]
+    }
+  }
+}

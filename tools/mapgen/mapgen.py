@@ -20,8 +20,8 @@ def _norm_rect(r):
     return [int(x), int(y), int(w), int(h)]
 
 
-# The drawn one-tile pieces that stand with their back to a wall (art round 4, 2026-10-26): `y` as drawn, the back to a west wall, `x` its mirror.
-WALL_FACING = {"chest", "shelf"}
+# The drawn one-tile pieces that stand with their back to a wall (art rounds 4 and 5, 2026-10-26): `y` as drawn, the back to a west wall, `x` its mirror.
+WALL_FACING = {"chest", "shelf", "cupboard"}
 
 
 def _wall_facing(p):
@@ -248,7 +248,7 @@ class Place:
         return (self.x + x, self.y + y)
 
     def building(self, rect, wall, floor, openings=(), partitions=(), props=(), brackets=(), padding=None):
-        """A building inside the set. A drawn chest or shelf (art round 4) is drawn with its back to a west wall (facing "y") and mirrored for a
+        """A building inside the set. A drawn chest, shelf, or cupboard (art rounds 4 and 5) is drawn with its back to a west wall (facing "y") and mirrored for a
         north one ("x"); one given no facing takes "y" in the first column and "x" anywhere else, so the front shows (`_wall_facing`)."""
         b = {"rect": _norm_rect(rect), "wall": wall, "floor": floor, "openings": [dict(o) for o in openings]}
         if partitions:

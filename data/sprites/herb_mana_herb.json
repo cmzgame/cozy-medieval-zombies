@@ -1,1 +1,35 @@
-{"placeholder": {"kind": "herb", "leaf": "#3a9aa8", "stems": 3, "height": 12, "spread": 3, "base": 3, "leafSize": 2, "broad": true, "leafGap": 3, "flowers": "none", "glow": "#e8fcff", "seed": 11}, "carry": false, "interactable": true, "gather": {"item": "mana_herb", "count": [1, 1], "seconds": 1.5, "skill": "herbalism", "level": 4}, "name": "mageroot", "note": "Mageroot (the item mana_herb, its id kept): near water (docs/39 section 4, Herbalism 4); named by Michael, 2026-10-25: \"Mana herb is Mageroot for now\". Grows like a weed at random on natural ground and comes back elsewhere once gathered (docs/46, src/resources.js); gathered by hand (src/gather.js). Dev art drawn from this design (src/gather-art.js), the item's icon from the same."}
+{
+ "image": "data/art/ground/herb_mana_herb.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   17,
+   15
+  ]
+ },
+ "anchor": [
+  8,
+  14
+ ],
+ "bounds": {
+  "x": 0,
+  "y": 0,
+  "w": 17,
+  "h": 15
+ },
+ "carry": false,
+ "interactable": true,
+ "gather": {
+  "item": "mana_herb",
+  "count": [
+   1,
+   1
+  ],
+  "seconds": 1.5,
+  "skill": "herbalism",
+  "level": 4
+ },
+ "name": "mageroot",
+ "note": "Mageroot (the item mana_herb, its id kept): near water (docs/39 section 4, Herbalism 4); named by Michael, 2026-10-25: \"Mana herb is Mageroot for now\". Grows like a weed at random on natural ground and comes back elsewhere once gathered (docs/46, src/resources.js); gathered by hand (src/gather.js). Drawn art: art round 5 (the herbs), the node and the item from one design."
+}
