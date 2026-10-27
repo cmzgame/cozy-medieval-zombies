@@ -56,20 +56,22 @@ export async function run(game, opts = {}) {
     for (let i = 0; i < a.length; i += 4) if (Math.abs(a[i] - b[i]) > 3 || Math.abs(a[i + 1] - b[i + 1]) > 3 || Math.abs(a[i + 2] - b[i + 2]) > 3) c++;
     return c;
   };
-  const isPlayer = (d) => d.kind === "entity" && d.entity === me;
-  const visible = (override) => diffCount(shot(null, override, { is: isPlayer, color: [1, 0, 1] }), shot(null, override, { is: isPlayer, color: [0, 1, 0] }));
-  const alone = (override) => diffCount(shot((d) => !isPlayer(d), override, { is: isPlayer, color: [1, 0, 1] }), shot((d) => !isPlayer(d), override, { is: isPlayer, color: [0, 1, 0] }));
+  const isEntity = (e) => (d) => d.kind === "entity" && d.entity === e;
+  const visible = (e) => diffCount(shot(null, null, { is: isEntity(e), color: [1, 0, 1] }), shot(null, null, { is: isEntity(e), color: [0, 1, 0] }));
+  const alone = (e) => diffCount(shot((d) => !isEntity(e)(d), null, { is: isEntity(e), color: [1, 0, 1] }), shot((d) => !isEntity(e)(d), null, { is: isEntity(e), color: [0, 1, 0] }));
   const standAt = (gx, gy) => {
     G.teleport(gx, gy);
     step(2);
     me.gx = gx;
     me.gy = gy;
   };
-  const share = (gx, gy, override = {}) => {
-    standAt(gx, gy);
-    const whole = alone(override);
-    return whole ? visible(override) / whole : 0;
+  // What share of a figure shows: the player (where it stands decides the near half's fade, the layered scene's own rule) or one of the dead
+  // put at a point (the player standing elsewhere).
+  const share = (e) => {
+    const whole = alone(e);
+    return whole ? visible(e) / whole : 0;
   };
+  const { createZombie } = await import("/src/entities/zombie.js");
   const pct = (x) => `${(100 * x).toFixed(1)}%`;
   const roomId = G.map.roomAt(24, 3);
   try {
@@ -96,23 +98,38 @@ export async function run(game, opts = {}) {
 
     // The near half's fade.
     const nearOnly = (d) => !(d.ring && d.ring.id === ring.id && d.ring.near);
-    shot(nearOnly, { playerRoom: 0 });
+    shot(nearOnly);
     const opaque = scene.lastStats.translucent;
-    shot(nearOnly, { playerRoom: roomId });
+    standAt(24, 3);
+    shot(nearOnly);
     const faded = scene.lastStats.translucent;
     row("the near half fades with the player in the ring's room, opaque outside it", opaque === 0 && faded === 1, `translucent drawables: ${opaque} outside, ${faded} inside`);
 
-    // The sort's worst cases, by pixels.
-    const insideFar = share(22.3, 1.3, { playerRoom: roomId });
-    const behindFar = share(21, 0, { playerRoom: 0 });
-    const frontNear = share(28.5, 3, { playerRoom: 0 });
-    const behindNear = share(26.4, 2.1, { playerRoom: 0 });
-    const throughNear = share(26.4, 2.1, { playerRoom: roomId });
+    // The sort's worst cases, by pixels, each where the proving ground's tower (its second storey drawn lifted, docs/49) stands clear of
+    // the figure on screen: the player inside against the north-east of the far half, outside behind its north-west, outside before its
+    // east; one of the dead inside behind the near half's east with the player outside (the near half opaque), then inside (faded).
+    standAt(25.1, 1.1);
+    const insideFar = share(me);
+    standAt(21, 0);
+    const behindFar = share(me);
+    standAt(28.5, 3);
+    const frontNear = share(me);
+    const z = createZombie(26.4, 2.1, { hp: 1000 });
+    S.zombies = [z];
+    standAt(29, 3);
+    z.gx = 26.4;
+    z.gy = 2.1;
+    const behindNear = share(z);
+    standAt(23.5, 3.5);
+    z.gx = 26.4;
+    z.gy = 2.1;
+    const throughNear = share(z);
+    S.zombies = [];
     row("inside against the far half's inner face, the player shows whole", insideFar > 0.97, pct(insideFar));
     row("outside behind the far half, the player is hidden", behindFar < 0.05, pct(behindFar));
     row("outside in front of the near half, the player shows whole", frontNear > 0.97, pct(frontNear));
-    row("inside behind the near half, opaque: hidden (bar a head over its top)", behindNear < 0.15, pct(behindNear));
-    row("inside behind the near half, faded in the player's own room: seen through it", throughNear > 0.3, pct(throughNear));
+    row("one of the dead inside behind the near half, the player outside: hidden (bar a head over its top)", behindNear < 0.15, pct(behindNear));
+    row("the same with the player inside, the near half faded: seen through it", throughNear > 0.3, pct(throughNear));
 
     // The world on this page: the room, a body at the curve, sight.
     let p = { gx: 24, gy: 3 };
