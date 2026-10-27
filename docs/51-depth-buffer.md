@@ -55,7 +55,7 @@ A depth buffer and transparency do not mix: a half-transparent pixel still write
 
 ## 7. What it changes elsewhere
 
-- `49` step 2 lifts storeys by their height and sorts by it, with the lifted floors in pass 1 and nothing else new in the draw.
+- `49` step 2 lifts storeys by their height and sorts by it, with the lifted floors drawn in pass 0's rounds by layer (a faded storey's in pass 2) and nothing else new in the draw.
 - `50`'s ring is emitted as straight faces along the arc with their own points, each face its own plane, the near half in pass 2 when faded and the far half in pass 1.
 - Michael's open clipping annoyances (the outlines, props in walls) close with this; the builder checks `bugs.md` and moves what this fixes to Fixed.
 - A later refinement, not this step: **a depth image per sprite.** The art generators already compute each pixel's depth (`iso3d.py`, `dep = P.sum(1)`) and throw it away; a second atlas carrying it would make walls and furniture exact to the pixel instead of planar, at the cost of a texture read per fragment. `art/13` asks Michael whether to keep the depth images from the regeneration, so the option stays open; this spec works without them.
