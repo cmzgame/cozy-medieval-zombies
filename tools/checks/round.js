@@ -91,10 +91,13 @@ export async function run(game, opts = {}) {
     shot((d) => { seen.push(d); return false; });
     const halves = seen.filter((d) => d.ring && d.ring.id === ring.id);
     const shape = G.map.ringShape(ring);
-    const ringEdge = (w) => w && shape.outline.some(([x, y, e]) => w.tx === x && w.ty === y && w.edge === e && G.map.isRingWall(G.map.tileAt(x, y)[e]));
+    // No edge of the ring drawn straight, its door and window at their door points included (Michael's playtest, 2026-10-27: their straight
+    // frames jutted out of the curve), and no post at any vertex of its outline, a door point's ends included.
+    const ringEdge = (w) => w && shape.outline.some(([x, y, e]) => w.tx === x && w.ty === y && w.edge === e && G.map.drawnByRing(G.map.tileAt(x, y)[e]));
     const straight = seen.filter((d) => d.wall && !d.ring && ringEdge(d.wall));
-    const cornerPosts = seen.filter((d) => d.post && shape.outline.some(([x, y]) => d.post.tx === x && d.post.ty === y) && !shape.doors.some(([x, y, e]) => (e === "n" ? [[x, y], [x + 1, y]] : [[x, y], [x, y + 1]]).some(([px, py]) => px === d.post.tx && py === d.post.ty)));
-    row("the ring is two drawables, its far half and its near half; no ring edge drawn straight, no post at a step corner", halves.length === 2 && halves.some((d) => d.ring.near) && halves.some((d) => !d.ring.near) && !straight.length && !cornerPosts.length, `${halves.length} halves, ${straight.length} straight walls, ${cornerPosts.length} posts at step corners`);
+    const vertices = new Set(shape.outline.flatMap(([x, y, e]) => (e === "n" ? [[x, y], [x + 1, y]] : [[x, y], [x, y + 1]]).map(([px, py]) => `${px},${py}`)));
+    const posts = seen.filter((d) => d.post && vertices.has(`${d.post.tx},${d.post.ty}`));
+    row("the ring is two drawables, its far half and its near half; no ring edge drawn straight (its door and window included), no post on its outline", halves.length === 2 && halves.some((d) => d.ring.near) && halves.some((d) => !d.ring.near) && !straight.length && !posts.length, `${halves.length} halves, ${straight.length} straight walls, ${posts.length} posts on the outline`);
 
     // The near half's fade.
     const nearOnly = (d) => !(d.ring && d.ring.id === ring.id && d.ring.near);
@@ -103,7 +106,10 @@ export async function run(game, opts = {}) {
     standAt(24, 3);
     shot(nearOnly);
     const faded = scene.lastStats.translucent;
-    row("the near half fades with the player in the ring's room, opaque outside it", opaque === 0 && faded === 1, `translucent drawables: ${opaque} outside, ${faded} inside`);
+    // Inside, only the stretch over the room fades: the flanks keep opaque quads (Michael's playtest, 2026-10-27: the sides went see-through).
+    const opaqueQuads = G.gl.passVertices(G.gl.PASS_STAND);
+    const fadedQuads = G.gl.passVertices(G.gl.PASS_TRANS);
+    row("the near half fades over the room with the player in it, its flanks opaque; all opaque outside it", opaque === 0 && faded === 1 && opaqueQuads > 0 && fadedQuads > 0, `translucent drawables: ${opaque} outside, ${faded} inside; inside, ${opaqueQuads} opaque vertices and ${fadedQuads} faded`);
 
     // The sort's worst cases, by pixels, each where the proving ground's tower (its second storey drawn lifted, docs/49) stands clear of
     // the figure on screen: the player inside against the north-east of the far half, outside behind its north-west, outside before its

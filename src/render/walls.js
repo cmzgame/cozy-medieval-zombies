@@ -270,7 +270,7 @@ function postBase(tx, ty, nE, nW, wS, wN) {
 // `sheet` is the heavier material's (stone over log over wood); `near` is
 // whether it is translucent with a near wall.
 export function postAt(tx, ty, playerRoom) {
-  const straight = (w) => (w && !map.isRingWall(w) ? w : null); // a ring's edges take no post at their step corners (docs/50 section 4); a door point's door keeps its frame
+  const straight = (w) => (w && !map.drawnByRing(w) ? w : null); // no post where a ring meets itself: its step corners and its door points' ends (docs/50 section 4; the playtest, 2026-10-27)
   const nE = straight(map.tileAt(tx, ty).n);
   const nW = straight(map.tileAt(tx - 1, ty).n);
   const wS = straight(map.tileAt(tx, ty).w);
@@ -481,14 +481,14 @@ function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
 export function wallDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
     const t = map.tileAt(tx, ty);
-    // A ring's edges are drawn by its own drawables, as the curve (render/rings.js, docs/50 section 4); a door or a window at a door point is drawn here.
-    if (t.n && !map.isRingWall(t.n)) {
+    // A ring's edges, and a door or a window at one of its door points, are drawn by its own drawables, in the curve (render/rings.js, docs/50 section 4).
+    if (t.n && !map.drawnByRing(t.n)) {
       const far = map.tileAt(tx, ty - 1);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
       const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
       out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
     }
-    if (t.w && !map.isRingWall(t.w)) {
+    if (t.w && !map.drawnByRing(t.w)) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
       const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
