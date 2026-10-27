@@ -1,9 +1,9 @@
 // Potions, step 2 (docs/47 sections 2 to 4, 8 and 9, #481): the vials, the cauldron, and drinking. From the console, on a tab with
 // `?nosave&mute` (the valley):
 //   await __game.check("potions")
-// The dev art: each vial item's icon made at boot from one design (src/gather-art.js `vial`), 19 by 19, registered as its floor picture
-// (`icon_<id>`), the body earthen and the colour on the wax seal and the glazed band (healing red, stamina gold, mana blue, poison green,
-// strong poison a darker green with a black seal), the empty vial and the unfired one bare; over the bag each new item's icon and its hover
+// The art (art round 5, 2026-10-26): each vial item a drawn pair, 19 by 19, lying on the floor as its picture (`floor_<id>`), the colour on
+// the wax seal and the glazed band (healing red, stamina gold, mana blue, poison green, strong poison a darker green with a black seal), the
+// potions and poisons with a belt portrait, the empty vial and the unfired one bare; over the bag each new item's icon and its hover
 // card read on the page. The witch's cauldron on the lane to the mere: its menu (Use the cauldron, the oven's Light, no Pick up, no Boil),
 // its panel (titled Cauldron, the five brews, the clean water among the ingredients), lit by its menu, a brew made by the panel's own Make
 // with a clean skin carried, twenty seconds of the lit fire, the potion in its output. Drinking by the real keys (the belt order Sequential):
@@ -213,24 +213,17 @@ export async function run(game, opts = {}) {
     me.hunger = me.maxHunger;
     me.thirst = me.maxThirst;
 
-    // ---- the dev art: one design, the bag's icon and the floor's picture ----
+    // ---- the art (art round 5, 2026-10-26): each a drawn pair, the potions and poisons with a portrait for the belt ----
     const wrongArt = [];
+    const POTS = ["healing_potion", "stamina_potion", "mana_potion", "poison", "strong_poison"];
     for (const v of VIALS) {
       const def = G.items.getItem(v);
-      const d = def.icon && def.icon.placeholder;
-      let sheet = null;
-      try { sheet = G.assets.getSheet(`icon_${v}`); } catch { sheet = null; }
-      const px = d ? art.pixelsOf(d).px : [];
-      const colours = new Set(px.map((p) => p[2]));
-      const sealed = !!(d && d.seal);
-      if (!d || d.kind !== "vial" || !/^data:image\/png/.test(def.icon.src || "") || !sheet || !art.iconPixelsOf(d, [19, 19]).fits) wrongArt.push(`${v}: no generated icon or floor picture`);
-      else if (sealed !== ["healing_potion", "stamina_potion", "mana_potion", "poison", "strong_poison"].includes(v)) wrongArt.push(`${v}: sealed ${sealed}`);
-      else if (sealed && (!colours.has(d.seal) || !colours.has(d.band))) wrongArt.push(`${v}: its seal or band not drawn`);
+      let floor = null;
+      try { floor = G.assets.getSheet(`floor_${v}`); } catch { floor = null; }
+      if (!def.icon || def.icon.src !== `data/art/items/${v}_icon.png` || def.icon.size.join() !== "19,19" || !def.held || def.held.image !== `data/art/items/${v}_world.png` || !floor) wrongArt.push(`${v}: no drawn icon, picture, or floor picture`);
+      else if (!!def.portrait !== POTS.includes(v)) wrongArt.push(`${v}: portrait ${!!def.portrait}`);
     }
-    const seal = (v) => G.items.getItem(v).icon.placeholder.seal;
-    const band = (v) => G.items.getItem(v).icon.placeholder.band;
-    row("every vial item's icon made at boot from one design (19 by 19, its floor picture `icon_<id>`), the colour on the seal and the band; the empty and the unfired vials bare", wrongArt.length === 0, wrongArt.join("; ") || VIALS.join(", "));
-    row("the colours: healing red, stamina gold, mana blue, poison green, strong poison a darker green with a black seal", /^#c8/.test(seal("healing_potion")) && /^#e0b0/.test(seal("stamina_potion")) && /^#3a6a/.test(seal("mana_potion")) && seal("poison") === band("poison") && seal("strong_poison") === "#1a1a1a" && band("strong_poison") !== band("poison"), VIALS.slice(2).map((v) => `${v} ${seal(v)}/${band(v)}`).join(", "));
+    row("every vial item is a drawn pair (its icon 19 by 19, its picture, lying on the floor as that picture); the potions and poisons a portrait for the belt, the empty and the unfired vials none", wrongArt.length === 0, wrongArt.join("; ") || VIALS.join(", "));
 
     // ---- the cards, read over the bag on the page ----
     bag.items.length = 0;
@@ -259,7 +252,7 @@ export async function run(game, opts = {}) {
       const text = el ? await hoverText(el) : "(not in the bag)";
       read.push(`${v}: ${text}`);
       const img = el && el.querySelector("img.inv-icon");
-      if (!want[v].every((w) => text.includes(w)) || (VIALS.includes(v) && !(img && /^data:image\/png/.test(img.getAttribute("src"))))) wrong.push(`${v}: "${text}"`);
+      if (!want[v].every((w) => text.includes(w)) || (VIALS.includes(v) && !(img && img.getAttribute("src").includes(`/${v}_icon.png`)))) wrong.push(`${v}: "${text}"`);
     }
     card.hide();
     row("over the bag each new item shows its icon and its card from the data (its name, its kind, what it does or where it is made)", wrong.length === 0, wrong.length ? wrong.join(" || ") : read.join(" || "));
