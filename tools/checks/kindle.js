@@ -551,7 +551,7 @@ export async function run(game) {
           G.clock.setHour(0);
           G.loop.advance(1 / 60);
           lightMod.update();
-          const src = lightMod.sources().find((s) => s.gx === pit.tile[0] && s.gy === pit.tile[1]);
+          const src = lightMod.sources().find((s) => s.gx === pit.tile[0] + 0.5 && s.gy === pit.tile[1] + 0.5);
           const near = lightMod.lightAt(pit.tile[0] + 2.5, pit.tile[1] + 0.5);
           const far = lightMod.lightAt(pit.tile[0] + 6, pit.tile[1] + 0.5);
           row("lit outdoors it is a source of radius 5, lighting four tiles off brighter than six", pit.fire.lit && !!src && src.radius === 5 && near > far, `lit ${pit.fire.lit}; radius ${src && src.radius}; light ${near.toFixed(2)} at 2.5, ${far.toFixed(2)} at 6`);
