@@ -781,7 +781,7 @@ function buildGhost(player) {
     // A prop on the tiles under the cursor (the Fireplace along the wall it backs onto, its facing from that wall; the fire pit centred on the
     // cursor), drawn as the carried prop's ghost is, with its own line.
     const d = buildData[what];
-    const f = setdown.fitFor(d.stand || "ground", d.sprite, Math.round(g.gx), Math.round(g.gy));
+    const f = setdown.fitFor(d.stand || "ground", d.sprite, g.gx, g.gy); // the cursor's grid point: fitFor rounds a wall's tile and centres a footprint
     const reason = fitReach(player, f) || f.problem || shortfall(player, what);
     return { kind: "prop", prop: { sprite: d.sprite, facing: f.facing, footprint: f.footprint }, tx: f.tx, ty: f.ty, footprint: f.footprint, ok: reason === "", reason, build: what, label: `Click to build (${costText(what)}) · Esc cancel` };
   }

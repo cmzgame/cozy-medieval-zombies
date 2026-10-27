@@ -107,6 +107,8 @@ export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite)) {
 export function fitFor(rule, sprite, cx, cy) {
   const d = getDef(sprite);
   if (rule === "wall" && d.facings && d.facings.length > 1) {
+    cx = Math.round(cx); // the tile under the cursor
+    cy = Math.round(cy);
     let first = null;
     for (const [ax, ay] of [[cx, cy], [cx, cy - 1], [cx - 1, cy]]) {
       const f = fitAt(rule, sprite, ax, ay);
@@ -117,8 +119,8 @@ export function fitFor(rule, sprite, cx, cy) {
   }
   const facing = firstFacing(sprite);
   const [w, h] = footprintOf(sprite, facing);
-  const tx = w > 1 ? Math.round(cx - (w - 1) / 2) : cx;
-  const ty = h > 1 ? Math.round(cy - (h - 1) / 2) : cy;
+  const tx = Math.round(cx - (w - 1) / 2); // the footprint centred on the cursor's grid point (unrounded), as a carried prop's ghost is
+  const ty = Math.round(cy - (h - 1) / 2);
   return { tx, ty, facing, footprint: [w, h], problem: fitProblem(rule, sprite, tx, ty, facing) };
 }
 

@@ -1,7 +1,8 @@
 """Art round 6: the fires. The Fireplace (two tiles against a flat wall), the Fire pit (2 by 2 on the
 floor, a ring of squared stones with an iron rack and two hung pots), and the Campfire (1 by 1, a
 ring of fieldstones round a teepee of split logs), each with three unlit flame frames, and the
-Campfire item's bag icon and held picture. One family: one stone ramp, one bark, one iron, one
+Campfire item's bag icon and held picture; and the pot states (Michael, 2026-10-27): the Fireplace
+and the Fire pit with a big black cauldron over the fire, cut to the plain pictures' boxes. One family: one stone ramp, one bark, one iron, one
 flame-drawing routine.
 
 Written fresh for this round (2026-10-27) after reading round 5's props generator
@@ -379,7 +380,7 @@ def iron_bar_shader(P, band):
     return np.broadcast_to(hx(T[band]), (len(P), 3)).copy()
 
 
-def hung_pot(W, cx, cy, zb, h, R, lid=False, tag="pot", bias=0.0, bail_top=None):
+def hung_pot(W, cx, cy, zb, h, R, lid=False, tag="pot", bias=0.0, bail_top=None, bail=True, rim=1.1):
     """a black iron pot hung by its bail: a round belly, a rolled rim, two ears; `lid` a domed lid with
     a knob, else the dark mouth with a dull gleam of stew"""
     zr = zb + h
@@ -399,8 +400,8 @@ def hung_pot(W, cx, cy, zb, h, R, lid=False, tag="pot", bias=0.0, bail_top=None)
         for i in range(n):
             a0, a1 = 2 * math.pi * (i - 0.3) / n, 2 * math.pi * (i + 1.3) / n
             W.face([(cx + rr * math.cos(a0), cy + rr * math.sin(a0), zr), (cx + rr * math.cos(a1), cy + rr * math.sin(a1), zr),
-                    (cx + (rr - 1.1) * math.cos(a1), cy + (rr - 1.1) * math.sin(a1), zr),
-                    (cx + (rr - 1.1) * math.cos(a0), cy + (rr - 1.1) * math.sin(a0), zr)],
+                    (cx + (rr - rim) * math.cos(a1), cy + (rr - rim) * math.sin(a1), zr),
+                    (cx + (rr - rim) * math.cos(a0), cy + (rr - rim) * math.sin(a0), zr)],
                    solid(IRON["hi"]), bias + 0.2, O=(cx, cy, zr), A=(1, 0, 0), B=(0, 1, 0), tag=tag)
 
         def stew(P):
@@ -409,7 +410,13 @@ def hung_pot(W, cx, cy, zb, h, R, lid=False, tag="pot", bias=0.0, bail_top=None)
             out[(v - u) > rr * 0.5] = hx("#5e4a34")
             out[(u - v) > rr * 0.6] = hx("#3a2d22")
             return out
-        disc(W, cx, cy, zr - 1.0, rr - 1.0, stew, n=32, bias=bias - 0.1, tag=tag)
+        disc(W, cx, cy, zr - 1.0, rr - rim + 0.1, stew, n=32, bias=bias - 0.1, tag=tag)
+    if not bail:
+        for sgn in (-1, 1):
+            ex, ey = cx + sgn * (R + 0.2) / math.sqrt(2), cy - sgn * (R + 0.2) / math.sqrt(2)
+            W.block(ex - 0.9, ey - 0.9, zr - 3.0, ex + 0.9, ey + 0.9, zr - 0.8, top=solid(IRON["hi"]),
+                    west=solid(IRON["west"]), east=solid(IRON["dark"]), bias=bias + 0.4, tag=tag)
+        return zr
     # the bail: an iron hoop from ear to ear, standing up in the screen's plane, to its top
     bt = bail_top if bail_top is not None else zr + R * 1.1
     d = 1 / math.sqrt(2)
@@ -445,6 +452,24 @@ FP = dict(X0=9.0, X1=27.0, Y0=5.0, Y1=59.0,          # the body
 FP_POT = True        # the crane's pot (False leaves the crane and its empty hook)
 
 
+# the big cauldron's state: as big as the firebox takes, standing on three short legs over the fire at
+# its mouth, its belly a little proud of the jambs over the hearth
+FPB = dict(CX=23.0, DY=-3.0, R=8.2, ZB=8.0, H=12.0)    # DY: toward the screen right, centred in the arch
+
+
+def big_cauldron_in_fireplace(W, yc):
+    SZ = FP["SZ"]
+    cx, R, zb, h = FPB["CX"], FPB["R"], FPB["ZB"], FPB["H"]
+    yc = yc + FPB["DY"]
+    for a in (math.radians(135), math.radians(-45), math.radians(225)):
+        lx, ly = cx + R * 0.62 * math.cos(a), yc + R * 0.62 * math.sin(a)
+        W.block(lx - 0.8, ly - 0.8, SZ, lx + 0.8, ly + 0.8, zb + 2.5, top=solid(IRON["hi"]), west=solid(IRON["west"]),
+                east=solid(IRON["dark"]), bias=0.3, tag="pot")
+        W.block(lx - 1.3, ly - 1.3, SZ, lx + 1.3, ly + 1.3, SZ + 1.0, top=solid(IRON["hi"]), west=solid(IRON["west"]),
+                east=solid(IRON["dark"]), bias=0.35, tag="pot")
+    hung_pot(W, cx, yc, zb, h, R, lid=False, tag="pot", bias=0.3, bail=False, rim=1.6)
+
+
 def arch_geom():
     c = (FP["OY1"] - FP["OY0"]) / 2
     r = FP["ZC"] - FP["ZS"]
@@ -453,7 +478,8 @@ def arch_geom():
     return (FP["OY0"] + FP["OY1"]) / 2, zc, R, math.acos(c / R)
 
 
-def fireplace():
+def fireplace(big_pot=False):
+    """`big_pot`: the state with a big cauldron standing in the firebox over the fire"""
     W = World()
     X0, X1, Y0, Y1 = FP["X0"], FP["X1"], FP["Y0"], FP["Y1"]
     SZ = FP["SZ"]
@@ -579,9 +605,20 @@ def fireplace():
                 east=solid(IRON["dark"]), bias=0.6, tag="dog")
         W.block(BK + 1.0, yd - 0.5, SZ + 1.6, X1 - 3.0, yd + 0.5, SZ + 2.6, top=solid(IRON["west"]), west=solid(IRON["east"]),
                 east=solid(IRON["dark"]), bias=0.3, tag="dog")
-    log(W, (X1 - 4.5, yc - 15.0, SZ + 4.2), (X1 - 4.5, yc + 14.0, SZ + 4.2), 2.0, 1)
+    if not big_pot:
+        log(W, (X1 - 4.5, yc - 15.0, SZ + 4.2), (X1 - 4.5, yc + 14.0, SZ + 4.2), 2.0, 1)
     log(W, (BK + 4.0, yc - 12.0, SZ + 2.2), (BK + 4.0, yc + 12.5, SZ + 2.2), 2.1, 2)
-    log(W, (BK + 6.6, yc - 9.0, SZ + 6.6), (BK + 7.4, yc + 10.0, SZ + 6.4), 1.8, 3, split=True)
+    if big_pot:
+        # ---- the state: a big cauldron on three legs over the fire, as big as the firebox takes
+        big_cauldron_in_fireplace(W, yc)
+    else:
+        log(W, (BK + 6.6, yc - 9.0, SZ + 6.6), (BK + 7.4, yc + 10.0, SZ + 6.4), 1.8, 3, split=True)
+        fireplace_crane(W, yc)
+    return fireplace_upper(W)
+
+
+def fireplace_crane(W, yc):
+    X1, SZ, BK = FP["X1"], FP["SZ"], FP["BACK"]
     # ---- the crane: an iron post at the near side of the firebox, an arm out over the fire, a pot
     cpx, cpy = BK + 2.0, FP["OY1"] - 3.0
     za = FP["ZS"] + 5.0
@@ -596,6 +633,11 @@ def fireplace():
         cylinder_between(W, (hook[0], hook[1], bt), (hook[0], hook[1], za), 0.4, iron_bar_shader, n=6, bias=0.35, tag="crane")
     else:
         cylinder_between(W, (hook[0], hook[1], za - 4.0), (hook[0], hook[1], za), 0.4, iron_bar_shader, n=6, bias=0.35, tag="crane")
+
+
+def fireplace_upper(W):
+    """the corbels, the mantle, the breast, and the things on the mantle"""
+    X0, X1, Y0, Y1 = FP["X0"], FP["X1"], FP["Y0"], FP["Y1"]
     # ---- the corbels: two stepped stones under each end of the mantle
     for (ya, yb) in ((Y0, Y0 + 6.5), (Y1 - 6.5, Y1)):
         W.block(X1, ya, FP["MZ0"] - 6.5, X1 + 1.6, yb, FP["MZ0"] - 3.2, top=solid(ST["top"]), west=solid(ST["lit"]),
@@ -739,16 +781,32 @@ def cut_and_glow(pic, m, col, depth, k, glow_tags=("log",), coal_tag="coal", see
     return out, col
 
 
-def frames_out(pic, frames, name):
-    """the three frames on one shared canvas (the union of their pixels); the pin is its bottom middle,
-    fire.at the same pixel in the prop's cropped picture. Call after the prop is outlined."""
-    y0, y1, x0, x1 = pic.box()
+def rel(box, pic):
+    """a canvas box (y0, y1, x0, x1) as offsets from the world origin's pixel, and back"""
+    ox, oy = int(pic.origin[0]), int(pic.origin[1])
+    return (int(box[0] - oy), int(box[1] - oy), int(box[2] - ox), int(box[3] - ox))
+
+
+def absb(rbox, pic):
+    ox, oy = int(pic.origin[0]), int(pic.origin[1])
+    return (rbox[0] + oy, rbox[1] + oy, rbox[2] + ox, rbox[3] + ox)
+
+
+def frames_out(pic, frames, name, crop=None, fbox=None):
+    """the three frames on one shared canvas (the union of their pixels, or `fbox`, a plain version's
+    frame box, so a state's frames share its pin); the pin is its bottom middle, fire.at the same pixel in
+    the prop's cropped picture (`crop`, the canvas box it was cut with). Call after the prop is outlined."""
+    y0, y1, x0, x1 = crop or pic.box()
     um = np.zeros_like(frames[0][0])
     for mm, _ in frames:
         um |= mm
     fy = np.where(um.any(1))[0]
     fx = np.where(um.any(0))[0]
     fy0, fy1, fx0, fx1 = fy.min(), fy.max() + 1, fx.min(), fx.max() + 1
+    if fbox is not None and fbox[0] <= fy0 and fy1 <= fbox[1] and fbox[2] <= fx0 and fx1 <= fbox[3]:
+        # a state's frames that fit the plain frames' box keep it, and so its base and fire.at; frames
+        # that do not get their own (reported)
+        fy0, fy1, fx0, fx1 = fbox
     ims = []
     for k, (mm, cc) in enumerate(frames):
         rgba = np.zeros((fy1 - fy0, fx1 - fx0, 4), np.uint8)
@@ -761,7 +819,7 @@ def frames_out(pic, frames, name):
     fw, fh = int(fx1 - fx0), int(fy1 - fy0)
     pin = [fw // 2, fh - 1]
     at = [int(fx0 - x0 + pin[0]), int(fy0 - y0 + pin[1])]
-    return {"size": [fw, fh], "base": pin, "at": at, "images": ims}
+    return {"size": [fw, fh], "base": pin, "at": at, "images": ims, "fbox": rel((fy0, fy1, fx0, fx1), pic)}
 
 
 def tongues(width, n, hmax, hmin, k, seed, wf=1.7):
@@ -796,7 +854,9 @@ FP_FX = 20.5
 FP_FOOT = 6.5          # the height the flames stand on, among the logs
 
 
-def fireplace_flames(pic, k):
+def fireplace_flames(pic, k, wide=False):
+    """`wide`: the big cauldron's state, the tongues across the whole firebox and as tall at its ends as in
+    its middle, so the fire rises either side of the pot (its frames are wider: their own base and fire.at)"""
     ox, oy = pic.origin
     Hc, Wc = pic.alpha.shape
     XF, ZF = FP_FX, FP_FOOT
@@ -812,12 +872,14 @@ def fireplace_flames(pic, k):
         Y = XF - sx
         Z = (XF + Y) / 2 - sy
         return XF + Y + Z
-    tg = [(ox + mid + dx - 0.5, h, w, lean) for (dx, h, w, lean) in tongues(25, 8, 16, 8, k, 3)]
+    tg = [(ox + mid + dx - 0.5, h, w, lean) for (dx, h, w, lean) in
+          (tongues(33, 10, 15, 13, k, 3) if wide else tongues(25, 8, 16, 8, k, 3))]
     sp = []
     for (dx, up, c) in sparks(24, k, 3, 16):
         x = int(round(ox + mid + dx - 0.5))
         sp.append((x, int(round(foot(x) - up)), c))
-    m, col = flame_layer(Hc, Wc, foot, tg, (int(ox + mid - 14), int(ox + mid + 13)), sp)
+    bed = (int(ox + mid - 18), int(ox + mid + 17)) if wide else (int(ox + mid - 14), int(ox + mid + 13))
+    m, col = flame_layer(Hc, Wc, foot, tg, bed, sp)
     return cut_and_glow(pic, m, col, depth, k, seed=11)
 
 
@@ -828,6 +890,7 @@ def fireplace_flames(pic, k):
 # two pots hung from S-hooks, a ladle on the bar's end. The rack runs across the screen; the second
 # facing is the drawing's mirror (the ladle on the other end), made at load.
 PC = 32.0
+PITB = dict(ZB=16.5, H=13.0, R=9.6)     # the big cauldron's state: hung from the middle of the bar
 PIT = dict(BASE_R=28.5, BASE_Z=2.0, RIN=15.5, ROUT=22.0, WALL_Z=10.0, NBLK=14,
            POST_D=31.0, POST_H=47.0, BAR_Z=44.5, BAR_END=37.0, HOOK_S=9.5)
 SQ = 1 / math.sqrt(2)
@@ -895,7 +958,8 @@ def coal_bed(P):
     return out
 
 
-def fire_pit():
+def fire_pit(big_pot=False):
+    """`big_pot`: the state with one big cauldron hung from the middle of the crossbar over the fire"""
     W = World()
     Zb, Zt, RIN, ROUT, BR = PIT["BASE_Z"], PIT["WALL_Z"], PIT["RIN"], PIT["ROUT"], PIT["BASE_R"]
     # ---- the base: a round platform of flags, two high
@@ -949,7 +1013,10 @@ def fire_pit():
         q1 = along(sgn * (E + 1.2))
         cylinder_between(W, (q0[0], q0[1], BZ), (q1[0], q1[1], BZ - 2.4), 0.6, iron_bar_shader, n=6, bias=0.4, tag="rack")
     hs = PIT["HOOK_S"]
-    for sgn, lid, zb, h, R in ((-1, True, 17.5, 7.0, 5.0), (1, False, 18.5, 6.5, 4.8)):
+    pots = ((-1, True, 17.5, 7.0, 5.0), (1, False, 18.5, 6.5, 4.8))
+    if big_pot:
+        pots = ((0, False, PITB["ZB"], PITB["H"], PITB["R"]),)
+    for sgn, lid, zb, h, R in pots:
         cx, cy = along(sgn * hs)
         bt = hung_pot(W, cx, cy, zb, h, R, lid=lid, tag="pot", bias=0.3, bail_top=zb + h + R + (2.5 if lid else 1.0))
         # the S-hook from the bar to the bail
@@ -1132,17 +1199,24 @@ def check_outlined(im, name):
     assert (rgb[edge] == hx(OUTLINE)).all(1).all(), name + ": not outlined all round"
 
 
-def build(name, fn, ffn):
-    """the prop and its frames: contour lines, the frames cut against the prop's depth, then the outline"""
+def build(name, fn, ffn, like=None):
+    """the prop and its frames: contour lines, the frames cut against the prop's depth, then the outline.
+    `like` a plain version's result: a state's picture is cut to the same box round the anchor, and its
+    frames to the same box round fire.at, so the state swaps the pictures and nothing else"""
     pic = fn()
     pic.contour()
     frames = [ffn(pic, k) for k in range(3)]
     pic.outline()
-    im, anc = pic.image()
+    crop = None
+    if like is not None:
+        crop = absb(like["crop"], pic)
+        y0, y1, x0, x1 = pic.box()
+        assert crop[0] <= y0 and y1 <= crop[1] and crop[2] <= x0 and x1 <= crop[3], (name, "outside the plain box")
+    im, anc = pic.image(crop)
     check_outlined(im, name)
     im.save(os.path.join(OUT, name + ".png"))
-    info = frames_out(pic, frames, name)
-    return {"image": im, "anchor": anc, "fire": info}
+    info = frames_out(pic, frames, name, crop, absb(like["fire"]["fbox"], pic) if like is not None else None)
+    return {"image": im, "anchor": anc, "fire": info, "crop": rel(crop or pic.box(), pic)}
 
 
 # ======================================================================== the definitions
@@ -1378,6 +1452,31 @@ def preview(res, it):
             img = r["image"] if k is None else lit(r["image"], r["fire"], k)
             S.put(w, standing(img, r["anchor"], cells, wood, w))
     row1 = S.image()
+    # row 1b: the pot states, both facings, unlit and with each frame (the fireplace against its walls on
+    # wood, the fire pit on wood), each beside its plain picture's place in the rows above and below
+    S = Strip(H, 0)
+    S.put(64, standing(barrel, (14, 18), one, wood, 64))
+    if "fireplace_pot" in res:
+        r = res["fireplace_pot"]
+        for k in (None, 0, 1, 2):
+            img = r["image"] if k is None else lit(r["image"], r["fire"], k)
+            S.put(196, standing(img, r["anchor"], along_y, wood, 196, pre=west_wall))
+        xa = (r["image"].width - r["anchor"][0], r["anchor"][1])
+        for k in (None, 0, 1, 2):
+            img = mir(r["image"]) if k is None else lit(r["image"], r["fire"], k, mirror=True)
+            S.put(196, standing(img, xa, along_x, wood, 196, pre=north_wall))
+    if "fire_pit_pot" in res:
+        r = res["fire_pit_pot"]
+        for mirror in (False, True):
+            xa = (r["image"].width - r["anchor"][0], r["anchor"][1]) if mirror else r["anchor"]
+            for k in (None, 0, 1, 2):
+                if k is None:
+                    img = mir(r["image"]) if mirror else r["image"]
+                else:
+                    img = lit(r["image"], r["fire"], k, mirror=mirror)
+                S.put(132, standing(img, xa, two, wood, 132))
+    S.put(30, lambda im, x: im.alpha_composite(fig, (x + 2, G - 30 - fig.height)))
+    row1b = S.image()
     # row 2: on grass, outdoors
     S = Strip(120, 0)
     G = 110
@@ -1415,11 +1514,12 @@ def preview(res, it):
     cells = Image.new("RGBA", (57, 57), SLOT)
     cells.alpha_composite(icon)
     row3.alpha_composite(cells, (260, 8))
-    Wd = max(row1.width, row2.width, row3.width)
-    full = Image.new("RGBA", (Wd, row1.height + row2.height + row3.height), BG)
-    full.alpha_composite(row1, (0, 0))
-    full.alpha_composite(row2, (0, row1.height))
-    full.alpha_composite(row3, (0, row1.height + row2.height))
+    Wd = max(row1.width, row1b.width, row2.width, row3.width)
+    full = Image.new("RGBA", (Wd, row1.height + row1b.height + row2.height + row3.height), BG)
+    y = 0
+    for row in (row1, row1b, row2, row3):
+        full.alpha_composite(row, (0, y))
+        y += row.height
     full.save(os.path.join(OUT, "preview_1x.png"))
     big = full.resize((full.width * 3, full.height * 3), Image.NEAREST)
     big.save(os.path.join(OUT, "preview_3x.png"))
@@ -1433,7 +1533,11 @@ def main():
     res = {"fireplace": build("fireplace", fireplace, fireplace_flames),
            "fire_pit": build("fire_pit", fire_pit, fire_pit_flames),
            "campfire": build("campfire", campfire, campfire_flames)}
-    defs = definitions(res)
+    # the pot states (Michael, 2026-10-27): the same anchor and picture box, the same frame box and pin
+    res["fireplace_pot"] = build("fireplace_pot", lambda: fireplace(big_pot=True), lambda p, k: fireplace_flames(p, k, wide=True),
+                                 like=res["fireplace"])
+    res["fire_pit_pot"] = build("fire_pit_pot", lambda: fire_pit(big_pot=True), fire_pit_flames, like=res["fire_pit"])
+    defs = definitions({k: res[k] for k in ("fireplace", "fire_pit", "campfire")})
     it = item()
     manifest(it)
     preview(res, it)

@@ -5038,13 +5038,13 @@ check("the fires: a lit room's drawn light dips with its fire's flicker within [
 
 // The valley's fire pit by your cottage (Michael, 2026-10-27: "So I can see one pretty quick in game"): on open grass outside the yard's
 // fence, lit, a place of its own, so no tree, node, or comeback stands on it or the ring round it, and no resource spot rule takes it.
-check("the fires: the valley's fire pit stands lit on open grass east of your cottage, clear of the trees and the resources", () => {
+check("the fires: the valley's fire pit stands lit on open grass outside your cottage's south gate, clear of the trees and the resources", () => {
   gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
   const pits = mapMod.allProps().filter((p) => p.sprite === "fire_pit");
   assert(pits.length === 1, `${pits.length} fire pits on the valley`);
   const p = pits[0];
   const [x, y] = p.tile;
-  assert(x >= 121 && x <= 130 && y >= 212 && y <= 226 && p.fire.lit && p.tiles.length === 4 && !p.made, `the fire pit at ${x},${y}: lit ${p.fire.lit}, ${p.tiles.length} tiles, made ${p.made}`);
+  assert(x >= 100 && x <= 115 && y >= 228 && y <= 234 && p.fire.lit && p.tiles.length === 4 && !p.made, `the fire pit at ${x},${y}: lit ${p.fire.lit}, ${p.tiles.length} tiles, made ${p.made}`);
   for (const [a, b] of p.tiles) {
     const t = mapMod.peekTile(a, b);
     const takes = mapMod.resourceKinds().filter((k) => !mapMod.resourceSpotProblem(k, a, b));

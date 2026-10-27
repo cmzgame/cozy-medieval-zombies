@@ -201,11 +201,11 @@ def build():
     home.prop("beehive", (16, 8), note="a hive by the home's garden (#333)")
     home.prop("beehive", (18, 8))
     home.fence([0, 0, 22, 15], gates=[{"side": "s", "at": 5}, {"side": "w", "at": 11}])
-    # A fire pit on the open grass east of the cottage's fence, lit (Michael, 2026-10-27: "Can you place the Firepit somewhere on the default
-    # map nearish the starting cottage somewhere that's just empty grass? So I can see one pretty quick in game when done?"): six tiles past the
-    # east fence, between the yard and the river bank, its place's ring already clear of trees, clear of the lane, the guide, and the clay by
-    # the river; a place of its own, so the scatter and the resources' comebacks keep off it and the ring round it.
-    pit = g.place("a fire pit by your cottage", [126, 216, 2, 2], padding=1)
+    # A fire pit on the open grass just outside the cottage's south gate, lit (Michael, 2026-10-27: "Can you place the Firepit somewhere on the
+    # default map nearish the starting cottage somewhere that's just empty grass? So I can see one pretty quick in game when done?"): a place of
+    # its own with a two-tile clear ring, so the scatter, the trees, and the resources' comebacks keep off it (first east of the fence, where the
+    # woods crowded it).
+    pit = g.place("a fire pit by your cottage", [107, 230, 2, 2], padding=2)  # just outside the south gate, on open grass (moved from the woods east of the fence, which crowded it)
     pit.prop("fire_pit", (0, 0), footprint=[2, 2], lit=True, fuel=3, note="the fire pit by the home (the fire rulings, 2026-10-26), lit so it is seen at once")
 
     # ================= step 1: the village (29/04) =================

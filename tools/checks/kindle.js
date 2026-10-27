@@ -566,7 +566,13 @@ export async function run(game) {
       }
       if (pitIn) {
         const [ix, iy] = pitIn;
-        G.teleport(meAt[0], meAt[1]);
+        // Stand within reach of it in the same room, off its four tiles, as a guest standing by would be.
+        let stand = meAt;
+        for (const [sx, sy] of [[ix - 1, iy], [ix - 1, iy + 1], [ix, iy - 1], [ix + 1, iy - 1], [ix + 2, iy], [ix + 2, iy + 1], [ix, iy + 2], [ix + 1, iy + 2]]) {
+          const t = G.map.peekTile(sx, sy);
+          if (t && t.room === room && G.map.isWalkableTile(sx, sy) && !t.prop) { stand = [sx, sy]; break; }
+        }
+        G.teleport(stand[0], stand[1]);
         G.loop.advance(1 / 60);
         G.inventory.addItem(sack, "stone", 8);
         G.placement.performPlacement(me, { kind: "build", what: "fire_pit", tx: ix, ty: iy });

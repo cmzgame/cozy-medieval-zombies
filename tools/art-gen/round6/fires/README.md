@@ -1,6 +1,6 @@
 # Art round 6: the fires
 
-This delivery has the three fires as one family: the **Fireplace** (redrawn), the **Fire pit** (new, 2 by 2), and the **Campfire** (drawn, replacing the generated placeholder). Each comes with three unlit flame frames. The Campfire item also gets its bag icon and its held picture.
+This delivery has the three fires as one family: the **Fireplace** (redrawn), the **Fire pit** (new, 2 by 2), and the **Campfire** (drawn, replacing the generated placeholder). Each comes with three unlit flame frames. The Campfire item also gets its bag icon and its held picture. The Fireplace and the Fire pit each also have a **pot state**, a big black cauldron over the fire, drawn now for a state the game may trigger later.
 
 Every prop, icon, and held picture uses hard pixels only (alpha 0 or 255) and has a 1 px `#2b2522` outline all the way round. `gen.py` checks both by script on every one of those files. The flame frames follow `fire_0.png`'s manner: no `#2b2522` outline, their own dark red edge `#6e1e10`, and alpha 0 or 255, also checked. Light comes from the top left. Nothing has a baked shadow, glow, or flame light, and everything is drawn at the size it ships.
 
@@ -28,6 +28,10 @@ Every prop, icon, and held picture uses hard pixels only (alpha 0 or 255) and ha
 | `campfire_fire_0..2.png` | 18 × 23 each | base (9, 22) on fire.at (20, 19) | The campfire's flames, already cut. |
 | `campfire_icon.png` | 57 × 57 | | The Campfire item's bag icon. |
 | `campfire_world.png` | 16 × 14 | grip (7, 1) | The Campfire item held, `fixed`. |
+| `fireplace_pot.png` | 88 × 109 | anchor (56, 60), the same as `fireplace.png` | The big-cauldron state (below). |
+| `fireplace_pot_fire_0..2.png` | 29 × 29 each | base **(14, 28)** on fire.at **(48, 85)** | Its own flames. These two numbers differ from the plain fireplace's. |
+| `fire_pit_pot.png` | 114 × 73 | anchor (58, 19), the same as `fire_pit.png` | The big-cauldron state (below). |
+| `fire_pit_pot_fire_0..2.png` | 37 × 28 each | base (18, 27) on fire.at (57, 49), the same as the plain pit's | Its own flames. |
 | `fireplace.json`, `fire_pit.json`, `campfire.json` | | | The definitions (below). Image paths assume the PNGs go to `data/art/village/`. |
 | `preview_1x.png`, `preview_3x.png` | | | The two halves of `../preview.png`. |
 
@@ -66,6 +70,20 @@ A 2 by 2 prop with two facings, one drawing and its mirror. Its parts:
 ### The Campfire
 
 One tile, drawn: a ring of ten fieldstones round ash and coals, a teepee of four logs (one split, its pale face lit), and one more log lying ready at the back. Two facings, one tile both ways: `y` the drawing (the spare log at the back right, the split log at the left) and `x` its mirror (the spare log at the back left, the split log at the right).
+
+### The pot states (Michael, 2026-10-27)
+
+These are drawn now for a state the game may trigger later. Nothing is wired: there is no definition for them. Each state picture is cut to **exactly the plain picture's box round the same anchor**, so a state swaps `drawings.y.image` and the flame frames and nothing else. `gen.py` asserts that nothing of the state falls outside that box. The second facing is each state's mirror, as for the plain pictures.
+
+- **`fireplace_pot.png`: the big cauldron in the fireplace.**
+  - **The cauldron.** A black iron cauldron as big as the firebox takes, standing on three short legs with splayed feet over the fire. It is radius 8.2 world units (about 23 px across on screen) and runs from 8 to 20 high. It stands at the mouth of the firebox, its belly a little proud of the jambs over the hearth, and is moved 3 units along the wall so it sits centred in the arch on screen. It has a heavy rolled rim, two ears, and dark stew with a gleam showing in its mouth. It has no bail: a bail standing up would run into the arch.
+  - **What changes inside.** The crane and the small pot are gone, and so are the front log and the split top log, which were where the cauldron's belly is. The back log and the firedogs stay under it.
+  - **Its flames.** They stand on the same plane as the plain fireplace's and are cut by the cauldron where it stands in front of them. The tongues run across the whole firebox and are as tall at its ends as in its middle, so the fire licks up on both sides of the pot.
+  - **The numbers that differ.** These wider flames do not fit the plain frames' box, so the state has its own frames, 29 × 29, with **base (14, 28) and fire.at (48, 85)** instead of (13, 20) and (47, 83). The anchor and the picture's size are the same as the plain fireplace's. The frames still lie wholly right of the slice line (x 34..62), so they stay on the first tile.
+- **`fire_pit_pot.png`: the big cauldron in the fire pit.**
+  - **The cauldron.** One big black cauldron, radius 9.6 (about 27 px across) and 16.5 to 29.5 high, hangs from the middle of the crossbar by its bail and an S-hook in place of the two small pots. The ladle and everything else stay as they were.
+  - **Its flames.** They use the plain pit's tongues and are cut by the cauldron, so the fire shows below it and licks up its sides. The frames fit the plain box: **base (18, 27) and fire.at (57, 49), the same as the plain pit's.**
+  - **The three-column cut holds.** The cauldron spans x 42..73 (40..71 in the mirror), the posts and the ladle are where they were, and the flames are at x 39..75.
 
 ## Where the engine's columns fall in the fire pit
 
@@ -126,8 +144,9 @@ The Campfire item is 3 by 3 in the bag, so its icon is 57 × 57.
 `preview.png` is the 1x picture above the same picture at 3x.
 
 - **Row 1, on wooden floor:** round 4's barrel, then the fireplace against a strip of four drawn stone west-wall segments, unlit and with frames 0, 1, and 2. Then the fireplace's `x` mirror against the north wall, unlit and lit (frames mirrored as above), and the 55 px figure. Then the fire pit on 2 by 2 tiles and the campfire, each unlit and with each frame.
-- **Row 2, on grass:** the barrel, then the fire pit and the campfire the same way; then their `x` facings, each mirrored unlit and with frames 0, 1, and 2 mirrored with them; and the figure.
-- **Row 3, the item:** the icon at 2x on the slot colour `#2a2622`, the held picture at 3x with its grip in magenta, the figure holding it at 1x (the grip on the right hand, 14 px above the feet and 10 out), and the icon at 1x on a 57 px slot.
+- **Row 2, the pot states, on wooden floor:** the barrel, then `fireplace_pot` against the west wall (unlit, then frames 0, 1, and 2) and its `x` mirror against the north wall (unlit, then frames 0, 1, and 2 mirrored with it). Then `fire_pit_pot` in `y` and in `x`, each unlit and with its three frames, and the figure.
+- **Row 3, on grass:** the barrel, then the fire pit and the campfire the same way; then their `x` facings, each mirrored unlit and with frames 0, 1, and 2 mirrored with them; and the figure.
+- **Row 4, the item:** the icon at 2x on the slot colour `#2a2622`, the held picture at 3x with its grip in magenta, the figure holding it at 1x (the grip on the right hand, 14 px above the feet and 10 out), and the icon at 1x on a 57 px slot.
 
 ## Weak points
 
@@ -138,4 +157,6 @@ The Campfire item is 3 by 3 in the bag, so its icon is 57 × 57.
 - **The held bundle is small**, 16 × 14 like the cauldron. The rope loop and the end grain read, but the stones the item contains are not shown.
 - **The fire pit is wide,** 114 px (the base reaches 28.5 of 32 units from the centre, and the bar's ends stick out past the posts). The ladle is a 3 px bowl on a stick. It reads as "a thing hanging there" more than as "ladle".
 - **The campfire's flames are narrow (18 px)** because the teepee's front legs cut them. That is deliberate (the logs show through the fire), but the campfire is the least bright of the three.
+- **The fireplace's cauldron hides most of its fire.** That is the point of the state, but the lit fireplace with the pot shows only tongues at the two sides and a little under the belly. Its contents are only the near half of a dark stew, because the arch hides the far rim from the game's angle.
+- **The fireplace pot state needs its own `base` and `fire.at`** (above), so a state swap must carry those two numbers as well as the frames. The fire pit's state needs only the pictures.
 - **Not drawn:** a stoked state, a fire burning low, a separate unlit-with-ash picture after the fuel runs out, and a portrait for the item.

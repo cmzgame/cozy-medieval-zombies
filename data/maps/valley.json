@@ -1883,12 +1883,12 @@
   {
    "name": "a fire pit by your cottage",
    "rect": [
-    126,
-    216,
+    107,
+    230,
     2,
     2
    ],
-   "padding": 1,
+   "padding": 2,
    "buildings": [],
    "floorRects": [],
    "fences": [],
