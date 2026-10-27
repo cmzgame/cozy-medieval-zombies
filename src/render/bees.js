@@ -123,6 +123,7 @@ export function beesFor(prop, f, x, y, an) {
 // each pixel of each figure a one-pixel square at whole pixels.
 export function emit(bees, back, world) {
   if (!bees) return;
+  gl.holdOrder(true); // the bees' pixels never overlap one another: one step of the hive's emit order for them all (docs/51)
   for (const b of bees.list) {
     if (b.back !== back) continue;
     const px = bees.cx + b.x;
@@ -134,4 +135,5 @@ export function emit(bees, back, world) {
       gl.poly([[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]], gl.rgb(c), opts);
     }
   }
+  gl.holdOrder(false);
 }
