@@ -2189,12 +2189,26 @@ export function loadedChunks() {
   return chunks.values();
 }
 
+// The layer a read with none given is of: the ground's, always, but while the renderer draws a storey (docs/49 section 6,
+// render/storeys.js `drawLayerOf`), which sets it for the drawables of that storey alone and puts it back in a `finally`: the walls',
+// props', and items' drawing read their layer's tiles through the same calls as the ground's. Never set during a step.
+let drawLayer = 0;
+export function withDrawLayer(layer, fn) {
+  const was = drawLayer;
+  drawLayer = layer;
+  try {
+    return fn();
+  } finally {
+    drawLayer = was;
+  }
+}
+
 // The tile at integer (x, y) for reading. A read never grows a chunk: beyond
 // the grown ring it sees the blank tile (plain floor, outdoors), the same on
 // every machine whatever the window shows, so the world is the simulation's
 // alone (docs/31/05, item 8; docs/02, 2026-10-13). Growth is ensureAround's
 // (the ring round each player) and the mutators' (growTile).
-export function tileAt(x, y, layer = 0) {
+export function tileAt(x, y, layer = drawLayer) {
   const cx = Math.floor(x / CHUNK);
   const cy = Math.floor(y / CHUNK);
   const c = getChunk(cx, cy, false, layer);
@@ -2222,7 +2236,7 @@ export function blankTile(layer = 0) {
 }
 
 // The tile at (x, y) only if its chunk is loaded.
-export function peekTile(x, y, layer = 0) {
+export function peekTile(x, y, layer = drawLayer) {
   const c = getChunk(Math.floor(x / CHUNK), Math.floor(y / CHUNK), false, layer);
   if (!c) return null;
   return c.tiles[(y - c.cy * CHUNK) * CHUNK + (x - c.cx * CHUNK)];
@@ -2302,7 +2316,7 @@ export function openingsNear(gx, gy, r = 1.15, layer = 0) {
 // Which side of the edge at (tx, ty) is outdoors: +1 for the near side (south
 // of a north edge, east of a west edge), -1 for the far side. When both sides
 // are rooms or both are outdoors, the near side is treated as outside.
-export function outsideSign(tx, ty, edge, layer = 0) {
+export function outsideSign(tx, ty, edge, layer = drawLayer) {
   const near = tileAt(tx, ty, layer).room;
   const far = edge === "n" ? tileAt(tx, ty - 1, layer).room : tileAt(tx - 1, ty, layer).room;
   if (far !== 0 && near === 0) return 1;
@@ -2405,12 +2419,132 @@ export function canStep(x0, y0, x1, y1, layer = 0) {
   const dx = x1 - x0;
   const dy = y1 - y0;
   if (!isWalkableTile(x1, y1, layer)) return false;
+  if (stairIndex.size && !stairStepOk(x0, y0, x1, y1, layer)) return false; // a stair is entered and left only at its ends (docs/49 section 4)
   if (dx !== 0 && dy !== 0) {
     if (!isWalkableTile(x0 + dx, y0, layer) || !isWalkableTile(x0, y0 + dy, layer)) return false;
     return !blocksMove(wallBetween(x0, y0, x0 + dx, y0, layer)) && !blocksMove(wallBetween(x0 + dx, y0, x1, y1, layer))
       && !blocksMove(wallBetween(x0, y0, x0, y0 + dy, layer)) && !blocksMove(wallBetween(x0, y0 + dy, x1, y1, layer));
   }
   return !blocksMove(wallBetween(x0, y0, x1, y1, layer));
+}
+
+// ---- stairs as walked (docs/49 section 4, step 3) ----
+// A stair is three tiles on its layer climbing one storey in its direction; a body on it has the stair's layer and `rise`, the pixels it
+// has climbed (32 a tile, 96 at its top edge). Crossing the top edge (the body's centre passing the far edge of the third tile) puts it on
+// the layer above with rise 0, on the landing; stepping back over that edge from the landing puts it on the stair again, rise 96 falling.
+// Its sides are closed on both layers: on its own layer by its side edges, on the layer above by its stairwell's (the void over its three
+// tiles, which a body on the layer above enters only over the top edge, as it goes down). The landing is the stair's own tile on the layer
+// above. Nothing here is saved: the stairs are the map file's (built stairs are docs/49 step 8's), the body's layer and rise are its own.
+const STAIR_D = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+const stairIndex = new Map(); // tileKey(x, y, layer) -> { s, k, well }: a step k (0 to 2) of a stair on its layer, or its stairwell on the layer above
+const stairsOnLayer = new Map(); // layer -> [{ s, well }]
+const tileKey3 = (x, y, layer) => layer * 4294967296 + (x + KEY_OFF) * 65536 + (y + KEY_OFF);
+function indexStairs() {
+  stairIndex.clear();
+  stairsOnLayer.clear();
+  for (const s of stairList) {
+    s.d = STAIR_D[s.dir];
+    s.low = [s.tiles[0][0] - 0.5 * s.d[0], s.tiles[0][1] - 0.5 * s.d[1]]; // the middle of its bottom edge
+    s.tiles.forEach(([x, y], k) => {
+      stairIndex.set(tileKey3(x, y, s.layer), { s, k, well: false });
+      stairIndex.set(tileKey3(x, y, s.layer + 1), { s, k, well: true });
+    });
+    for (const [l, well] of [[s.layer, false], [s.layer + 1, true]]) {
+      if (!stairsOnLayer.has(l)) stairsOnLayer.set(l, []);
+      stairsOnLayer.get(l).push({ s, well });
+    }
+  }
+}
+// How far along a stair a point is, in tiles from its bottom edge (0) to its top edge (3), and how far off its middle line, sideways.
+export function stairAlong(s, gx, gy) {
+  const ux = gx - s.low[0];
+  const uy = gy - s.low[1];
+  return { t: ux * s.d[0] + uy * s.d[1], off: ux * -s.d[1] + uy * s.d[0] };
+}
+// The stair whose step or stairwell a tile of a layer is, or null: { s, k, well }.
+export function stairAt(x, y, layer = 0) {
+  return stairIndex.size ? stairIndex.get(tileKey3(x, y, layer)) || null : null;
+}
+// The stairs a layer holds, with their stairwells from the layer below (for the drawing and the checks).
+export function stairsOn(layer = 0) {
+  return stairsOnLayer.get(layer) || [];
+}
+// One tile-to-tile step against the stairs (canStep's): onto, along, and off a stair only by its line, from the tile before it up to its
+// top step; never off its top step onto the tile beyond it on its own layer (that is the landing's, a storey up), and never sideways.
+function stairStepOk(x0, y0, x1, y1, layer) {
+  const a = stairIndex.get(tileKey3(x0, y0, layer));
+  const b = stairIndex.get(tileKey3(x1, y1, layer));
+  if (!a && !b) return true;
+  if ((a && a.well) || (b && b.well)) return false; // a stairwell is void: not walked on its layer (canStep's walkable test says so too)
+  const s = (a || b).s;
+  if (x0 !== x1 && y0 !== y1) return false; // no diagonal onto or off a stair
+  if (a && b) return a.s === b.s && Math.abs(a.k - b.k) === 1;
+  const on = a || b;
+  const other = a ? [x1, y1] : [x0, y0];
+  return on.k === 0 && other[0] === s.before[0] && other[1] === s.before[1];
+}
+// A segment of a stair's edges near a circle, tested as a wall's: a stair's sides on its layer, its stairwell's sides and bottom on the
+// layer above, and its top edge on its own layer for a body that is not on it (nobody comes onto a stair over its top but from the landing).
+function stairBlocks(gx, gy, r2, layer, sOn) {
+  const list = stairsOnLayer.get(layer);
+  if (!list) return false;
+  for (const { s, well } of list) {
+    const { t, off } = stairAlong(s, gx, gy);
+    if (t < -1 || t > 4 || Math.abs(off) > 1.5) continue;
+    const [dx, dy] = s.d;
+    const px = -dy;
+    const py = dx;
+    const L = s.low;
+    const seg = (t0, o0, t1, o1) => pointSegDist2(gx, gy, L[0] + dx * t0 + px * o0, L[1] + dy * t0 + py * o0, L[0] + dx * t1 + px * o1, L[1] + dy * t1 + py * o1) < r2;
+    if (seg(0, 0.5, 3, 0.5) || seg(0, -0.5, 3, -0.5)) return true; // the sides
+    if (well && seg(0, -0.5, 0, 0.5)) return true; // the stairwell's bottom end, over the stair's foot
+    if (!well && sOn !== s && seg(3, -0.5, 3, 0.5)) return true; // the top edge, to a body not on the stair
+  }
+  return false;
+}
+// The stair a body at (gx, gy) on `layer` is on (its centre over its three tiles, or just past its top edge, where it is crossing to the
+// landing this step), or null.
+function stairUnder(gx, gy, layer) {
+  const list = stairsOnLayer.get(layer);
+  if (!list) return null;
+  for (const { s, well } of list) {
+    if (well) continue;
+    const { t, off } = stairAlong(s, gx, gy);
+    if (t >= 0 && t <= 3.35 && Math.abs(off) <= 0.5) return s;
+  }
+  return null;
+}
+// After a body moves: its layer and rise from where it stands on a stair (docs/49 section 4). Up: on a step its rise is 32 a tile from the
+// bottom edge; past the top edge it is on the layer above, rise 0. Down: from the landing over the top edge into the stairwell it is on the
+// stair's layer again, rise 96 less what it went back. Off the bottom, rise 0. The host's step, a guest's prediction, the dead, all alike.
+export function stairStep(body) {
+  if (!stairIndex.size) return;
+  const L = body.layer || 0;
+  const hit = stairIndex.get(tileKey3(Math.round(body.gx), Math.round(body.gy), L));
+  if (hit && hit.well) {
+    // From the landing back over the top edge: on the stair below.
+    const { t } = stairAlong(hit.s, body.gx, body.gy);
+    body.layer = hit.s.layer;
+    body.rise = Math.max(0, Math.min(3, t)) * 32;
+    return;
+  }
+  if (hit) {
+    const { t } = stairAlong(hit.s, body.gx, body.gy);
+    body.rise = Math.max(0, Math.min(3, t)) * 32;
+    return;
+  }
+  if (body.rise) {
+    // It was on a stair of this layer: past its top edge it is on the landing, a storey up; else it stepped off the bottom.
+    for (const { s, well } of stairsOnLayer.get(L) || []) {
+      if (well) continue;
+      const { t, off } = stairAlong(s, body.gx, body.gy);
+      if (t >= 3 && t < 3.6 && Math.abs(off) <= 0.6) {
+        body.layer = s.layer + 1;
+        break;
+      }
+    }
+    body.rise = 0;
+  }
 }
 
 // canStep bound to a layer, for the pathfinder: the ground's is canStep itself, so its searches are the ones they always were.
@@ -2441,8 +2575,17 @@ export function circleBlocked(gx, gy, r, layer = 0) {
   const maxX = Math.floor(gx + r + 0.5);
   const minY = Math.floor(gy - r + 0.5);
   const maxY = Math.floor(gy + r + 0.5);
+  // On a stair (docs/49 section 4): its sides hold the body, and past its top edge nothing of its own layer is in the way (the landing is a
+  // storey up, and the layer changes as the body crosses); a stairwell's void is not solid to a body on the layer above (its edges are).
+  const sOn = stairIndex.size ? stairUnder(gx, gy, layer) : null;
+  if (stairIndex.size && stairBlocks(gx, gy, r2, layer, sOn)) return true;
   for (let ty = minY; ty <= maxY + 1; ty++) {
     for (let tx = minX; tx <= maxX + 1; tx++) {
+      if (sOn && pastTop(sOn, tx, ty)) continue;
+      if (stairIndex.size) {
+        const w = stairIndex.get(tileKey3(tx, ty, layer));
+        if (w && w.well) continue; // a stairwell: its edges block (stairBlocks), its void does not
+      }
       const t = tileAt(tx, ty, layer);
       // Water blocks like a solid tile: no body enters a wholly-water tile (docs/30, law 8).
       if (tx <= maxX && ty <= maxY && floorRule(t.floor).walk === false) {
@@ -2492,6 +2635,16 @@ export function circleBlocked(gx, gy, r, layer = 0) {
     }
   }
   return false;
+}
+
+// Whether tile (tx, ty) of a stair's layer lies past its top edge (its centre beyond it), or holds the top edge in its own slot (a stair
+// climbing north or west ends on its top step's own n or w edge): what a body on the stair is not stopped by.
+function pastTop(s, tx, ty) {
+  const { t, off } = stairAlong(s, tx, ty);
+  if (Math.abs(off) > 1.01) return false;
+  if (t > 3) return true;
+  const [x2, y2] = s.tiles[2];
+  return tx === x2 && ty === y2 && (s.dir === "n" || s.dir === "w") ? "edge" : false;
 }
 
 // The nearest open doorway on the row of north edges `row`, among the tiles
@@ -3249,6 +3402,7 @@ export function loadMap(json, options = {}) {
   };
   for (const rd of json.rounds || []) layRound(rd, [0, 0], null);
   for (const s of json.sets || []) for (const rd of s.rounds || []) layRound(rd, setOrigin(s), s.name || null);
+  indexStairs(); // the stairs as walked (docs/49 step 3)
   const baseFloor = json.floor || "floor_grass";
   // Reserved tiles take no scatter: each building's rectangle plus its
   // `padding` ring (default 1, so a trunk can stand one tile from a wall,

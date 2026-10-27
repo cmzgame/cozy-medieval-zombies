@@ -122,7 +122,7 @@ export function actionsForTarget(t, player) {
     return prop ? tag(propActions(prop, player), t) : [];
   }
   if (t.kind === "edge") {
-    const o = map.openingsNear(t.tx, t.ty, 2.5).find((q) => q.tx === t.tx && q.ty === t.ty && q.edge === t.edge);
+    const o = map.openingsNear(t.tx, t.ty, 2.5, player.layer || 0).find((q) => q.tx === t.tx && q.ty === t.ty && q.edge === t.edge);
     return o ? tag(openingActions(o, player), t) : [];
   }
   if (t.kind === "bracket") {
@@ -794,7 +794,7 @@ function openingActions(o, player) {
       perform() {
         if (w.kind === "door") w.open = !w.open;
         else w.shutter = w.shutter === "open" ? "closed" : "open";
-        map.touch(o.tx, o.ty); // the wall's own tile, so the save and the wire carry it (docs/31/05, item 6; it touched nothing before)
+        map.touch(o.tx, o.ty, map.layerOf(w.at)); // the wall's own tile on its layer, so the save and the wire carry it (docs/31/05, item 6; it touched nothing before)
         return true;
       },
     }));
@@ -1359,7 +1359,7 @@ export function nearestSimpleAction(player) {
       }
     }
   }
-  for (const o of map.openingsNear(player.gx, player.gy, INTERACT_RANGE)) consider(tag(openingActions(o, player), onEdge(o)));
+  for (const o of map.openingsNear(player.gx, player.gy, INTERACT_RANGE, player.layer || 0)) consider(tag(openingActions(o, player), onEdge(o)));
   for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE, player.layer || 0)) consider(tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   // A body lying within reach (a corpse is a container, docs/19).
   for (const c of allCharacters()) {
@@ -1486,7 +1486,7 @@ function track(k, dt, onHold, onTap) {
 }
 
 function nearestOpening(player) {
-  return map.openingsNear(player.gx, player.gy, INTERACT_RANGE)[0] || null;
+  return map.openingsNear(player.gx, player.gy, INTERACT_RANGE, player.layer || 0)[0] || null;
 }
 
 // What the prompt should say, and where, or null: a running action with its

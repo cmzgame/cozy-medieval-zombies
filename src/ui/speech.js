@@ -8,6 +8,7 @@
 // nothing here writes on the speaker (docs/31/05 item 7, #102).
 
 import * as iso from "../iso.js";
+import { liftOf } from "../render/storeys.js"; // a body drawn at its storey and its rise (docs/49 section 6)
 import * as log from "./log.js";
 import * as view from "../view.js";
 import { tileKey } from "../visibility.js";
@@ -101,6 +102,7 @@ export function updateSpeech(characters, visible, player, dt) {
       if (ch.kind !== "zombie" && line !== ZZ && /[\p{L}\p{N}]/u.test(line.text)) log.push(line.text, "say", ch === player ? "You" : ch.name || (ch.kind === "player" ? "Someone" : "Villager"));
     }
     const s = iso.toScreen(ch.gx, ch.gy);
+    s.y -= liftOf(ch); // at the height it stands (docs/49 section 6)
     const p = view.toUi(s.x, s.y - HEAD_TOP);
     // The box keeps inside the window; the tail still points at the speaker.
     const half = entry.w / 2;

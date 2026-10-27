@@ -9,7 +9,7 @@ import { wallBetween, blocksSight, tileAt, edgeBetween } from "./map.js";
 
 const MAX_STEPS = 400;
 
-export function lineOfSight(ax, ay, bx, by) {
+export function lineOfSight(ax, ay, bx, by, layer = 0) { // on one layer (docs/49): the ray with heights across storeys is step 4's
   let ix = Math.round(ax);
   let iy = Math.round(ay);
   const tx = Math.round(bx);
@@ -27,17 +27,17 @@ export function lineOfSight(ax, ay, bx, by) {
   while ((ix !== tx || iy !== ty) && guard++ < MAX_STEPS) {
     if (tMaxX < tMaxY) {
       const nx = ix + stepX;
-      if (blocksSight(wallBetween(ix, iy, nx, iy))) return false;
+      if (blocksSight(wallBetween(ix, iy, nx, iy, layer))) return false;
       ix = nx;
       tMaxX += tDeltaX;
     } else {
       const ny = iy + stepY;
-      if (blocksSight(wallBetween(ix, iy, ix, ny))) return false;
+      if (blocksSight(wallBetween(ix, iy, ix, ny, layer))) return false;
       iy = ny;
       tMaxY += tDeltaY;
     }
     if (ix !== tx || iy !== ty) {
-      const p = tileAt(ix, iy).prop;
+      const p = tileAt(ix, iy, layer).prop;
       if (p && p.opaque) return false;
     }
   }

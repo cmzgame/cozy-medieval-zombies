@@ -28,6 +28,7 @@ export const FLAG_SKY = 4;
 export const FLAG_NOFOG = 8;
 export const FLAG_STANDING = 16; // a prop or a character: takes the legibility floor
 export const FLAG_SOLID = 32; // the quad's colour, flat, keeping the sprite's shape: an outline (docs/14)
+export const FLAG_UPPER = 64; // a storey's (docs/49 section 6): lit, shaded, and fogged by the second set of area textures, the storey's own
 
 // The passes (docs/51 section 4). PASS_STAND is what a standing drawable asks for: its quads go to the opaque pass, or
 // to the translucent one by the rule above (`route`); PASS_TRANS is that store's index, never asked for by an emitter.
@@ -73,6 +74,7 @@ let depthStepSize = 0.25; // the emit-order step in depth units: two steps of th
 let pass = PASS_FLAT;
 let sA = 0; // the surface: depth = sA * sx - sy + sC (a plane), or, with sX a number, the ridge
 let sC = 0; //   sC - sy - 1.5 |sx - sX| (two planes meeting at the column sX)
+let sB = -1; // a plane's coefficient of sy: -1 for every vertical plane, +2 for a lifted floor (docs/49 section 6)
 let sX = NaN;
 let sFloorN = 0; // a surface's floor planes (render/depth.js againstWalls), its depth the most of its own and theirs: how many,
 const sFloorA = new Float64Array(2); //   and each one's A and C (depth = A * sx - sy + C)
@@ -291,6 +293,10 @@ uniform int u_isGround;
 uniform sampler2D u_light;
 uniform sampler2D u_ambient;
 uniform sampler2D u_fog;
+uniform sampler2D u_light2; // a storey's own light, ambient, and fog (docs/49 section 6), read by a vertex flagged FLAG_UPPER
+uniform sampler2D u_ambient2;
+uniform sampler2D u_fog2;
+uniform int u_hasUpper;
 uniform vec2 u_areaOrigin;
 uniform vec2 u_areaTiles;
 uniform float u_nightFloor;
@@ -332,6 +338,7 @@ void main() {
   bool nofog = mod(floor(f / 8.0), 2.0) >= 1.0;
   bool standing = mod(floor(f / 16.0), 2.0) >= 1.0;
   bool solid = mod(floor(f / 32.0), 2.0) >= 1.0;
+  bool upper = u_hasUpper == 1 && mod(floor(f / 64.0), 2.0) >= 1.0;
   // Texel i of the tile textures covers [origin + i - 0.5, origin + i + 0.5);
   // the light texture spans the same area at more texels per tile.
   vec2 tileUV = (v_world - u_areaOrigin + 0.5) / u_areaTiles;
@@ -342,8 +349,8 @@ void main() {
   if (u_debug == 2) { o = vec4(vec3(texture(u_ambient, tileUV).r), 1.0); return; }
   if (u_debug == 3) { o = vec4(vec3(texture(u_fog, tileUV).r), 1.0); return; }
   if (!unlit) {
-    float amb = sky ? u_outdoor : texture(u_ambient, tileUV).r;
-    float st = sky ? 0.0 : texture(u_light, tileUV).r;
+    float amb = sky ? u_outdoor : upper ? texture(u_ambient2, tileUV).r : texture(u_ambient, tileUV).r;
+    float st = sky ? 0.0 : upper ? texture(u_light2, tileUV).r : texture(u_light, tileUV).r;
     // A pool climbs a wall or a tree from its foot and fades with height.
     if (u_climb > 0.0) st *= max(0.0, 1.0 - v_height / u_climb);
     // The sum, capped: where ambient alone is near full, a pool's climb running
@@ -363,7 +370,7 @@ void main() {
     }
   }
   if (!nofog) {
-    float vis = texture(u_fog, tileUV).r;
+    float vis = upper ? texture(u_fog2, tileUV).r : texture(u_fog, tileUV).r;
     if (vis < 0.5) rgb = mix(rgb, u_fogColor, u_fogAlpha);
   }
   o = vec4(rgb * a, a);
@@ -427,7 +434,7 @@ function setup() {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);
-  for (const name of ["u_res", "u_texSize", "u_tex", "u_ground", "u_isGround", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_softLight", "u_debug", "u_depthHalf", "u_alphaCut"]) {
+  for (const name of ["u_res", "u_texSize", "u_tex", "u_ground", "u_isGround", "u_light", "u_ambient", "u_fog", "u_light2", "u_ambient2", "u_fog2", "u_hasUpper", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_softLight", "u_debug", "u_depthHalf", "u_alphaCut"]) {
     uniforms[name] = gl.getUniformLocation(program, name);
   }
   vao = gl.createVertexArray();
@@ -460,9 +467,15 @@ function setup() {
   gl.uniform1i(uniforms.u_light, 1);
   gl.uniform1i(uniforms.u_ambient, 2);
   gl.uniform1i(uniforms.u_fog, 3);
+  gl.uniform1i(uniforms.u_light2, 5);
+  gl.uniform1i(uniforms.u_ambient2, 6);
+  gl.uniform1i(uniforms.u_fog2, 7);
   lightTex = makeTexture(gl.LINEAR);
   ambientTex = makeTexture(gl.NEAREST);
   fogTex = makeTexture(gl.NEAREST);
+  lightTex2 = makeTexture(gl.LINEAR);
+  ambientTex2 = makeTexture(gl.NEAREST);
+  fogTex2 = makeTexture(gl.NEAREST);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
   // The depth buffer (docs/51 section 5), set here so it survives a lost context: the test on, LEQUAL (the default LESS
@@ -525,34 +538,52 @@ function makeTexture(filter) {
 let lightTex = null;
 let ambientTex = null;
 let fogTex = null;
+let lightTex2 = null; // the second set: a storey's own (docs/49 section 6), units 5 to 7
+let ambientTex2 = null;
+let fogTex2 = null;
+let hasUpper = 0; // the second set holds a storey this frame
+export function setUpperSet(on) {
+  hasUpper = on ? 1 : 0;
+}
+// The flags every quad that follows carries besides its own (FLAG_UPPER while a storey lit by the second set emits).
+let extraFlags = 0;
+export function setExtraFlags(f) {
+  extraFlags = f || 0;
+}
+export function getExtraFlags() {
+  return extraFlags;
+}
 
 // Linear sampling of the light texture gives the parent's soft pools; nearest
 // gives the per-cell look (Michael's backburner): one call.
 export function setLightSampling(linear) {
-  gl.activeTexture(gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, lightTex);
   const f = linear ? gl.LINEAR : gl.NEAREST;
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
+  for (const [unit, tex] of [[gl.TEXTURE1, lightTex], [gl.TEXTURE5, lightTex2]]) {
+    gl.activeTexture(unit);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
+  }
 }
 
 // The three small textures: light (R8, cells), ambient and fog (R8, tiles).
 // The three area textures upload apart, each only when it changed (docs/23a, B6).
-export function uploadLight(light, lw, lh) {
-  gl.activeTexture(gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, lightTex);
+// `set` 1 is the second set, a storey's (docs/49 section 6).
+export function uploadLight(light, lw, lh, set = 0) {
+  gl.activeTexture(set ? gl.TEXTURE5 : gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, set ? lightTex2 : lightTex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, lw, lh, 0, gl.RED, gl.UNSIGNED_BYTE, light);
 }
 
-export function uploadAmbient(ambient, aw, ah) {
-  gl.activeTexture(gl.TEXTURE2);
-  gl.bindTexture(gl.TEXTURE_2D, ambientTex);
+export function uploadAmbient(ambient, aw, ah, set = 0) {
+  gl.activeTexture(set ? gl.TEXTURE6 : gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, set ? ambientTex2 : ambientTex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, aw, ah, 0, gl.RED, gl.UNSIGNED_BYTE, ambient);
 }
 
-export function uploadFog(fog, aw, ah) {
-  gl.activeTexture(gl.TEXTURE3);
-  gl.bindTexture(gl.TEXTURE_2D, fogTex);
+export function uploadFog(fog, aw, ah, set = 0) {
+  gl.activeTexture(set ? gl.TEXTURE7 : gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, set ? fogTex2 : fogTex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, aw, ah, 0, gl.RED, gl.UNSIGNED_BYTE, fog);
 }
 
@@ -697,7 +728,19 @@ export function setPlane(s) {
     sA = 0;
     sX = s.xF;
   }
+  sB = s.B === undefined ? -1 : s.B; // a vertical plane's depth falls a unit a pixel up the screen; a lifted floor's rises two a pixel down (render/depth.js floorPlane)
   sC = s.C;
+}
+
+// A storey's lift (docs/49 section 6): every standing vertex that follows sits `px` deeper, a storey's height above the ground (STOREY a
+// layer, and a body's rise up a stair), while render/storeys.js has the screen origin lifted as much, so a lifted thing sorts per pixel
+// against everything by its true X + Y + Z. 0 on the ground; the scene puts it back after each storey.
+let liftD = 0;
+export function setLift(px) {
+  liftD = px || 0;
+}
+export function getLift() {
+  return liftD;
 }
 
 // An outline's copies (Object Highlight, the swing outline, an item's halo): on the surface, a step behind the quad they outline (the
@@ -825,12 +868,12 @@ function vertex(x, y, u, v, page, wx, wy, h, c, flags, d) {
 // clipped). Each corner's depth is worked out once (`fanDepth`), and the triangles written from the corners, with no array made per
 // vertex: the frame emits thousands of these.
 const fanDepth = new Float64Array(16);
-function fan(P, n, pg, c, flags, A, C, bias) {
+function fan(P, n, pg, c, flags, A, C, bias, B = -1) {
   if (n < 3) return;
   grow(STRIDE * 3 * (n - 2));
-  const k = C === null ? 0 : C + bias - center;
+  const k = C === null ? 0 : C + bias - center + liftD;
   const D = n <= fanDepth.length ? fanDepth : new Float64Array(n);
-  for (let j = 0; j < n; j++) D[j] = C === null ? 0 : A * P[j][0] - P[j][1] + k;
+  for (let j = 0; j < n; j++) D[j] = C === null ? 0 : A * P[j][0] + B * P[j][1] + k;
   const p0 = P[0];
   for (let i = 1; i < n - 1; i++) {
     const p1 = P[i];
@@ -884,6 +927,7 @@ function clipSide(P, n, X, left, out) {
 // One primitive onto its pass with its depth: a plane's whole, or a ridge's two sides, cut at its column where it crosses it (docs/51
 // section 3: a prop's left half on its footprint's south-west face, its right on the south-east).
 function emitPoly(P, n, pg, c, flags, soft) {
+  flags |= extraFlags;
   const b = route(c[3], flags, soft);
   if (mark) {
     c = [mark[0], mark[1], mark[2], c[3]];
@@ -905,7 +949,7 @@ function emitPoly(P, n, pg, c, flags, soft) {
     }
   }
   if (sFloorN) emitEnvelope(P, n, pg, c, flags, bias, lo, hi);
-  else if (Number.isNaN(sX)) fan(P, n, pg, c, flags, sA, sC, bias);
+  else if (Number.isNaN(sX)) fan(P, n, pg, c, flags, sA, sC, bias, sB);
   else {
     const cl = sC - 1.5 * sX; // the left face: depth = 1.5 sx - sy + cl
     const cr = sC + 1.5 * sX; // the right: -1.5 sx - sy + cr
@@ -1205,6 +1249,13 @@ export function end(u) {
   gl.bindTexture(gl.TEXTURE_2D, ambientTex);
   gl.activeTexture(gl.TEXTURE3);
   gl.bindTexture(gl.TEXTURE_2D, fogTex);
+  gl.activeTexture(gl.TEXTURE5);
+  gl.bindTexture(gl.TEXTURE_2D, lightTex2);
+  gl.activeTexture(gl.TEXTURE6);
+  gl.bindTexture(gl.TEXTURE_2D, ambientTex2);
+  gl.activeTexture(gl.TEXTURE7);
+  gl.bindTexture(gl.TEXTURE_2D, fogTex2);
+  gl.uniform1i(uniforms.u_hasUpper, hasUpper);
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   // The four passes' stores end to end in one upload.

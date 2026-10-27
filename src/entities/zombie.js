@@ -14,7 +14,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles, sideOf, addr, layerOf } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles, sideOf, addr, layerOf, stairStep, stairsOn, stairAlong } from "../map.js";
 import { lineOfSight, openingOnLine } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -205,6 +205,7 @@ function updateHurt(z, dt, sheet) {
     const moved = moveCircle(z.gx, z.gy, z.radius, z.knock.x * k, z.knock.y * k, z.layer || 0);
     z.gx = moved.gx;
     z.gy = moved.gy;
+    stairStep(z);
     z.knock.left -= dt;
     if (z.knock.left <= 0) z.knock = null;
   }
@@ -325,6 +326,7 @@ function startBreach(z, target) {
 // How far a bite reaches: `contact`, and a little more across a fence the dead one is striking from its reach (a fence's thickness and
 // where its strikers stand: Michael, 2026-10-17, "they should be allowed to bite over fences, otherwise exploitable"; #174).
 function biteReach(z, e) {
+  if (e && (e.layer || 0) !== (z.layer || 0)) return -1; // a bite never crosses a storey (docs/49 section 9)
   const f = z.press;
   if (!f || !e || tileAt(f.tx, f.ty)[f.edge] !== f.wall) return T.contact;
   if (sideOf(f.tx, f.ty, f.edge, z.gx, z.gy) === sideOf(f.tx, f.ty, f.edge, e.gx, e.gy)) return T.contact; // only across the fence, never on one's own side of it
@@ -378,9 +380,27 @@ export function sightRange(base, gx, gy) {
 // Symmetric with the player's own sight: if you could see it, it can see you.
 function canSee(z, player) {
   if (player.dead || !rules.zombieAggro) return false;
+  if (!layersMeet(z, player)) return false;
   const range = sightRange(T.sight, player.gx, player.gy);
   if (distTo(z, player) > range) return false;
-  return lineOfSight(z.gx, z.gy, player.gx, player.gy);
+  return lineOfSight(z.gx, z.gy, player.gx, player.gy, z.layer || 0);
+}
+
+// Whether two bodies can see each other across storeys: on one layer always (the flat walk decides); a storey apart only by a stair
+// between them, both within a few tiles of it (on it, at its foot, on its landing), so one that saw you go up follows you up, and the
+// floor hides everything else (the ray with heights, seeing through a window up or down, is docs/49 step 4).
+function layersMeet(a, b) {
+  const la = a.layer || 0;
+  const lb = b.layer || 0;
+  if (la === lb) return true;
+  if (Math.abs(la - lb) !== 1) return false;
+  const low = Math.min(la, lb);
+  for (const { s, well } of stairsOn(low)) {
+    if (well) continue;
+    const near = (c) => { const { t, off } = stairAlong(s, c.gx, c.gy); return t > -3 && t < 6 && Math.abs(off) < 2.5; };
+    if (near(a) && near(b)) return true;
+  }
+  return false;
 }
 
 // The nearest living player, seen or not (the chase's fallback, the spawned-aggro target).
@@ -465,10 +485,11 @@ function nearestFlame(z) {
 
 // Walk toward a goal tile, repathing on the interval or when the goal moves.
 function moveToward(z, dt, goalTile, others) {
-  const goalChanged = !z.lastGoal || z.lastGoal[0] !== goalTile[0] || z.lastGoal[1] !== goalTile[1];
+  const goalChanged = !z.lastGoal || z.lastGoal[0] !== goalTile[0] || z.lastGoal[1] !== goalTile[1] || layerOf(z.lastGoal) !== layerOf(goalTile);
   if (z.repathTimer <= 0 || ((goalChanged || !z.path.length) && !z.pathFailed)) repath(z, goalTile);
   show(z, "walk");
   if (z.path.length) return followPath(z, dt, others);
+  if (layerOf(goalTile) !== (z.layer || 0)) return false; // a goal on another layer and no stair known: it stays and looks where it is (docs/49 section 9)
   // Same tile or unreachable: nudge straight at it.
   const dx = goalTile[0] - z.gx;
   const dy = goalTile[1] - z.gy;
@@ -478,6 +499,7 @@ function moveToward(z, dt, goalTile, others) {
   const moved = moveCircle(z.gx, z.gy, z.radius, n.x * sp * dt, n.y * sp * dt, z.layer || 0);
   z.gx = moved.gx;
   z.gy = moved.gy;
+  stairStep(z); // up or down a stair (docs/49 step 3)
   separate(z, dt, others);
   return Math.hypot(dx, dy) < 0.2;
 }
@@ -758,10 +780,12 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         }
         break;
       }
-      let goal = z.seesNow ? tileOf(tgt) : [Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])];
+      // The goal names its layer (docs/49 step 3): one on another layer is reached by a stair (movement.repath's stair-first rule).
+      let goal = z.seesNow ? addr(Math.round(tgt.gx), Math.round(tgt.gy), tgt.layer || 0) : addr(Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1]), layerOf(z.lastSeen));
       // A sighting on a solid tile (a campfire, a lantern on a post) is
       // walked to from beside it.
-      if (!isWalkableTile(goal[0], goal[1])) goal = nearestWalkable(goal[0], goal[1]) || goal;
+      const GL = layerOf(goal);
+      if (!isWalkableTile(goal[0], goal[1], GL)) { const nw = nearestWalkable(goal[0], goal[1], () => false, 12, GL); if (nw) goal = addr(nw[0], nw[1], GL); }
       const repathTimer0 = z.repathTimer;
       const arrived = moveToward(z, dt, goal, others);
       // Against a fence (or a shut gate) with the player in sight beyond it and no way round: it strikes it (the `press` state,

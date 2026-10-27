@@ -1910,6 +1910,165 @@
    ]
   },
   {
+   "name": "the tall house",
+   "rect": [
+    121,
+    214,
+    10,
+    9
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      6
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "w",
+       "at": 4,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 6,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "table",
+       "tile": [
+        4,
+        4
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        4,
+        3
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        7,
+        0
+       ],
+       "facing": "x"
+      }
+     ],
+     "brackets": [
+      {
+       "side": "w",
+       "at": 1,
+       "facing": "in",
+       "lantern": true
+      }
+     ],
+     "floors": [
+      {
+       "layer": 1,
+       "rect": [
+        1,
+        1,
+        8,
+        6
+       ],
+       "floor": "floor_wood",
+       "wall": "wall_wood",
+       "openings": [
+        {
+         "side": "n",
+         "at": 2,
+         "kind": "window"
+        },
+        {
+         "side": "n",
+         "at": 5,
+         "kind": "window"
+        },
+        {
+         "side": "e",
+         "at": 3,
+         "kind": "window"
+        },
+        {
+         "side": "s",
+         "at": 5,
+         "kind": "window"
+        },
+        {
+         "side": "w",
+         "at": 1,
+         "kind": "window"
+        }
+       ],
+       "props": [
+        {
+         "sprite": "bed",
+         "tile": [
+          0,
+          5
+         ],
+         "footprint": [
+          2,
+          1
+         ]
+        },
+        {
+         "sprite": "chest",
+         "tile": [
+          7,
+          5
+         ],
+         "facing": "x"
+        }
+       ],
+       "brackets": [
+        {
+         "side": "n",
+         "at": 1,
+         "facing": "in",
+         "lantern": true
+        }
+       ]
+      }
+     ],
+     "stairs": [
+      {
+       "at": [
+        2,
+        2
+       ],
+       "dir": "e",
+       "layer": 0,
+       "material": "wood"
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
    "name": "the inn",
    "rect": [
     98,

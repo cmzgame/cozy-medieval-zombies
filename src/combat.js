@@ -194,7 +194,7 @@ function targetsIn(player, weapon, zombies, accept = () => true, limit = null) {
   // A blow does not go through a wall, a shut door, or shut shutters: the same sight that keeps the
   // dead from biting through them (Michael found a hit on a zombie behind a wall, with no outline,
   // because the dead one was in the fog).
-  const list = zombies.filter((z) => !z.dead && accept(z) && inWedge(player, weapon, z) && lineOfSight(player.gx, player.gy, z.gx, z.gy));
+  const list = zombies.filter((z) => !z.dead && (z.layer || 0) === (player.layer || 0) && accept(z) && inWedge(player, weapon, z) && lineOfSight(player.gx, player.gy, z.gx, z.gy, player.layer || 0)); // a blow never crosses a storey (docs/49 section 8)
   const d = (z) => Math.hypot(z.gx - player.gx, z.gy - player.gy);
   if (limit != null) return list.sort((a, b) => d(a) - d(b)).slice(0, limit);
   const multi = rules.multiHit && weapon.multiHit !== false;

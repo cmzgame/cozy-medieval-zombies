@@ -12,7 +12,7 @@ import * as map from "../map.js";
 import * as light from "../light.js";
 import * as gl from "../gl.js";
 import * as ground from "../ground.js";
-import { areaTiles, buildArea, ensureArea } from "./area.js";
+import { areaTiles, buildArea, buildStoreyArea, ensureArea } from "./area.js";
 import { arrowDrawables, emitMarker, entityDrawables, fireDrawables } from "./entities.js";
 import { emitGhost, emitHitShapes, floorItemDrawables, propDrawables } from "./props.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
@@ -22,6 +22,7 @@ import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/4
 import { postDrawables, wallDrawables } from "./walls.js";
 import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
+import { emitFloors, hiderFor, layersFor, liftOf, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
 
 // The night, as before: tunables Michael picks by eye, live on
 // window.__game.render.night. `climb` is how many pixels a pool climbs a wall
@@ -184,6 +185,18 @@ function emitGrid(tiles) {
   }
 }
 
+// Whether layer L holds a chunk at tile (x, y), asked once a chunk per frame.
+let grownKey = -1;
+let grownHas = false;
+function grownOn(x, y, L) {
+  const k = map.chunkKey(Math.floor(x / map.CHUNK), Math.floor(y / map.CHUNK), L);
+  if (k !== grownKey) {
+    grownKey = k;
+    grownHas = !!map.getChunk(Math.floor(x / map.CHUNK), Math.floor(y / map.CHUNK), false, L);
+  }
+  return grownHas;
+}
+
 export function renderScene(args) {
   const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null } = probe.override ? { ...args, ...probe.override } : args;
   ensureArea(w, h);
@@ -196,40 +209,87 @@ export function renderScene(args) {
   const areaOrigin = buildArea(tiles, visible, drawAll || !fog, cam.gx, cam.gy);
 
   gl.begin((cam.gx + cam.gy) * 32); // the depth range follows the camera (docs/51 section 5)
-  emitGround(tiles);
-  if (grid) emitGrid(tiles);
-  emitRugs(tiles); // after the ground, before every standing drawable: the rugs lie under what stands on them (#327)
-  if (tileMark) emitTileMark(tileMark); // on the ground: whatever stands on or before the tile is drawn over it
-  if (tracks && tracks.length) emitTracks(tracks, drawAll ? null : visible); // game's prints, on the ground and in sight
-  const drawables = [];
-  wallDrawables(tiles, visible, playerRoom, drawables);
-  ringDrawables(tiles, visible, playerRoom, drawables);
-  postDrawables(tiles, visible, playerRoom, drawables);
-  propDrawables(tiles, visible, drawables);
-  floorItemDrawables(tiles, visible, drawables);
-  entityDrawables(entities, visible, drawables, drawAll, player);
-  arrowDrawables(arrows, visible, drawables);
-  fireDrawables(fire, visible, drawables);
-  drawables.sort((a, b) => a.key - b.key);
-  computeOcclusion(drawables, player);
-  const holes = [];
-  for (const d of drawables) if (d.occluded && d.rect) holes.push([d.rect.x + d.rect.w / 2, d.rect.y + d.rect.h * 0.45]);
-  // Every standing drawable sets its own depth surface as it emits; a flat one (an arrow's shadow) asks for the flat pass itself.
-  let translucent = 0;
-  for (const d of drawables) {
-    if (probe.skip && probe.skip(d)) continue;
-    gl.setPass(gl.PASS_STAND);
-    const before = gl.passVertices(gl.PASS_TRANS);
-    const marked = probe.mark && probe.mark.is(d);
-    if (marked) gl.setMark(probe.mark.color);
-    try {
-      d.emit();
-    } finally {
-      if (marked) gl.setMark(null);
-    }
-    if (gl.passVertices(gl.PASS_TRANS) > before) translucent++;
+  // The storeys (docs/49 section 6): the layers the viewer sees, lowest first, each lifted by its height; the ground's flat things first.
+  const VL = (player && player.layer) || 0;
+  const layers = layersFor(VL);
+  const hidden = hiderFor(player);
+  // A storey's own light, ambient, and fog (the second set of area textures): the viewer's layer when it is not the ground, else the
+  // first storey in view; a storey besides those is lit as the open air (the sky's flag) until the light is kept per layer for all.
+  const upperL = VL !== 0 ? VL : layers.find((l) => l > 0) ?? null;
+  if (upperL !== null) buildStoreyArea(tilesOf(tiles, upperL), visible, drawAll || !fog, cam.gx, cam.gy, upperL);
+  gl.setUpperSet(upperL !== null);
+  if (layers[0] === 0) {
+    emitGround(tiles);
+    if (grid) emitGrid(tiles);
+    emitRugs(tiles); // after the ground, before every standing drawable: the rugs lie under what stands on them (#327)
+    if (tileMark) emitTileMark(tileMark); // on the ground: whatever stands on or before the tile is drawn over it
+    if (tracks && tracks.length) emitTracks(tracks, drawAll ? null : visible); // game's prints, on the ground and in sight
   }
-  lastStats.drawables = drawables.length;
+  const holes = [];
+  let translucent = 0;
+  let count = 0;
+  for (const L of layers) {
+    gl.setExtraFlags(L === 0 ? 0 : L === upperL ? gl.FLAG_UPPER : gl.FLAG_SKY);
+    withLift(L * map.STOREY, () => map.withDrawLayer(L, () => {
+      // A storey's tiles in view: only those whose chunk that layer holds (most of the view is no storey's), less what the hiding rule
+      // hides; the ground's whole (nothing below the viewer is hidden).
+      const tilesL = L ? tilesOf(tiles, L).filter(([x, y]) => grownOn(x, y, L) && !hidden(x, y, L)) : tiles;
+      if (L) {
+        // An upper floor's ground (or a cellar's), a quad a chunk with its depth written, and what lies flat on it just over it.
+        gl.setPass(gl.PASS_STAND);
+        emitFloors(tilesL, L, DEPTH_BIAS.liftedFloor, hidden);
+        emitRugs(tilesL);
+      }
+      const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 ? playerRoom : 0;
+      const drawables = [];
+      wallDrawables(tilesL, visible, roomHere, drawables);
+      ringDrawables(tilesL, visible, roomHere, drawables, L); // round rooms on this layer, their two halves (docs/50 section 4)
+      postDrawables(tilesL, visible, roomHere, drawables);
+      propDrawables(tilesL, visible, drawables);
+      floorItemDrawables(tilesL, visible, drawables);
+      stairDrawables(tilesL, L, DEPTH_BIAS.prop, drawables); // the stairs on this layer, dev art (docs/49 section 11)
+      // The bodies on this layer, each a further `rise` up when it is on a stair, its picture made and drawn at that height.
+      entityDrawables(entities.filter((e) => (e.layer || 0) === L && !e.rise), visible, drawables, drawAll, player);
+      for (const e of entities) {
+        if ((e.layer || 0) !== L) continue;
+        const r = e.rise || 0;
+        if (!r) continue;
+        const n0 = drawables.length;
+        withLift(r, () => entityDrawables([e], visible, drawables, drawAll, player));
+        for (let i = n0; i < drawables.length; i++) {
+          const d = drawables[i];
+          const emit = d.emit;
+          d.emit = () => withLift(r, emit);
+        }
+      }
+      if (L === 0) {
+        arrowDrawables(arrows, visible, drawables);
+        fireDrawables(fire, visible, drawables);
+      }
+      drawables.sort((a, b) => a.key - b.key);
+      if (L === VL) {
+        computeOcclusion(drawables, player);
+        for (const d of drawables) if (d.occluded && d.rect) holes.push([d.rect.x + d.rect.w / 2, d.rect.y + d.rect.h * 0.45]);
+      }
+      // Every standing drawable sets its own depth surface as it emits; a flat one (an arrow's shadow) asks for the flat pass itself.
+      for (const d of drawables) {
+        if (probe.skip && probe.skip(d)) continue;
+        gl.setPass(gl.PASS_STAND);
+        const before = gl.passVertices(gl.PASS_TRANS);
+        const marked = probe.mark && probe.mark.is(d);
+        if (marked) gl.setMark(probe.mark.color);
+        try {
+          d.emit();
+        } finally {
+          if (marked) gl.setMark(null);
+        }
+        if (gl.passVertices(gl.PASS_TRANS) > before) translucent++;
+      }
+      count += drawables.length;
+    }));
+  }
+  gl.setExtraFlags(0);
+  lastStats.drawables = count;
   lastStats.translucent = translucent;
   // On top, with no depth test (docs/51 section 4; Primary's recommendation, a default: a ghost hidden behind a wall is useless).
   gl.setPass(gl.PASS_TOP);
@@ -238,6 +298,7 @@ export function renderScene(args) {
   if (marker) emitMarker(marker);
 
   const pp = player ? iso.toScreen(player.gx, player.gy) : { x: -9999, y: -9999 };
+  if (player) pp.y -= liftOf(player); // the night pool round the viewer at the height it stands
   gl.end({
     w,
     h,
@@ -261,5 +322,5 @@ export function renderScene(args) {
     softLight: night.softLight ? 1 : 0,
     debug: night.debug,
   });
-  return drawables.length;
+  return count;
 }

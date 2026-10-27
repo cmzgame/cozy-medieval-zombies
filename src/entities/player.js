@@ -4,7 +4,7 @@
 
 import * as floaters from "../floaters.js"; // the floating numbers over heads (#294)
 import * as iso from "../iso.js";
-import { moveCircle, canStepOn, floorSpeedAt, propById, roomAt } from "../map.js";
+import { moveCircle, canStepOn, floorSpeedAt, propById, roomAt, stairStep } from "../map.js";
 import { findPath } from "../pathfind.js";
 import { getSheet, getDef } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
@@ -331,6 +331,7 @@ function followAuto(player, dt) {
     const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step, player.layer || 0);
     player.gx = moved.gx;
     player.gy = moved.gy;
+    stairStep(player); // up or down a stair: its layer and rise (docs/49 step 3)
     if (Math.hypot(player.gx - before[0], player.gy - before[1]) < 1e-4) return finishAuto(player); // stuck
     return true;
   }
@@ -356,6 +357,7 @@ function moveToward(player, dt, dx, dy, mult = 1) {
   const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step, player.layer || 0); // on the player's own layer (docs/49)
   player.gx = moved.gx;
   player.gy = moved.gy;
+  stairStep(player); // up or down a stair: its layer and rise (docs/49 step 3)
 }
 
 // `snap` is this player's input for the step (docs/31/05, item 16): `axis` {x, y}

@@ -36,22 +36,15 @@ function lightPoint(s, a, out) {
   return [s.cx + Math.cos(a) * (s.R + out * LIGHT_IN), s.cy + Math.sin(a) * (s.R + out * LIGHT_IN)];
 }
 
-// The ring's two drawables for every ring on the ground whose square meets the tiles drawn.
-export function ringDrawables(tiles, visible, playerRoom, out) {
-  const rings = map.allRings(0);
+// The ring's two drawables for every ring on `layer` with a stepped tile among the tiles drawn (a storey's, less what the hiding rule hides:
+// render/scene.js draws each layer lifted, docs/49 section 6).
+export function ringDrawables(tiles, visible, playerRoom, out, layer = 0) {
+  const rings = map.allRings(layer);
   if (!rings.length || !tiles.length) return;
-  let x0 = Infinity;
-  let y0 = Infinity;
-  let x1 = -Infinity;
-  let y1 = -Infinity;
-  for (const [tx, ty] of tiles) {
-    if (tx < x0) x0 = tx;
-    if (ty < y0) y0 = ty;
-    if (tx > x1) x1 = tx;
-    if (ty > y1) y1 = ty;
-  }
+  const drawn = new Set();
+  for (const [tx, ty] of tiles) drawn.add(tileKey(tx, ty));
   for (const r of rings) {
-    if (r.x0 > x1 || r.y0 > y1 || r.x0 + r.n < x0 || r.y0 + r.n < y0) continue;
+    if (!round.shape(r.x0, r.y0, r.n).stepped.some(([x, y]) => drawn.has(tileKey(x, y)))) continue;
     const room = map.roomAt(r.x0 + (r.n - 1) / 2, r.y0 + (r.n - 1) / 2, r.layer);
     const faded = playerRoom > 0 && room === playerRoom;
     out.push(makeHalf(r, false, visible, false, null));
