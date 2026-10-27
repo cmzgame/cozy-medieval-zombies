@@ -1,1 +1,33 @@
-{"placeholder": {"kind": "box", "color": "#8a6a3a", "height": 22, "inset": 6, "label": "Workbench"}, "station": "workbench", "carry": false, "note": "a dev box for the workbench (docs/30 step 1; docs/29/09 has its art request)"}
+{
+ "anchorVertex": "top",
+ "facings": [
+  "y",
+  "x"
+ ],
+ "facingFootprint": {
+  "y": [
+   1,
+   2
+  ],
+  "x": [
+   2,
+   1
+  ]
+ },
+ "drawings": {
+  "y": {
+   "image": "data/art/village/workbench.png",
+   "anchor": [
+    55,
+    23
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
+ },
+ "station": "workbench",
+ "carry": false,
+ "note": "the drawn workbench (art round 5): a long, heavy plank bench across two tiles, its top at 24, on four stout legs with a shelf between the stretchers, a leg vice at the far end of its front, three chisels in a rack along the back, a saw, a plane, and a mallet on the top, shavings; long side along y as drawn with its back to a west wall and the worker's side toward +x, along x as its mirror (as the table); once a dev box (docs/30 step 1; docs/29/09 has its art request)"
+}
