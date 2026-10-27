@@ -1,1 +1,39 @@
-{"placeholder": {"kind": "lump", "color": "#b0683c", "halfWidth": 12, "height": 7, "streaks": true, "sheen": true, "seed": 31}, "collide": {"radius": 0.38}, "carry": false, "interactable": true, "dig": {"item": "clay", "count": [2, 2], "seconds": 3, "skill": "mining", "level": 3, "tool": "dig"}, "name": "clay bank", "note": "a clay bank on the grass by the river (docs/39 section 4: Mining 3; docs/46 step 2): dug with a shovel carried for clay (src/gather.js), and it comes back elsewhere by the river (src/resources.js). Dev art drawn from this design (src/gather-art.js); the clay's icon is the same palette"}
+{
+ "image": "data/art/ground/clay_bank.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   34,
+   16
+  ]
+ },
+ "anchor": [
+  16,
+  15
+ ],
+ "bounds": {
+  "x": 0,
+  "y": 0,
+  "w": 34,
+  "h": 16
+ },
+ "collide": {
+  "radius": 0.38
+ },
+ "carry": false,
+ "interactable": true,
+ "dig": {
+  "item": "clay",
+  "count": [
+   2,
+   2
+  ],
+  "seconds": 3,
+  "skill": "mining",
+  "level": 3,
+  "tool": "dig"
+ },
+ "name": "clay bank",
+ "note": "a clay bank on the grass by the river (docs/39 section 4: Mining 3; docs/46 step 2): dug with a shovel carried for clay (src/gather.js), and it comes back elsewhere by the river (src/resources.js). Drawn in art round 5 (group C) in the drawn clay item's grey-brown (data/art/items/clay_icon.png), replacing the orange dev design."
+}

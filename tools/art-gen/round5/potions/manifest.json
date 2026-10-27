@@ -1,0 +1,182 @@
+{
+  "unfired_vial": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "unfired_vial_world.png",
+      "grip": [
+        5,
+        9
+      ]
+    },
+    "world_size": [
+      11,
+      15
+    ],
+    "notes": "Unfired vial: the shared clay vial body in round 4's grey-brown clay, dry and matte (no glint), four darker specks for its unevenness; open mouth, no stopper."
+  },
+  "clay_vial": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "clay_vial_world.png",
+      "grip": [
+        5,
+        9
+      ]
+    },
+    "world_size": [
+      11,
+      15
+    ],
+    "notes": "Clay vial: fired, round 4's honey-jar terracotta with a glint on the lit shoulder; empty, the mouth open (no cork: the data says bare, and the open mouth tells it from the sealed potions at a glance)."
+  },
+  "healing_potion": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": true,
+    "held": {
+      "mode": "fixed",
+      "image": "healing_potion_world.png",
+      "grip": [
+        5,
+        10
+      ]
+    },
+    "world_size": [
+      11,
+      16
+    ],
+    "notes": "Healing potion: the fired vial corked and sealed in red wax (#c8323a) over the lip, a run of wax down the neck, and a glazed red band round the shoulder with a glint."
+  },
+  "stamina_potion": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": true,
+    "held": {
+      "mode": "fixed",
+      "image": "stamina_potion_world.png",
+      "grip": [
+        5,
+        10
+      ]
+    },
+    "world_size": [
+      11,
+      16
+    ],
+    "notes": "Stamina potion: as the healing potion, the wax and the glazed band in the data's gold (#e0b030)."
+  },
+  "mana_potion": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": true,
+    "held": {
+      "mode": "fixed",
+      "image": "mana_potion_world.png",
+      "grip": [
+        5,
+        10
+      ]
+    },
+    "world_size": [
+      11,
+      16
+    ],
+    "notes": "Mana potion: as the healing potion, the wax and the glazed band in the data's blue (#3a6ad8)."
+  },
+  "poison": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": true,
+    "held": {
+      "mode": "fixed",
+      "image": "poison_world.png",
+      "grip": [
+        5,
+        10
+      ]
+    },
+    "world_size": [
+      11,
+      16
+    ],
+    "notes": "Poison: green wax (#4aa040) and a green glazed band, and one drip of the green glaze running down the belly from the band: the mark that it is a poison, not a potion."
+  },
+  "strong_poison": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": true,
+    "held": {
+      "mode": "fixed",
+      "image": "strong_poison_world.png",
+      "grip": [
+        5,
+        10
+      ]
+    },
+    "world_size": [
+      11,
+      16
+    ],
+    "notes": "Strong poison: the black seal of docs/47 section 8 (#1a1a1a lifted to a charcoal #423e48 so it does not vanish into the #2b2522 outline), a darker green band (#2a6a2a) and two drips."
+  },
+  "poison_arrow": {
+    "icon": [
+      19,
+      38
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "poison_arrow_world.png",
+      "grip": [
+        2,
+        12
+      ]
+    },
+    "world_size": [
+      5,
+      24
+    ],
+    "notes": "Poisoned arrow: round 4's arrow pixel for pixel (checked against data/art/items/arrow_*.png), its iron head stained the poison's green with a pale wet glint and a little poison wetting the socket and the binding. Placed as round 4's arrow, 3 px left of centre and 1 px up, so the lower-right corner stays clear for the count."
+  },
+  "strong_poison_arrow": {
+    "icon": [
+      19,
+      38
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "strong_poison_arrow_world.png",
+      "grip": [
+        2,
+        12
+      ]
+    },
+    "world_size": [
+      5,
+      24
+    ],
+    "notes": "Strongly poisoned arrow: as the poisoned arrow, the head a darker green and wetter (more glints), a runnel down the shaft below the binding and a drop hanging off the socket (icon); in the world picture, the stain runs three pixels down the shaft."
+  }
+}

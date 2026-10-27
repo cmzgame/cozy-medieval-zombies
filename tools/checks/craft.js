@@ -74,7 +74,7 @@ export async function run(game) {
       if (ok) ground = [x, y];
     }
     if (ground) {
-      bench = map.createProp({ sprite: "workbench", tile: ground });
+      bench = map.createProp({ sprite: "workbench", tile: ground, footprint: [2, 1] }); // two tiles, as the made one is (Michael, 2026-10-26)
       map.placeProp(bench, ground[0], ground[1]);
       made.push(bench);
     }

@@ -2152,7 +2152,8 @@
        "tile": [
         8,
         6
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -2539,7 +2540,8 @@
        "tile": [
         9,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -2905,7 +2907,8 @@
        "tile": [
         6,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "chest",
@@ -2957,7 +2960,8 @@
        "tile": [
         6,
         9
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bed",
@@ -3012,7 +3016,8 @@
        "tile": [
         8,
         9
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -3258,7 +3263,8 @@
        "tile": [
         4,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
@@ -3329,7 +3335,8 @@
        "tile": [
         9,
         6
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -3423,7 +3430,8 @@
        "tile": [
         4,
         5
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -3907,7 +3915,8 @@
        "tile": [
         4,
         5
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bed",
@@ -4128,7 +4137,8 @@
        "tile": [
         0,
         4
-       ]
+       ],
+       "facing": "y"
       }
      ]
     }
@@ -4816,7 +4826,11 @@
        "sprite": "workbench",
        "tile": [
         0,
-        3
+        2
+       ],
+       "footprint": [
+        1,
+        2
        ]
       }
      ]
@@ -5796,7 +5810,8 @@
        "tile": [
         4,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
@@ -8836,7 +8851,8 @@
        "tile": [
         3,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",

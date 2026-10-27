@@ -1,0 +1,343 @@
+{
+  "sage": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "sage_world.png",
+      "grip": [
+        6,
+        11
+      ]
+    },
+    "world_size": [
+      13,
+      16
+    ],
+    "node": {
+      "image": "herb_sage.png",
+      "size": [
+        20,
+        16
+      ],
+      "anchor": [
+        9,
+        15
+      ]
+    },
+    "notes": "a bundle of sage leaves tied with twine, one purple flower spike, the stems cut"
+  },
+  "nettle": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "nettle_world.png",
+      "grip": [
+        5,
+        14
+      ]
+    },
+    "world_size": [
+      11,
+      19
+    ],
+    "node": {
+      "image": "herb_nettle.png",
+      "size": [
+        20,
+        20
+      ],
+      "anchor": [
+        9,
+        19
+      ]
+    },
+    "notes": "a nettle top: a stem with three pairs of toothed dark leaves and two hanging catkins, cut below"
+  },
+  "feverfew": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "feverfew_world.png",
+      "grip": [
+        5,
+        11
+      ]
+    },
+    "world_size": [
+      11,
+      16
+    ],
+    "node": {
+      "image": "herb_feverfew.png",
+      "size": [
+        18,
+        16
+      ],
+      "anchor": [
+        9,
+        15
+      ]
+    },
+    "notes": "a posy of three feverfew daisies and their feathery leaves, tied with twine, the stems cut"
+  },
+  "yarrow": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "yarrow_world.png",
+      "grip": [
+        4,
+        13
+      ]
+    },
+    "world_size": [
+      9,
+      17
+    ],
+    "node": {
+      "image": "herb_yarrow.png",
+      "size": [
+        20,
+        20
+      ],
+      "anchor": [
+        8,
+        19
+      ]
+    },
+    "notes": "a yarrow stem: a flat white head of tiny flowers over feathery leaves, cut below"
+  },
+  "mana_herb": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "mana_herb_world.png",
+      "grip": [
+        5,
+        7
+      ]
+    },
+    "world_size": [
+      11,
+      18
+    ],
+    "node": {
+      "image": "herb_mana_herb.png",
+      "size": [
+        17,
+        15
+      ],
+      "anchor": [
+        8,
+        14
+      ]
+    },
+    "notes": "a pulled mageroot: a pale glowing tapering root under a tuft of teal leaves with glowing midribs"
+  },
+  "nightshade": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "nightshade_world.png",
+      "grip": [
+        4,
+        10
+      ]
+    },
+    "world_size": [
+      10,
+      14
+    ],
+    "node": {
+      "image": "herb_nightshade.png",
+      "size": [
+        18,
+        19
+      ],
+      "anchor": [
+        9,
+        18
+      ]
+    },
+    "notes": "a nightshade sprig: two broad leaves, a hanging purple bell and a cluster of glossy black berries"
+  },
+  "wolfsbane": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "wolfsbane_world.png",
+      "grip": [
+        5,
+        11
+      ]
+    },
+    "world_size": [
+      11,
+      15
+    ],
+    "node": {
+      "image": "herb_wolfsbane.png",
+      "size": [
+        14,
+        20
+      ],
+      "anchor": [
+        6,
+        19
+      ]
+    },
+    "notes": "a cut wolfsbane spike: blue-violet hooded flowers and one cut leaf, the stem cut below"
+  },
+  "grave_moss": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "grave_moss_world.png",
+      "grip": [
+        6,
+        6
+      ]
+    },
+    "world_size": [
+      13,
+      10
+    ],
+    "node": {
+      "image": "herb_grave_moss.png",
+      "size": [
+        20,
+        13
+      ],
+      "anchor": [
+        9,
+        12
+      ]
+    },
+    "notes": "a peeled pad of pale grave moss, its tufts tipped pale, a crust of dark earth under it"
+  },
+  "woad": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "woad_world.png",
+      "grip": [
+        5,
+        11
+      ]
+    },
+    "world_size": [
+      11,
+      16
+    ],
+    "node": {
+      "image": "herb_woad.png",
+      "size": [
+        16,
+        20
+      ],
+      "anchor": [
+        7,
+        19
+      ]
+    },
+    "notes": "a bunch of long blue-green woad leaves (the dye is in the leaf) tied with twine, the stems cut"
+  },
+  "madder": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "madder_world.png",
+      "grip": [
+        6,
+        5
+      ]
+    },
+    "world_size": [
+      11,
+      14
+    ],
+    "node": {
+      "image": "herb_madder.png",
+      "size": [
+        21,
+        15
+      ],
+      "anchor": [
+        9,
+        14
+      ]
+    },
+    "notes": "a bundle of madder roots, red as the dye, tied with twine under a scrap of the leafy top"
+  },
+  "weld": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "weld_world.png",
+      "grip": [
+        3,
+        11
+      ]
+    },
+    "world_size": [
+      7,
+      16
+    ],
+    "node": {
+      "image": "herb_weld.png",
+      "size": [
+        13,
+        22
+      ],
+      "anchor": [
+        6,
+        21
+      ]
+    },
+    "notes": "two cut weld spikes, dense with tiny yellow flowers, tied with twine"
+  }
+}
