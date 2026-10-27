@@ -1,9 +1,10 @@
 // Round rooms drawn (docs/50 section 4): a ring is two drawables, its far half (the inner face the camera sees, opaque) and its near half (the
-// outer face, faded with the near walls while the player is inside), each a run of short segments along the arc, every segment a vertical
+// outer face, its stretch over the room faded while the player is inside), each a run of short segments along the arc, every segment a vertical
 // plane through its own two points on the ground (render/depth.js planeThrough), so the depth buffer sorts the curve per pixel against the
 // dead, the props, and the trees (docs/51) and never as one picture at one depth. The art is generated, the placeholder the engine makes for
 // every new picture: the material's straight face (wall_stone's north face) wrapped round each segment, shaded by the way the segment looks
-// (lit from the top left, art/01), its cap on the sky, and a footing on the ground over the stepped tiles' corners. Light is read along
+// (lit from the top left, art/01), its cap on the sky (no footing on the ground: it showed past the wall, Michael's playtest, 2026-10-27),
+// the openings at its door points cut in it and filled on the curve, with no straight frame. Light is read along
 // each segment's foot from the tile it looks onto: a stepped tile for the inner face, outside the steps for the outer.
 
 import * as iso from "../iso.js";
@@ -13,7 +14,7 @@ import * as round from "../round.js";
 import { getSheet } from "../assets.js";
 import { shade } from "../render-util.js";
 import { tileKey } from "../visibility.js";
-import { WALL_T, BRACKET_UP } from "../placeholders.js";
+import { WALL_T, BRACKET_UP, DOOR_TOP, WINDOW_SILL, WINDOW_TOP, WOOD, METAL } from "../placeholders.js";
 import { NEAR_WALL_ALPHA, DEPTH_ROOM } from "./scene.js";
 import * as depth from "./depth.js";
 import { emitBracket } from "./walls.js";
@@ -23,6 +24,7 @@ export const SEGMENTS = 48; // the drawn curve's segments round the whole ring (
 const FACE = "north_plain"; // the straight face wrapped round the curve
 const FACE_COLS = [4, 28]; // the columns of its 32 the wrap takes
 const DEG = Math.PI / 180;
+const DOOR_ANGLES = [270, 0, 90, 180]; // the door points round the centre, in round.js's order (north, east, south, west)
 
 // Whether a segment centred at angle `a` (radians, from +x toward +y) is on the near half: its outward normal has x + y > 0, toward the camera.
 const nearHalf = (a) => Math.cos(a) + Math.sin(a) > 0;
@@ -64,9 +66,9 @@ export function ringDrawables(tiles, visible, playerRoom, out, layer = 0) {
       if (!round.shape(r.x0, r.y0, r.n).stepped.some(([x, y]) => drawn.has(tileKey(x, y)))) continue;
     }
     const room = map.roomAt(r.x0 + (r.n - 1) / 2, r.y0 + (r.n - 1) / 2, r.layer);
-    const faded = playerRoom > 0 && room === playerRoom;
+    const inside = playerRoom > 0 && room === playerRoom;
     out.push(makeHalf(r, false, visible, false, null));
-    out.push(makeHalf(r, true, visible, faded, null));
+    out.push(makeHalf(r, true, visible, inside, null));
   }
 }
 
@@ -90,8 +92,11 @@ export function emitTorchGhost(tx, ty, edge, lit, tint, layer = 0) {
   gl.layer(null);
 }
 
-// One half of a ring: its segments' faces, its cap, its footing (with the far half), and the brackets on its faces.
-function makeHalf(r, near, visible, faded, ghostTint, ghostFlags = 0) {
+// One half of a ring: its segments' faces with the openings at its door points cut in them and their leaves, shutters, or boards drawn on
+// the curve, its cap (continuous over the openings), and the brackets on its faces. `inside`: the player is in the ring's room, so the near
+// half's stretch standing between the room and the camera fades (Michael's playtest, 2026-10-27: the whole near half faded left its flanks
+// ghostly), as a square room fades only its south and east walls; the flanks, which cover none of the room on screen, stay whole.
+function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
   const s = round.shape(r.x0, r.y0, r.n);
   const sheet = getSheet(r.sprite);
   const h = sheet.wallHeight || 96;
@@ -99,33 +104,37 @@ function makeHalf(r, near, visible, faded, ghostTint, ghostFlags = 0) {
   const t = T / 2 / depth.UNIT; // half the thickness in tiles: the faces are this far either side of the curve
   const out = near ? 1 : -1; // the face the camera sees: the outer on the near half, the inner on the far
   const Rf = s.R + out * t;
-  // A door or a window at a door point is drawn by render/walls.js as itself, straight on its edge, with its frame at each end: the curve
-  // leaves a gap there from one end of the edge to the other (atan(0.5 / R) either side of the point), or an open door would show the ring
-  // through it. The door points' angles in the order round.js names them (north, east, south, west).
-  const gaps = [];
+  // The four door points' openings (round.js's order: north, east, south, west), each spanning the curve from one end of its edge to the other
+  // (atan(0.5 / R) either side of the point). render/walls.js draws nothing at a ring's door point (Michael's playtest: the straight frame's
+  // posts jutted out of the curve and showed as blocks on its cap): the curve runs on over the opening, a hole in its face between the
+  // opening's heights, the leaf, the shutters, or the boards drawn in it on the curve. An empty door point (never left so: map.destroyWall) is
+  // a hole the wall's whole height.
   const half = Math.atan(0.5 / s.R);
-  const doorAngles = [270, 0, 90, 180];
+  const openings = [];
   s.doors.forEach(([tx, ty, e], k) => {
     const w = ghostTint ? null : map.tileAt(tx, ty, r.layer)[e];
-    if (ghostTint || (w && w.kind === "wall")) return; // the ghost whole; an empty door point (never left so: destroyWall) drawn open too, never a wall that is not there
-    const c = doorAngles[k] * DEG;
-    gaps.push([c - half, c + half], [c - half + 2 * Math.PI, c + half + 2 * Math.PI]);
+    if (ghostTint || (w && w.kind === "wall")) return; // the ghost whole
+    const c = DOOR_ANGLES[k] * DEG;
+    for (const base of [c, c + 2 * Math.PI]) openings.push({ a0: base - half, a1: base + half, c: base, wall: w, tx, ty, edge: e });
   });
-  const segs = [];
+  const segs = []; // [a0, a1, the opening it lies in, or null]
   for (let i = 0; i < SEGMENTS; i++) {
-    let a0 = (i * 360 / SEGMENTS) * DEG;
-    let a1 = ((i + 1) * 360 / SEGMENTS) * DEG;
+    const a0 = (i * 360 / SEGMENTS) * DEG;
+    const a1 = ((i + 1) * 360 / SEGMENTS) * DEG;
     if (nearHalf((a0 + a1) / 2) !== near) continue;
-    let gone = false;
-    for (const [g0, g1] of gaps) {
-      if (a1 <= g0 || a0 >= g1) continue;
-      if (a0 >= g0 && a1 <= g1) gone = true;
-      else if (a0 < g0) a1 = g0;
-      else a0 = g1;
+    const cuts = [a0, a1];
+    for (const o of openings) for (const v of [o.a0, o.a1]) if (v > a0 + 1e-6 && v < a1 - 1e-6) cuts.push(v);
+    cuts.sort((x, y) => x - y);
+    for (let j = 0; j + 1 < cuts.length; j++) {
+      const m = (cuts[j] + cuts[j + 1]) / 2;
+      segs.push([cuts[j], cuts[j + 1], openings.find((o) => m > o.a0 && m < o.a1) || null]);
     }
-    if (!gone && a1 - a0 > 1e-4) segs.push([a0, a1]);
   }
-  const alpha = faded ? NEAR_WALL_ALPHA : 1;
+  // Which of the near half's segments fade with the player inside: those whose face stands over the room's inside on screen (its columns
+  // within the inner face's silhouette), never a flank.
+  const span = iso.HW * (s.R - t) * Math.SQRT2;
+  const dxOf = (a) => iso.HW * Rf * (Math.cos(a) - Math.sin(a)); // a point on the face, its columns from the centre's
+  const fades = (a0, a1) => near && inside && Math.min(Math.abs(dxOf(a0)), Math.abs(dxOf(a1))) < span;
   const color = sheet.color || "#7b7670";
   const key = (s.cx + s.cy + out * s.R) * 1000;
   const ground = (a, rad) => [s.cx + Math.cos(a) * rad, s.cy + Math.sin(a) * rad];
@@ -141,20 +150,7 @@ function makeHalf(r, near, visible, faded, ghostTint, ghostFlags = 0) {
       const uvF = sheet.wall ? gl.frameUV(sheet, FACE) : null;
       const an = sheet.wall ? (sheet.frameAnchors && sheet.frameAnchors[FACE]) || sheet.anchor : null;
       let first = true;
-      if (!near && !ghostTint) {
-        // The footing over the steps' corners, on the ground (the flat pass): wider at the diagonals, where the steps stand furthest off the curve.
-        gl.withPass(gl.PASS_FLAT, () => {
-          for (let i = 0; i < SEGMENTS; i++) {
-            const a0 = (i * 360 / SEGMENTS) * DEG;
-            const a1 = ((i + 1) * 360 / SEGMENTS) * DEG;
-            const w0 = 0.12 + 0.32 * Math.abs(Math.sin(2 * a0));
-            const w1 = 0.12 + 0.32 * Math.abs(Math.sin(2 * a1));
-            const pts = [ground(a0, s.R - w0), ground(a1, s.R - w1), ground(a1, s.R + w1), ground(a0, s.R + w0)];
-            gl.poly(pts.map(scr), gl.rgb(shade(color, 0.62), 1), { world: pts.map(([gx, gy]) => [gx, gy]), flags: visible && visible.has(tileKey(Math.round(pts[0][0]), Math.round(pts[0][1]))) ? gl.FLAG_NOFOG : 0 });
-          }
-        });
-      }
-      for (const [a0, a1] of segs) {
+      for (const [a0, a1, o] of segs) {
         const g0 = ground(a0, Rf);
         const g1 = ground(a1, Rf);
         const plane = depth.planeThrough(g0[0], g0[1], g1[0], g1[1]);
@@ -168,6 +164,7 @@ function makeHalf(r, near, visible, faded, ghostTint, ghostFlags = 0) {
         const lm = lightPoint(s, amid, out);
         const vis = !visible || visible.has(tileKey(Math.round(lm[0]), Math.round(lm[1])));
         const flags = ghostTint ? ghostFlags : vis ? gl.FLAG_NOFOG : 0;
+        const alpha = fades(a0, a1) ? NEAR_WALL_ALPHA : 1;
         // The face looks along its outward normal (the inner face toward the centre); lit from the top left, darker as it turns to the right.
         const look = near ? amid : amid + Math.PI;
         const k = 1 - 0.18 * (1 - Math.cos(look - Math.PI / 2));
@@ -179,35 +176,89 @@ function makeHalf(r, near, visible, faded, ghostTint, ghostFlags = 0) {
           [A, B] = [B, A];
           [wa, wb] = [wb, wa];
         }
-        gl.layer(0);
+        // The face between two heights (a band: all of it, or what an opening leaves above and below itself).
+        let band;
         if (uvF) {
           // Which columns of the straight face this segment takes: varied along the ring, and never the face's first or last few, where the
           // straight picture draws its end against the next segment's (a light line down every joint when wrapped round the curve).
           const w = Math.min(FACE_COLS[1] - FACE_COLS[0], B[0] - A[0]);
-          const span = Math.floor(FACE_COLS[1] - FACE_COLS[0] - w);
-          const c0 = FACE_COLS[0] + (span > 0 ? (Math.round(amid / DEG) * 7) % (span + 1) : 0);
+          const room = Math.floor(FACE_COLS[1] - FACE_COLS[0] - w);
+          const c0 = FACE_COLS[0] + (room > 0 ? (Math.round(amid / DEG) * 7) % (room + 1) : 0);
           const foot = (c) => [uvF[0] + an[0] + c - T / 2, uvF[1] + an[1] - iso.HH + T / 4 + c / 2];
           const fa = foot(c0);
           const fb = foot(c0 + w);
-          gl.texQuad([A, B, [B[0], B[1] - h], [A[0], A[1] - h]], [fa, fb, [fb[0], fb[1] - h], [fa[0], fa[1] - h]], { world: [wa, wb, wb, wa], heights: [0, 0, h, h], color: tint, flags, page: uvF[4] });
+          band = (y0, y1) => gl.texQuad([[A[0], A[1] - y0], [B[0], B[1] - y0], [B[0], B[1] - y1], [A[0], A[1] - y1]], [[fa[0], fa[1] - y0], [fb[0], fb[1] - y0], [fb[0], fb[1] - y1], [fa[0], fa[1] - y1]], { world: [wa, wb, wb, wa], heights: [y0, y0, y1, y1], color: tint, flags, page: uvF[4] });
         } else {
-          gl.poly([A, B, [B[0], B[1] - h], [A[0], A[1] - h]], ghostTint ? ghostColor(shade(color, k), ghostTint) : gl.rgb(shade(color, k), alpha), { world: [wa, wb, wb, wa], heights: [0, 0, h, h], flags });
+          band = (y0, y1) => gl.poly([[A[0], A[1] - y0], [B[0], B[1] - y0], [B[0], B[1] - y1], [A[0], A[1] - y1]], ghostTint ? ghostColor(shade(color, k), ghostTint) : gl.rgb(shade(color, k), alpha), { world: [wa, wb, wb, wa], heights: [y0, y0, y1, y1], flags });
         }
-        if (!faded) {
-          // The cap: the band between the faces at the wall's height, on the sky.
-          gl.layer(1);
-          const cap = [ground(a0, s.R - t), ground(a1, s.R - t), ground(a1, s.R + t), ground(a0, s.R + t)].map(scr).map(([x, y]) => [x, y - h]);
-          gl.poly(cap, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), 1), { world: [lm[0], lm[1]], flags: flags | gl.FLAG_SKY });
+        gl.layer(0);
+        const hole = o ? holeOf(o.wall, h) : null;
+        if (!hole) band(0, h);
+        else {
+          if (hole[0] > 0) band(0, hole[0]);
+          if (hole[1] < h) band(hole[1], h);
+          emitInOpening(o.wall, A, B, wa, wb, hole, near, flags, alpha);
+        }
+        // The cap: the band between the faces at the wall's height, on the sky, unbroken over the openings; faded with its face.
+        gl.layer(1);
+        const cap = [ground(a0, s.R - t), ground(a1, s.R - t), ground(a1, s.R + t), ground(a0, s.R + t)].map(scr).map(([x, y]) => [x, y - h]);
+        gl.poly(cap, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [lm[0], lm[1]], flags: flags | gl.FLAG_SKY });
+      }
+      // An open door's leaf, swung out from the hinge at its opening's end, standing square to the curve (as a door's leaf in a straight wall
+      // stands square to it): drawn with the half its door point is on.
+      for (const o of openings) {
+        if (!o.wall || o.wall.kind !== "door" || !o.wall.open || o.wall.broken || map.boarded(o.wall) || o.c >= 2 * Math.PI || nearHalf(o.c) !== near) continue;
+        const a = o.a1;
+        const p0 = ground(a, s.R + t);
+        const p1 = ground(a, s.R + t + 0.55);
+        if (first) {
+          gl.surface(depth.planeThrough(p0[0], p0[1], p1[0], p1[1]), 0, DEPTH_ROOM.wall);
+          first = false;
+        } else gl.setPlane(depth.planeThrough(p0[0], p0[1], p1[0], p1[1]));
+        const [A0, A1] = [scr(p0), scr(p1)];
+        const lp = lightPoint(s, a, 1);
+        gl.layer(0);
+        gl.poly([[A0[0], A0[1]], [A1[0], A1[1]], [A1[0], A1[1] - DOOR_TOP], [A0[0], A0[1] - DOOR_TOP]], gl.rgb(shade(WOOD, 0.9), 1), { world: [lp, lp, lp, lp], heights: [0, 0, DOOR_TOP, DOOR_TOP], flags: gl.FLAG_NOFOG });
+        gl.layer(1);
+        for (const f of [0.3, 0.7]) {
+          const y = DOOR_TOP * f;
+          gl.poly([[A0[0], A0[1] - y - 1.5], [A1[0], A1[1] - y - 1.5], [A1[0], A1[1] - y + 1.5], [A0[0], A0[1] - y + 1.5]], gl.rgb(METAL, 1), { world: lp, flags: gl.FLAG_NOFOG });
         }
       }
-      if (!ghostTint) emitBrackets(r, s, near, visible, alpha, Rf, scr);
+      if (!ghostTint) emitBrackets(r, s, near, visible, (a) => (fades(a - 0.01, a + 0.01) ? NEAR_WALL_ALPHA : 1), Rf, scr);
       gl.layer(null);
     },
   };
 }
 
+// The hole an opening at a door point makes in the curve's face, as [from, to] heights, or null: a door the door's height from the floor, a
+// window between its sill and its top, an empty door point the wall's whole height.
+function holeOf(wall, h) {
+  if (!wall) return [0, h];
+  if (wall.kind === "door") return [0, DOOR_TOP];
+  if (wall.kind === "window") return [WINDOW_SILL, WINDOW_TOP];
+  return null;
+}
+
+// What fills an opening's hole on this stretch of the curve (A to B on screen, lit from wa to wb): a shut door's planks and iron, shut
+// shutters, the boards nailed across (on either side: the curve shows one face); an open, broken, or empty one leaves the hole.
+function emitInOpening(wall, A, B, wa, wb, [y0, y1], near, flags, alpha) {
+  if (!wall) return;
+  const quad = (lo, hi, rgb) => gl.poly([[A[0], A[1] - lo], [B[0], B[1] - lo], [B[0], B[1] - hi], [A[0], A[1] - hi]], rgb, { world: [wa, wb, wb, wa], heights: [lo, lo, hi, hi], flags });
+  const shut = !wall.broken && (wall.kind === "door" ? !wall.open : wall.shutter === "closed");
+  gl.layer(0);
+  if (shut) quad(y0, y1, gl.rgb(shade(WOOD, near ? 0.95 : 0.75), alpha));
+  gl.layer(1);
+  if (shut) for (const f of wall.kind === "door" ? [0.3, 0.7] : [0.5]) quad(y0 + (y1 - y0) * f - 1.5, y0 + (y1 - y0) * f + 1.5, gl.rgb(METAL, alpha));
+  const n = Math.min(3, Math.max(wall.boards.near.length, wall.boards.far.length));
+  for (let i = 0; i < n; i++) {
+    const y = y0 + ((y1 - y0) * (i + 1)) / (n + 1);
+    quad(y - 3, y + 3, gl.rgb(shade(WOOD, 1.1), alpha));
+  }
+}
+
 // The torches and lanterns on this half's faces, each at its point on the curve (map.ringFace), on its own segment's plane.
-function emitBrackets(r, s, near, visible, alpha, Rf, scr) {
+function emitBrackets(r, s, near, visible, alphaAt, Rf, scr) {
   for (const [tx, ty, edge] of s.outline) {
     const wall = map.tileAt(tx, ty, r.layer)[edge];
     const br = wall && map.isRingWall(wall) && wall.bracket && wall.bracket.side > 0 ? wall.bracket : null;
@@ -220,6 +271,6 @@ function emitBrackets(r, s, near, visible, alpha, Rf, scr) {
     const [px, py] = scr([s.cx + Math.cos(f.a) * Rf, s.cy + Math.sin(f.a) * Rf]);
     const floor = map.bracketFloor({ tx, ty, edge, wall });
     const vis = !visible || visible.has(tileKey(floor[0], floor[1]));
-    emitBracket(br, Math.round(px), Math.round(py - BRACKET_UP), map.bracketPos({ tx, ty, edge, wall, layer: r.layer }), alpha, vis ? gl.FLAG_NOFOG : 0, vis, null, tx + ty);
+    emitBracket(br, Math.round(px), Math.round(py - BRACKET_UP), map.bracketPos({ tx, ty, edge, wall, layer: r.layer }), alphaAt(f.a), vis ? gl.FLAG_NOFOG : 0, vis, null, tx + ty);
   }
 }
