@@ -23,7 +23,7 @@ export async function run(game, opts = {}) {
   }
   const ring = G.map.ringById("round_0_21_0");
   if (!ring) {
-    row("the proving ground's 7 by 7 room is loaded", false, "open ?map=square");
+    row("the proving ground's 7 by 7 room is loaded", null, "this map has none: run it on ?map=square"); // the valley's one round room is its own (an info row, so check("all") on the valley passes)
     return finish();
   }
   const scene = await import("/src/render/scene.js");
