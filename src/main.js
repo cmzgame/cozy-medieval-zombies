@@ -1538,11 +1538,16 @@ async function boot() {
       const held = items.allItems().filter((def) => def.held);
       for (let i = 0; i < held.length; i++) {
         const def = held[i];
-        if (def.held.image || def.held.angles) assets.registerSheet(`held_${def.id}`, await assets.heldSheetFromImage(def.held));
+        if (def.held.image || def.held.angles || def.held.facings) assets.registerSheet(`held_${def.id}`, await assets.heldSheetFromImage(def.held));
         else assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours, def.held.size));
         progress((i + 1) / held.length);
       }
-      for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
+      // The raised guard (docs/21): a drawn shield's own `guard` picture (art round 4), its grip where the guard is placed, else generated.
+      for (const def of items.allItems()) {
+        if (!def.shield) continue;
+        const g = def.held.guard;
+        assets.registerSheet("held_shield_guard", g ? await assets.heldSheetFromImage({ mode: "fixed", image: g.image, grip: g.grip }) : figure.generateHeld("shield_guard", def.held.colours));
+      }
       // An item whose icon is generated (`icon.placeholder`: a sprite's id, its node's design, or a design of its own; docs/46 step 2): the bag's
       // picture from that design, and the same picture as the item lying on the floor (`icon_<id>`, render/props.js), the pair from one design.
       for (const def of items.allItems()) {

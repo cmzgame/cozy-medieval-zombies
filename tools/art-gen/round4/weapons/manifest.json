@@ -1,0 +1,431 @@
+{
+ "sword": {
+  "icon": [
+   19,
+   57
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "angles",
+   "angles": [
+    {
+     "src": "sword_world.png",
+     "grip": [
+      6,
+      28
+     ]
+    },
+    {
+     "src": "sword_world_22_5.png",
+     "grip": [
+      4,
+      25
+     ]
+    },
+    {
+     "src": "sword_world_45.png",
+     "grip": [
+      6,
+      20
+     ]
+    },
+    {
+     "src": "sword_world_67_5.png",
+     "grip": [
+      7,
+      11
+     ]
+    },
+    {
+     "src": "sword_world_90.png",
+     "grip": [
+      7,
+      6
+     ]
+    }
+   ]
+  },
+  "world_sizes": {
+   "sword_world.png": [
+    13,
+    36
+   ],
+   "sword_world_22_5.png": [
+    16,
+    33
+   ],
+   "sword_world_45.png": [
+    27,
+    27
+   ],
+   "sword_world_67_5.png": [
+    33,
+    16
+   ],
+   "sword_world_90.png": [
+    36,
+    13
+   ]
+  },
+  "notes": "Arming sword. Plain steel blade with a fuller, brass cross and round brass pommel, brown leather wrapped grip. 36 px long at 1x with its outline. Grip on the middle of the wrap. Icon: the same design rendered at 1.44x to fill the 1 x 3 footprint; portrait: the same design on the 45 degree diagonal."
+ },
+ "mace": {
+  "icon": [
+   19,
+   38
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "angles",
+   "angles": [
+    {
+     "src": "mace_world.png",
+     "grip": [
+      6,
+      25
+     ]
+    },
+    {
+     "src": "mace_world_22_5.png",
+     "grip": [
+      4,
+      23
+     ]
+    },
+    {
+     "src": "mace_world_45.png",
+     "grip": [
+      6,
+      19
+     ]
+    },
+    {
+     "src": "mace_world_67_5.png",
+     "grip": [
+      7,
+      13
+     ]
+    },
+    {
+     "src": "mace_world_90.png",
+     "grip": [
+      7,
+      6
+     ]
+    }
+   ]
+  },
+  "world_sizes": {
+   "mace_world.png": [
+    13,
+    33
+   ],
+   "mace_world_22_5.png": [
+    18,
+    31
+   ],
+   "mace_world_45.png": [
+    26,
+    26
+   ],
+   "mace_world_67_5.png": [
+    31,
+    18
+   ],
+   "mace_world_90.png": [
+    33,
+    13
+   ]
+  },
+  "notes": "Flanged mace. Iron head of flanges (two in profile, one face on, dark grooves between, a short top point), wooden haft, leather grip wrap, iron butt cap. Grip on the wrap. Icon rendered at 1.16x to fill the 1 x 2 footprint; portrait on the diagonal."
+ },
+ "halberd": {
+  "icon": [
+   19,
+   95
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "angles",
+   "angles": [
+    {
+     "src": "halberd_world.png",
+     "grip": [
+      10,
+      68
+     ]
+    },
+    {
+     "src": "halberd_world_22_5.png",
+     "grip": [
+      5,
+      63
+     ]
+    },
+    {
+     "src": "halberd_world_45.png",
+     "grip": [
+      8,
+      48
+     ]
+    },
+    {
+     "src": "halberd_world_67_5.png",
+     "grip": [
+      10,
+      31
+     ]
+    },
+    {
+     "src": "halberd_world_90.png",
+     "grip": [
+      11,
+      10
+     ]
+    }
+   ]
+  },
+  "world_sizes": {
+   "halberd_world.png": [
+    20,
+    80
+   ],
+   "halberd_world_22_5.png": [
+    33,
+    74
+   ],
+   "halberd_world_45.png": [
+    57,
+    57
+   ],
+   "halberd_world_67_5.png": [
+    74,
+    37
+   ],
+   "halberd_world_90.png": [
+    80,
+    20
+   ]
+  },
+  "notes": "Halberd, two hands. Ash pole shod with iron, leather grip near the butt (where the generated halberd is held), iron langets, a convex axe blade on the left (the lit side), a back hook curling down on the right, a long square top spike. About 80 px long at 1x. The head is 20 px wide at 1x, one more than the 19 px cell, so the icon is drawn at 0.9x with the pole lengthened to fill the five cells; the portrait is the head at 1x on a shortened pole, on the diagonal."
+ },
+ "spear": {
+  "icon": [
+   19,
+   76
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "angles",
+   "angles": [
+    {
+     "src": "spear_world.png",
+     "grip": [
+      4,
+      33
+     ]
+    },
+    {
+     "src": "spear_world_22_5.png",
+     "grip": [
+      10,
+      30
+     ]
+    },
+    {
+     "src": "spear_world_45.png",
+     "grip": [
+      17,
+      23
+     ]
+    },
+    {
+     "src": "spear_world_67_5.png",
+     "grip": [
+      21,
+      13
+     ]
+    },
+    {
+     "src": "spear_world_90.png",
+     "grip": [
+      23,
+      4
+     ]
+    }
+   ]
+  },
+  "world_sizes": {
+   "spear_world.png": [
+    9,
+    57
+   ],
+   "spear_world_22_5.png": [
+    24,
+    52
+   ],
+   "spear_world_45.png": [
+    41,
+    41
+   ],
+   "spear_world_67_5.png": [
+    52,
+    24
+   ],
+   "spear_world_90.png": [
+    57,
+    9
+   ]
+  },
+  "notes": "Throwing spear. Slim wooden shaft, cord binding at the balance (the grip), iron socket, leaf-shaped head with a midrib. About 55 px long at 1x. Icon at 1x with the shaft lengthened to fill the four cells; portrait at 1x with a shortened shaft on the diagonal. Its flight keeps the generated picture."
+ },
+ "shield": {
+  "icon": [
+   38,
+   38
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "fixed",
+   "image": "shield_world.png",
+   "grip": [
+    9,
+    12
+   ],
+   "swing": false
+  },
+  "guard": {
+   "image": "shield_guard.png",
+   "grip": [
+    10,
+    6
+   ]
+  },
+  "world_sizes": {
+   "shield_world.png": [
+    19,
+    19
+   ],
+   "shield_guard.png": [
+    21,
+    21
+   ]
+  },
+  "notes": "Wooden shield. Round, vertical planks with seams and grain, iron rim with ten rivets, iron boss with its own outline ring. Icon and portrait are the same 36 px drawing. In the hand (shield_world, 19 px with its outline, a 17 px disc) and raised (shield_guard, 21 px, a 19 px disc) it is the same design with four-pixel planks, a smaller boss, and no rivets. Held grip 3 px below the disc's centre; the guard's grip 4 px above it (the engine draws the guard's centre 4 px below its anchor)."
+ },
+ "bow": {
+  "icon": [
+   38,
+   57
+  ],
+  "portrait": true,
+  "held": {
+   "mode": "facings",
+   "facings": [
+    {
+     "src": "bow_world.png",
+     "grip": [
+      3,
+      14
+     ]
+    },
+    {
+     "src": "bow_world_22_5.png",
+     "grip": [
+      3,
+      14
+     ]
+    },
+    {
+     "src": "bow_world_45.png",
+     "grip": [
+      4,
+      14
+     ]
+    },
+    {
+     "src": "bow_world_67_5.png",
+     "grip": [
+      5,
+      14
+     ]
+    },
+    {
+     "src": "bow_world_90.png",
+     "grip": [
+      6,
+      14
+     ]
+    }
+   ],
+   "pose": "bow_rest"
+  },
+  "world_sizes": {
+   "bow_world.png": [
+    6,
+    29
+   ],
+   "bow_world_22_5.png": [
+    6,
+    29
+   ],
+   "bow_world_45.png": [
+    7,
+    29
+   ],
+   "bow_world_67_5.png": [
+    8,
+    29
+   ],
+   "bow_world_90.png": [
+    9,
+    29
+   ]
+  },
+  "notes": "Hunting bow. Yew self bow, strung: pale sapwood back, orange heartwood belly, dark nock tips, leather grip wrap, pale string. Upright in the 2 x 3 icon (back to the left), on the diagonal in the portrait. In the hand it is drawn by facing (Michael: the bow stays upright on screen): five upright pictures, 27 px of bow, the belly's offset max(1.5, 4.5 sin angle) to the right (the string column rounded to a whole pixel: 2, 2, 3, 4, 5 px), the string on the left; the engine mirrors them for facing left. Grip on the riser's middle, on the wrap."
+ },
+ "arrow": {
+  "icon": [
+   19,
+   38
+  ],
+  "portrait": false,
+  "held": {
+   "mode": "fixed",
+   "image": "arrow_world.png",
+   "grip": [
+    2,
+    12
+   ]
+  },
+  "world_sizes": {
+   "arrow_world.png": [
+    5,
+    24
+   ]
+  },
+  "notes": "Arrow. Hand-pixelled 10 x 36: iron leaf-bodkin head, pale two-tone shaft, shield-cut grey goose fletching with barring, bindings, dark nock. Placed 3 px left of centre and 1 px up so the lower-right corner stays clear for the stack count. arrow_world is the same design at 1x with a one-pixel shaft (5 x 24), point up, held fixed by the shaft's middle."
+ },
+ "fire_arrow": {
+  "icon": [
+   19,
+   38
+  ],
+  "portrait": false,
+  "held": {
+   "mode": "fixed",
+   "image": "fire_arrow_world.png",
+   "grip": [
+    2,
+    12
+   ]
+  },
+  "world_sizes": {
+   "fire_arrow_world.png": [
+    5,
+    24
+   ]
+  },
+  "notes": "Fire arrow. The arrow with a pitch-soaked rag bound behind the head: sooty, cord turns, a frayed end, two ember pixels and one glow pixel. Same placement as the arrow. fire_arrow_world is the 5 x 24 arrow with the rag bound behind the head, held fixed by the shaft's middle."
+ }
+}

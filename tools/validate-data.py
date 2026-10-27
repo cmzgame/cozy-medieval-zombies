@@ -1062,7 +1062,7 @@ drawn = 0
 placeholders = []
 for i in items:
     held = i.get("held") or {}
-    world = bool(held.get("image") or held.get("angles"))
+    world = bool(held.get("image") or held.get("angles") or held.get("facings"))
     icon = bool(i.get("icon")) and (i.get("icon") or {}).get("placeholder") is None
     if world != icon:
         fail(f"items.{i['id']}: half a pair ({'world picture' if world else 'icon'} only; docs/26)")
