@@ -15,47 +15,47 @@
  "anchors": {
   "north_plain": [
    7.0,
-   84.0
+   100.0
   ],
   "north_door_shut": [
    7.0,
-   84.0
+   100.0
   ],
   "north_door_open": [
    7.0,
-   84.0
+   100.0
   ],
   "north_window_shut": [
    7.0,
-   84.0
+   100.0
   ],
   "north_window_open": [
    7.0,
-   84.0
+   100.0
   ],
   "west_plain": [
    39.0,
-   84.0
+   100.0
   ],
   "west_door_shut": [
    39.0,
-   84.0
+   100.0
   ],
   "west_door_open": [
    39.0,
-   84.0
+   100.0
   ],
   "west_window_shut": [
    39.0,
-   84.0
+   100.0
   ],
   "west_window_open": [
    39.0,
-   84.0
+   100.0
   ]
  },
  "wall": {
-  "height": 80,
+  "height": 96,
   "thickness": 14,
   "color": "#cfc3a8",
   "material": "wood",
