@@ -8,7 +8,7 @@
 //   setdown  an item from the bag set down on the tile under the cursor as its prop (a Campfire item, a torch post, a decoration;
 //            docs/43 sections 3 and 4; src/campfire.js, src/setdown.js), by the prop's rule for where it stands;
 //   bracket  a wall bracket from the bag, hung on the face of the wall under the cursor as a painting is (docs/43 section 4; src/setdown.js);
-//   build  a wall, door, or window on the tile edge under the cursor, paid for, or a prop on a tile (a campfire: an entry of `kind` prop),
+//   build  a wall, door, or window on the tile edge under the cursor, paid for, or a prop on its tiles (the Fireplace, the fire pit: an entry of `kind` prop),
 //          in logs or planks (data/build.json) unless the Free building
 //          setting is on, and built over a few seconds like boarding.
 //
@@ -33,7 +33,7 @@ import * as rugs from "./rugs.js"; // a rug laid from the bag (#327)
 import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag (#326)
 import * as woods from "./woods.js"; // a wall in a wood, and a door or window of another wood than its wall (#334)
 import * as stations from "./stations.js"; // a made prop's recipe, for what taking it apart gives back (docs/43, section 2)
-import * as campfire from "./campfire.js"; // a campfire built from the palette, picked up, set down again (docs/43, section 3)
+import * as campfire from "./campfire.js"; // a campfire made at the workbench, set down from the bag, picked up again (docs/43, section 3)
 import * as setdown from "./setdown.js"; // an item set down as its prop, a bracket hung on a wall (docs/43, section 4)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
@@ -267,12 +267,13 @@ function fitReach(player, f) {
 
 // Why a prop build cannot go on (tx, ty), or "": its own rule for where it stands, then the cost.
 function propBuildBlock(player, what, tx, ty) {
-  return propBuildFit(what, tx, ty).problem || shortfall(player, what);
+  const f = propBuildFit(what, tx, ty);
+  return f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
 function propBuildReason(player, what, tx, ty) {
   const f = propBuildFit(what, tx, ty);
-  return fitReach(player, f) || f.problem || shortfall(player, what);
+  return fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
 function buildBlock(player, what, tx, ty, edge, leaf = "") {
@@ -782,7 +783,7 @@ function buildGhost(player) {
     // cursor), drawn as the carried prop's ghost is, with its own line.
     const d = buildData[what];
     const f = setdown.fitFor(d.stand || "ground", d.sprite, g.gx, g.gy); // the cursor's grid point: fitFor rounds a wall's tile and centres a footprint
-    const reason = fitReach(player, f) || f.problem || shortfall(player, what);
+    const reason = fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
     return { kind: "prop", prop: { sprite: d.sprite, facing: f.facing, footprint: f.footprint }, tx: f.tx, ty: f.ty, footprint: f.footprint, ok: reason === "", reason, build: what, label: `Click to build (${costText(what)}) · Esc cancel` };
   }
   const { tx, ty, edge } = pickEdge(g.gx, g.gy);

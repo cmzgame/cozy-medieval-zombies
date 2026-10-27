@@ -4830,7 +4830,7 @@ check("the fires: the fire pit built by a guest's command indoors and out, refus
       const y = y0 + dy;
       const t = mapMod.peekTile(x, y);
       if (!t) continue;
-      const p = setdownMod.fitAt("ground", "fire_pit", x, y).problem;
+      const p = setdownMod.fitAt("ground", "fire_pit", x, y).problem || (stationsMod.bodyOnTiles([[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]]) ? "body" : ""); // off the guide and any body (a build never covers one)
       const tiles = [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]].map(([a, b]) => mapMod.peekTile(a, b));
       if (!p && !out && tiles.every((q) => q && !(q.room > 0) && q.floor === "floor_grass")) out = [x, y];
       if (!p && !inside && t.room > 0) inside = [x, y];

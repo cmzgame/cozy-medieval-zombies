@@ -242,6 +242,12 @@ export function setBodies(fn) {
   bodies = fn;
 }
 
+// Whether a body (a player, a villager, one of the dead, an animal, a body lying) stands on any of these tiles: a built prop never goes up
+// over one (the review of #527: a 2 by 2 fire pit built within reach covered its builder, and could cover one of the dead).
+export function bodyOnTiles(tiles) {
+  return bodies().some((c) => c && tiles.some(([tx, ty]) => Math.hypot(c.gx - tx, c.gy - ty) < 0.7));
+}
+
 // Whether a made prop of this footprint may stand with its anchor at (x, y): every one of its tiles walkable, empty, bare of items, not
 // beside a door (#134), no body on it, and no wall between two of them, as placement.canPutDown asks of a carried prop. Only the anchor was
 // asked until check("craft") ran twice: a counter (three tiles) made at the joiner's workbench stood over the bench's own tiles, and the

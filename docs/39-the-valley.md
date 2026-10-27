@@ -28,7 +28,7 @@
 
 ### The village (west bank) [built]
 
-- **Your cottage:** 11 by 7 inside (Michael, 2026-10-26, the demo pass: "make your starting cabin not tiny"; 7 by 5 before), a living room 7 wide and a bedroom 4; a fireplace, a table, four chairs, a bed, a shelf, two chests (one is the home chest: a hatchet, a shovel, a loaf of bread, a bucket); a well, a barrel, a woodpile; a fenced plot of potatoes and cabbages at mixed stages; two gates; a fire pit lit on the grass east of the fence (Michael, 2026-10-27, "so I can see one pretty quick") [built]. Its herb bed, privy, lean-to, and the pumpkin by the door [to build].
+- **Your cottage:** 11 by 7 inside (Michael, 2026-10-26, the demo pass: "make your starting cabin not tiny"; 7 by 5 before), a living room 7 wide and a bedroom 4; a fireplace, a table, four chairs, a bed, a shelf, two chests (one is the home chest: a hatchet, a shovel, a loaf of bread, a bucket); a well, a barrel, a woodpile; a fenced plot of potatoes and cabbages at mixed stages; two gates; a fire pit lit in a small glade south of the gate (Michael, 2026-10-27, "so I can see one pretty quick") [built]. Its herb bed, privy, lean-to, and the pumpkin by the door [to build].
 - **The square:** cobble, the well, the market cross, four stalls (containers), a trough, the notice board (the quest board of a later version), the stocks, three lantern posts.
 - **The green:** the duck pond, the maypole, two benches, a woodpile. The willow by the pond [to build].
 - **The inn:** the taproom (a counter, four tables, two fireplaces, barrels, a cupboard, a shelf), three guest rooms with a bed and a chest each, a fenced yard (a well, a woodpile, a privy, a cart, a trough); the Innkeeper, the Guest, the Child.

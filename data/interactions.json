@@ -11,6 +11,7 @@
   {"use": "torch", "on": "bracket", "verb": "Light", "action": "light", "message": "You light the torch."},
   {"use": "tinderbox", "on": "lantern_post", "verb": "Light", "action": "light"},
   {"use": "tinderbox", "on": "fireplace", "verb": "Light", "action": "light", "message": "You light the fireplace."},
+  {"use": "tinderbox", "on": "fire_pit", "verb": "Light", "action": "light", "message": "You light the fire pit."},
   {"use": "log", "on": "campfire", "verb": "Add", "action": "feed"},
   {"use": "tinderbox", "on": "pumpkin", "verb": "Light", "action": "light", "message": "You light the jack-o'-lantern."},
   {"use": "tinderbox", "on": "corpse", "verb": "Burn", "action": "burncorpse"},

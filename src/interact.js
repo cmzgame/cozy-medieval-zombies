@@ -2018,8 +2018,10 @@ export function hitsAt(sx, sy, wanted = (prop) => prop.interactable) {
       let name = null;
       let px = 0;
       let py = 0;
+      let depth = prop.tile[0] + prop.tile[1];
       for (let i = 0; i < slices && !name; i++) {
         const [stx, sty] = prop.tiles[i] || prop.tile;
+        depth = stx + sty; // the slice's own tile, as the renderer sorts it (a fire pit's side columns sit deeper than its back tile)
         const r = propRect(prop, stx, sty);
         if (!r || !pointInRect(sx, sy, r)) continue;
         const n = idleFrame(sheet, prop, i);
@@ -2038,7 +2040,7 @@ export function hitsAt(sx, sy, wanted = (prop) => prop.interactable) {
         const t = trunkOf(sheet, name);
         crown = !(py > t.line && px >= t.l && px <= t.r);
       }
-      hits.push({ prop, depth: prop.tile[0] + prop.tile[1], crown });
+      hits.push({ prop, depth, crown });
     }
   }
   return hits.sort((a, b) => b.depth - a.depth); // stable: a tie keeps the search's order, as the old single pass did

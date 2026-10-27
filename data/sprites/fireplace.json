@@ -35,8 +35,8 @@
   "switch": true,
   "maxFuel": 4,
   "flicker": {
-   "amp": 0.18,
-   "speed": 6
+   "amp": 0.24,
+   "speed": 7
   },
   "at": [
    47,
