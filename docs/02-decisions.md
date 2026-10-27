@@ -325,7 +325,7 @@ Michael, on the 80 px walls: "I just really like the predictability of height in
 
 ### 2026-10-26 — A depth buffer: the frame sorted per pixel (Michael)
 
-Michael asked why props against walls show two thirds of their outline and clip into walls, and whether a depth buffer was an option. The frame is one list sorted by a number per tile; a picture that spills past its tile is covered by the next tile's wall, and only figures get a correction. The vertices already carry the depth (`a_world` and `a_height`, the style bible's `X + Y + Z`), and the art is hard alpha by law, so a depth buffer is one pass of opaque art with an alpha test and a second, sorted pass for the translucent few. **Ruled:** build it, as its own step ahead of upper floors ("Write the full depth buffer spec"). The spec is `docs/51`.
+Michael asked why props against walls show two thirds of their outline and clip into walls, and whether a depth buffer was an option. The frame is one list sorted by a number per tile; a picture that spills past its tile is covered by the next tile's wall, and only figures get a correction. A depth buffer sorts per pixel instead: each vertex gets a depth from its thing's true geometry (the style bible's `X + Y + Z`, a plane per face), the flat things draw first without writing depth, opaque art draws in one pass with an alpha test, and the translucent few in a tested pass after. **Ruled:** build it, as its own step ahead of upper floors ("Write the full depth buffer spec"). The spec is `docs/51`.
 
 - **A depth buffer,** opaque art in one pass with an alpha test at half, the translucent things (the faded near walls, ghosts, canopies with holes, shadows, markers) sorted in a second pass.
 

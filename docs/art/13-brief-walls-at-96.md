@@ -4,7 +4,7 @@
 
 Hello again. This is a request to redraw the whole wall set you drew before, in exactly your style, at a new height: walls 96 px tall instead of 80, doors 64 px tall instead of 48, windows from 24 to 64 px instead of 22 to 51. Nothing else about the look changes. Michael's reason: a one-tile crate is 32 px tall, and he wants Zomboid's predictability, three crates from floor to ceiling, a door two crates tall, and a window big on purpose, "for fun, not for realism", so the player sees more through it and shoots through it more easily.
 
-Please read the whole brief before drawing. At the end are three questions; answer them first if you can, or draw and say what you chose.
+Please read the whole brief before drawing. At the end are four questions; answer them first if you can, or draw and say what you chose.
 
 **What Michael attaches** (in case you no longer have them): your style bible, `docs/art/01-style-bible.md`; your village generators, `tools/art-gen/village/` (`village.py`, `iso3d.py`, `anchors_walls.json`, `README_village.md`); the woods, `tools/art-gen/woods_rugs_paintings/` (`woods.py`, `wood_tones.json`); and the delivered set, `data/art/village/`.
 
