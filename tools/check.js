@@ -5514,6 +5514,96 @@ check("upper floors, step 3: the valley's tall house east of your cottage has a 
   assert(room && room.layer === 1 && room.size === 48, `the first floor's room: ${room && room.size}`);
   return `stair ${s.at} ${s.dir}, landing ${s.landing}; the first floor a room of ${room.size}`;
 });
+// ---- the storeys' playtest (Michael, 2026-10-27): the stair's walkable band under its drawn steps, the treads, and the landing's sides ----
+const tallHouse = () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const b = mapMod.buildings().find((q) => q.set === "the tall house");
+  return mapMod.stairs().find((q) => q.building === b.id && q.layer === 0);
+};
+const stepBody = (p, dx, dy, n) => {
+  for (let i = 0; i < n; i++) {
+    const m = mapMod.moveCircle(p.gx, p.gy, 0.3, dx, dy, p.layer);
+    p.gx = m.gx;
+    p.gy = m.gy;
+    mapMod.stairStep(p);
+  }
+  return p;
+};
+check("the storeys' playtest: a body walks up the stair at the steps' left third, middle, and right third, entering from the tile before it across the full width", () => {
+  const s = tallHouse();
+  const [dx, dy] = s.d;
+  const out = [];
+  for (const off of [-1 / 3, 0, 1 / 3]) {
+    // From the middle of the tile before the bottom step, `off` across, walking straight up the stair's line.
+    const p = { gx: s.before[0] - dy * off, gy: s.before[1] + dx * off, layer: 0, rise: 0 };
+    stepBody(p, dx * 0.05, dy * 0.05, 120);
+    out.push(`${off.toFixed(2)}: layer ${p.layer}`);
+    assert(p.layer === 1 && (p.rise || 0) === 0, `up at ${off.toFixed(2)} across: ${out.join("; ")}, stopped at ${p.gx.toFixed(2)},${p.gy.toFixed(2)} rise ${p.rise}`);
+  }
+  return out.join("; ");
+});
+check("the storeys' playtest: a body pressed against each side of the stair stays within the drawn side; one beside it is held off it whole", () => {
+  const s = tallHouse();
+  const [dx, dy] = s.d;
+  const res = [];
+  for (const side of [-1, 1]) {
+    // On the stair, halfway up, pushed sideways for two tiles' worth.
+    const p = { gx: s.low[0] + dx * 1.5, gy: s.low[1] + dy * 1.5, layer: 0, rise: 0 };
+    mapMod.stairStep(p);
+    stepBody(p, -dy * side * 0.05, dx * side * 0.05, 40);
+    const { off } = mapMod.stairAlong(s, p.gx, p.gy);
+    res.push(`on, ${side < 0 ? "left" : "right"}: ${off.toFixed(3)} rise ${p.rise.toFixed(0)}`);
+    assert(Math.abs(off) <= 0.5 - mapMod.STAIR_FEET + 1e-6 && Math.abs(off) > 0.3 && p.layer === 0 && p.rise > 40, res.join("; "));
+    // Beside it on the floor, walking into its side: its whole body held off the side line.
+    const q = { gx: s.low[0] + dx * 1.5 - dy * side * 1.2, gy: s.low[1] + dy * 1.5 + dx * side * 1.2, layer: 0, rise: 0 };
+    stepBody(q, dy * side * 0.05, -dx * side * 0.05, 40);
+    const o2 = mapMod.stairAlong(s, q.gx, q.gy).off;
+    res.push(`beside, ${side < 0 ? "left" : "right"}: ${o2.toFixed(3)}`);
+    assert(Math.abs(o2) >= 0.5 + 0.3 - 1e-6 && (q.rise || 0) === 0, res.join("; "));
+  }
+  return res.join("; ");
+});
+check("the storeys' playtest: twelve treads of 8 px, and the feet on the tread under them (the rise within 8 px under its top, on it past a third of its depth)", () => {
+  assert(mapMod.STAIR_TREADS === 12, `${mapMod.STAIR_TREADS} treads`);
+  let worst = 0;
+  for (let i = 0; i <= 300; i++) {
+    const t = (i / 300) * 3;
+    const k = Math.min(11, Math.floor(t * 4));
+    const top = (k + 1) * 8;
+    const r = mapMod.stairRise(t);
+    const f = t * 4 - k;
+    assert(r <= top + 1e-9 && r >= top - 8 - 1e-9, `at ${t.toFixed(2)}: rise ${r}, tread ${top}`);
+    if (f >= 0.35) assert(Math.abs(r - top) < 1e-9, `past a third of tread ${k}: rise ${r}, tread ${top}`);
+    worst = Math.max(worst, top - r);
+  }
+  assert(mapMod.stairRise(0) === 0 && mapMod.stairRise(3) === 96 && Math.abs(mapMod.stairRise(1) - 32) < 1e-9, "the ends and a tile up");
+  return `the feet at most ${worst.toFixed(1)} px under the tread's top, on it past a third of its depth`;
+});
+check("the storeys' playtest: the landing is walked onto from its three open sides on the first floor and then down the stair; the stairwell's sides still stop a body", () => {
+  const s = tallHouse();
+  const [dx, dy] = s.d;
+  const [lx, ly] = s.landing;
+  const res = [];
+  // The three open sides: beyond the landing up the stair's line, and either side of it.
+  for (const [name, ox, oy] of [["beyond", dx, dy], ["left", -dy, dx], ["right", dy, -dx]]) {
+    const p = { gx: lx + ox, gy: ly + oy, layer: 1, rise: 0 };
+    stepBody(p, -ox * 0.05, -oy * 0.05, 20);
+    const onLanding = Math.abs(p.gx - lx) < 0.05 && Math.abs(p.gy - ly) < 0.05 && p.layer === 1;
+    stepBody(p, -dx * 0.05, -dy * 0.05, 80); // down the stair, four tiles: to the tile before its foot
+    res.push(`${name}: on the landing ${onLanding}, then layer ${p.layer} at ${p.gx.toFixed(2)},${p.gy.toFixed(2)}`);
+    assert(onLanding && p.layer === 0 && (p.rise || 0) === 0 && Math.hypot(p.gx - s.before[0], p.gy - s.before[1]) < 0.6, res.join("; "));
+  }
+  // The stairwell's sides: on the first floor beside the middle step, walking toward it, never into the hole.
+  for (const side of [-1, 1]) {
+    const [mx, my] = s.tiles[1];
+    const p = { gx: mx - dy * side * 1, gy: my + dx * side * 1, layer: 1, rise: 0 };
+    stepBody(p, dy * side * 0.05, -dx * side * 0.05, 40);
+    const { off } = mapMod.stairAlong(s, p.gx, p.gy);
+    res.push(`the well's ${side < 0 ? "left" : "right"} side: off ${off.toFixed(2)}, layer ${p.layer}`);
+    assert(p.layer === 1 && Math.abs(off) >= 0.5 + 0.3 - 1e-6, res.join("; "));
+  }
+  return res.join("; ");
+});
 check("upper floors, step 1: the sync check sees a replica on the wrong storey (the players' and the dead's parts and hashText hash layer and rise); the ground hashes as before", () => {
   towerHouse();
   const p = gameMod.state.player;
