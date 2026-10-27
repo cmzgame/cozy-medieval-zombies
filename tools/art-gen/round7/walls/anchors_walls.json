@@ -1,0 +1,812 @@
+{
+ "wall_wood_north_plain": {
+  "anchor_px": [
+   7.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "wall_wood_north_door_shut": {
+  "anchor_px": [
+   7.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "wall_wood_north_door_open": {
+  "anchor_px": [
+   7.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "wall_wood_north_window_shut": {
+  "anchor_px": [
+   7.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "wall_wood_north_window_open": {
+  "anchor_px": [
+   7.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "wall_wood_west_plain": {
+  "anchor_px": [
+   39.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "wall_wood_west_door_shut": {
+  "anchor_px": [
+   39.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "wall_wood_west_door_open": {
+  "anchor_px": [
+   39.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "wall_wood_west_window_shut": {
+  "anchor_px": [
+   39.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "wall_wood_west_window_open": {
+  "anchor_px": [
+   39.0,
+   100.0
+  ],
+  "size": [
+   47,
+   120
+  ]
+ },
+ "post_wood": {
+  "anchor_px": [
+   16.0,
+   105.0
+  ],
+  "size": [
+   33,
+   114
+  ]
+ },
+ "wall_stone_north_plain": {
+  "anchor_px": [
+   8.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "wall_stone_north_door_shut": {
+  "anchor_px": [
+   8.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "wall_stone_north_door_open": {
+  "anchor_px": [
+   8.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "wall_stone_north_window_shut": {
+  "anchor_px": [
+   8.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "wall_stone_north_window_open": {
+  "anchor_px": [
+   8.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "wall_stone_west_plain": {
+  "anchor_px": [
+   40.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "wall_stone_west_door_shut": {
+  "anchor_px": [
+   40.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "wall_stone_west_door_open": {
+  "anchor_px": [
+   40.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "wall_stone_west_window_shut": {
+  "anchor_px": [
+   40.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "wall_stone_west_window_open": {
+  "anchor_px": [
+   40.0,
+   100.0
+  ],
+  "size": [
+   49,
+   121
+  ]
+ },
+ "post_stone": {
+  "anchor_px": [
+   18.0,
+   107.0
+  ],
+  "size": [
+   37,
+   117
+  ]
+ },
+ "wall_log_north_plain": {
+  "anchor_px": [
+   9.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "wall_log_north_door_shut": {
+  "anchor_px": [
+   9.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "wall_log_north_door_open": {
+  "anchor_px": [
+   9.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "wall_log_north_window_shut": {
+  "anchor_px": [
+   9.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "wall_log_north_window_open": {
+  "anchor_px": [
+   9.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "wall_log_west_plain": {
+  "anchor_px": [
+   41.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "wall_log_west_door_shut": {
+  "anchor_px": [
+   41.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "wall_log_west_door_open": {
+  "anchor_px": [
+   41.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "wall_log_west_window_shut": {
+  "anchor_px": [
+   41.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "wall_log_west_window_open": {
+  "anchor_px": [
+   41.0,
+   101.0
+  ],
+  "size": [
+   51,
+   122
+  ]
+ },
+ "post_log": {
+  "anchor_px": [
+   19.0,
+   105.0
+  ],
+  "size": [
+   39,
+   115
+  ]
+ },
+ "door_open_stone_north": {
+  "anchor_px": [
+   24.0,
+   58.0
+  ],
+  "size": [
+   28,
+   76
+  ]
+ },
+ "shutter_left_stone_north": {
+  "anchor_px": [
+   14.0,
+   59.0
+  ],
+  "size": [
+   16,
+   45
+  ]
+ },
+ "shutter_right_stone_north": {
+  "anchor_px": [
+   -11.0,
+   49.0
+  ],
+  "size": [
+   10,
+   48
+  ]
+ },
+ "door_open_far_stone_north": {
+  "anchor_px": [
+   -11.0,
+   77.0
+  ],
+  "size": [
+   28,
+   77
+  ]
+ },
+ "shutter_far_left_stone_north": {
+  "anchor_px": [
+   -11.0,
+   72.0
+  ],
+  "size": [
+   10,
+   48
+  ]
+ },
+ "shutter_far_right_stone_north": {
+  "anchor_px": [
+   -30.0,
+   59.0
+  ],
+  "size": [
+   16,
+   45
+  ]
+ },
+ "door_open_stone_west": {
+  "anchor_px": [
+   4.0,
+   58.0
+  ],
+  "size": [
+   28,
+   76
+  ]
+ },
+ "shutter_left_stone_west": {
+  "anchor_px": [
+   21.0,
+   49.0
+  ],
+  "size": [
+   10,
+   48
+  ]
+ },
+ "shutter_right_stone_west": {
+  "anchor_px": [
+   2.0,
+   59.0
+  ],
+  "size": [
+   16,
+   45
+  ]
+ },
+ "door_open_far_stone_west": {
+  "anchor_px": [
+   39.0,
+   77.0
+  ],
+  "size": [
+   28,
+   77
+  ]
+ },
+ "shutter_far_left_stone_west": {
+  "anchor_px": [
+   46.0,
+   59.0
+  ],
+  "size": [
+   16,
+   45
+  ]
+ },
+ "shutter_far_right_stone_west": {
+  "anchor_px": [
+   21.0,
+   72.0
+  ],
+  "size": [
+   10,
+   48
+  ]
+ },
+ "door_open_wood_north": {
+  "anchor_px": [
+   23.0,
+   59.0
+  ],
+  "size": [
+   28,
+   77
+  ]
+ },
+ "shutter_left_wood_north": {
+  "anchor_px": [
+   13.0,
+   60.0
+  ],
+  "size": [
+   16,
+   46
+  ]
+ },
+ "shutter_right_wood_north": {
+  "anchor_px": [
+   -12.0,
+   49.0
+  ],
+  "size": [
+   10,
+   47
+  ]
+ },
+ "door_open_far_wood_north": {
+  "anchor_px": [
+   -10.0,
+   76.0
+  ],
+  "size": [
+   28,
+   76
+  ]
+ },
+ "shutter_far_left_wood_north": {
+  "anchor_px": [
+   -10.0,
+   71.0
+  ],
+  "size": [
+   10,
+   48
+  ]
+ },
+ "shutter_far_right_wood_north": {
+  "anchor_px": [
+   -29.0,
+   59.0
+  ],
+  "size": [
+   16,
+   46
+  ]
+ },
+ "door_open_wood_west": {
+  "anchor_px": [
+   5.0,
+   59.0
+  ],
+  "size": [
+   28,
+   77
+  ]
+ },
+ "shutter_left_wood_west": {
+  "anchor_px": [
+   22.0,
+   49.0
+  ],
+  "size": [
+   10,
+   47
+  ]
+ },
+ "shutter_right_wood_west": {
+  "anchor_px": [
+   3.0,
+   60.0
+  ],
+  "size": [
+   16,
+   46
+  ]
+ },
+ "door_open_far_wood_west": {
+  "anchor_px": [
+   38.0,
+   76.0
+  ],
+  "size": [
+   28,
+   76
+  ]
+ },
+ "shutter_far_left_wood_west": {
+  "anchor_px": [
+   45.0,
+   59.0
+  ],
+  "size": [
+   16,
+   46
+  ]
+ },
+ "shutter_far_right_wood_west": {
+  "anchor_px": [
+   20.0,
+   71.0
+  ],
+  "size": [
+   10,
+   48
+  ]
+ },
+ "door_open_log_north": {
+  "anchor_px": [
+   25.0,
+   58.0
+  ],
+  "size": [
+   28,
+   77
+  ]
+ },
+ "shutter_left_log_north": {
+  "anchor_px": [
+   15.0,
+   59.0
+  ],
+  "size": [
+   16,
+   46
+  ]
+ },
+ "shutter_right_log_north": {
+  "anchor_px": [
+   -10.0,
+   48.0
+  ],
+  "size": [
+   10,
+   47
+  ]
+ },
+ "door_open_far_log_north": {
+  "anchor_px": [
+   -12.0,
+   77.0
+  ],
+  "size": [
+   28,
+   76
+  ]
+ },
+ "shutter_far_left_log_north": {
+  "anchor_px": [
+   -12.0,
+   72.0
+  ],
+  "size": [
+   10,
+   48
+  ]
+ },
+ "shutter_far_right_log_north": {
+  "anchor_px": [
+   -31.0,
+   60.0
+  ],
+  "size": [
+   16,
+   46
+  ]
+ },
+ "door_open_log_west": {
+  "anchor_px": [
+   3.0,
+   58.0
+  ],
+  "size": [
+   28,
+   77
+  ]
+ },
+ "shutter_left_log_west": {
+  "anchor_px": [
+   20.0,
+   48.0
+  ],
+  "size": [
+   10,
+   47
+  ]
+ },
+ "shutter_right_log_west": {
+  "anchor_px": [
+   1.0,
+   59.0
+  ],
+  "size": [
+   16,
+   46
+  ]
+ },
+ "door_open_far_log_west": {
+  "anchor_px": [
+   40.0,
+   77.0
+  ],
+  "size": [
+   28,
+   76
+  ]
+ },
+ "shutter_far_left_log_west": {
+  "anchor_px": [
+   47.0,
+   60.0
+  ],
+  "size": [
+   16,
+   46
+  ]
+ },
+ "shutter_far_right_log_west": {
+  "anchor_px": [
+   22.0,
+   72.0
+  ],
+  "size": [
+   10,
+   48
+  ]
+ },
+ "boards_door_north_1": {
+  "anchor_px": [
+   10.0,
+   29.0
+  ],
+  "size": [
+   32,
+   20
+  ]
+ },
+ "boards_door_north_2": {
+  "anchor_px": [
+   10.0,
+   47.0
+  ],
+  "size": [
+   32,
+   54
+  ]
+ },
+ "boards_door_north_3": {
+  "anchor_px": [
+   10.0,
+   45.0
+  ],
+  "size": [
+   32,
+   52
+  ]
+ },
+ "boards_window_north_1": {
+  "anchor_px": [
+   8.0,
+   40.0
+  ],
+  "size": [
+   28,
+   18
+  ]
+ },
+ "boards_window_north_2": {
+  "anchor_px": [
+   8.0,
+   52.0
+  ],
+  "size": [
+   28,
+   40
+  ]
+ },
+ "boards_window_north_3": {
+  "anchor_px": [
+   8.0,
+   50.0
+  ],
+  "size": [
+   28,
+   38
+  ]
+ },
+ "boards_door_west_1": {
+  "anchor_px": [
+   21.0,
+   31.0
+  ],
+  "size": [
+   32,
+   25
+  ]
+ },
+ "boards_door_west_2": {
+  "anchor_px": [
+   21.0,
+   45.0
+  ],
+  "size": [
+   32,
+   55
+  ]
+ },
+ "boards_door_west_3": {
+  "anchor_px": [
+   21.0,
+   47.0
+  ],
+  "size": [
+   32,
+   57
+  ]
+ },
+ "boards_window_west_1": {
+  "anchor_px": [
+   19.0,
+   42.0
+  ],
+  "size": [
+   28,
+   23
+  ]
+ },
+ "boards_window_west_2": {
+  "anchor_px": [
+   19.0,
+   50.0
+  ],
+  "size": [
+   28,
+   41
+  ]
+ },
+ "boards_window_west_3": {
+  "anchor_px": [
+   19.0,
+   52.0
+  ],
+  "size": [
+   28,
+   43
+  ]
+ }
+}

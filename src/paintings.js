@@ -20,7 +20,7 @@ import { reachProblem, TOO_FAR } from "./reach.js";
 import { showMessage } from "./ui/prompt.js";
 
 export const REACH = 2.6; // tiles from the player to the nearest floor tile under the painting being hung or taken down
-const WALL_FACE = 80; // the walls' height (docs/17), as interact.js's openings
+const WALL_FACE = 96; // the walls' height (docs/52), as interact.js's openings
 const FACE_T = 16; // a drawn wall's thickness for the face's place on screen (the three materials are 14, 16 and 18; the face is half of it from the edge)
 
 // The item definition if this id is a painting, else null.

@@ -931,7 +931,7 @@ check("woods: six drawn wall types with their posts and leaves, anchors the oak 
   for (const w of ["wall_wood", "wall_spruce", "wall_mahogany", "wall_winterpine", "wall_bloodbark", "wall_daub"]) defs[w] = read(`data/sprites/${w}.json`);
   const oak = defs.wall_wood;
   for (const [w, d] of Object.entries(defs)) {
-    assert(d.wall && d.wall.height === 80 && d.wall.material === "wood" && /^#[0-9a-f]{6}$/i.test(d.wall.color), `${w}: not a wood wall block`);
+    assert(d.wall && d.wall.height === 96 && d.wall.material === "wood" && /^#[0-9a-f]{6}$/i.test(d.wall.color), `${w}: not a wood wall block`);
     assert(JSON.stringify(Object.keys(d.images)) === JSON.stringify(Object.keys(oak.images)), `${w}: its variants are not the oak set's`);
     assert(JSON.stringify(d.anchors) === JSON.stringify(oak.anchors), `${w}: its anchors are not the oak set's`);
     for (const f of Object.values(d.images)) assert(fs.existsSync(path.join(root, f)), `${w}: ${f} is missing`);
@@ -955,6 +955,52 @@ check("woods: six drawn wall types with their posts and leaves, anchors the oak 
   for (const w of ["wall_wood", "wall_spruce", "wall_mahogany", "wall_daub"]) assert(seen[w] > 20, `the valley has ${seen[w] || 0} ${w} segments`);
   assert(!seen.wall_winterpine && !seen.wall_bloodbark, "the valley holds a region's wood");
   return Object.entries(seen).map(([k, v]) => `${k.slice(5)} ${v}`).join(", ");
+});
+// Walls 96 px tall (docs/52, Michael 2026-10-26): every wall material's definition 96 (a fence 36), the openings' constants, the bow's fallback, the
+// spear's arc over a wall; a flight is stopped by a wall below that wall's own height (a fence at its 36, a house wall at its 96), read from its
+// definition headless as on a server world, and an open door and window let it through between their own heights.
+const placeholdersMod = await import("../src/placeholders.js");
+check("walls 96: every material 96 and a fence 36, the openings 64 and 24 to 64, a flight stopped by each wall at its own height, the spear's arc over a wall", () => {
+  const P = placeholdersMod;
+  for (const w of ["wall_wood", "wall_spruce", "wall_mahogany", "wall_winterpine", "wall_bloodbark", "wall_daub", "wall_log", "wall_stone"]) assert(read(`data/sprites/${w}.json`).wall.height === 96, `${w} is not 96 px tall`);
+  assert(read("data/sprites/wall_fence.json").wall.height === 36, "the fence is not 36 px");
+  assert(P.DOOR_TOP === 64 && P.WINDOW_TOP === 64 && P.WINDOW_SILL === 24 && P.BRACKET_UP === 48, `the openings: door ${P.DOOR_TOP}, window ${P.WINDOW_SILL} to ${P.WINDOW_TOP}, bracket ${P.BRACKET_UP}`);
+  assert(read("data/combat.json").bow.wallHeight === 96 && archeryMod.tunables.wallHeight === 96, `the bow's wallHeight is ${archeryMod.tunables.wallHeight}`);
+  const crate = read("data/sprites/crate.json").placeholder;
+  assert(crate.kind === "box" && crate.height === 32 && !crate.inset && crate.label && crate.outline === true && 3 * crate.height === 96 && 2 * crate.height === P.DOOR_TOP, "the dev crate is not a labelled, outlined one-tile cube 32 px tall (three to the cap, two to the door's top)");
+  const spear = itemsMod.getItem("spear").thrown;
+  const peak = (t) => { let m = 0; for (let u = 0; u <= 1; u += 0.01) m = Math.max(m, t.z0 * (1 - u) + 4 * t.arcMax * u * (1 - u)); return m; };
+  assert(spear.arcMax === 80 && peak(spear) > 96, `the spear's full-range throw peaks at ${peak(spear).toFixed(1)} px, under a wall`);
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const j = read("data/maps/valley.json");
+  const [bx, by, bw, bh] = j.bounds;
+  const C = mapMod.CHUNK;
+  for (let cy = Math.floor(by / C); cy <= Math.floor((by + bh) / C); cy++) for (let cx = Math.floor(bx / C); cx <= Math.floor((bx + bw) / C); cx++) mapMod.getChunk(cx, cy, true);
+  const find = (test) => { for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) for (const e of ["n", "w"]) { const w = mapMod.tileAt(x, y)[e]; if (w && test(w)) return w; } return null; };
+  const fence = find((w) => w.kind === "wall" && mapMod.isFence(w) && !mapMod.boarded(w));
+  const wall = find((w) => w.kind === "wall" && !mapMod.isFence(w) && w.sprite !== "wall_fence");
+  const door = find((w) => w.kind === "door" && !mapMod.isFence(w) && !mapMod.boarded(w) && !w.broken);
+  const win = find((w) => w.kind === "window" && !mapMod.boarded(w) && !w.broken);
+  assert(fence && wall && door && win, "the valley has no fence, house wall, house door, or window to test");
+  const S = archeryMod.wallStops;
+  assert(archeryMod.heightOfWall(fence) === 36 && S(fence, 35) && !S(fence, 36) && !S(fence, 50), "a fence does not stop a flight at its own 36 px (under it stopped, over it free)");
+  assert(archeryMod.heightOfWall(wall) === 96 && S(wall, 95) && !S(wall, 96) && S(wall, 80), `a ${wall.sprite} does not stop a flight below its 96 px`);
+  const keep = { open: door.open, shutter: win.shutter };
+  try {
+    door.open = true;
+    assert(!S(door, 0) && !S(door, 63) && S(door, 64) && S(door, 90), "an open door does not pass a flight under its 64 px lintel and stop one over it");
+    door.open = false;
+    assert(S(door, 30), "a shut door lets a flight through");
+    win.shutter = "open";
+    assert(S(win, 23) && !S(win, 24) && !S(win, 63) && S(win, 64), "an open window does not pass a flight between its sill 24 and its top 64");
+    win.shutter = "closed";
+    assert(S(win, 40), "a shut window lets a flight through");
+  } finally {
+    door.open = keep.open;
+    win.shutter = keep.shutter;
+  }
+  assert(archeryMod.heightOfWall({ sprite: "no_such_wall" }) === 96, "a wall with no definition does not fall back to the bow's wallHeight");
+  return `walls 96, fence 36; door 64, window 24 to 64, bracket 48; the spear peaks at ${peak(spear).toFixed(1)}; a fence stops under 36, a wall under 96, an open door under 64, an open window outside 24 to 64`;
 });
 // A door or a window in another wood than its wall (#334, PR 2): the leaf is the wood's wall sprite, stored only when it differs from the wall's own (a daub wall's own is oak's), carried in the chunk's
 // record and the sync hash, restored; the regions' two woods only while Free building is on; refused in a log or stone wall and for an unknown wood; a guest's `build` command meets the same rules.

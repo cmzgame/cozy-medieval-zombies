@@ -17,7 +17,7 @@ Cozy Medieval Zombies: a cosy, slightly spooky medieval village overrun by the d
 - Anything the player uses or picks up has a 1 px `#2b2522` outline all the way round. Walls (and so the fence itself) have none; the gate does, as the doors do.
 - Flat, unlit art. No baked ground shadow, glow, flame light, or halo. Anything that emits light is a separate frame the engine draws unlit.
 - Drawn at final size. The game shows one art pixel per screen pixel and zooms the whole frame (at 1.1, 1.8, and 2.7); nothing you draw is ever scaled by the engine.
-- Tiles are 64 by 32 diamonds. Walls are 80 px tall. The character is about 55 px tall with hair and 26 wide, in a 48 by 72 frame with the feet at (24, 66). (Older briefs said 48 px tall; that is stale.) A hand hangs about 14 px above the feet and 9 to 10 px out from the body.
+- Tiles are 64 by 32 diamonds. Walls are 96 px tall (80 when this brief was written; `52`, 2026-10-26). The character is about 55 px tall with hair and 26 wide, in a 48 by 72 frame with the feet at (24, 66). (Older briefs said 48 px tall; that is stale.) A hand hangs about 14 px above the feet and 9 to 10 px out from the body.
 
 Two things changed since your last delivery that touch this one. Your generators are kept in the repository as an archive under `tools/art-gen/` (`village/village.py` has the wall dimensions and `iso3d.py`; `village/placement_preview.py` assembled the placement tests); they are never run by the game, so if you no longer have them, Michael can attach them. And the night is now lit in a shader: a sprite is lit per pixel, and anything drawn with the engine's unlit flag (every flame) glows through the night. Neither changes what you draw.
 

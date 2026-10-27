@@ -79,17 +79,19 @@ export function generateFlat(ph) {
 // "behind" the wall plane, which sells the diorama look.
 // Thicker than the parent's 6 px: thin reads modern, thick reads chonky and
 // cosy (Michael, 2026-10-09); thicker again on 2026-10-11.
-// 18 since 2026-10-11 (Michael: half again as thick), with 80 px walls.
+// 18 since 2026-10-11 (Michael: half again as thick); the drawn walls' own are per material (stone 16, wood 14, log 18).
 export const WALL_T = 18;
 
-// Openings in pixels from the floor, the same whatever the wall's height, so a
-// taller wall only adds wall above them (Michael, 2026-10-11: the door got
-// "comically large" with the walls). Their sizes on the old 64 px walls, the
-// door then a hair shorter (51 to 48, Michael, on the 80 px walls).
-export const DOOR_TOP = 48;
-export const WINDOW_SILL = 22;
-export const WINDOW_TOP = 51;
-export const BRACKET_UP = 32; // a torch bracket's height on its wall
+// Openings in pixels from the floor, the same for every wall material (docs/52):
+// walls 96 px tall, three one-tile crates of 32 (Michael, 2026-10-26, Walls 96
+// px tall); the door's top at 64, two crates; the window's top at the door's
+// line and its sill low, a big window on purpose. The sill and the bracket are
+// docs/52's defaults (docs/42, the openings' heights). A fence (36 px) keeps its
+// own art; the `h * 0.35` and `h * 0.5` caps below keep its openings in it.
+export const DOOR_TOP = 64;
+export const WINDOW_SILL = 24; // default (docs/52 section 4: 32 fits a crate under it, 20 is more glass)
+export const WINDOW_TOP = 64;
+export const BRACKET_UP = 48; // a torch bracket's height on its wall; default (32 before the 96 px walls)
 
 // Fittings are the same wood everywhere, whatever the wall: doors and shutters
 // are vertical planks with dark metal strips across them (Michael, 2026-10-09:
