@@ -243,8 +243,8 @@ export function setBodies(fn) {
 }
 
 // Whether a body stands within `d` of any of these ground segments ([ax, ay, bx, by]): a ring never goes up through one (placement.js, docs/50).
-export function bodyNearSegments(segs, d = 0.45) {
-  return bodies().some((c) => c && segs.some(([ax, ay, bx, by]) => {
+export function bodyNearSegments(segs, d = 0.45, layer = 0) {
+  return bodies().some((c) => c && (c.layer || 0) === layer && segs.some(([ax, ay, bx, by]) => {
     const vx = bx - ax;
     const vy = by - ay;
     const t = Math.max(0, Math.min(1, ((c.gx - ax) * vx + (c.gy - ay) * vy) / (vx * vx + vy * vy || 1)));
@@ -262,12 +262,12 @@ export function bodyOnTiles(tiles) {
 // beside a door (#134), no body on it, and no wall between two of them, as placement.canPutDown asks of a carried prop. Only the anchor was
 // asked until check("craft") ran twice: a counter (three tiles) made at the joiner's workbench stood over the bench's own tiles, and the
 // bench was gone from the map while its record stayed.
-function fits(x, y, [w, h], near) {
+function fits(x, y, [w, h], near, layer = 0) {
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
     const tx = x + dx;
     const ty = y + dy;
     const t = map.tileAt(tx, ty);
-    if (t.prop || t.items || !map.isWalkableTile(tx, ty) || map.besideDoor(tx, ty) || map.curveCrossed(tx, ty)) return false; // never on a tile a ring's curve crosses (docs/50)
+    if (t.prop || t.items || !map.isWalkableTile(tx, ty) || map.besideDoor(tx, ty) || map.curveCrossed(tx, ty, layer)) return false; // never on a tile a ring's curve crosses (docs/50)
     if (dx > 0 && map.wallBetween(tx - 1, ty, tx, ty)) return false;
     if (dy > 0 && map.wallBetween(tx, ty - 1, tx, ty)) return false;
     if (near.some((c) => Math.hypot(c.gx - tx, c.gy - ty) < 0.7)) return false;
@@ -304,7 +304,7 @@ function spotFor(prop, fp) {
   let spot = null;
   for (let step = 0; step < SPOT_STEPS && ring.length && !spot; step++) {
     ring.sort((a, b) => (a[1] - b[1]) || (a[0] - b[0])); // a fixed order: the same spot wherever the step runs
-    for (const [x, y] of ring) if (fits(x, y, fp, near)) { spot = [x, y]; break; }
+    for (const [x, y] of ring) if (fits(x, y, fp, near, prop.layer || 0)) { spot = [x, y]; break; }
     ring = grow(ring);
   }
   spotCache.set(key, { at: now, spot });

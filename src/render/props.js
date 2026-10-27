@@ -84,7 +84,7 @@ export function emitGhost(ghost) {
     return;
   }
   if (ghost.kind === "round") {
-    rings.emitRingGhost({ id: "ghost", x0: ghost.x0, y0: ghost.y0, n: ghost.n, layer: 0, sprite: ghost.sprite }, tint, GHOST_FLAGS()); // a round room as it would stand (docs/50 section 5)
+    rings.emitRingGhost({ id: "ghost", x0: ghost.x0, y0: ghost.y0, n: ghost.n, layer: ghost.layer || 0, sprite: ghost.sprite }, tint, GHOST_FLAGS()); // a round room as it would stand (docs/50 section 5)
     return;
   }
   if (ghost.kind === "wall") {
@@ -101,9 +101,9 @@ export function emitGhost(ghost) {
   if (ghost.kind === "torch") {
     // A torch for a wall (Place torch, docs/43 section 4, #523): its wall drawn again, washed, with the bracket and the torch, lit or not, on
     // the face it would go on.
-    const t = map.peekTile(ghost.tx, ghost.ty);
+    const t = map.peekTile(ghost.tx, ghost.ty, ghost.layer || 0);
     const wall = t && t[ghost.edge];
-    if (wall && !ghost.none && map.isRingWall(wall)) rings.emitTorchGhost(ghost.tx, ghost.ty, ghost.edge, !!(ghost.torch && ghost.torch.lit), tint); // on a ring: at its point on the curve (docs/50)
+    if (wall && !ghost.none && map.isRingWall(wall)) rings.emitTorchGhost(ghost.tx, ghost.ty, ghost.edge, !!(ghost.torch && ghost.torch.lit), tint, ghost.layer || 0); // on a ring: at its point on the curve (docs/50)
     else if (wall && !ghost.none) makeWall({ ...wall, bracket: { side: 1, torch: true, lit: !!(ghost.torch && ghost.torch.lit) } }, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
     return;
   }

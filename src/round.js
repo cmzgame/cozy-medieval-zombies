@@ -70,16 +70,25 @@ function base(n) {
   return s;
 }
 
-// The ring of size n with its square's corner at (x0, y0): every list in world coordinates, the centre (cx, cy), the radius R.
+// The ring of size n with its square's corner at (x0, y0): every list in world coordinates, the centre (cx, cy), the radius R. Kept once made
+// (the drawing, the index, a torch's face ask it often): callers read it and never change it; the store is dropped past a size, as a
+// build's ghost asks it at every square the cursor crosses.
+const placed = new Map(); // "x0,y0,n" -> shape
 export function shape(x0, y0, n) {
+  const key = `${x0},${y0},${n}`;
+  let out = placed.get(key);
+  if (out) return out;
+  if (placed.size > 512) placed.clear();
   const s = base(n);
   const t = ([x, y, e]) => (e ? [x + x0, y + y0, e] : [x + x0, y + y0]);
-  return {
+  out = {
     x0, y0, n, R: s.R, cx: x0 + s.k, cy: y0 + s.k,
     stepped: s.stepped.map(t), pockets: s.pockets.map(t), outline: s.outline.map(t), doors: s.doors.map(t), crossed: s.crossed.map(t),
     unreachable: s.unreachable.map(t),
     chords: s.chords.map(([ax, ay, bx, by]) => [ax + x0, ay + y0, bx + x0, by + y0]),
   };
+  placed.set(key, out);
+  return out;
 }
 
 export function validSize(n) {

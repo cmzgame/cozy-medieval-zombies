@@ -127,7 +127,7 @@ function roundBlock(player, what, x0, y0, n) {
   const why = map.ringProblem(x0, y0, n, player.layer || 0);
   if (why) return why;
   const segs = ringSegments(x0, y0, n);
-  if (stations.bodyNearSegments(segs.map((q) => q), 0.45)) {
+  if (stations.bodyNearSegments(segs, 0.45, player.layer || 0)) {
     const me = segs.some(([ax, ay, bx, by]) => distToSeg(player.gx, player.gy, ax, ay, bx, by) < 0.45);
     return me ? "Step back" : "Someone is in the way";
   }
@@ -164,7 +164,7 @@ function roundGhost(player, what) {
   const cur = [Math.round(g.gx), Math.round(g.gy)];
   const { x0, y0, n } = roundSquare(state.build.from || cur, cur);
   const reason = roundReason(player, what, x0, y0, n);
-  return { kind: "round", wallKind: what, x0, y0, n, sprite: buildData[what].sprite, ok: reason === "", reason, dragging: !!state.build.from };
+  return { kind: "round", wallKind: what, x0, y0, n, layer: player.layer || 0, sprite: buildData[what].sprite, ok: reason === "", reason, dragging: !!state.build.from };
 }
 
 // The ring built, timed as a wall is: nothing spent until the bar completes, everything checked again then.
@@ -204,7 +204,7 @@ function ringParts(ring) {
   if (!ring.free) for (const [id, k] of Object.entries(per)) total[id] = (total[id] || 0) + Math.floor((k * map.ringOwnEdges(ring)) / 2); // the edges it laid, not a wall it took in
   for (const [tx, ty, e] of s.doors) {
     const w = map.tileAt(tx, ty, ring.layer)[e];
-    if (!w || w.kind === "wall" || !w.built) continue;
+    if (!w || w.kind === "wall" || !w.built || w.roundTaken) continue; // a door the ring took in stays when it goes (map.removeRing): nothing back for it
     for (const b of partsOf({ type: "wall", tx, ty, edge: e, wall: w }).back) total[b.id] = (total[b.id] || 0) + b.count;
   }
   return { back: Object.entries(total).filter(([, k]) => k > 0).map(([id, count]) => ({ id, count })), tool: (what && buildData[what].tool) || tuning.world.boardTool };
@@ -277,7 +277,7 @@ export function canPutDown(player, tx, ty) {
       const t = map.tileAt(x, y);
       if (t.prop || !map.isWalkableTile(x, y)) return false;
       if (map.besideDoor(x, y)) return false; // a door's two tiles stay clear: the dead go for it and need to stand there (#134)
-      if (map.curveCrossed(x, y)) return false; // no furniture where a ring's curve crosses (Michael, 2026-10-26, docs/50)
+      if (map.curveCrossed(x, y, player.layer || 0)) return false; // no furniture where a ring's curve crosses (Michael, 2026-10-26, docs/50)
       if (Math.hypot(player.gx - x, player.gy - y) < 0.7) return false;
       if (dx > 0 && map.wallBetween(x - 1, y, x, y)) return false;
       if (dy > 0 && map.wallBetween(x, y - 1, x, y)) return false;
@@ -797,8 +797,17 @@ export function holdsProblem(prop) {
   return "";
 }
 
+// A ring's edge named as a wall (a guest's `remove` of type "wall", the menu) is the whole ring: a single ring edge is never taken apart
+// alone (docs/50 section 5), or the room would open with the curve still drawn and a bite's reach across its corner.
+function asRing(t) {
+  if (!t || t.type !== "wall" || !map.isRingWall(t.wall)) return t;
+  const ring = map.ringOfWall(t.wall);
+  return ring ? { type: "round", ring, tx: t.tx, ty: t.ty, edge: t.edge } : null;
+}
+
 // Why this player may not take it apart now, or "": what it holds, the tool, the reach.
 export function takeApartProblem(player, t) {
+  t = asRing(t);
   if (t && t.type === "round") {
     // A ring the player built, whole (never the map's: players remove no authored wall, docs/50 section 5).
     if (!t.ring || map.ringById(t.ring.id) !== t.ring) return "There is nothing there.";
@@ -822,6 +831,7 @@ function partsText(back) {
 // Take it apart for this player: the host's own click, a guest's `remove` command, and the menu's Take apart all come here. The
 // materials go to the player's bag, and what does not fit to the floor at their feet.
 export function takeApart(player, t) {
+  t = asRing(t);
   const why = takeApartProblem(player, t);
   if (why) {
     showMessage(why);
@@ -914,7 +924,7 @@ function setdownGhost(player) {
   const g = iso.toGrid(m.x, m.y);
   const tx = Math.round(g.gx);
   const ty = Math.round(g.gy);
-  const reason = setdown.reachFor(player, tx, ty) || setdown.standProblem(c.stand, tx, ty);
+  const reason = setdown.reachFor(player, tx, ty) || setdown.standProblem(c.stand, tx, ty, player.layer || 0);
   const label = c.decoration ? `Click to set the ${c.name} down as decoration · Esc cancel` : `Click to set the ${c.campfire ? "campfire" : c.name} down · Esc cancel`;
   return { kind: "prop", prop: { sprite: c.sprite }, tx, ty, footprint: [1, 1], ok: reason === "", reason, setdown: { uid: c.uid }, label };
 }
@@ -931,8 +941,8 @@ function torchGhost(player) {
   let first = null;
   for (const f of paintings.facesAt(m.x, m.y)) {
     const reason = setdown.mountProblem(f.tx, f.ty, f.edge) || setdown.mountReach(player, f.tx, f.ty);
-    if (!reason) return { kind: "torch", tx: f.tx, ty: f.ty, edge: f.edge, ok: true, reason: "", torch, label: "Click to put the torch on the wall · Esc cancel" };
-    if (!first) first = { kind: "torch", tx: f.tx, ty: f.ty, edge: f.edge, ok: false, reason, torch };
+    if (!reason) return { kind: "torch", tx: f.tx, ty: f.ty, edge: f.edge, layer: player.layer || 0, ok: true, reason: "", torch, label: "Click to put the torch on the wall · Esc cancel" };
+    if (!first) first = { kind: "torch", tx: f.tx, ty: f.ty, edge: f.edge, layer: player.layer || 0, ok: false, reason, torch };
   }
   return first || { kind: "torch", tx: 0, ty: 0, edge: "n", ok: false, reason: "Aim at a wall", none: true, torch };
 }

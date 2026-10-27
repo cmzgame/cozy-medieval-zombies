@@ -137,6 +137,17 @@ export async function run(game, opts = {}) {
     const r = Math.hypot(p.gx - 24, p.gy - 3);
     const room = G.map.getRoom(roomId);
     row("the page's world: a room of 37, a body held off the curve at the diagonal, no sight through the ring", room && room.size === 37 && r < 3.5 - 0.29 && r > 2.8 && !lineOfSight(22, 1, 20, -1), `room ${room && room.size}, the walk north-east ended ${r.toFixed(2)} from the centre`);
+    // The 7 by 7's outer corner (the review of #536): one inside pressed into the north-west diagonal and one in the pocket pressed at it are
+    // inside a bite's reach (0.9) of each other; only the wall's corner between them, which no line of sight crosses, keeps the bite out.
+    const press = (from, dir) => {
+      let q = { gx: from[0], gy: from[1] };
+      for (let i = 0; i < 400; i++) q = G.map.moveCircle(q.gx, q.gy, 0.3, dir[0] * 0.014, dir[1] * 0.014);
+      return q;
+    };
+    const inn = press([24, 3], [-1, -1]);
+    const out = press([20.6, -0.4], [1, 1]);
+    const gap = Math.hypot(inn.gx - out.gx, inn.gy - out.gy);
+    row("the 7 by 7's outer corner: the two within a bite's reach, and no line of sight between them either way", gap < 0.9 && !lineOfSight(inn.gx, inn.gy, out.gx, out.gy) && !lineOfSight(out.gx, out.gy, inn.gx, inn.gy), `${gap.toFixed(2)} apart`);
   } finally {
     feel.blend = saved.blend;
     S.zombies = saved.held.zombies;

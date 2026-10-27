@@ -41,10 +41,28 @@ function lightPoint(s, a, out) {
 export function ringDrawables(tiles, visible, playerRoom, out, layer = 0) {
   const rings = map.allRings(layer);
   if (!rings.length || !tiles.length) return;
-  const drawn = new Set();
-  for (const [tx, ty] of tiles) drawn.add(tileKey(tx, ty));
+  // The view's bounds first, with nothing made: a ring whose square lies outside them is not drawn (the valley's dovecote, every frame
+  // away from it). On a storey the hiding rule thins the tiles, so a ring in the bounds there is drawn only if a stepped tile of it is drawn.
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const t of tiles) {
+    if (t[0] < x0) x0 = t[0];
+    if (t[0] > x1) x1 = t[0];
+    if (t[1] < y0) y0 = t[1];
+    if (t[1] > y1) y1 = t[1];
+  }
+  let drawn = null;
   for (const r of rings) {
-    if (!round.shape(r.x0, r.y0, r.n).stepped.some(([x, y]) => drawn.has(tileKey(x, y)))) continue;
+    if (r.x0 > x1 || r.y0 > y1 || r.x0 + r.n <= x0 || r.y0 + r.n <= y0) continue;
+    if (layer !== 0) {
+      if (!drawn) {
+        drawn = new Set();
+        for (const [tx, ty] of tiles) drawn.add(tileKey(tx, ty));
+      }
+      if (!round.shape(r.x0, r.y0, r.n).stepped.some(([x, y]) => drawn.has(tileKey(x, y)))) continue;
+    }
     const room = map.roomAt(r.x0 + (r.n - 1) / 2, r.y0 + (r.n - 1) / 2, r.layer);
     const faded = playerRoom > 0 && room === playerRoom;
     out.push(makeHalf(r, false, visible, false, null));
@@ -59,8 +77,8 @@ export function emitRingGhost(r, tint, flags) {
 }
 
 // A torch's ghost on a ring's edge (Place torch, #523): the bracket and the torch at the edge's point on the curve, washed in the tint.
-export function emitTorchGhost(tx, ty, edge, lit, tint) {
-  const wall = map.tileAt(tx, ty)[edge];
+export function emitTorchGhost(tx, ty, edge, lit, tint, layer = 0) {
+  const wall = map.tileAt(tx, ty, layer)[edge];
   const r = map.ringOfWall(wall);
   const f = r && map.ringFace(tx, ty, edge, 1, r.layer, true, 0);
   if (!f) return;
@@ -89,7 +107,7 @@ function makeHalf(r, near, visible, faded, ghostTint, ghostFlags = 0) {
   const doorAngles = [270, 0, 90, 180];
   s.doors.forEach(([tx, ty, e], k) => {
     const w = ghostTint ? null : map.tileAt(tx, ty, r.layer)[e];
-    if (!w || w.kind === "wall") return;
+    if (ghostTint || (w && w.kind === "wall")) return; // the ghost whole; an empty door point (never left so: destroyWall) drawn open too, never a wall that is not there
     const c = doorAngles[k] * DEG;
     gaps.push([c - half, c + half], [c - half + 2 * Math.PI, c + half + 2 * Math.PI]);
   });

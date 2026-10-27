@@ -5992,6 +5992,92 @@ check("round rooms, step 6: the round stone wall is in the palette only with Fre
     promptMod.setMessageSink(null);
   }
 });
+// The review of #536, the cell law first: a door point is never left an empty edge under a ring drawn whole.
+check("round rooms (the review of #536): a door point is never left empty: the map's door broken by the dead, a door stamped over it and taken away; a house door a ring took in, taken away; either way the ring wall is back", () => {
+  roundSquare();
+  const door = mapMod.tileAt(24, 7).n;
+  assert(door && door.kind === "door" && door.under === "wall_stone" && door.underRound, `the map's door point: ${JSON.stringify(door && [door.kind, door.under, door.underRound])}`);
+  door.broken = true; // the dead broke it (an opening for good)
+  door.open = true;
+  door.hp = 0;
+  assert(mapMod.buildWall(24, 7, "n", "door", "wall_stone"), "no door stamped over the broken one");
+  const stamped = mapMod.tileAt(24, 7).n;
+  assert(stamped.underRound && stamped.under === "wall_stone", `the stamped door keeps the ring under it: ${JSON.stringify([stamped.under, stamped.underRound])}`);
+  mapMod.destroyWall(24, 7, "n", true);
+  const a = mapMod.tileAt(24, 7).n;
+  assert(a && mapMod.isRingWall(a) && !a.built && !a.roundTaken, `taken away, the map's door point is ${JSON.stringify(a && [a.kind, !!a.round, !!a.built])}`);
+  // Even a door point's opening taken with no restore (a fence's burst, a ring's own take-down) gives the ring wall back.
+  mapMod.buildWall(24, 7, "n", "door", "wall_stone");
+  mapMod.destroyWall(24, 7, "n", false);
+  assert(mapMod.isRingWall(mapMod.tileAt(24, 7).n), "a door point taken with no restore was left empty");
+  mapMod.rebuildRooms();
+  assert(mapMod.getRoom(mapMod.roomAt(24, 3)).size === 37 && !lineOfSight(24, 4, 24, 9), "the 7 is open where its door was");
+  // (b) A house door on an empty edge, taken in by a ring at its door point, then taken away: the ring's own wall, which goes with the ring.
+  clearPatch(0, 0, 10, 10);
+  assert(mapMod.buildWall(4, 7, "n", "door", "wall_wood"), "no house door on the empty edge");
+  const ring = mapMod.buildRing(2, 2, 5, "wall_stone", 0, { built: true });
+  const hd = mapMod.tileAt(4, 7).n;
+  assert(ring && hd.kind === "door" && hd.roundTaken && hd.underRound && !hd.under, `the house door taken in: ${JSON.stringify(hd && [hd.kind, hd.roundTaken, hd.under])}`);
+  mapMod.destroyWall(4, 7, "n", true);
+  const b = mapMod.tileAt(4, 7).n;
+  assert(b && mapMod.isRingWall(b) && !b.roundTaken && b.built && b.sprite === "wall_stone", `taken away, the house door left ${JSON.stringify(b && [b.kind, b.sprite, !!b.roundTaken])}`);
+  assert(mapMod.ringOwnEdges(ring) === 20, `the ring's own edges ${mapMod.ringOwnEdges(ring)}`);
+  mapMod.removeRing(ring.id);
+  assert(!mapMod.tileAt(4, 7).n && !mapMod.tileAt(3, 2).n, "the ring's own wall at the door point stayed when it went");
+  return "the map's door broken, replaced, and taken away, the ring wall back (with a restore or without); a house door taken in and taken away, the ring's own wall back and gone with it";
+});
+check("round rooms (the review of #536): taking a ring apart gives back for what it takes and nothing it leaves: a door it took in stays unpaid, its own edge under a later door is paid; a ring edge named as a wall takes the whole ring", () => {
+  roundSquare();
+  clearPatch(0, 0, 10, 10);
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  const was = rulesImport.rules.freeBuilding;
+  try {
+    // A house wall with its door on the south of the square: taken in. A door stamped later into the ring's own north edge.
+    for (let x = 1; x <= 7; x++) mapMod.buildWall(x, 7, "n", "wall", "wall_wood");
+    mapMod.buildWall(4, 7, "n", "door", "wall_wood");
+    const ring = mapMod.buildRing(2, 2, 5, "wall_stone", 0, { built: true });
+    mapMod.buildWall(4, 2, "n", "door", "wall_stone");
+    assert(mapMod.ringOwnEdges(ring) === 17, `its own edges with a door in one: ${mapMod.ringOwnEdges(ring)} (17)`);
+    rulesImport.set({ freeBuilding: false });
+    const back = placementImport.partsOf({ type: "round", ring: { ...ring, free: false } }).back;
+    const doorBack = placementImport.partsOf({ type: "wall", tx: 0, ty: 0, edge: "n", wall: { kind: "door", sprite: "wall_stone", built: true } }).back;
+    const want = { stone: 17 };
+    for (const d of doorBack) want[d.id] = (want[d.id] || 0) + d.count;
+    const got = Object.fromEntries(back.map((d) => [d.id, d.count]));
+    assert(JSON.stringify(got) === JSON.stringify(want), `taken apart it gives ${JSON.stringify(got)}, wanted ${JSON.stringify(want)} (17 edges and its own door, never the house's)`);
+    rulesImport.set({ freeBuilding: true });
+    // A guest's remove naming one ring edge as a wall: the whole ring goes (never one edge, the room opened under a curve still drawn).
+    const me = gameMod.state.player;
+    me.gx = 4;
+    me.gy = 0.6;
+    me.layer = 0;
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "wall", tx: 3, ty: 2, edge: "n" } });
+    assert(!mapMod.ringById(ring.id) && !mapMod.tileAt(3, 2).n && !mapMod.tileAt(2, 3).w && !mapMod.tileAt(4, 2).n, `a ring edge removed as a wall: the ring ${mapMod.ringById(ring.id) ? "stands" : "went"}, "${said[said.length - 1]}"`);
+    const house = mapMod.tileAt(4, 7).n;
+    assert(house && house.kind === "door" && house.sprite === "wall_wood" && !house.roundTaken && !house.underRound && mapMod.tileAt(3, 7).n && !mapMod.tileAt(3, 7).n.round, "the house's wall and door did not stay, straight");
+    // The map's ring by a wall address: refused, nothing taken.
+    me.gx = 24;
+    me.gy = 8.6;
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "wall", tx: 23, ty: 7, edge: "n" } });
+    assert(mapMod.isRingWall(mapMod.tileAt(23, 7).n) && mapMod.ringById("round_0_21_0"), "a map ring's edge was taken");
+    return `17 stone and the ring's own door back, nothing for the house's; a ring edge named as a wall took the ring whole; the map's refused`;
+  } finally {
+    rulesImport.set({ freeBuilding: was });
+    promptMod.setMessageSink(null);
+  }
+});
+check("round rooms (the review of #536): the 7 by 7's outer corner keeps the dead out: a body in the pocket and one inside at the diagonal are under a bite's reach apart (about 0.7), held by no line of sight; a first-floor ring's crossed tiles refuse furniture on that floor", () => {
+  roundSquare();
+  const inn = pressFrom([24, 3], [-1, -1]);
+  const out = pressFrom([20.6, -0.4], [1, 1]);
+  const gap = Math.hypot(inn.gx - out.gx, inn.gy - out.gy);
+  assert(gap < 0.9 && !lineOfSight(inn.gx, inn.gy, out.gx, out.gy) && !lineOfSight(out.gx, out.gy, inn.gx, inn.gy), `at the 7's north-west: ${gap.toFixed(2)} apart, sight ${lineOfSight(inn.gx, inn.gy, out.gx, out.gy)}`);
+  const crossed = roundMod.shape(26, 7, 5).crossed;
+  const up = crossed.map(([x, y]) => setdownMod.standProblem("ground", x, y, 1));
+  assert(up.every((w) => w === "Not against the curve"), `on the tower's first floor: ${up.join(", ")}`);
+  return `the corner's two ${gap.toFixed(2)} apart with no line of sight; the first floor's eight crossed tiles refused`;
+});
 
 let failed = 0;
 for (const r of results) {

@@ -32,11 +32,11 @@ function wallBeside(tx, ty) {
 
 // Why a prop cannot stand on (tx, ty) by this rule, or "": open floor with nothing on it (a read never grows a chunk: a tile not grown is no
 // room), then outdoors only, or indoors against a wall.
-export function standProblem(rule, tx, ty) {
+export function standProblem(rule, tx, ty, layer = undefined) {
   if (rule === "natural") return trees.standProblem(tx, ty); // a sapling: open grass outdoors, no wall beside it (docs/46 step 3)
   const t = map.peekTile(tx, ty);
   if (!t || !map.isWalkableTile(tx, ty) || t.prop || t.rug) return "No room";
-  const curve = map.ringFurnitureProblem(tx, ty); // a tile a ring's curve crosses holds no furniture (Michael, 2026-10-26, docs/50)
+  const curve = map.ringFurnitureProblem(tx, ty, layer); // on the setter's floor when named (docs/49); a tile a ring's curve crosses holds no furniture (Michael, 2026-10-26, docs/50)
   if (curve) return curve;
   if (rule === "outdoors" && t.room > 0) return "Outdoors only";
   if (rule === "wall" && !(t.room > 0)) return "Indoors only";
@@ -74,9 +74,9 @@ function onWater(t) {
 // between two of its tiles, and every tile in one room or all outdoors; then the rule: "outdoors" none indoors, "ground" indoors or out, and
 // "wall" indoors with its back on a flat wall along its whole length: a facing "y" (it backs onto a west wall, docs/17's drawn fireplace) the
 // west edge of every tile, a facing "x" (its mirror) the north edge of every tile.
-export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite)) {
+export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite), layer = undefined) {
   const [w, h] = footprintOf(sprite, facing);
-  if (w * h === 1) return standProblem(rule, tx, ty) || (onWater(map.peekTile(tx, ty)) ? "Not on water" : ""); // one tile: the set-down's rule, a wall on any side for "wall"
+  if (w * h === 1) return standProblem(rule, tx, ty, layer) || (onWater(map.peekTile(tx, ty)) ? "Not on water" : ""); // one tile: the set-down's rule, a wall on any side for "wall"
   let room = null;
   for (let dy = 0; dy < h; dy++) {
     for (let dx = 0; dx < w; dx++) {
@@ -84,7 +84,7 @@ export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite)) {
       const y = ty + dy;
       const t = map.peekTile(x, y);
       if (!t || !map.isWalkableTile(x, y) || t.prop || t.rug) return "No room";
-      const curve = map.ringFurnitureProblem(x, y);
+      const curve = map.ringFurnitureProblem(x, y, layer);
       if (curve) return curve;
       if (onWater(t)) return "Not on water";
       if (map.besideDoor(x, y)) return "Not beside a door";
@@ -177,7 +177,7 @@ export function place(player, uid, tx, ty) {
   tx = Math.round(Number(tx));
   ty = Math.round(Number(ty));
   if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
-  const why = reachFor(player, tx, ty) || standProblem(p.stand, tx, ty);
+  const why = reachFor(player, tx, ty) || standProblem(p.stand, tx, ty, player.layer || 0);
   if (why) {
     showMessage(why);
     return false;

@@ -1148,6 +1148,10 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf
     wall.under = existing.under; // a new door over a broken stamped one still stands in the wall it was stamped into
     if (existing.underBuilt) wall.underBuilt = true;
     if (existing.underFree) wall.underFree = true;
+  }
+  if (existing && existing.kind !== "wall") {
+    // Over a broken door or window at a ring's door point: the ring stays under the new one whether or not the old one stood in a wall
+    // (the map's openings and a door taken in), so taking the new one away gives the ring wall back (destroyWall), never a hole.
     if (existing.underRound) wall.underRound = existing.underRound;
     if (existing.roundTaken) wall.roundTaken = true;
   }
@@ -1211,14 +1215,23 @@ export function destroyWall(tx, ty, edge, restoreUnder = false, layer = 0) {
   releaseHangings(tx, ty, edge, layer);
   releaseBracket(wall);
   t[edge] = null;
-  if (restoreUnder && wall.under) {
+  if (wall.underRound) {
+    // A door or a window at a ring's door point, taken away by any path (the removal tool, a ring's own take-down, a fence's burst): the ring
+    // wall is back, never a hole in a ring that is still drawn whole (a sealed round room stays a cell). In what stood under it, else the
+    // ring's own material; one the ring took in stays the house's (roundTaken) only where a wall of the house stood under the opening.
+    const r = rings.get(round.idOf(wall.underRound[0], wall.underRound[1], layer));
+    t[edge] = createWall("wall", wall.under || (r && r.sprite) || "wall_stone");
+    t[edge].at = addr(tx, ty, layer);
+    t[edge].round = wall.underRound; // drawn as the curve (docs/50 section 3)
+    if (wall.under ? wall.underBuilt : wall.built) t[edge].built = true;
+    if (wall.under ? wall.underFree : wall.free) t[edge].free = true;
+    if (wall.roundTaken && wall.under) t[edge].roundTaken = true;
+  } else if (restoreUnder && wall.under) {
     // The removal tool takes a built door or window out of the wall it was stamped into, and the wall is back.
     t[edge] = createWall("wall", wall.under);
     t[edge].at = addr(tx, ty, layer);
     if (wall.underBuilt) t[edge].built = true;
     if (wall.underFree) t[edge].free = true; // a wall built while Free building was on comes back free: it gives nothing when taken apart (docs/43, section 2)
-    if (wall.underRound) t[edge].round = wall.underRound; // a ring wall again, drawn as the curve (docs/50 section 3)
-    if (wall.underRound && wall.roundTaken) t[edge].roundTaken = true;
   }
   touch(tx, ty, layer);
   rebuildRoomsAround(tx, ty, edge, layer);
@@ -1292,16 +1305,16 @@ export function ringShape(r) {
   return round.shape(r.x0, r.y0, r.n);
 }
 // One of the eight tiles the curve crosses inside a ring: no furniture stands there (Michael, 2026-10-26: "furniture can't be placed on those 8 tiles").
-export function curveCrossed(x, y, layer = 0) {
+export function curveCrossed(x, y, layer = drawLayer) { // the layer a read names, else the one being read (map.withDrawLayer: a storey drawn, E and the menu on the player's floor)
   const m = ringMarks.get(chunkKey(x, y, layer));
   return !!(m && m.crossed);
 }
 // A tile whose centre no body can reach for the curve (docs/50 section 2).
-export function unreachableAt(x, y, layer = 0) {
+export function unreachableAt(x, y, layer = drawLayer) {
   return unreachableKeys.has(chunkKey(x, y, layer));
 }
 // Why furniture (a prop that stands, set down, built, carried, or made) may not stand on (x, y), or "": the ring's curve crosses the tile.
-export function ringFurnitureProblem(x, y, layer = 0) {
+export function ringFurnitureProblem(x, y, layer = drawLayer) {
   return curveCrossed(x, y, layer) ? "Not against the curve" : "";
 }
 
@@ -1415,11 +1428,14 @@ export function ringNewEdges(x0, y0, n, layer = 0) {
 }
 
 // The plain walls a ring laid itself (not taken in), still standing: what taking it apart gives back for.
+// The edges a ring laid itself (not taken in), still its own: a plain ring wall, or the ring's wall under a door or a window stamped into it
+// later (taken down with the ring, door and all): what taking it apart gives back for.
 export function ringOwnEdges(r) {
   return round.shape(r.x0, r.y0, r.n).outline.filter(([tx, ty, e]) => {
     const w = tileAt(tx, ty, r.layer)[e];
-    const tag = w && w.round;
-    return isRingWall(w) && !w.roundTaken && tag[0] === r.x0 && tag[1] === r.y0 && tag[2] === r.n;
+    const tag = w && (w.round || w.underRound);
+    if (!tag || w.roundTaken || tag[0] !== r.x0 || tag[1] !== r.y0 || tag[2] !== r.n) return false;
+    return w.kind === "wall" || !!w.under;
   }).length;
 }
 
@@ -1456,6 +1472,7 @@ export function ringProblem(x0, y0, n, layer = 0) {
     const w = peekTile(tx, ty, layer) ? peekTile(tx, ty, layer)[edge] : null;
     if (!w) continue;
     if (w.round || w.underRound) return "Another round room is there";
+    if (w.bracket && w.bracket.lantern) return "A lantern is in the way"; // the village's, never taken down by a player (a torch on a wall taken in falls, buildRing)
     if (w.kind === "wall" && !wallRule(w.sprite).seeThrough) continue;
     if ((w.kind === "door" || w.kind === "window") && round.isDoorPoint(x0, y0, n, tx, ty, edge) && !wallRule(w.sprite).seeThrough) continue;
     return w.kind === "wall" ? "Not over a fence" : "A door or a window is in the way";
@@ -1476,6 +1493,8 @@ export function buildRing(x0, y0, n, sprite, layer = 0, { built = true, free = f
       w.roundTaken = true;
     } else if (w) {
       releaseHangings(tx, ty, edge, layer); // no painting on the curve (docs/50 section 3)
+      releaseBracket(w); // and a torch on its face falls to the floor, put out, as when a wall goes: the curve's faces are not the wall's (#523)
+      delete w.bracket;
       w.round = tag; // a plain wall already there (a house's, against which the ring stands as an apse): drawn as the curve, its own still
       w.roundTaken = true;
     } else {
@@ -3426,6 +3445,7 @@ export function loadMap(json, options = {}) {
       const [tx, ty, edge] = s.doors[i];
       const w = createWall(kind, mat);
       w.underRound = tag;
+      w.under = mat; // stamped into the ring's own wall, as a built one is: taken away (broken and replaced, then removed), the ring wall comes back
       if (o && o.open) { w.open = true; if (kind === "window") w.shutter = "open"; }
       if (o && o.broken) { w.broken = true; w.hp = 0; if (kind === "door") w.open = true; if (kind === "window") w.shutter = "open"; }
       getL(tx, ty, layer)[edge] = w;
