@@ -1,7 +1,7 @@
 // Mana (docs/47 section 5 and step 1, #480). From the console, on a tab with `?nosave&mute` (the valley):
 //   await __game.check("mana")
-// The levers in the data (`player.mana` 100, `player.manaRegen` 0.333, `potions.praySeconds` 3, the Fireball's `mana` 20); the bar on the page in
-// blue under stamina with its points; the host's step regenerating it on the sim clock, a point every three seconds, and never past the top;
+// The levers in the data (`player.mana` 100, `player.manaRegen` 0.667 (doubled, Michael 2026-10-26), `potions.praySeconds` 3, the Fireball's `mana` 20); the bar on the page in
+// blue between health and stamina with its points (Michael, 2026-10-26); the host's step regenerating it on the sim clock, two points every three seconds, and never past the top;
 // with the staff and the Book of Fire, a cast the bar cannot pay for refused before its draw starts, with "Not enough mana." on the page, the
 // bar's flash (its `short` class) and its sound (`mana_short`), nothing spent; a cast paid for spending its 20 on the release alone, never on a
 // cancelled draw or a dry one; the altar in the chapel offering Pray, a bar of praySeconds by the label a guest sends, the bars untouched until
@@ -152,21 +152,21 @@ export async function run(game, opts = {}) {
     if (snd) { G.settings.set("soundOn", true); snd.log.length = 0; }
     // The levers, in the data.
     const T = tuning.player;
-    row("the levers: player.mana 100, player.manaRegen 0.333, potions.praySeconds 3, the Fireball's mana 20 (data)", T.mana === 100 && Math.abs(T.manaRegen - 0.333) < 1e-9 && tuning.potions.praySeconds === 3 && fb.mana === 20, `mana ${T.mana}, regen ${T.manaRegen}, pray ${tuning.potions.praySeconds}, the Fireball ${fb.mana}`);
-    // The bar on the page: blue, under stamina, its points.
+    row("the levers: player.mana 100, player.manaRegen 0.667, potions.praySeconds 3, the Fireball's mana 20 (data)", T.mana === 100 && Math.abs(T.manaRegen - 0.667) < 1e-9 && tuning.potions.praySeconds === 3 && fb.mana === 20, `mana ${T.mana}, regen ${T.manaRegen}, pray ${tuning.potions.praySeconds}, the Fireball ${fb.mana}`);
+    // The bar on the page: blue, between health and stamina (Michael, 2026-10-26), its points.
     me.mana = 100;
     drawHud();
     const el = manaEl();
     const fill = el && el.querySelector(".hud-mana-fill");
     const blue = getComputedStyle(document.documentElement).getPropertyValue("--blue").trim();
     const fillColour = fill ? getComputedStyle(fill).backgroundColor : "";
-    const under = el && el.previousElementSibling && el.previousElementSibling.classList.contains("hud-stamina");
-    row("the mana bar is on the page under stamina, filled in blue (--blue), saying 100 / 100", !!el && under && fillColour === "rgb(79, 134, 216)" && blue === "#4f86d8" && el.querySelector(".hud-mana-text").textContent === "100 / 100" && el.querySelector(".hud-label").textContent === "Mana", `under stamina ${under}; ${fillColour} (${blue}); "${el ? el.textContent : ""}"`);
+    const under = el && el.previousElementSibling && el.previousElementSibling.classList.contains("hud-health") && el.nextElementSibling && el.nextElementSibling.classList.contains("hud-stamina");
+    row("the mana bar is on the page between health and stamina, filled in blue (--blue), saying 100 / 100", !!el && under && fillColour === "rgb(79, 134, 216)" && blue === "#4f86d8" && el.querySelector(".hud-mana-text").textContent === "100 / 100" && el.querySelector(".hud-label").textContent === "Mana", `between health and stamina ${under}; ${fillColour} (${blue}); "${el ? el.textContent : ""}"`);
     // Regeneration: the host's step, a point every three seconds of the sim clock.
     me.mana = 50;
     step(60 * 30);
     drawHud();
-    row("30 s of the sim clock regenerate about ten points (0.333 a second) from 50, and the bar follows", Math.abs(me.mana - (50 + 30 * T.manaRegen)) < 0.02 && fill.style.width === `${Math.round(me.mana)}%`, `mana ${me.mana.toFixed(3)}; width ${fill.style.width}; "${el.querySelector(".hud-mana-text").textContent}"`);
+    row("30 s of the sim clock regenerate about twenty points (0.667 a second) from 50, and the bar follows", Math.abs(me.mana - (50 + 30 * T.manaRegen)) < 0.02 && fill.style.width === `${Math.round(me.mana)}%`, `mana ${me.mana.toFixed(3)}; width ${fill.style.width}; "${el.querySelector(".hud-mana-text").textContent}"`);
     me.mana = 99.95;
     step(60);
     row("it stops at the top", me.mana === 100, `mana ${me.mana}`);
@@ -182,7 +182,7 @@ export async function run(game, opts = {}) {
     const refused = A.press();
     step();
     drawHud();
-    row("at 19.5 mana the cast is refused before its draw starts: no draw, nothing spent, \"Not enough mana.\" on the page", refused === false && !A.drawing() && Math.abs(me.mana - 19.5) < 0.01 && message() === mana.NOT_ENOUGH, `press ${refused}; drawing ${!!A.drawing()}; mana ${me.mana.toFixed(3)}; "${message()}"`);
+    row("at 19.5 mana the cast is refused before its draw starts: no draw, nothing spent, \"Not enough mana.\" on the page", refused === false && !A.drawing() && me.mana >= 19.5 && me.mana - 19.5 < 2 * T.manaRegen / 60 && message() === mana.NOT_ENOUGH, `press ${refused}; drawing ${!!A.drawing()}; mana ${me.mana.toFixed(3)}; "${message()}"`);
     row("and the bar flashes (its `short` class) and `mana_short` sounds, its twin", manaEl().classList.contains("short") && me.manaFlash > 0 && (!snd || heard("mana_short") === 1), `short ${manaEl().classList.contains("short")}; flash ${me.manaFlash.toFixed(2)}; ${heard("mana_short")} mana_short`);
     step(60);
     drawHud();
@@ -195,7 +195,7 @@ export async function run(game, opts = {}) {
     const midDraw = me.mana;
     A.cancel();
     step();
-    row("a draw that starts spends nothing, and a cancelled one nothing", !!midDraw && midDraw >= 30 && me.mana >= 30 && me.mana < 30.2, `during ${midDraw.toFixed(3)}, after the cancel ${me.mana.toFixed(3)}`);
+    row("a draw that starts spends nothing, and a cancelled one nothing", !!midDraw && midDraw >= 30 && me.mana >= 30 && me.mana < 30 + 22 * T.manaRegen / 60, `during ${midDraw.toFixed(3)}, after the cancel ${me.mana.toFixed(3)}`);
     me.mana = 30;
     A.press();
     step(2); // under minDraw

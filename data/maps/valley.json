@@ -1297,8 +1297,8 @@
    "rect": [
     98,
     212,
-    16,
-    12
+    22,
+    15
    ],
    "padding": 1,
    "buildings": [
@@ -1306,15 +1306,15 @@
      "rect": [
       1,
       1,
-      7,
-      5
+      11,
+      7
      ],
      "wall": "wall_wood",
      "floor": "floor_wood",
      "openings": [
       {
        "side": "s",
-       "at": 1,
+       "at": 2,
        "kind": "door"
       },
       {
@@ -1323,13 +1323,23 @@
        "kind": "window"
       },
       {
+       "side": "s",
+       "at": 9,
+       "kind": "window"
+      },
+      {
        "side": "n",
-       "at": 2,
+       "at": 3,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 9,
        "kind": "window"
       },
       {
        "side": "e",
-       "at": 2,
+       "at": 3,
        "kind": "window"
       }
      ],
@@ -1337,10 +1347,10 @@
       {
        "edge": "w",
        "at": [
-        4,
+        7,
         0
        ],
-       "len": 5,
+       "len": 7,
        "openings": [
         {
          "at": 3,
@@ -1354,7 +1364,7 @@
        "sprite": "fireplace",
        "tile": [
         0,
-        1
+        2
        ],
        "footprint": [
         1,
@@ -1364,8 +1374,8 @@
       {
        "sprite": "table",
        "tile": [
-        1,
-        2
+        2,
+        3
        ],
        "footprint": [
         2,
@@ -1375,31 +1385,48 @@
       {
        "sprite": "chair",
        "tile": [
-        1,
-        1
+        2,
+        2
        ],
        "facing": "s"
       },
       {
        "sprite": "chair",
        "tile": [
-        1,
-        3
+        3,
+        2
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        4
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        3,
+        4
        ],
        "facing": "n"
       },
       {
        "sprite": "chest",
        "tile": [
-        3,
-        4
+        5,
+        0
        ],
-       "loot": "home_chest"
+       "loot": "home_chest",
+       "facing": "x"
       },
       {
        "sprite": "bed",
        "tile": [
-        5,
+        8,
         0
        ],
        "footprint": [
@@ -1410,22 +1437,24 @@
       {
        "sprite": "chest",
        "tile": [
-        6,
-        4
-       ]
+        10,
+        6
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
-        4,
-        4
-       ]
+        7,
+        6
+       ],
+       "facing": "y"
       }
      ],
      "brackets": [
       {
        "side": "w",
-       "at": 0,
+       "at": 5,
        "facing": "in",
        "lantern": true
       }
@@ -1435,9 +1464,9 @@
    "floorRects": [
     {
      "rect": [
-      9,
+      13,
       1,
-      6,
+      7,
       6
      ],
      "sprite": "floor_farm"
@@ -1448,18 +1477,18 @@
      "rect": [
       0,
       0,
-      16,
-      12
+      22,
+      15
      ],
      "wall": "wall_fence",
      "gates": [
       {
        "side": "s",
-       "at": 4
+       "at": 5
       },
       {
        "side": "w",
-       "at": 9
+       "at": 11
       }
      ]
     }
@@ -1468,38 +1497,6 @@
     {
      "sprite": "crop_cabbage_1",
      "tile": [
-      9,
-      1
-     ],
-     "solid": false
-    },
-    {
-     "sprite": "crop_potato_1",
-     "tile": [
-      10,
-      1
-     ],
-     "solid": false
-    },
-    {
-     "sprite": "crop_cabbage_1",
-     "tile": [
-      11,
-      1
-     ],
-     "solid": false
-    },
-    {
-     "sprite": "crop_potato_1",
-     "tile": [
-      12,
-      1
-     ],
-     "solid": false
-    },
-    {
-     "sprite": "crop_cabbage_1",
-     "tile": [
       13,
       1
      ],
@@ -1514,34 +1511,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
+     "sprite": "crop_cabbage_1",
      "tile": [
-      9,
-      2
+      15,
+      1
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
+     "sprite": "crop_potato_1",
      "tile": [
-      10,
-      2
+      16,
+      1
      ],
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
+     "sprite": "crop_cabbage_1",
      "tile": [
-      11,
-      2
+      17,
+      1
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
+     "sprite": "crop_potato_1",
      "tile": [
-      12,
-      2
+      18,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      19,
+      1
      ],
      "solid": false
     },
@@ -1562,34 +1567,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
-     "tile": [
-      9,
-      3
-     ],
-     "solid": false
-    },
-    {
      "sprite": "crop_potato_2",
      "tile": [
-      10,
-      3
+      15,
+      2
      ],
      "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
-      11,
-      3
+      16,
+      2
      ],
      "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
-      12,
-      3
+      17,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      18,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      19,
+      2
      ],
      "solid": false
     },
@@ -1610,34 +1623,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_potato_1",
+     "sprite": "crop_cabbage_2",
      "tile": [
-      9,
-      4
+      15,
+      3
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_1",
+     "sprite": "crop_potato_2",
      "tile": [
-      10,
-      4
+      16,
+      3
      ],
      "solid": false
     },
     {
-     "sprite": "crop_potato_1",
+     "sprite": "crop_cabbage_2",
      "tile": [
-      11,
-      4
+      17,
+      3
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_1",
+     "sprite": "crop_potato_2",
      "tile": [
-      12,
-      4
+      18,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      19,
+      3
      ],
      "solid": false
     },
@@ -1658,34 +1679,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
+     "sprite": "crop_potato_1",
      "tile": [
-      9,
-      5
+      15,
+      4
      ],
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
+     "sprite": "crop_cabbage_1",
      "tile": [
-      10,
-      5
+      16,
+      4
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
+     "sprite": "crop_potato_1",
      "tile": [
-      11,
-      5
+      17,
+      4
      ],
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
+     "sprite": "crop_cabbage_1",
      "tile": [
-      12,
-      5
+      18,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      19,
+      4
      ],
      "solid": false
     },
@@ -1706,34 +1735,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
-     "tile": [
-      9,
-      6
-     ],
-     "solid": false
-    },
-    {
      "sprite": "crop_cabbage_2",
      "tile": [
-      10,
-      6
+      15,
+      5
      ],
      "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
-      11,
-      6
+      16,
+      5
      ],
      "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
-      12,
-      6
+      17,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      18,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      19,
+      5
      ],
      "solid": false
     },
@@ -1749,6 +1786,46 @@
      "sprite": "crop_cabbage_2",
      "tile": [
       14,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      15,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      16,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      17,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      18,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      19,
       6
      ],
      "solid": false
@@ -1756,29 +1833,29 @@
     {
      "sprite": "well",
      "tile": [
-      9,
-      9
+      13,
+      11
      ]
     },
     {
      "sprite": "barrel",
      "tile": [
-      11,
-      9
+      15,
+      11
      ]
     },
     {
      "sprite": "woodpile",
      "tile": [
-      13,
-      9
+      17,
+      11
      ]
     },
     {
      "sprite": "chicken_coop",
      "tile": [
-      6,
-      8
+      8,
+      11
      ],
      "footprint": [
       1,
@@ -1789,16 +1866,16 @@
     {
      "sprite": "beehive",
      "tile": [
-      12,
-      7
+      16,
+      8
      ],
      "note": "a hive by the home's garden (#333)"
     },
     {
      "sprite": "beehive",
      "tile": [
-      14,
-      7
+      18,
+      8
      ]
     }
    ]
@@ -2060,7 +2137,8 @@
        "tile": [
         11,
         2
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -2177,7 +2255,8 @@
        "tile": [
         3,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bed",
@@ -2195,7 +2274,8 @@
        "tile": [
         7,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bed",
@@ -2213,7 +2293,8 @@
        "tile": [
         11,
         0
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -2450,7 +2531,8 @@
        "tile": [
         9,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -2536,7 +2618,8 @@
        "tile": [
         3,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -2658,7 +2741,8 @@
        "tile": [
         5,
         5
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -2828,7 +2912,8 @@
        "tile": [
         0,
         5
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "fireplace",
@@ -2864,7 +2949,8 @@
        "tile": [
         6,
         6
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -2889,7 +2975,8 @@
        "tile": [
         11,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bookcase",
@@ -3178,14 +3265,16 @@
        "tile": [
         0,
         8
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "chest",
        "tile": [
         4,
         9
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "desk",
@@ -3232,7 +3321,8 @@
        "tile": [
         9,
         9
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -3279,28 +3369,32 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "shelf",
        "tile": [
         2,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         4,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "chest",
        "tile": [
         7,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -3321,7 +3415,8 @@
        "tile": [
         7,
         5
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -3450,7 +3545,8 @@
        "tile": [
         3,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -3475,7 +3571,8 @@
        "tile": [
         4,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -3556,14 +3653,16 @@
        "tile": [
         7,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "barrel",
@@ -3578,7 +3677,8 @@
         0,
         4
        ],
-       "loot": "joiner_chest"
+       "loot": "joiner_chest",
+       "facing": "y"
       }
      ],
      "brackets": [
@@ -3679,7 +3779,8 @@
        "tile": [
         7,
         4
-       ]
+       ],
+       "facing": "x"
       }
      ]
     }
@@ -3798,7 +3899,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "cupboard",
@@ -3824,7 +3926,8 @@
         7,
         5
        ],
-       "loot": "weaver_chest"
+       "loot": "weaver_chest",
+       "facing": "x"
       },
       {
        "sprite": "fireplace",
@@ -3957,7 +4060,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "chest",
@@ -3965,7 +4069,8 @@
         0,
         4
        ],
-       "loot": "smithy_chest"
+       "loot": "smithy_chest",
+       "facing": "y"
       }
      ],
      "brackets": [
@@ -4015,7 +4120,8 @@
        "tile": [
         3,
         4
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -4117,14 +4223,16 @@
         3,
         3
        ],
-       "loot": "toll_chest"
+       "loot": "toll_chest",
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         2,
         0
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -4230,7 +4338,8 @@
        "tile": [
         0,
         3
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "bed",
@@ -4248,7 +4357,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -4361,7 +4471,8 @@
        "tile": [
         5,
         1
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "table",
@@ -4507,7 +4618,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "bed",
@@ -4525,7 +4637,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -4656,7 +4769,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -4695,7 +4809,8 @@
        "tile": [
         1,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "workbench",
@@ -4800,7 +4915,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "bed",
@@ -4818,7 +4934,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -4931,7 +5048,8 @@
        "tile": [
         5,
         1
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "table",
@@ -5077,7 +5195,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "bed",
@@ -5095,7 +5214,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -5232,7 +5352,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bookcase",
@@ -5473,14 +5594,16 @@
         0,
         0
        ],
-       "loot": "barn_rack"
+       "loot": "barn_rack",
+       "facing": "y"
       },
       {
        "sprite": "shelf",
        "tile": [
         2,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -5680,7 +5803,8 @@
        "tile": [
         3,
         7
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -5705,21 +5829,24 @@
        "tile": [
         11,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "chest",
        "tile": [
         11,
         3
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         7,
         7
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -5733,7 +5860,8 @@
        "tile": [
         11,
         7
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -5783,7 +5911,8 @@
         0,
         0
        ],
-       "loot": "granary_hollow"
+       "loot": "granary_hollow",
+       "facing": "y"
       },
       {
        "sprite": "barrel",
@@ -8732,21 +8861,24 @@
        "tile": [
         9,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "chest",
        "tile": [
         9,
         5
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         6,
         6
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -11006,14 +11138,16 @@
        "tile": [
         8,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         8,
         4
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -11082,7 +11216,8 @@
         0,
         0
        ],
-       "loot": "granary_mill"
+       "loot": "granary_mill",
+       "facing": "y"
       },
       {
        "sprite": "barrel",
@@ -11314,7 +11449,8 @@
         7,
         0
        ],
-       "loot": "miners_chest"
+       "loot": "miners_chest",
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -11556,7 +11692,8 @@
         7,
         0
        ],
-       "loot": "quarry_chest"
+       "loot": "quarry_chest",
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -11734,7 +11871,8 @@
         5,
         3
        ],
-       "loot": "charcoal_sacks"
+       "loot": "charcoal_sacks",
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -12063,8 +12201,8 @@
   }
  },
  "spawn": [
-  104,
-  216
+  102,
+  218
  ],
  "zombies": [
   [
@@ -12669,7 +12807,7 @@
   {
    "tile": [
     102,
-    218
+    220
    ],
    "name": "Wyn",
    "wardrobe": 6,

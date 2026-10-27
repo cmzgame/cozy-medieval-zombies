@@ -61,7 +61,7 @@ export const player = {
   hp: 100,
   stamina: 100,
   mana: 100, // the mana bar (docs/47 section 5, #480; Michael's): spells cost it (a book's `spell.mana`); raised later by gear and Faith 4
-  manaRegen: 0.333, // a second: one point every three seconds of the sim clock, full in five minutes from empty (Michael's)
+  manaRegen: 0.667, // a second: two points every three seconds of the sim clock, full in two and a half minutes from empty (Michael's, doubled 2026-10-26)
   sprintMult: 1.75,
   // The parent drained 40 per second: a sprint lasted 2.5 s, about a third of a
   // screen. Michael wanted longer (2026-10-09): 16 per second is just over 6 s,

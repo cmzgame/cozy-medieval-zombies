@@ -1538,11 +1538,36 @@ async function boot() {
       const held = items.allItems().filter((def) => def.held);
       for (let i = 0; i < held.length; i++) {
         const def = held[i];
-        if (def.held.image || def.held.angles) assets.registerSheet(`held_${def.id}`, await assets.heldSheetFromImage(def.held));
+        if (def.held.image || def.held.angles || def.held.facings) assets.registerSheet(`held_${def.id}`, await assets.heldSheetFromImage(def.held));
         else assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours, def.held.size));
         progress((i + 1) / held.length);
       }
-      for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
+      // The raised guard (docs/21): a drawn shield's own `guard` picture (art round 4), its grip where the guard is placed, else generated.
+      for (const def of items.allItems()) {
+        if (!def.shield) continue;
+        const g = def.held.guard;
+        assets.registerSheet("held_shield_guard", g ? await assets.heldSheetFromImage({ mode: "fixed", image: g.image, grip: g.grip }) : figure.generateHeld("shield_guard", def.held.colours));
+      }
+      // An item with drawn art lies on the floor as its own picture (`floor_<id>`, render/props.js; the demo pass, 2026-10-26): a long thing
+      // drawn in angles as its 90 degree picture, flat on the ground, and one drawn by facing (the bow, always upright) as that picture turned a
+      // quarter, whole pixels; anything else as its one world picture; anchored on its foot.
+      for (const def of items.allItems()) {
+        const h = def.held;
+        if (!h || (def.icon && def.icon.placeholder)) continue;
+        const src = (h.angles && h.angles[4] && h.angles[4].src) || (h.facings && h.facings[4] && h.facings[4].src) || h.image;
+        if (!src) continue;
+        const img = await assets.loadImage(src);
+        const turn = !!h.facings;
+        const canvas = document.createElement("canvas");
+        canvas.width = turn ? img.height : img.width;
+        canvas.height = turn ? img.width : img.height;
+        const ctx = canvas.getContext("2d");
+        if (turn) { ctx.translate(canvas.width, 0); ctx.rotate(Math.PI / 2); }
+        ctx.drawImage(img, 0, 0);
+        const [w, hh] = [canvas.width, canvas.height];
+        const sheet = { image: canvas, frames: { idle_0: [0, 0, w, hh] }, anchor: [Math.floor(w / 2), hh - 1], bounds: { x: 0, y: 0, w, h: hh }, animations: {}, facings: [], mirror: {} };
+        assets.registerSheet(`floor_${def.id}`, sheet, { generated: "floor", def: "data/items.json" });
+      }
       // An item whose icon is generated (`icon.placeholder`: a sprite's id, its node's design, or a design of its own; docs/46 step 2): the bag's
       // picture from that design, and the same picture as the item lying on the floor (`icon_<id>`, render/props.js), the pair from one design.
       for (const def of items.allItems()) {

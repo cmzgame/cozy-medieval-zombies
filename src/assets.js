@@ -314,13 +314,14 @@ export function corpseSheetCount() {
 // where the hand holds it, drawn upright and shown at every one of the 16 held angles unrotated
 // ("glued to the hand", the book), or, for an item with hand-drawn angles, the picture at each tilt.
 // `src` is the upright drawing; the sheet's anchor is the grip, so the renderer puts the grip on the hand.
-// Three modes (`held.mode`): "fixed" (the picture at every angle, unrotated: the book), "rotate" (the
+// Four modes (`held.mode`): "fixed" (the picture at every angle, unrotated: the book), "rotate" (the
 // upright picture turned into the 16 angles about its grip by nearest pixel, as the generated shapes are:
 // the knife and axe), and "angles" (hand-drawn tilts from 0 to 90 degrees clockwise with flips for the rest:
 // the staff; the design agent's README has the rule). Sixteen angles, 0 up, clockwise, 22.5 apart.
 export async function heldSheetFromImage(held) {
   const mode = held.mode || "fixed";
   if (mode === "angles") return heldSheetFromAngles(held.angles);
+  if (mode === "facings") return heldSheetFromAngles(held.facings, true);
   const img = await loadImage(held.image);
   const grip = held.grip;
   if (mode === "rotate") return heldSheetRotated(img, grip, held.size || 32);
@@ -383,7 +384,10 @@ function heldSheetRotated(img, grip, S) {
 // horizontally (grip x mirrored): the design agent's rule for the staff. A drawn torch gives `flame`, the top pixel of
 // its head in each tilt (art round 3, #331), mirrored with the picture like the grip; the sheet's `tips` (where the
 // renderer puts a lit torch's flame, relative to the grip) come from it, as a generated torch's come from its shape.
-async function heldSheetFromAngles(angles) {
+// `byFacing` (the mode `facings`, art round 4: the bow): the five pictures are the thing seen as its holder faces 0, 22.5, 45, 67.5, and 90
+// degrees from up, always upright (a bow's limbs stand up whichever way it points, figure/held.js); 90 to 180 repeats them back (the same
+// sideways part), and 180 to 360 mirrors them; the sheet is `byFacing`, so the renderer picks its frame by the facing, as a generated bow's.
+async function heldSheetFromAngles(angles, byFacing = false) {
   const imgs = await Promise.all(angles.map((a) => loadImage(a.src)));
   const flip = (c, gx, gy, v, fl = null) => {
     const o = document.createElement("canvas");
@@ -403,7 +407,7 @@ async function heldSheetFromAngles(angles) {
     c.getContext("2d").drawImage(img, 0, 0);
     base[i] = { c, gx: angles[i].grip[0], gy: angles[i].grip[1], fl: angles[i].flame || null };
   });
-  for (let k = 5; k <= 8; k++) { const m = base[8 - k]; base[k] = flip(m.c, m.gx, m.gy, true, m.fl); }
+  for (let k = 5; k <= 8; k++) { const m = base[8 - k]; base[k] = byFacing ? m : flip(m.c, m.gx, m.gy, true, m.fl); }
   const all = [];
   for (let k = 0; k < 16; k++) {
     if (k <= 8) all[k] = base[k];
@@ -425,7 +429,7 @@ async function heldSheetFromAngles(angles) {
     x += f.c.width + 1;
   });
   const tips = all.every((f) => f.fl) ? all.map((f) => [f.fl[0] - f.gx, f.fl[1] - f.gy]) : [];
-  return { image: canvas, frames, frameAnchors, anchor: [0, 0], animations: {}, facings: [], mirror: {}, tips };
+  return { image: canvas, frames, frameAnchors, anchor: [0, 0], animations: {}, facings: [], mirror: {}, tips, ...(byFacing ? { byFacing: true } : {}) };
 }
 
 export function registerSheet(id, sheet, source = null) {

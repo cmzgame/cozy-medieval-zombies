@@ -1,5 +1,5 @@
-// Mana (docs/47 section 5, #480; Michael, 2026-10-25): a bar of `player.mana` (data/tuning.json, 100) under stamina, regenerating
-// `player.manaRegen` a second (one point every three seconds) on the sim clock, in the host's step (game.step), never in updatePlayer, which a
+// Mana (docs/47 section 5, #480; Michael, 2026-10-25): a bar of `player.mana` (data/tuning.json, 100) between health and stamina, regenerating
+// `player.manaRegen` a second (two points every three seconds, doubled for the demo pass, Michael 2026-10-26) on the sim clock, in the host's step (game.step), never in updatePlayer, which a
 // guest's prediction runs too: nothing a guest predicts spends mana (its draw is the host's, player-controller.js), so its replica's bar is the
 // host's record as it arrives. A spell costs `mana` on its book's `spell` (data/items.json; the Fireball 20): a cast is refused before its draw
 // starts when the bar cannot pay ("Not enough mana.", and the bar's flash, `manaFlash`, the visual twin of the sound), and the mana is spent when

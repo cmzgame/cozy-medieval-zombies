@@ -20,6 +20,16 @@ def _norm_rect(r):
     return [int(x), int(y), int(w), int(h)]
 
 
+# The drawn one-tile pieces that stand with their back to a wall (art round 4, 2026-10-26): `y` as drawn, the back to a west wall, `x` its mirror.
+WALL_FACING = {"chest", "shelf"}
+
+
+def _wall_facing(p):
+    if p.get("sprite") in WALL_FACING and "facing" not in p:
+        p["facing"] = "y" if p["tile"][0] == 0 else "x"
+    return p
+
+
 class MapGen:
     def __init__(self, name, size, floor="floor_grass", spawn=(0, 0)):
         self.json = {
@@ -238,11 +248,13 @@ class Place:
         return (self.x + x, self.y + y)
 
     def building(self, rect, wall, floor, openings=(), partitions=(), props=(), brackets=(), padding=None):
+        """A building inside the set. A drawn chest or shelf (art round 4) is drawn with its back to a west wall (facing "y") and mirrored for a
+        north one ("x"); one given no facing takes "y" in the first column and "x" anywhere else, so the front shows (`_wall_facing`)."""
         b = {"rect": _norm_rect(rect), "wall": wall, "floor": floor, "openings": [dict(o) for o in openings]}
         if partitions:
             b["partitions"] = [dict(p) for p in partitions]
         if props:
-            b["props"] = [dict(p) for p in props]
+            b["props"] = [_wall_facing(dict(p)) for p in props]
         if brackets:
             b["brackets"] = [dict(x) for x in brackets]
         if padding is not None:

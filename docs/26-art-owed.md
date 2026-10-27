@@ -21,4 +21,6 @@ The lists are issues (wave 4 of the sweep, #70): the hand items of the starting 
 
 ## Already delivered and in the game (for the record)
 
+Round 4 (2026-10-26, the demo pass; drawn by Primary's own art agents from a brief to this page's rules, the generators in `tools/art-gen/round4/`, the previews in `docs/art/previews/round4/`): the **sword, mace, halberd, spear** (angles), **shield** (a drawn picture and a drawn raised guard), **bow** (five pictures by facing, the mode `facings`), **arrow, fire arrow**; the **pickaxe, hoe, scythe, fishing rod, smith's hammer** (angles), the **dirk** (rotate), the **shears, lead, bucket**; each with its icon and, held, its portrait; the **cheese, honey (in its jar), potato, cabbage, garlic, iron bar, cloth, rag, charcoal, clay** (icon and picture); and the home's **barrel, chest, shelf, woodpile** as drawn props. Still on dev art in the first minutes: the potions and vials and the herbs (generated designs), the satchel, the dev chest and Developer Bag (excused).
+
 Round 2 (2026-10-12): the **book of fire**, **staff of fire**, **throwing knife**, and **throwing axe**, each as a pair, in `data/art/items/` and in the game as art-only holdables. The **fireball** sheet (16 directions x 3 frames, 64 px cells) is the fireball the staff and the book cast since 2026-10-14 (`24`, #12).

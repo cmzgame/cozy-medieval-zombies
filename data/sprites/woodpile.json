@@ -1,1 +1,25 @@
-{"placeholder": {"kind": "box", "color": "#6a4a2a", "height": 20, "inset": 8, "label": "Woodpile"}, "container": {"loot": "woodpile"}, "carry": true, "note": "a dev box for the woodpile (docs/30 step 1; docs/29/09 has its art request)"}
+{
+ "anchorVertex": "top",
+ "facings": [
+  "y",
+  "x"
+ ],
+ "drawings": {
+  "y": {
+   "image": "data/art/village/woodpile.png",
+   "anchor": [
+    21,
+    24
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
+ },
+ "container": {
+  "loot": "woodpile"
+ },
+ "carry": true,
+ "note": "the drawn woodpile (art round 4): split logs stacked along y between two stakes on two sleepers, the cut ends toward +x; along x as its mirror; once a dev box (docs/30 step 1; docs/29/09 has its art request)"
+}

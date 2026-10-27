@@ -39,7 +39,7 @@ export async function run(game) {
     const [kc, kr] = G.items.containerGrid("dev_kit");
     const kitBag = G.inventory.createBag(kc, kr, "chest");
     G.grid.fill(kitBag, kit);
-    row("the Developer Chest's grid holds all eight", IDS.every((id) => kitBag.items.some((e) => e.id === id)), `${kitBag.items.filter((e) => IDS.includes(e.id)).length} of 8`);
+    row("the Developer Chest's grid holds one painting, the wide castle, two segments wide (Michael, 2026-10-26, the demo pass)", kitBag.items.filter((e) => IDS.includes(e.id)).map((e) => e.id).join() === "painting_wide_castle", kitBag.items.filter((e) => IDS.includes(e.id)).map((e) => e.id).join(", ") || "none");
     const scene = await (await fetch("/src/render/walls.js")).text();
     const art = await import("/src/render/paintings.js");
     const splits = ["wide_castle", "wide_lake", "wide_sunset"].flatMap((n) => ["n", "w"].map((e) => [n, e, art.splitOf(`painting_${n}`, e)]));

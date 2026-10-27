@@ -1,1 +1,25 @@
-{"placeholder": {"kind": "box", "color": "#5e4630", "height": 26, "inset": 8}, "container": {"loot": "chest"}, "carry": true}
+{
+ "anchorVertex": "top",
+ "facings": [
+  "y",
+  "x"
+ ],
+ "drawings": {
+  "y": {
+   "image": "data/art/village/chest.png",
+   "anchor": [
+    21,
+    14
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
+ },
+ "container": {
+  "loot": "chest"
+ },
+ "carry": true,
+ "note": "the drawn chest (art round 4): a six-board chest, iron corners and straps, a hasp and padlock; long side along y as drawn with its front toward +x (a west wall at its back), along x as its mirror (front toward +y)"
+}

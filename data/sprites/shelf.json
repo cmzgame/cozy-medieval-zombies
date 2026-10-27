@@ -1,1 +1,25 @@
-{"placeholder": {"kind": "box", "color": "#7a5a3a", "height": 44, "inset": 14, "label": "Shelf"}, "container": {"loot": "pantry"}, "carry": true, "note": "a dev box for the shelf (docs/30 step 1; docs/29/09 has its art request)"}
+{
+ "anchorVertex": "top",
+ "facings": [
+  "y",
+  "x"
+ ],
+ "drawings": {
+  "y": {
+   "image": "data/art/village/shelf.png",
+   "anchor": [
+    25,
+    58
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
+ },
+ "container": {
+  "loot": "pantry"
+ },
+ "carry": true,
+ "note": "the drawn shelf (art round 4): a tall open shelf with pots, jars and a tied sack; backs against a west wall as drawn (y), a north wall as its mirror (x), as the fireplace; once a dev box (docs/30 step 1; docs/29/09 has its art request)"
+}

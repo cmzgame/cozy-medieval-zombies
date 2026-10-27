@@ -41,7 +41,7 @@ export async function run(game) {
     const [kc, kr] = G.items.containerGrid("dev_kit");
     const kitBag = G.inventory.createBag(kc, kr, "chest");
     G.grid.fill(kitBag, kit);
-    row("the Developer Chest's grid holds both rugs", ids.every((id) => kitBag.items.some((e) => e.id === id)), `${kitBag.items.length} things, rugs: ${kitBag.items.filter((e) => ids.includes(e.id)).length}`);
+    row("the Developer Chest's grid holds the bearskin rug, its one rug (Michael, 2026-10-26, the demo pass)", kitBag.items.filter((e) => ids.includes(e.id)).map((e) => e.id).join() === "rug_bearskin", `${kitBag.items.length} things, rugs: ${kitBag.items.filter((e) => ids.includes(e.id)).map((e) => e.id).join(", ")}`);
     const scene = await (await fetch("/src/render/scene.js")).text();
     row("the scene lays the rugs before any standing drawable (the ground, the rugs, then the props, items, bodies, walls)", scene.indexOf("emitRugs(tiles)") > scene.indexOf("emitGround(tiles)") && scene.indexOf("emitRugs(tiles)") < scene.indexOf("propDrawables(tiles"), `ground ${scene.indexOf("emitGround(tiles)")}, rugs ${scene.indexOf("emitRugs(tiles)")}, props ${scene.indexOf("propDrawables(tiles")}`);
 

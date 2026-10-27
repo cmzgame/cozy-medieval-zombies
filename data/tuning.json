@@ -54,7 +54,7 @@
     "hp": 100,
     "stamina": 100,
     "mana": 100,
-    "manaRegen": 0.333,
+    "manaRegen": 0.667,
     "sprintMult": 1.75,
     "sprintDrain": 16,
     "staminaRegen": 10,

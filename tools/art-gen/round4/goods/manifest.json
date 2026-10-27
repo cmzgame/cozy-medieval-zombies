@@ -1,0 +1,202 @@
+{
+  "cheese": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "cheese_world.png",
+      "grip": [
+        9,
+        8
+      ]
+    },
+    "world_size": [
+      17,
+      13
+    ],
+    "notes": "a wheel with a quarter wedge cut out: golden rind top and side, pale paste with two eyes on the cut. Not stackable today, so no corner is kept clear."
+  },
+  "honey": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "honey_world.png",
+      "grip": [
+        7,
+        11
+      ]
+    },
+    "world_size": [
+      16,
+      16
+    ],
+    "notes": "the jar of honey: a squat terracotta jar, a linen cover tied at the neck with twine, golden honey showing under the cloth's points and one drip down the lit shoulder."
+  },
+  "potato": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "potato_world.png",
+      "grip": [
+        7,
+        5
+      ]
+    },
+    "world_size": [
+      15,
+      11
+    ],
+    "notes": "a lumpy tan tuber with three eyes, the potato crop's skin colours."
+  },
+  "cabbage": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "cabbage_world.png",
+      "grip": [
+        7,
+        7
+      ]
+    },
+    "world_size": [
+      15,
+      14
+    ],
+    "notes": "a pale heart wrapped by two outer leaves (lit left, shaded right) with pale veins, a cut stem below; the cabbage crop's greens."
+  },
+  "garlic": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "garlic_world.png",
+      "grip": [
+        6,
+        8
+      ]
+    },
+    "world_size": [
+      13,
+      14
+    ],
+    "notes": "a papery cream bulb with clove lines, purple streaks, a dried neck and a root tuft; the garlic crop's colours."
+  },
+  "iron_bar": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "iron_bar_world.png",
+      "grip": [
+        7,
+        4
+      ]
+    },
+    "world_size": [
+      16,
+      8
+    ],
+    "notes": "a small dark ingot: a lit top face with a cast mark, the front in mid iron, the right end in shade."
+  },
+  "cloth": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "cloth_world.png",
+      "grip": [
+        8,
+        5
+      ]
+    },
+    "world_size": [
+      16,
+      10
+    ],
+    "notes": "a folded bolt of undyed linen, four folds showing on the front and a twine tie across it."
+  },
+  "rag": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "rag_world.png",
+      "grip": [
+        8,
+        6
+      ]
+    },
+    "world_size": [
+      17,
+      13
+    ],
+    "notes": "a torn scrap of dingy cloth: ragged edges, a hanging corner, brown stains."
+  },
+  "charcoal": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "charcoal_world.png",
+      "grip": [
+        8,
+        7
+      ]
+    },
+    "world_size": [
+      17,
+      14
+    ],
+    "notes": "three charcoal lumps, lifted to a dark grey so they stand off the outline and the slot, a cool dull sheen on their tops and a crack or two."
+  },
+  "clay": {
+    "icon": [
+      19,
+      19
+    ],
+    "portrait": false,
+    "held": {
+      "mode": "fixed",
+      "image": "clay_world.png",
+      "grip": [
+        8,
+        6
+      ]
+    },
+    "world_size": [
+      17,
+      12
+    ],
+    "notes": "a slumped lump of wet grey-brown river clay with a thumb dent and a wet glint. Replaces the generated lump design (#b0683c), which was orange."
+  }
+}
