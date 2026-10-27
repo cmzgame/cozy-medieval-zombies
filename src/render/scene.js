@@ -12,7 +12,7 @@ import * as map from "../map.js";
 import * as light from "../light.js";
 import * as gl from "../gl.js";
 import * as ground from "../ground.js";
-import { areaTiles, buildArea, ensureArea } from "./area.js";
+import { areaTiles, buildArea, buildStoreyArea, ensureArea } from "./area.js";
 import { arrowDrawables, emitMarker, entityDrawables, fireDrawables } from "./entities.js";
 import { emitGhost, emitHitShapes, floorItemDrawables, propDrawables } from "./props.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
@@ -200,6 +200,11 @@ export function renderScene(args) {
   const VL = (player && player.layer) || 0;
   const layers = layersFor(VL);
   const hidden = hiderFor(player);
+  // A storey's own light, ambient, and fog (the second set of area textures): the viewer's layer when it is not the ground, else the
+  // first storey in view; a storey besides those is lit as the open air (the sky's flag) until the light is kept per layer for all.
+  const upperL = VL !== 0 ? VL : layers.find((l) => l > 0) ?? null;
+  if (upperL !== null) buildStoreyArea(tilesOf(tiles, upperL), visible, drawAll || !fog, cam.gx, cam.gy, upperL);
+  gl.setUpperSet(upperL !== null);
   if (layers[0] === 0) {
     emitGround(tiles);
     if (grid) emitGrid(tiles);
@@ -211,6 +216,7 @@ export function renderScene(args) {
   let translucent = 0;
   let count = 0;
   for (const L of layers) {
+    gl.setExtraFlags(L === 0 ? 0 : L === upperL ? gl.FLAG_UPPER : gl.FLAG_SKY);
     withLift(L * map.STOREY, () => map.withDrawLayer(L, () => {
       const tilesL = L ? tilesOf(tiles, L).filter(([x, y]) => !hidden(x, y, L)) : tiles.filter(([x, y]) => !hidden(x, y, 0));
       if (L) {
@@ -268,6 +274,7 @@ export function renderScene(args) {
       count += drawables.length;
     }));
   }
+  gl.setExtraFlags(0);
   lastStats.drawables = count;
   lastStats.translucent = translucent;
   // On top, with no depth test (docs/51 section 4; Primary's recommendation, a default: a ghost hidden behind a wall is useless).

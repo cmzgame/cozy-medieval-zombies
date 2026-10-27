@@ -49,7 +49,8 @@ export function hiderFor(viewer) {
   const hide = (x, y, layer) => {
     if (layer <= L || !b) return false;
     const r = b.rects[layer];
-    return !!r && x >= r[0] && y >= r[1] && x < r[0] + r[2] && y < r[1] + r[3];
+    // Its footprint and the row and column past its south and east sides, whose tiles hold those sides' walls on their n and w edges.
+    return !!r && x >= r[0] && y >= r[1] && x <= r[0] + r[2] && y <= r[1] + r[3];
   };
   hide.sig = b ? `${b.id}:${L}` : ""; // what a floor's picture with its hidden tiles cleared is kept for
   return hide;
