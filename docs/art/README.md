@@ -24,6 +24,7 @@ Everything the art agent knows about the game's art, from the first trees to the
 | 08 | [cursors](08-cursors.md) | the three pointing hands, as built (a CSS cursor) |
 | 09 | [stubs](09-stubs.md) | the cutaway walls kept in the back pocket |
 | 10 | [lighting-from-the-art-side](10-lighting-from-the-art-side.md) | what the art must do for the lighting system, and what went wrong |
+| 12 | [brief-walls-at-96](12-brief-walls-at-96.md) | a brief for the whole wall set redrawn at 96 px (`docs/52`, not run yet): the eight materials, two-crate doors, windows from 24 to 64, the leaves, shutters, posts, and boards, by the kept generators' parameters |
 | 11 | [brief-fences-and-everyday-icons](11-brief-fences-and-everyday-icons.md) | a brief to paste to Claude Design (#309, not sent yet): the rickety see-through fence as wall pieces with its gate and swing frames, and the icons, world pictures, and portraits of the items seen on every play |
 | 11 (old) | [open-items-and-lessons](../history/art-11-open-items.md) | a record (2026-10-12): the punch list, the generators, how to ask for art; its open decisions and single-copy art are `art` issues |
 | 12 | [characters-from-the-art-side](../history/art-12-characters-from-the-art-side.md) | a record (2026-10-12): the body rounds, the eyes, what the agent needed; the live page is `../28` |
