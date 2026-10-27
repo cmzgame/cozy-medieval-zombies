@@ -212,6 +212,7 @@ export async function run(game) {
       G.interact.performByLabel(me, { kind: "bracket", tx: x + 5, ty: y, edge: "n" }, "Pick up torch");
       const after = P.fitProblem(pic.id, x + 5, y, "n");
       row("a painting is refused on a face holding a torch on a wall, and taken again once the torch (and its bracket) is picked up", /bracket is in the way/i.test(picWhy) && after === "" && !map.peekTile(x + 5, y).n.bracket, `with the torch: ${picWhy}; after: ${after || "fits"}`);
+      for (const hand of ["main", "off"]) if (me.hands[hand] && me.hands[hand].uid === torch.uid) me.hands[hand] = null; // Pick up puts it in a free hand: the check leaves the hands as it found them
     }
   } catch (e) {
     if (!e.guestDone) rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
