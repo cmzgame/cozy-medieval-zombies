@@ -8,7 +8,7 @@
 
 ## 2. The geometry
 
-- **A round room is a circle inscribed in an N by N square of tiles,** N 3, 5, or 7 (ruled). Its wall is a ring, 80 px tall as every wall, drawn on screen as an ellipse, 2 to 1.
+- **A round room is a circle inscribed in an N by N square of tiles,** N 3, 5, or 7 (ruled). Its wall is a ring as tall as every wall (96 px, `52`), drawn on screen as an ellipse, 2 to 1.
 - **The four door points** are the middles of the square's sides, where the circle touches it. For an odd N each is the middle of a tile edge: an ordinary n or w edge, so **a door or a window there is today's door or window**. The curve leaves the edge's ends by under a tenth of a tile (0.09 at 3, 0.05 at 5, 0.04 at 7), a few pixels, which the door's frame covers. On screen the four points sit at the ellipse's four diagonals, the angles every door is drawn at today.
 - **Inside:** the tiles whose centres are inside the circle: all 9 of a 3 by 3, 21 of a 5 by 5, 37 of a 7 by 7. The parts of the square outside the circle are the **corner pockets**: in a 3 by 3 a sliver of each corner tile (the tile stays in the room; its outer corner is behind the curve), and from 5 by 5 up whole corner tiles outside the room, outdoor tiles the curve's back crosses.
 - **The ring's length:** about 9.4 tiles at 3, 15.7 at 5, 22.0 at 7.
@@ -24,9 +24,9 @@
 
 ## 4. Drawing
 
-- **Per-tile slices along the arc,** each sorting with its tile, as two-tile furniture is sliced, so the dead, props, and trees in front of and behind a ring sort right.
+- **Per-tile slices along the arc,** each a billboard at its tile's foot, as two-tile furniture is sliced; the depth buffer (`51`) sorts them per pixel against the dead, props, and trees.
 - **The near-wall fade:** when the player is inside, the slices of the ring's near half fade as the near walls of a square room do today (`walls.js`'s rule, keyed to the room).
-- **The art is generated, never hand-drawn** (*default*): for each wall material and each size, a cylinder band 80 px tall and its cap, three or four flat shades lit from the top left (`art/01`), with the material's texture wrapped round, through the parametric pipeline the walls came from (`art-gen/village`). Placeholders are generated at boot first, from each material's colours, as every new picture is. Rounded corners are quarters of the 2, 4, and 6 bands.
+- **The art is generated, never hand-drawn** (*default*): for each wall material and each size, a cylinder band a wall's height (96 px, `52`) and its cap, three or four flat shades lit from the top left (`art/01`), with the material's texture wrapped round, through the parametric pipeline the walls came from (`art-gen/village`). Placeholders are generated at boot first, from each material's colours, as every new picture is. Rounded corners are quarters of the 2, 4, and 6 bands.
 - **The door points** draw today's door and window parts on their edges; a frame at each end of a door covers the few pixels where the curve leaves the edge.
 - **Light** is read along each slice's foot, as a wall's is.
 
