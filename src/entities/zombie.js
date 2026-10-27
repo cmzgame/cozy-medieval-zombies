@@ -383,7 +383,7 @@ function canSee(z, player) {
   if (!layersMeet(z, player)) return false;
   const range = sightRange(T.sight, player.gx, player.gy);
   if (distTo(z, player) > range) return false;
-  return lineOfSight(z.gx, z.gy, player.gx, player.gy);
+  return lineOfSight(z.gx, z.gy, player.gx, player.gy, z.layer || 0);
 }
 
 // Whether two bodies can see each other across storeys: on one layer always (the flat walk decides); a storey apart only by a stair

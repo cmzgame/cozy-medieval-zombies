@@ -4,6 +4,7 @@
 // A setting hides them. DOM over the world, never drawn into the canvas.
 
 import * as iso from "../iso.js";
+import { liftOf } from "../render/storeys.js"; // a body drawn at its storey and its rise (docs/49 section 6)
 import * as view from "../view.js";
 import * as settings from "../settings.js";
 import { getSheet } from "../assets.js";
@@ -72,7 +73,9 @@ export function updateNames(players, visible, me) {
       const el = tagFor(p.id);
       const name = p.name || p.id;
       if (el.textContent !== name) el.textContent = name;
+      if ((p.layer || 0) !== ((me && me.layer) || 0)) continue; // another storey's name is not shown over this one's floor (docs/49 section 6)
       const s = iso.toScreen(p.gx, p.gy);
+      s.y -= liftOf(p); // at the height it stands (docs/49 section 6)
       const u = view.toUi(s.x, s.y - HEAD_TOP);
       el.style.left = `${Math.round(u.x)}px`;
       el.style.top = `${Math.round(u.y)}px`;

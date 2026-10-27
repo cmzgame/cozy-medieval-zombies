@@ -4,6 +4,7 @@
 // view.toUi like ui/prompt.js, never drawn into it (CLAUDE.md).
 
 import * as iso from "../iso.js";
+import { liftOf } from "../render/storeys.js"; // a body drawn at its storey and its rise (docs/49 section 6)
 import * as view from "../view.js";
 import { tileKey } from "../visibility.js";
 import * as sight from "../sight.js";
@@ -61,6 +62,7 @@ export function updateZombieBars(zombies, visible, player) {
     seen.add(z.id);
     const { el, fill } = barFor(z.id);
     const s = iso.toScreen(z.gx, z.gy);
+    s.y -= liftOf(z); // at the height it stands (docs/49 section 6)
     const p = view.toUi(s.x, s.y - (z.state === "down" ? DOWN_CLEARANCE : HEAD_CLEARANCE));
     el.style.left = `${Math.round(p.x)}px`;
     el.style.top = `${Math.round(p.y)}px`;
@@ -74,6 +76,7 @@ export function updateZombieBars(zombies, visible, player) {
     seen.add(player.id);
     const { el, fill } = barFor(player.id);
     const s = iso.toScreen(player.gx, player.gy);
+    s.y -= liftOf(player);
     const p = view.toUi(s.x, s.y - PLAYER_CLEARANCE);
     el.style.left = `${Math.round(p.x)}px`;
     el.style.top = `${Math.round(p.y)}px`;
