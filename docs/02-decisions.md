@@ -167,6 +167,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
+- A dyed thing's drawn icon and portrait show its dye, each region's tones moved at their own lightness; the outline and the fittings kept (2026-10-26, A dyed thing's pictures show its dye)
 - A character is right-handed or left-handed, never ambidextrous, right by default, chosen once with its identity; it is visual and a label alone: the hand slots' names on the character screen, the belt's hand icons, and the arm the main hand's thing is drawn in; everything mechanical stays main and off (2026-10-25, Right- or left-handed)
 - Cheery at home, spooky beyond: the valley start-as-Stardew, Tirisfal the outer regions' register, region by region, not a gradient (2026-10-25, Cheery at home, spooky beyond)
 - Habbo is no longer the visual reference; its techniques (flat side shading, stepped shadows) stay as how pixels are drawn (2026-10-25, Cheery at home, spooky beyond)
@@ -311,6 +312,13 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-26 — A dyed thing's pictures show its dye (Michael)
+
+The wiki sync after art round 5 (#519) found a dyed linen satchel drawn in its colours on the back but undyed in the bag and its slot: the builder's reading in `43` section 8 kept a drawn icon "as painted". Michael: "Yes: a dyed satchel's bag icon and slot portrait should show its dye colours, as the figure does."
+
+- Every dyeable item with drawn art (the tunic, the breeches, the boots, the linen satchel today) shows its dye in the bag's icon, the slots' portrait, the belt, and the drag: each region of the item's `dye` names the picture's `tones` it owns (`data/items.json`), and each moves to the entry's colour for that region at its own lightness against the item's own colour; the outline and what no region names (a buckle, a toggle, hobnails, a drawstring) keep their paint (`src/ui/dyed-art.js`, client-only; *Primary's reading* of "as the figure does": the figure swaps two key tones, a drawn picture shades a whole ramp, so the ramp moves).
+- The picture on the floor stays the painted one for now (one picture per item there).
 
 ### 2026-10-26 — The demo pass: the dev chest for trying everything, a roomier cottage, mana twice as fast and between health and stamina, real art for the first fifteen minutes (Michael)
 

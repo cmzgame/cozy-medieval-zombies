@@ -1111,6 +1111,13 @@ for i in items:
                 fail(f"items.{i['id']}.dye.regions[{n}]: no colour {cid!r}")
         if not d.get("schemes") and not r.get("palette") and not r.get("colours"):
             fail(f"items.{i['id']}.dye.regions[{n}]: neither a palette nor colours, and the item has no schemes")
+        # A region's `tones` (Michael, 2026-10-26): the drawn icon's and portrait's tones it owns, recoloured by src/ui/dyed-art.js; no tone in two regions.
+        tones = r.get("tones")
+        if tones is not None and (not isinstance(tones, list) or not all(isinstance(t, str) and re.fullmatch(r"#[0-9a-f]{6}", t) for t in tones)):
+            fail(f"items.{i['id']}.dye.regions[{n}].tones: a list of lower-case #rrggbb")
+    owned = [t for r in regions for t in (r.get("tones") or [])]
+    if len(owned) != len(set(owned)):
+        fail(f"items.{i['id']}.dye: a tone named by two regions")
     for n, sch in enumerate(d.get("schemes") or []):
         if len(sch) != len(regions):
             fail(f"items.{i['id']}.dye.schemes[{n}]: {len(sch)} colours for {len(regions)} regions")
