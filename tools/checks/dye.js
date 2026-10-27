@@ -200,7 +200,7 @@ export async function run(game, opts = {}) {
       const dyed = src.startsWith("data:") ? hexes(await pixelsOf(src)) : new Set();
       const strap = sdef.dye.regions[1].tones;
       const cloth = sdef.dye.regions[0].tones;
-      const strapNow = strap.map((t) => "#" + dyedArt.shift(t, "#7a6a4a", "#5c2020").map((v) => v.toString(16).padStart(2, "0")).join(""));
+      const strapNow = strap.map((t) => "#" + dyedArt.shift(t, sdef.dye.regions[1].base, "#5c2020").map((v) => v.toString(16).padStart(2, "0")).join(""));
       row("the dyed satchel's bag icon is its picture in its colours: the strap's tones oxblood at their own shades, the cloth, the outline, and the buckle kept", src.startsWith("data:") && strap.every((t) => !painted.has(t) || !dyed.has(t)) && strapNow.some((t) => dyed.has(t)) && cloth.filter((t) => painted.has(t)).every((t) => dyed.has(t)) && dyed.has("#2b2522") && dyed.has("#c39a44"), `${src.slice(0, 22)}; strap now ${strapNow.join(" ")}; kept ${cloth.filter((t) => dyed.has(t)).length} cloth tones`);
       const port = await wantDyed(sdef, satchel, sdef.portrait);
       row("and so is its slot portrait", port.startsWith("data:") && port !== src, port.slice(0, 22));

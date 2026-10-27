@@ -1115,6 +1115,10 @@ for i in items:
         tones = r.get("tones")
         if tones is not None and (not isinstance(tones, list) or not all(isinstance(t, str) and re.fullmatch(r"#[0-9a-f]{6}", t) for t in tones)):
             fail(f"items.{i['id']}.dye.regions[{n}].tones: a list of lower-case #rrggbb")
+        if tones and r.get("base") not in tones:
+            fail(f"items.{i['id']}.dye.regions[{n}].base: one of its tones, the picture's main tone of the region")
+        if tones and "#2b2522" in tones:
+            fail(f"items.{i['id']}.dye.regions[{n}].tones: the outline is never a dye tone")
     owned = [t for r in regions for t in (r.get("tones") or [])]
     if len(owned) != len(set(owned)):
         fail(f"items.{i['id']}.dye: a tone named by two regions")
