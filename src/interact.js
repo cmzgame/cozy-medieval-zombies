@@ -2010,15 +2010,29 @@ export function hitsAt(sx, sy, wanted = (prop) => prop.interactable) {
       const prop = map.peekTile(tx + dx, ty + dy)?.prop; // a hit test never grows a chunk (docs/23a, A4)
       if (!prop || seen.has(prop) || !wanted(prop)) continue;
       seen.add(prop);
-      const r = propRect(prop, prop.tile[0], prop.tile[1]);
-      if (!r || !pointInRect(sx, sy, r)) continue;
+      // Its pixels: every slice a sliced piece draws, each at its own tile (a fireplace's second tile, the fire pit's three columns, whose
+      // back tile draws nothing), else its one frame at its anchor.
       const sheet = getSheet(prop.sprite, prop.tiles.length);
-      const name = idleFrame(sheet, prop, 0);
-      const f = sheet.frames[name];
-      const px = Math.floor(sx - r.x) + (sheet.bounds ? sheet.bounds.x : 0) + f[0];
-      const py = Math.floor(sy - r.y) + (sheet.bounds ? sheet.bounds.y : 0) + f[1];
       const al = alphaOf(sheet);
-      if (px < 0 || py < 0 || px >= al.w || py >= al.h || al.a[py * al.w + px] === 0) continue;
+      const slices = sheet.sliced ? prop.tiles.length : 1;
+      let name = null;
+      let px = 0;
+      let py = 0;
+      for (let i = 0; i < slices && !name; i++) {
+        const [stx, sty] = prop.tiles[i] || prop.tile;
+        const r = propRect(prop, stx, sty);
+        if (!r || !pointInRect(sx, sy, r)) continue;
+        const n = idleFrame(sheet, prop, i);
+        const f = sheet.frames[n];
+        if (!f) continue;
+        const x = Math.floor(sx - r.x) + (sheet.bounds ? sheet.bounds.x : 0) + f[0];
+        const y = Math.floor(sy - r.y) + (sheet.bounds ? sheet.bounds.y : 0) + f[1];
+        if (x < 0 || y < 0 || x >= al.w || y >= al.h || al.a[y * al.w + x] === 0) continue;
+        name = n;
+        px = x;
+        py = y;
+      }
+      if (!name) continue;
       let crown = false;
       if (isTree(prop)) {
         const t = trunkOf(sheet, name);
