@@ -91,11 +91,12 @@ export function emitGhost(ghost) {
     paintingArt.emitGhost(ghost, tint, GHOST_FLAGS());
     return;
   }
-  if (ghost.kind === "bracket") {
-    // A wall bracket (docs/43 section 4): its wall drawn again, washed, with an empty bracket on the face it would hang on.
+  if (ghost.kind === "torch") {
+    // A torch for a wall (Place torch, docs/43 section 4, #523): its wall drawn again, washed, with the bracket and the torch, lit or not, on
+    // the face it would go on.
     const t = map.peekTile(ghost.tx, ghost.ty);
     const wall = t && t[ghost.edge];
-    if (wall && !ghost.none) makeWall({ ...wall, bracket: { side: 1, torch: false } }, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
+    if (wall && !ghost.none) makeWall({ ...wall, bracket: { side: 1, torch: true, lit: !!(ghost.torch && ghost.torch.lit) } }, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
     return;
   }
   if (ghost.kind === "prop" || ghost.kind === "rug") {

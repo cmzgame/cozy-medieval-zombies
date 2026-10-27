@@ -2,7 +2,7 @@
 // in a chest within reach, taking its seconds in the world's time, paused while
 // the station's fire is out, the result landing in the station's output; a
 // prop recipe landing beside the station; the craft verb refusing what it
-// should; the made things of docs/43 section 4 (the furniture, the barrel, the jack-o'-lantern, a torch post and a wall bracket as items, the
+// should; the made things of docs/43 section 4 (the furniture, the barrel, the jack-o'-lantern, a torch post as an item, the
 // strongbox at the anvil), each landing where it should, a made container empty and searched. From the console: await __game.check("craft")
 // It pauses the loop, sets down a workbench of its own on open ground beside the player (the valley's nearest was another one, inside
 // a house, once other checks in the page had grown more of it: the order-independence of the checks, check("all")), uses the baker's
@@ -192,7 +192,7 @@ export async function run(game) {
     const none = G.verbs.run("craft", G.world.world, p, { prop: stones.id }, { recipe: "bread", count: 1 });
     row("the millstones refuse a recipe of another station", !none.ok && /Not at this station/.test(none.reason), none.reason || "took it");
     // 5. The made things (docs/43 section 4): every row made at its station from a big chest beside it, the props beside the station, `made`,
-    // a container empty and already searched; the torch post and the wall bracket as items in the output.
+    // a container empty and already searched; the torch post as an item in the output.
     {
       const anvil = find("anvil");
       let jackSeen = null;
@@ -248,9 +248,8 @@ export async function run(game) {
         const hammer = G.items.makeEntry("hammer", 1);
         p.hands.main = hammer; // the anvil's recipes want the hammer in a hand
         const a1 = make(anvil, "strongbox");
-        const a2 = make(anvil, "wall_bracket");
         p.hands.main = held;
-        row("the anvil makes the strongbox (a prop, empty) and the wall bracket (an item) with a hammer in hand", a1.ok && a2.ok, `${a1.detail}; ${a2.detail}`);
+        row("the anvil makes the strongbox (a prop, empty) with a hammer in hand; no Wall bracket row (a torch goes on a wall with its own, #523)", a1.ok && !G.stations.recipe("wall_bracket") && !G.items.hasItemDef("wall_bracket"), `${a1.detail}`);
       } else row("an anvil in the loaded chunks", false, "none");
       row("a made jack-o'-lantern is a switch, lit, put out with nothing (docs/43 section 4)", jackSeen === true, `seen ${jackSeen}`);
       // The village's stations behind the world rule Village stations (docs/43 section 5): off, their rows are hidden and they stay put; on (a

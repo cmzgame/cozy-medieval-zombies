@@ -148,7 +148,10 @@ export function makeCode() {
 // 21 (2026-10-26, the playtest's features, #506): the `opened` message may name a container item inside another container (`within`, the outer
 // container's address, with the item's `entryUid`), and a belt's slots open as a container (inventory.slotsView); an older guest found no grid
 // for either and opened nothing. A guest's snapshot may carry the key event `wake` (any key or click while asleep), which an older host drops.
-export const PROTOCOL = 21;
+// 22 (2026-10-27, a torch goes on a wall with its bracket, #523): the `place` command's `torch` kind (a carried torch's uid and the face's tx,
+// ty, edge) replaces `bracket` (a Wall bracket item's uid), which is gone with the item; a wall's bracket may carry its torch's `uid`. An older
+// guest's Place on a bracket item finds none here, and an older host drops a `torch` command.
+export const PROTOCOL = 22;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).

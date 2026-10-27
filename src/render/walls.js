@@ -590,7 +590,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
           gl.poly([[bx - 1, by - 12], [bx + 2, by - 12], [bx + 2, by - 1], [bx - 1, by - 1]], gl.rgb(WOOD, alpha), opts);
           gl.poly([[bx - 2, by - 17], [bx + 3, by - 17], [bx + 3, by - 12], [bx - 2, by - 12]], gl.rgb("#3a2a22", alpha), opts);
           gl.layer(L_FLAME);
-          if (vis && br.lit !== false) frameQuad(getSheet("flame"), `flame_${flameFrame(tx + ty)}`, bx, by - 15, { world: [tx, ty], flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+          if (vis && br.lit !== false) frameQuad(getSheet("flame"), `flame_${flameFrame(tx + ty)}`, bx, by - 15, { world: [tx, ty], flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG, ...(ghostTint ? { color: ghostTint } : {}) }); // a refused ghost's flame takes its tint
         }
       }
       gl.layer(null);
