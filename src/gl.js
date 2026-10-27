@@ -6,9 +6,21 @@
 // ambient, and fog textures there. Raw WebGL, no library (Michael, 2026-10-09).
 //
 // Vertex: pos (2, screen px), uv (2, atlas) and page (1, the atlas layer), world (2, grid), height (1, px
-// above the foot), color (4, multiplier), flags (1). Flag bits: 1 unlit (a
+// above the foot), color (4, multiplier), flags (1), depth (1). Flag bits: 1 unlit (a
 // flame), 2 occluder (fades in the holes), 4 sky (lit by outdoors only),
 // 8 unfogged.
+//
+// The depth buffer (docs/51): the frame sorts per pixel. Every vertex carries its own depth, the style bible's X + Y + Z
+// toward the camera (a tile is 32 units, a pixel of height one), computed here on the CPU from the depth surface its
+// drawable set (`surface`): a vertical plane through true geometry, `depth = A * sx - sy + C` at screen point (sx, sy),
+// or a ridge, two such planes meeting at a column (a prop's two front faces, split at its footprint's front corner),
+// across which a quad is cut in two. `a_world` and `a_height` go on serving the light and are never the depth. Quads
+// go to four passes, drawn in this order: flat (the ground and what lies on it; no depth written or tested), opaque
+// (depth tested and written, alpha under a half discarded), translucent (tested, not written: a quad with a colour
+// alpha under 1, an occluder, or one from a soft sheet, per quad), and on top (no test: the ghosts, the marker, the hit
+// shapes). Within a drawable each quad sits a small step nearer than the one emitted before it, so a drawable's own
+// layering (a cap over its face, a flame over its hearth, a held sword over the hand) stands; an outline's copies sit a
+// step behind their base.
 
 export const FLAG_UNLIT = 1;
 export const FLAG_OCCLUDER = 2;
@@ -17,7 +29,21 @@ export const FLAG_NOFOG = 8;
 export const FLAG_STANDING = 16; // a prop or a character: takes the legibility floor
 export const FLAG_SOLID = 32; // the quad's colour, flat, keeping the sprite's shape: an outline (docs/14)
 
-const STRIDE = 13; // floats per vertex
+// The passes (docs/51 section 4). PASS_STAND is what a standing drawable asks for: its quads go to the opaque pass, or
+// to the translucent one by the rule above. PASS_TRANS is never asked for by an emitter; `setTranslucent` forces it.
+export const PASS_FLAT = 0;
+export const PASS_STAND = 1;
+export const PASS_TRANS = 2;
+export const PASS_TOP = 3;
+
+// The depth range follows the camera (docs/51 section 5): a vertex stores its depth less the camera's own
+// ((cam.gx + cam.gy) * 32), and the clip z is 1 - 2 (depth - base) / 8192 with base the camera's depth less 4096,
+// which is -relative / 4096: the whole of clip space over +-4096 units round the camera, nearer the smaller z.
+export const DEPTH_HALF_RANGE = 4096;
+const ALPHA_TEST = 0.5; // the opaque pass discards a fragment whose alpha is under this
+const ALPHA_FLOOR = 0.004; // every other pass discards only what is all but clear, as before
+
+const STRIDE = 14; // floats per vertex
 let ATLAS = 2048; // raised to 4096 in init when the GPU allows: the figures' sheets are large (docs/12)
 
 export let gl = null;
@@ -30,8 +56,29 @@ const restoreHooks = [];
 let program = null;
 let vao = null;
 let vbo = null;
-let verts = new Float32Array(1 << 17);
-let count = 0; // floats written
+// One vertex store per pass (PASS_FLAT, the opaque, the translucent, PASS_TOP), each in emit order; `verts` and `count` are the one being
+// written, swapped in by `useBucket`. The ground's quads are the first of the flat store.
+const buckets = [0, 1, 2, 3].map(() => ({ verts: new Float32Array(1 << 15), count: 0 }));
+let cur = 0;
+let verts = buckets[0].verts;
+let count = 0; // floats written to the current store
+let upload = new Float32Array(1 << 17); // the four stores end to end, for the one buffer upload of a frame
+let lastPassCounts = [0, 0, 0, 0]; // vertices in each pass last frame (check("depth"), the cost row)
+
+// ---- the depth surface (docs/51 section 3) ----
+let depthBits = 16; // what the context gave, read in setup(); 16 is all WebGL promises
+let depthStepSize = 0.25; // the emit-order step in depth units: two steps of the buffer, or more (sized in setup)
+let pass = PASS_FLAT;
+let forceTrans = false;
+let sA = 0; // the surface: depth = sA * sx - sy + sC (a plane), or, with sX a number, the ridge
+let sC = 0; //   sC - sy - 1.5 |sx - sX| (two planes meeting at the column sX)
+let sX = NaN;
+let sBias = 0; // the drawable's kind bias (scene.js DEPTH_BIAS)
+let order = 0; // quads emitted on the surface so far: each sits `depthStepSize` nearer than the last
+let behind = false; // an outline's copies: a step behind the surface's base, not counted
+let held = 0; // > 0: quads share one step (bees: a figure of many pixels is one layer), stepped once when released
+let heldUsed = false;
+let center = 0; // the camera's depth this frame: vertices store depth less it
 let whiteUV = null;
 let emptyUV = null; // a transparent patch: what a sprite that could not be placed draws as (a last resort now: a sheet larger than a page, or a page the GPU refused)
 let atlasWarned = 0; // 0: nothing yet, 2: a sheet was refused (larger than a page, or the GPU gave no more pages)
@@ -175,13 +222,13 @@ export function redrawSheet(sheet) {
   page.dirty = true;
 }
 
-// Atlas coordinates of a frame, in texels, and its page: [u0, v0, u1, v1, page].
+// Atlas coordinates of a frame, in texels, and its page: [u0, v0, u1, v1, page, soft].
 export function frameUV(sheet, name) {
   const f = sheet.frames[name];
   if (!f) return null;
   const p = place(sheet);
   if (!p || p.page >= pageCap) return emptyUV;
-  return [p.ax + f[0], p.ay + f[1], p.ax + f[0] + f[2], p.ay + f[1] + f[3], p.page];
+  return [p.ax + f[0], p.ay + f[1], p.ax + f[0] + f[2], p.ay + f[1] + f[3], p.page, sheet.soft ? 1 : 0]; // the sixth: a soft sheet's frame, drawn in the translucent pass (docs/51)
 }
 
 // ---- shaders ----
@@ -193,8 +240,10 @@ in vec2 a_world;
 in float a_height;
 in vec4 a_color;
 in float a_flags;
+in float a_depth; // X + Y + Z toward the camera, less the camera's own (docs/51)
 uniform vec2 u_res;
 uniform vec2 u_texSize; // the bound texture's size in texels: the atlas, or a chunk's ground (docs/15)
+uniform float u_depthHalf; // half the depth range: 4096 units either side of the camera
 out vec2 v_uv;
 flat out float v_page;
 out vec2 v_world;
@@ -211,7 +260,8 @@ void main() {
   v_flags = a_flags;
   v_screen = a_pos;
   vec2 clip = (a_pos / u_res) * 2.0 - 1.0;
-  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+  // z_ndc = 1 - 2 (depth - base) / 8192, base the camera's depth less 4096: the nearer, the smaller, which LEQUAL keeps.
+  gl_Position = vec4(clip.x, -clip.y, -a_depth / u_depthHalf, 1.0);
 }`;
 
 const FS = `#version 300 es
@@ -249,6 +299,7 @@ uniform float u_holeOuter;
 uniform float u_minStanding;
 uniform float u_softLight;
 uniform int u_debug;
+uniform float u_alphaCut; // the opaque pass's alpha test (a half); the others' near-clear floor
 
 // The player's own weak night vision: the cozy parent's gradient stops.
 float poolAt(vec2 p) {
@@ -262,7 +313,7 @@ float poolAt(vec2 p) {
 
 void main() {
   vec4 tex = (u_isGround == 1 ? texture(u_ground, v_uv) : texture(u_tex, vec3(v_uv, v_page))) * v_color;
-  if (tex.a < 0.004) discard;
+  if (tex.a < u_alphaCut) discard;
   float f = v_flags;
   bool unlit = mod(f, 2.0) >= 1.0;
   bool occ = mod(floor(f / 2.0), 2.0) >= 1.0;
@@ -365,7 +416,7 @@ function setup() {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);
-  for (const name of ["u_res", "u_texSize", "u_tex", "u_ground", "u_isGround", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_softLight", "u_debug"]) {
+  for (const name of ["u_res", "u_texSize", "u_tex", "u_ground", "u_isGround", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_softLight", "u_debug", "u_depthHalf", "u_alphaCut"]) {
     uniforms[name] = gl.getUniformLocation(program, name);
   }
   vao = gl.createVertexArray();
@@ -385,6 +436,7 @@ function setup() {
   attr("a_height", 1, 7);
   attr("a_color", 4, 8);
   attr("a_flags", 1, 12);
+  attr("a_depth", 1, 13);
   // The atlas texture (the canvas behind it is kept across a loss) and the area textures.
   atlasTex = null; // made in end() with a layer for every page
   gpuLayers = 0;
@@ -402,8 +454,51 @@ function setup() {
   fogTex = makeTexture(gl.NEAREST);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-  gl.disable(gl.DEPTH_TEST);
+  // The depth buffer (docs/51 section 5), set here so it survives a lost context: the test on, LEQUAL (the default LESS
+  // gives a tie to the first drawn, the wrong way for every bias), the whole window range, and the mask on for the clear.
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+  gl.depthRange(0, 1);
+  gl.clearDepth(1);
+  gl.depthMask(true);
+  gl.uniform1f(uniforms.u_depthHalf, DEPTH_HALF_RANGE);
+  gl.uniform1f(uniforms.u_alphaCut, ALPHA_FLOOR);
+  depthBits = readDepthBits();
+  // The emit-order step: two steps of the buffer at the least (16 bits over 8192 units is 0.125 a step, so 0.25), and never under 1/32 of a
+  // unit, so a deeper buffer's step stays well clear of the float rounding of two triangles on one plane.
+  depthStepSize = Math.max((2 * 2 * DEPTH_HALF_RANGE) / 2 ** depthBits, 1 / 32);
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+}
+
+// The depth buffer's bits (docs/51 section 5: WebGL promises 16, most browsers give 24). DEPTH_BITS where the context answers it, else the
+// default framebuffer's depth attachment, else the promise.
+function readDepthBits() {
+  let bits = 0;
+  try {
+    bits = gl.getParameter(gl.DEPTH_BITS) || 0;
+  } catch {
+    bits = 0;
+  }
+  while (gl.getError() !== gl.NO_ERROR); // a context that refuses DEPTH_BITS queues an error: drain it, or a later check reads it as its own
+  if (!bits) {
+    try {
+      bits = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH, gl.FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE) || 0;
+    } catch {
+      bits = 0;
+    }
+    while (gl.getError() !== gl.NO_ERROR);
+  }
+  return bits || 16;
+}
+
+// What the depth buffer gave and the steps sized from it, for check("depth").
+export function depthInfo() {
+  return { bits: depthBits, step: depthStepSize, halfRange: DEPTH_HALF_RANGE, unitsPerBufferStep: (2 * DEPTH_HALF_RANGE) / 2 ** depthBits, passes: [...lastPassCounts] };
+}
+
+// The emit-order step in depth units (scene.js sizes nothing from it; the outline and the checks read it).
+export function depthStep() {
+  return depthStepSize;
 }
 
 function makeTexture(filter) {
@@ -497,8 +592,10 @@ export function groundTextures() {
 
 // A chunk's ground picture at screen (x, y), its whole texture, with the grid
 // point under each corner (TL, TR, BR, BL) for the light, the night, and the fog.
+// The ground is the first of the flat pass: it writes no depth (docs/51 section 4).
 export function groundQuad(rec, x, y, world) {
-  if (count !== groundFloats) throw new Error("ground quads must come before everything else in the frame");
+  useBucket(PASS_FLAT);
+  if (pass !== PASS_FLAT || count !== groundFloats) throw new Error("ground quads must come before everything else in the frame");
   groundRanges.push({ rec, first: count / STRIDE });
   quad(x, y, rec.w, rec.h, [0, 0, rec.w, rec.h], { world });
   groundFloats = count;
@@ -506,10 +603,140 @@ export function groundQuad(rec, x, y, world) {
 
 // ---- the batch ----
 
-export function begin() {
+// A frame begins in the flat pass with no surface; `cameraDepth` is the camera's own depth ((cam.gx + cam.gy) * 32), which every vertex's
+// depth is stored relative to (docs/51 section 5).
+export function begin(cameraDepth = 0) {
+  for (const b of buckets) b.count = 0;
+  cur = 0;
+  verts = buckets[0].verts;
   count = 0;
   groundFloats = 0;
   groundRanges.length = 0;
+  center = cameraDepth;
+  pass = PASS_FLAT;
+  forceTrans = false;
+  surface({ A: 0, C: cameraDepth }, 0);
+}
+
+// Which pass the quads that follow are for: PASS_FLAT (lying on the ground: no depth), PASS_STAND (standing: opaque or translucent by
+// the quad), PASS_TOP (over everything, no test). A standing drawable's emit runs in PASS_STAND (scene.js sets it).
+export function setPass(p) {
+  pass = p;
+  forceTrans = false;
+}
+
+export function getPass() {
+  return pass;
+}
+
+// Run `fn` with its quads in pass `p` (a lying arrow inside a pile of items: flat, in the pile's place in the order), then back.
+export function withPass(p, fn) {
+  const was = pass;
+  const wasT = forceTrans;
+  pass = p;
+  forceTrans = false;
+  try {
+    fn();
+  } finally {
+    pass = was;
+    forceTrans = wasT;
+  }
+}
+
+// Every standing quad that follows to the translucent pass, whatever its alpha (docs/51 section 4: a drawable marked `translucent`).
+export function setTranslucent(on) {
+  forceTrans = !!on;
+}
+
+// The depth surface of the drawable about to emit (render/depth.js makes them): `{ A, C }` a plane, depth = A * sx - sy + C at screen
+// point (sx, sy); `{ C, xF }` a ridge, depth = C - sy - 1.5 |sx - xF|, its quads cut at the column xF. `bias` is its kind's (scene.js
+// DEPTH_BIAS). The emit order starts again: its first quad at the bias, each after a step nearer.
+export function surface(s, bias = 0) {
+  if (s.xF === undefined || Number.isNaN(s.xF)) {
+    sA = s.A;
+    sX = NaN;
+  } else {
+    sA = 0;
+    sX = s.xF;
+  }
+  sC = s.C;
+  sBias = bias;
+  order = 0;
+  behind = false;
+  held = 0;
+  heldUsed = false;
+}
+
+// Another plane for the quads that follow, the drawable's bias and emit order kept (a door's leaf, square to its wall, between the
+// wall's own quads).
+export function setPlane(s) {
+  if (s.xF === undefined || Number.isNaN(s.xF)) {
+    sA = s.A;
+    sX = NaN;
+  } else {
+    sA = 0;
+    sX = s.xF;
+  }
+  sC = s.C;
+}
+
+// An outline's copies (Object Highlight, the swing outline, an item's halo): on the surface, a step behind its base, and not counted, so
+// the base drawn after them is in front where they overlap and they show round it.
+export function setBehind(on) {
+  behind = !!on;
+}
+
+// While held, the quads that follow share one step of the emit order (a bee's pixels, which never overlap one another); released, the
+// order steps once for them all.
+export function holdOrder(on) {
+  if (on) {
+    held++;
+    return;
+  }
+  if (held > 0 && --held === 0 && heldUsed) {
+    order++;
+    heldUsed = false;
+  }
+}
+
+// The last frame's vertices of pass `p` (a copy, STRIDE floats each: pos, uv, page, world, height, colour, flags, depth less the camera's), and
+// the stride: check("depth") reads the range from them.
+export function passData(p) {
+  const n = p === cur ? count : buckets[p].count;
+  return { stride: STRIDE, data: (p === cur ? verts : buckets[p].verts).slice(0, n) };
+}
+
+// The vertices written to pass `p` so far this frame (scene.js counts the drawables that drew in the translucent pass).
+export function passVertices(p) {
+  return (p === cur ? count : buckets[p].count) / STRIDE;
+}
+
+function useBucket(b) {
+  if (b === cur) return;
+  buckets[cur].verts = verts;
+  buckets[cur].count = count;
+  cur = b;
+  verts = buckets[b].verts;
+  count = buckets[b].count;
+}
+
+// The pass a quad goes to: the flat and top passes as asked; a standing quad to the translucent pass when it is forced there, its
+// colour is not opaque (a faded near wall and its cuts, a post faded with them, the dead dimmed by the dark, smoke and dust, a ghost's
+// wash), it fades in the holes (an occluder), or its sheet is soft (docs/51 section 4: per quad, so a wall's bracket torch and a
+// figure's carried torch send their halos there and the rest of the wall or the figure stays opaque); else the opaque pass.
+function route(alpha, flags, soft) {
+  if (pass === PASS_FLAT || pass === PASS_TOP) return pass;
+  return forceTrans || alpha < 1 || flags & FLAG_OCCLUDER || soft ? PASS_TRANS : PASS_STAND;
+}
+
+function biasNow() {
+  return behind ? sBias - depthStepSize : sBias + order * depthStepSize;
+}
+
+function stepOrder() {
+  if (behind) return;
+  if (held) heldUsed = true;
+  else order++;
 }
 
 function grow(need) {
@@ -517,11 +744,11 @@ function grow(need) {
   let n = verts.length * 2;
   while (n < count + need) n *= 2;
   const v = new Float32Array(n);
-  v.set(verts);
+  v.set(verts.subarray(0, count));
   verts = v;
 }
 
-function vertex(x, y, u, v, page, wx, wy, h, c, flags) {
+function vertex(x, y, u, v, page, wx, wy, h, c, flags, d) {
   const i = count;
   verts[i] = x;
   verts[i + 1] = y;
@@ -536,7 +763,83 @@ function vertex(x, y, u, v, page, wx, wy, h, c, flags) {
   verts[i + 10] = c[2];
   verts[i + 11] = c[3];
   verts[i + 12] = flags;
+  verts[i + 13] = d;
   count += STRIDE;
+}
+
+// A convex polygon of vertices [x, y, u, v, wx, wy, h], fanned from its first, its depth from the plane (A, C) and the bias, stored less
+// the camera's; `C` null for a pass that has no depth (flat, top: a constant inside the range, so nothing is clipped).
+function fan(P, pg, c, flags, A, C, bias) {
+  const n = P.length;
+  if (n < 3) return;
+  grow(STRIDE * 3 * (n - 2));
+  const k = C === null ? 0 : C + bias - center;
+  for (let i = 1; i < n - 1; i++) {
+    for (const j of [0, i, i + 1]) {
+      const p = P[j];
+      vertex(p[0], p[1], p[2], p[3], pg, p[4], p[5], p[6], c, flags, C === null ? 0 : A * p[0] - p[1] + k);
+    }
+  }
+}
+
+// A polygon cut by the vertical line x = X into the part left of it and the part right (a vertex on the line in both), each vertex's
+// attributes carried along the edge it was cut from.
+function clipAt(P, X) {
+  const L = [];
+  const R = [];
+  for (let i = 0; i < P.length; i++) {
+    const a = P[i];
+    const b = P[(i + 1) % P.length];
+    if (a[0] <= X) L.push(a);
+    if (a[0] >= X) R.push(a);
+    if ((a[0] < X && b[0] > X) || (a[0] > X && b[0] < X)) {
+      const t = (X - a[0]) / (b[0] - a[0]);
+      const m = a.map((v, k) => v + (b[k] - v) * t);
+      m[0] = X;
+      L.push(m);
+      R.push(m);
+    }
+  }
+  return [L, R];
+}
+
+// One primitive onto its pass with its depth: a plane's whole, or a ridge's two sides, cut at its column where it crosses it (docs/51
+// section 3: a prop's left half on its footprint's south-west face, its right on the south-east).
+function emitPoly(P, pg, c, flags, soft) {
+  const b = route(c[3], flags, soft);
+  useBucket(b);
+  if (b === PASS_FLAT || b === PASS_TOP) {
+    fan(P, pg, c, flags, 0, null, 0);
+    return;
+  }
+  const bias = biasNow();
+  if (Number.isNaN(sX)) fan(P, pg, c, flags, sA, sC, bias);
+  else {
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const p of P) {
+      if (p[0] < lo) lo = p[0];
+      if (p[0] > hi) hi = p[0];
+    }
+    const left = [1.5, sC - 1.5 * sX];
+    const right = [-1.5, sC + 1.5 * sX];
+    if (hi <= sX) fan(P, pg, c, flags, left[0], left[1], bias);
+    else if (lo >= sX) fan(P, pg, c, flags, right[0], right[1], bias);
+    else {
+      const [L, R] = clipAt(P, sX);
+      fan(L, pg, c, flags, left[0], left[1], bias);
+      fan(R, pg, c, flags, right[0], right[1], bias);
+    }
+  }
+  stepOrder();
+}
+
+// The depth a standing quad's point would take on the current surface, the bias included, in the world's units (not less the camera's):
+// for check("depth").
+export function depthAt(sx, sy) {
+  const bias = biasNow();
+  if (Number.isNaN(sX)) return sA * sx - sy + sC + bias;
+  return sC - sy - 1.5 * Math.abs(sx - sX) + bias;
 }
 
 const WHITE = [1, 1, 1, 1];
@@ -546,8 +849,8 @@ const WHITE = [1, 1, 1, 1];
 // `heights` likewise one number or four.
 // `skew` leans the quad: its top edge moves that many pixels sideways while the
 // bottom stays put (a clicked thing's sway; docs/02, question 27).
+// `uv`'s sixth is 1 for a soft sheet's frame (frameUV): such a quad goes to the translucent pass.
 export function quad(x, y, w, h, uv, { world, heights = 0, color = WHITE, flags = 0, flip = false, skew = 0 } = {}) {
-  grow(STRIDE * 6);
   const u0 = flip ? uv[2] : uv[0];
   const u1 = flip ? uv[0] : uv[2];
   const v0 = uv[1];
@@ -557,43 +860,36 @@ export function quad(x, y, w, h, uv, { world, heights = 0, color = WHITE, flags 
   const H = typeof heights === "number" ? [heights, heights, heights, heights] : heights;
   const x1 = x + w;
   const y1 = y + h;
-  vertex(x + skew, y, u0, v0, pg, W[0][0], W[0][1], H[0], color, flags);
-  vertex(x1 + skew, y, u1, v0, pg, W[1][0], W[1][1], H[1], color, flags);
-  vertex(x1, y1, u1, v1, pg, W[2][0], W[2][1], H[2], color, flags);
-  vertex(x + skew, y, u0, v0, pg, W[0][0], W[0][1], H[0], color, flags);
-  vertex(x1, y1, u1, v1, pg, W[2][0], W[2][1], H[2], color, flags);
-  vertex(x, y1, u0, v1, pg, W[3][0], W[3][1], H[3], color, flags);
+  emitPoly([
+    [x + skew, y, u0, v0, W[0][0], W[0][1], H[0]],
+    [x1 + skew, y, u1, v0, W[1][0], W[1][1], H[1]],
+    [x1, y1, u1, v1, W[2][0], W[2][1], H[2]],
+    [x, y1, u0, v1, W[3][0], W[3][1], H[3]],
+  ], pg, color, flags, uv[5] === 1);
 }
 
 // A textured convex quad with any four screen corners and their own atlas
 // texel coordinates, in order around it (docs/17: a drawn wall's cap redrawn
 // on the sky). `world` is one [gx, gy] or four; `heights` likewise.
-export function texQuad(pts, uvs, { world, heights = 0, color = WHITE, flags = 0, page = 0 } = {}) {
-  grow(STRIDE * 6);
+export function texQuad(pts, uvs, { world, heights = 0, color = WHITE, flags = 0, page = 0, soft = false } = {}) {
   const W = typeof world[0] === "number" ? [world, world, world, world] : world;
   const H = typeof heights === "number" ? [heights, heights, heights, heights] : heights;
-  for (const k of [0, 1, 2, 0, 2, 3]) vertex(pts[k][0], pts[k][1], uvs[k][0], uvs[k][1], page, W[k][0], W[k][1], H[k], color, flags); // `page`: the atlas page the texel coordinates are on (frameUV's fifth)
+  // `page`: the atlas page the texel coordinates are on (frameUV's fifth)
+  emitPoly(pts.map((p, k) => [p[0], p[1], uvs[k][0], uvs[k][1], W[k][0], W[k][1], H[k]]), page, color, flags, soft);
 }
 
 // A flat-coloured convex polygon, fanned from its first point. `world` is one
 // [gx, gy] for all points or one per point; `heights` likewise.
 export function poly(points, color, { world, heights = 0, flags = 0 } = {}) {
-  const n = points.length;
-  if (n < 3) return;
-  grow(STRIDE * 3 * (n - 2));
+  if (points.length < 3) return;
   const u = (whiteUV[0] + whiteUV[2]) / 2;
   const v = (whiteUV[1] + whiteUV[3]) / 2;
   const W = typeof world[0] === "number" ? null : world;
   const H = typeof heights === "number" ? null : heights;
-  const wOf = (i) => (W ? W[i] : world);
-  const hOf = (i) => (H ? H[i] : heights);
-  for (let i = 1; i < n - 1; i++) {
-    for (const k of [0, i, i + 1]) {
-      const p = points[k];
-      const w = wOf(k);
-      vertex(p[0], p[1], u, v, 0, w[0], w[1], hOf(k), color, flags);
-    }
-  }
+  emitPoly(points.map((p, k) => {
+    const w = W ? W[k] : world;
+    return [p[0], p[1], u, v, w[0], w[1], H ? H[k] : heights];
+  }), 0, color, flags, false);
 }
 
 // The canvas to black, with nothing drawn: with no world in, a canvas left alone keeps the last frame of the
@@ -602,7 +898,8 @@ export function blank() {
   if (!gl || lost) return;
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
   gl.clearColor(0, 0, 0, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.depthMask(true); // the clear honours the mask, which the translucent pass leaves off
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 
 // The atlas on the GPU: an array with a layer for every page, made again (every page re-uploaded from its canvas) when a page has opened since, and a dirty page uploaded alone. If the GPU
@@ -665,13 +962,16 @@ function uploadAtlas() {
 
 // Draw everything pushed since begin() with these uniforms.
 export function end(u) {
+  useBucket(PASS_FLAT); // the store being written keeps its count
+  for (let b = 0; b < 4; b++) lastPassCounts[b] = buckets[b].count / STRIDE;
   if (lost) return; // nothing to draw to; the batch is dropped
   uploadAtlas();
   // The viewport is the whole buffer while u_res is the world's size in its
   // own pixels: the difference is the zoom, applied by the GPU (view.js).
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
   gl.clearColor(u.clear[0], u.clear[1], u.clear[2], 1);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.depthMask(true); // the clear honours the mask, which the translucent pass leaves off
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.useProgram(program);
   gl.uniform2f(uniforms.u_res, u.w, u.h);
   gl.uniform2f(uniforms.u_areaOrigin, u.areaOrigin[0], u.areaOrigin[1]);
@@ -708,7 +1008,27 @@ export function end(u) {
   gl.bindTexture(gl.TEXTURE_2D, fogTex);
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-  gl.bufferData(gl.ARRAY_BUFFER, verts.subarray(0, count), gl.DYNAMIC_DRAW);
+  // The four passes' stores end to end in one upload.
+  let total = 0;
+  for (const b of buckets) total += b.count;
+  if (upload.length < total) {
+    let n = upload.length;
+    while (n < total) n *= 2;
+    upload = new Float32Array(n);
+  }
+  const first = [];
+  let off = 0;
+  for (const b of buckets) {
+    upload.set(b.verts.subarray(0, b.count), off);
+    first.push(off / STRIDE);
+    off += b.count;
+  }
+  gl.bufferData(gl.ARRAY_BUFFER, upload.subarray(0, total), gl.DYNAMIC_DRAW);
+  const span = (b) => buckets[b].count / STRIDE;
+  // Pass 0, the flat: the ground, then what lies on it, in order; no depth tested or written (docs/51 section 4).
+  gl.depthFunc(gl.ALWAYS);
+  gl.depthMask(false);
+  gl.uniform1f(uniforms.u_alphaCut, ALPHA_FLOOR);
   gl.uniform1i(uniforms.u_isGround, 1);
   gl.activeTexture(gl.TEXTURE4);
   for (const r of groundRanges) {
@@ -718,9 +1038,22 @@ export function end(u) {
   }
   gl.uniform1i(uniforms.u_isGround, 0);
   gl.uniform2f(uniforms.u_texSize, ATLAS, ATLAS);
-  const first = groundFloats / STRIDE;
-  if (count > groundFloats) gl.drawArrays(gl.TRIANGLES, first, count / STRIDE - first);
-  return count / STRIDE;
+  const g = groundFloats / STRIDE;
+  if (span(PASS_FLAT) > g) gl.drawArrays(gl.TRIANGLES, first[PASS_FLAT] + g, span(PASS_FLAT) - g);
+  // Pass 1, the opaque: tested and written, alpha under a half discarded.
+  gl.depthFunc(gl.LEQUAL);
+  gl.depthMask(true);
+  gl.uniform1f(uniforms.u_alphaCut, ALPHA_TEST);
+  if (span(PASS_STAND)) gl.drawArrays(gl.TRIANGLES, first[PASS_STAND], span(PASS_STAND));
+  // Pass 2, the translucent: tested, not written, in the sorted order.
+  gl.depthMask(false);
+  gl.uniform1f(uniforms.u_alphaCut, ALPHA_FLOOR);
+  if (span(PASS_TRANS)) gl.drawArrays(gl.TRIANGLES, first[PASS_TRANS], span(PASS_TRANS));
+  // On top: the ghosts, the hit shapes, the marker; no test.
+  gl.depthFunc(gl.ALWAYS);
+  if (span(PASS_TOP)) gl.drawArrays(gl.TRIANGLES, first[PASS_TOP], span(PASS_TOP));
+  gl.depthFunc(gl.LEQUAL);
+  return total / STRIDE;
 }
 
 // Colours: "#rrggbb" or "rgb(r,g,b)" (what shade() returns) to [r, g, b, a],
