@@ -187,6 +187,35 @@ export async function run(game, opts = {}) {
     el.querySelector("[data-apply]").click();
     dyePanel.update(me);
     row("the satchel in the rucksack takes an oxblood strap from the picker", Array.isArray(satchel.colours) && satchel.colours[1] === "#5c2020", JSON.stringify(satchel.colours));
+    // Its drawn pictures in its colours (Michael, 2026-10-26: "a dyed satchel's bag icon and slot portrait should show its dye colours, as
+    // the figure does"): the strap's tones moved to oxblood at their own lightness, the cloth's (undyed) and the brass buckle's kept.
+    {
+      const dyedArt = await import("/src/ui/dyed-art.js");
+      const sdef = G.items.getItem("satchel");
+      const pixelsOf = async (src) => { const im = new Image(); await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = src; }); const c = document.createElement("canvas"); c.width = im.width; c.height = im.height; const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(im, 0, 0); return x.getImageData(0, 0, c.width, c.height).data; };
+      const hexes = (d) => { const h = new Set(); for (let i = 0; i < d.length; i += 4) if (d[i + 3]) h.add("#" + [d[i], d[i + 1], d[i + 2]].map((v) => v.toString(16).padStart(2, "0")).join("")); return h; };
+      const wantDyed = async (def, entry, pic) => { dyedArt.dyedSrc(def, entry, pic); for (let k = 0; k < 2000 && !dyedArt.dyedSrc(def, entry, pic).startsWith("data:"); k++) await yieldOnce(); return dyedArt.dyedSrc(def, entry, pic); };
+      const painted = hexes(await pixelsOf(G.assets.url(sdef.icon.src)));
+      const src = await wantDyed(sdef, satchel, sdef.icon);
+      const dyed = src.startsWith("data:") ? hexes(await pixelsOf(src)) : new Set();
+      const strap = sdef.dye.regions[1].tones;
+      const cloth = sdef.dye.regions[0].tones;
+      const strapNow = strap.map((t) => "#" + dyedArt.shift(t, sdef.dye.regions[1].base, "#5c2020").map((v) => v.toString(16).padStart(2, "0")).join(""));
+      row("the dyed satchel's bag icon is its picture in its colours: the strap's tones oxblood at their own shades, the cloth, the outline, and the buckle kept", src.startsWith("data:") && strap.every((t) => !painted.has(t) || !dyed.has(t)) && strapNow.some((t) => dyed.has(t)) && cloth.filter((t) => painted.has(t)).every((t) => dyed.has(t)) && dyed.has("#2b2522") && dyed.has("#c39a44"), `${src.slice(0, 22)}; strap now ${strapNow.join(" ")}; kept ${cloth.filter((t) => dyed.has(t)).length} cloth tones`);
+      const port = await wantDyed(sdef, satchel, sdef.portrait);
+      row("and so is its slot portrait", port.startsWith("data:") && port !== src, port.slice(0, 22));
+      const undyed = G.items.makeEntry("satchel");
+      row("an undyed satchel shows the painted picture", dyedArt.dyedSrc(sdef, undyed, sdef.icon) === G.assets.url(sdef.icon.src), dyedArt.dyedSrc(sdef, undyed, sdef.icon));
+      // The woad tunic worn: the character screen's chest slot shows its square icon in woad.
+      const panel = await import("/src/ui/inventory-panel.js");
+      await wantDyed(G.items.getItem("tunic"), tunic, G.items.getItem("tunic").icon);
+      panel.setCharacterOpen(true);
+      panel.renderInventoryPanel(me, G.inventory.bagOf(me), null, G.inventory.beltOf(me));
+      const img = document.querySelector(".doll-slot[data-slot='worn:chest'] img.inv-icon");
+      row("the woad tunic's slot on the character screen shows its picture in woad", !!img && img.getAttribute("src").startsWith("data:"), img ? img.getAttribute("src").slice(0, 22) : "no picture in the chest slot");
+      panel.setCharacterOpen(false);
+      panel.renderInventoryPanel(me, G.inventory.bagOf(me), null, G.inventory.beltOf(me));
+    }
     me.worn.back = worn0.back ?? null;
     me.worn.waist = worn0.waist ?? null;
     // Closing: Escape's way (the station panel's close shuts the picker) and walking away.
