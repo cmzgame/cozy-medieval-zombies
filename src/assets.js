@@ -10,6 +10,12 @@ import { fruitCanvas } from "./fruit-art.js"; // fruit painted into a drawn crow
 const defs = new Map();
 const sheets = new Map();
 
+// The generators whose sheets carry soft pixels, alpha between none and whole (docs/51 section 4): a shadow under a post, a tree, a torch
+// post, a lantern post, or a snare (a post), a fire's radial glow (the campfire's, the hearth's, the fire pit's, a pumpkin's, the torch
+// flame's). Their sheets are marked `soft`, and every quad drawn from one goes to the translucent pass, which the alpha test would
+// otherwise cut. Delivered art is hard (art/01); when these are drawn hard the kind leaves the list.
+const SOFT_KINDS = new Set(["post", "tree", "pumpkin", "hearth", "campfire", "fire_pit", "torch_post", "lantern_post", "flame"]);
+
 // The manifest (docs/23, step 1; data/manifest.json, made by tools/manifest.py):
 // every file under data/ with a stamp. A path in it is fetched as path?v=stamp,
 // which serve.py caches for a year, so a hard refresh re-fetches only what changed.
@@ -216,6 +222,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       case "ui": sheet = placeholders.generateUiKit(ph); break; // docs/23 step 4: the interface's frame, well, and button
       default: throw new Error(`Unknown placeholder kind ${ph.kind} for ${id}`);
     }
+    if (SOFT_KINDS.has(ph.kind)) sheet.soft = true;
   } else {
     throw new Error(`Sprite ${id} has neither image nor placeholder`);
   }
