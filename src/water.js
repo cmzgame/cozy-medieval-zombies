@@ -92,7 +92,7 @@ export const taintedBucket = (player) => bucketsCarried(player).filter(boilable)
 export function fireProblem(player, prop) {
   if (!prop || !prop.fire || !prop.fire.cooks) return "That is no cooking fire.";
   if (!prop.fire.lit) return "The fire is out.";
-  return reachProblem(player, prop.tiles, W.boilReach) || "";
+  return reachProblem(player, prop.tiles, W.boilReach, prop.layer || 0) || "";
 }
 
 // The nearest lit cooking fire within reach of the player, or null.
@@ -108,7 +108,7 @@ export function litFireNear(player) {
       const p = map.peekTile(px + dx, py + dy)?.prop; // a hit test never grows a chunk
       if (!p || seen.has(p)) continue;
       seen.add(p);
-      if (!p.fire || !p.fire.cooks || !p.fire.lit || !canReach(player, p.tiles, W.boilReach)) continue;
+      if (!p.fire || !p.fire.cooks || !p.fire.lit || !canReach(player, p.tiles, W.boilReach, p.layer || 0)) continue;
       const d = Math.min(...p.tiles.map(([x, y]) => Math.hypot(player.gx - x, player.gy - y)));
       if (d < bestD) { bestD = d; best = p; }
     }

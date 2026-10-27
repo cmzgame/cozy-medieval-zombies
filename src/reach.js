@@ -19,8 +19,13 @@ export function nearestTile(player, tiles) {
   return { tile: best, distance: bestD };
 }
 
-// null, or why not: too far (past `range` tiles to the nearest of the tiles), or a wall (or a shut door or shutter) between.
-export function reachProblem(player, tiles, range) {
+// Reach is on one layer (docs/49 section 9): nothing upstairs reaches a chest or a tile below through the floor or out of a window. `layer`
+// is the target's (a prop's, a body's); tiles given bare are on the player's own.
+export const OTHER_FLOOR = "That is on another floor.";
+
+// null, or why not: on another layer, too far (past `range` tiles to the nearest of the tiles), or a wall (or a shut door or shutter) between.
+export function reachProblem(player, tiles, range, layer = (player && player.layer) || 0) {
+  if ((layer || 0) !== ((player && player.layer) || 0)) return OTHER_FLOOR;
   const { tile, distance } = nearestTile(player, tiles);
   if (!tile || distance > range) return TOO_FAR;
   if (!lineOfSight(player.gx, player.gy, tile[0], tile[1])) return WALL_IN_THE_WAY;
@@ -30,4 +35,4 @@ export function reachProblem(player, tiles, range) {
 // A point: one tile.
 export const pointReachProblem = (player, x, y, range) => reachProblem(player, [[x, y]], range);
 
-export const canReach = (player, tiles, range) => reachProblem(player, tiles, range) === null;
+export const canReach = (player, tiles, range, layer) => reachProblem(player, tiles, range, layer) === null;

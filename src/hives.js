@@ -40,7 +40,7 @@ verbs.define("honey", {
     const prop = map.propById(target.prop);
     if (!isHive(prop)) return "There is no hive there.";
     if (!hasHoney(prop)) return "The bees have made no more honey yet.";
-    { const why = reachProblem(player, prop.tiles, REACH); if (why) return why; }
+    { const why = reachProblem(player, prop.tiles, REACH, prop.layer || 0); if (why) return why; }
     return true;
   },
   perform(world, player, target) {
@@ -51,9 +51,9 @@ verbs.define("honey", {
     const n = lo + rng.int(hi - lo + 1);
     const bag = inventory.bagOf(player);
     const placed = bag ? Math.min(n, inventory.addItem(bag, H.item, n)) : 0;
-    if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(H.item, n - placed));
+    if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(H.item, n - placed), player.layer || 0);
     prop.honeyAt = clock.getElapsed() + H.days * clock.DAY_LENGTH;
-    map.touch(prop.tile[0], prop.tile[1]); // the chunk to a guest, and the save's copy dropped
+    map.touchProp(prop); // the chunk to a guest, and the save's copy dropped
     const name = items.getItem(H.item).name.toLowerCase();
     const message = placed < n ? `You take ${some(n, name)} from the hive; ${n - placed} at your feet.` : `You take ${some(n, name)} from the hive.`;
     return { taken: n, message };

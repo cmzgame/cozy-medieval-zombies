@@ -129,7 +129,7 @@ function pourStack(player, entry, from, onto) {
 
 function restoreTo(player, entry, from) {
   if (from.kind === "bag") {
-    if (!grid.insert(from.bag, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+    if (!grid.insert(from.bag, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry, player.layer || 0);
   } else slotSet(player, from.id, entry);
 }
 
@@ -214,7 +214,7 @@ export function createInventoryActions(getPlayer) {
         slotSet(player, slotId, null);
         if (kind === "worn" && key === "back") {
           slotSet(player, slotId, entry);
-          map.dropItem(Math.round(player.gx), Math.round(player.gy), occupant);
+          map.dropItem(Math.round(player.gx), Math.round(player.gy), occupant, player.layer || 0);
           return;
         }
         if (!inventory.stow(player, occupant)) {
@@ -246,7 +246,7 @@ export function createInventoryActions(getPlayer) {
     dropToFloor(entry, from) {
       const player = getPlayer();
       detachFrom(player, entry, from);
-      map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+      map.dropItem(Math.round(player.gx), Math.round(player.gy), entry, player.layer || 0);
     },
     noRoom(intoBag) {
       showMessage(intoBag ? "No room in your bag." : "No room in there.");
@@ -532,7 +532,7 @@ export function performUseCommand(player, c, findCharacter) {
     const e = r && r.bag.items.find((q) => q.uid === t.uid);
     if (e) target = { kind: "item", entry: e };
   } else if (t.kind === "bracket") {
-    const b = [...map.brackets()].find((q) => q.tx === t.tx && q.ty === t.ty && q.edge === t.edge); // a torch on a wall, by its address (#170)
+    const b = map.bracketAt(t.tx, t.ty, t.edge, player.layer || 0); // a torch on a wall, by its address (#170), on the player's layer (docs/49)
     if (b) target = { kind: "bracket", bracket: b };
   } else if (t.kind === "prop") {
     const prop = typeof t.id === "string" ? map.propById(t.id) : null;

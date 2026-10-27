@@ -57,7 +57,7 @@ function rowFor(verb) {
       if (!b) return V.nothing;
       const why = blockProblem(player, b);
       if (why) return why;
-      const far = reachProblem(player, prop.tiles, W.pickReach); // a sealed room is a cell (#147): a wall in the way refuses it
+      const far = reachProblem(player, prop.tiles, W.pickReach, prop.layer || 0); // a sealed room is a cell (#147): a wall in the way refuses it
       if (far) return far;
       return true;
     },
@@ -69,7 +69,7 @@ function rowFor(verb) {
       const n = lo + rng.int(hi - lo + 1);
       const bag = inventory.bagOf(player);
       const placed = bag ? Math.min(n, inventory.addItem(bag, b.item, n)) : 0;
-      if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(b.item, n - placed));
+      if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(b.item, n - placed), player.layer || 0);
       resources.taken(prop); // its replacement is owed to its area, before it goes (none for a node in the wild)
       map.removeProp(prop); // marks its chunk: the save's copy goes, and a guest gets the chunk without it
       const name = items.getItem(b.item).name.toLowerCase();

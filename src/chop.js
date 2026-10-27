@@ -30,7 +30,7 @@ verbs.define("chop", {
     const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
     if (!prop || !prop.wood) return "There is nothing there to chop.";
     if (!heldAxe(player)) return "You need a hatchet in hand.";
-    { const why = reachProblem(player, [prop.tile], W.pickReach); if (why) return why; } // a wall between refuses it too (#208)
+    { const why = reachProblem(player, [prop.tile], W.pickReach, prop.layer || 0); if (why) return why; } // a wall between refuses it too (#208)
     return true;
   },
   perform(world, player, target) {

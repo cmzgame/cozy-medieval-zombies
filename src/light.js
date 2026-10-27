@@ -47,13 +47,17 @@ let lastSourcesDesc = "";
 
 // Once per logic step, after the rooms are current: lit rooms, then fires
 // and mounted torches, then the portals, which need the ambients.
+// Every source carries its layer (docs/49 section 10): `layer`, left off on the ground. Each layer has its own light; light does not
+// cross a floor, so a chunk's map is built from its own layer's sources alone (docs/49 step 0: before it, an upstairs torch would have lit
+// the room below through the floor).
 export function update() {
   litRooms = new Map();
   curSources = [];
   for (const p of map.fires()) {
     if (!p.fire.lit) continue;
+    const L = p.layer || 0;
     if (p.fire.room) {
-      const id = map.tileAt(p.tile[0], p.tile[1]).room;
+      const id = map.tileAt(p.tile[0], p.tile[1], L).room;
       if (id > 0 && !litRooms.has(id)) litRooms.set(id, p.fire.flicker ? { flicker: p.fire.flicker, seed: sourceSeed(p.tile[0], p.tile[1]) } : null); // the first lit fire in it sets its flicker
     }
     if (p.fire.radius > 0) {
@@ -62,7 +66,7 @@ export function update() {
       const ts = p.tiles && p.tiles.length ? p.tiles : [p.tile];
       const gx = ts.reduce((a, t) => a + t[0], 0) / ts.length;
       const gy = ts.reduce((a, t) => a + t[1], 0) / ts.length;
-      curSources.push({ gx, gy, radius: p.fire.radius, intensity: 1, kind: p.sprite, flicker: p.fire.flicker });
+      curSources.push(onLayer({ gx, gy, radius: p.fire.radius, intensity: 1, kind: p.sprite, flicker: p.fire.flicker }, L));
     }
   }
   const torchFire = getItem("torch").fire;
@@ -70,27 +74,28 @@ export function update() {
     if (b.wall.bracket.lantern) {
       if (b.wall.bracket.lit === false) continue; // a lantern put out (docs/43, section 3)
       const [lx, ly] = map.bracketPos(b);
-      curSources.push({ gx: lx, gy: ly, radius: getDef("lantern_post").fire.radius, intensity: 1, kind: "lantern", flicker: null }); // steady, burning nothing; the one number is the lantern post's `fire.radius` (data/sprites/lantern_post.json)
+      curSources.push(onLayer({ gx: lx, gy: ly, radius: getDef("lantern_post").fire.radius, intensity: 1, kind: "lantern", flicker: null }, b.layer)); // steady, burning nothing; the one number is the lantern post's `fire.radius` (data/sprites/lantern_post.json)
       continue;
     }
     if (!b.wall.bracket.torch || b.wall.bracket.lit === false) continue; // a mounted torch that is out gives no light
     const [gx, gy] = map.bracketPos(b);
-    curSources.push({ gx, gy, radius: torchFire.radius, intensity: 1, kind: "torch", flicker: torchFire.flicker });
+    curSources.push(onLayer({ gx, gy, radius: torchFire.radius, intensity: 1, kind: "torch", flicker: torchFire.flicker }, b.layer));
   }
   // Portals: an opening is a source on its darker side, as bright as the
   // difference between its sides, through its transmission, lighting only
   // that side. A lit room glows out of its window at night; a window pools
   // daylight on the floor by day. One rule for both (Michael, 2026-10-09).
   for (const room of map.allRooms()) {
+    const L = room.layer || 0; // an opening lights its own room's layer (docs/49 section 10)
     for (const op of room.openings) {
-      const wall = map.tileAt(op.tx, op.ty)[op.edge];
+      const wall = map.tileAt(op.tx, op.ty, L)[op.edge];
       if (!wall) continue;
       const t = map.transmission(wall);
       if (t <= 0) continue;
       // The near side of an edge is the tile it belongs to; the far side the
       // tile north or west of it.
-      const nearA = ambientAt(op.tx, op.ty);
-      const farA = op.edge === "n" ? ambientAt(op.tx, op.ty - 1) : ambientAt(op.tx - 1, op.ty);
+      const nearA = ambientAt(op.tx, op.ty, L);
+      const farA = op.edge === "n" ? ambientAt(op.tx, op.ty - 1, L) : ambientAt(op.tx - 1, op.ty, L);
       const diff = Math.abs(nearA - farA) * t;
       if (diff < PORTAL_MIN) continue;
       const toDark = nearA > farA ? -1 : 1; // +1 toward the near side
@@ -98,14 +103,14 @@ export function update() {
       const my = op.edge === "n" ? op.ty - 0.5 : op.ty;
       const nx = op.edge === "n" ? 0 : toDark;
       const ny = op.edge === "n" ? toDark : 0;
-      curSources.push({
+      curSources.push(onLayer({
         gx: mx + nx * PORTAL_OFF,
         gy: my + ny * PORTAL_OFF,
         radius: PORTAL_RADIUS[wall.kind] || 2.5,
         intensity: diff,
         dir: [nx, ny],
         kind: "portal",
-      });
+      }, L));
     }
   }
   // One version number for the whole list, so the chunk signatures and the
@@ -118,7 +123,13 @@ export function update() {
 }
 
 function describe(l) {
-  return `${l.gx},${l.gy},${l.radius},${Math.round(l.intensity * 20)}${l.dir ? `,${l.dir[0]},${l.dir[1]}` : ""}`;
+  return `${l.gx},${l.gy},${l.radius},${Math.round(l.intensity * 20)}${l.dir ? `,${l.dir[0]},${l.dir[1]}` : ""}${l.layer ? `@${l.layer}` : ""}`;
+}
+
+// A source with its layer when it is not the ground's (so the ground's sources are the objects they always were).
+function onLayer(l, layer) {
+  if (layer) l.layer = layer;
+  return l;
 }
 
 export function getSourcesVersion() {
@@ -145,7 +156,7 @@ export function daylightShares(room) {
   let open = 0;
   let leak = 0;
   for (const op of room.openings) {
-    const w = map.tileAt(op.tx, op.ty)[op.edge];
+    const w = map.tileAt(op.tx, op.ty, room.layer || 0)[op.edge]; // the room's own layer (docs/49 section 10)
     if (!w) continue;
     const t = map.transmission(w);
     if (t >= 0.5) open += t;
@@ -222,7 +233,7 @@ export function allSources() {
 // grid walk as sight (visibility.js); the source's own tile and the target's
 // never block.
 const MAX_STEPS = 400;
-export function lightPath(ax, ay, bx, by) {
+export function lightPath(ax, ay, bx, by, layer = 0) {
   let ix = Math.round(ax);
   let iy = Math.round(ay);
   const tx = Math.round(bx);
@@ -241,18 +252,18 @@ export function lightPath(ax, ay, bx, by) {
   while ((ix !== tx || iy !== ty) && guard++ < MAX_STEPS) {
     if (tMaxX < tMaxY) {
       const nx = ix + stepX;
-      through *= map.transmission(map.wallBetween(ix, iy, nx, iy));
+      through *= map.transmission(map.wallBetween(ix, iy, nx, iy, layer));
       ix = nx;
       tMaxX += tDeltaX;
     } else {
       const ny = iy + stepY;
-      through *= map.transmission(map.wallBetween(ix, iy, ix, ny));
+      through *= map.transmission(map.wallBetween(ix, iy, ix, ny, layer));
       iy = ny;
       tMaxY += tDeltaY;
     }
     if (through <= 0.001) return 0;
     if (ix !== tx || iy !== ty) {
-      const p = map.tileAt(ix, iy).prop;
+      const p = map.tileAt(ix, iy, layer).prop;
       if (p && p.opaque) return 0;
     }
   }
@@ -352,8 +363,9 @@ function cellGrid(c, i) {
   return c * map.CHUNK - 0.5 + (i - 0.5) / RES;
 }
 
-// Does source l reach chunk (cx, cy) at all?
-function reaches(l, cx, cy) {
+// Does source l reach chunk (cx, cy) at all? Only from its own layer: a floor stops light (docs/49 section 10).
+function reaches(l, cx, cy, layer = 0) {
+  if ((l.layer || 0) !== layer) return false;
   const x0 = cx * map.CHUNK - 0.5;
   const y0 = cy * map.CHUNK - 0.5;
   const x1 = x0 + map.CHUNK;
@@ -368,21 +380,21 @@ function reaches(l, cx, cy) {
 // world's, so a door across the village rebuilds nothing here (docs/23a, B4).
 // Memoised per chunk on the sources' version and the chunk's, so lightAt
 // builds no string.
-function sigFor(cx, cy, key) {
-  const c = map.getChunk(cx, cy, false);
+function sigFor(cx, cy, key, layer = 0) {
+  const c = map.getChunk(cx, cy, false, layer);
   const lv = c ? c.lightVersion : 0;
   const m = sigCache.get(key);
   if (m && m.sv === srcVersion && m.lv === lv) return m.sig;
   let s = `${lv}`;
   for (const l of curSources) {
-    if (!reaches(l, cx, cy)) continue;
+    if (!reaches(l, cx, cy, layer)) continue;
     s += `|${describe(l)}`;
   }
   sigCache.set(key, { sv: srcVersion, lv, sig: s });
   return s;
 }
 
-function build(cx, cy, sig) {
+function build(cx, cy, sig, layer = 0) {
   const contrib = new Float32Array(N * N);
   // Sources that flicker keep their own layer too, so the composer can scale
   // each by its weight this frame.
@@ -391,7 +403,7 @@ function build(cx, cy, sig) {
   const x0 = cx * map.CHUNK - 0.5;
   const y0 = cy * map.CHUNK - 0.5;
   for (const l of curSources) {
-    if (!reaches(l, cx, cy)) continue;
+    if (!reaches(l, cx, cy, layer)) continue;
     const own = l.flicker ? new Float32Array(N * N) : null;
     if (own) layers.push({ contrib: own, flicker: l.flicker, seed: sourceSeed(l.gx, l.gy) });
     // Only the cells within the radius.
@@ -409,7 +421,7 @@ function build(cx, cy, sig) {
         if (d >= l.radius) continue;
         // A portal lights only its darker side.
         if (l.dir && (gx - l.gx) * l.dir[0] + (gy - l.gy) * l.dir[1] < -0.05) continue;
-        const through = lightPath(l.gx, l.gy, gx, gy);
+        const through = lightPath(l.gx, l.gy, gx, gy, layer);
         if (through <= 0) continue;
         const k = j * N + i;
         const v = Math.min(1, CORE_GAIN * (1 - d / l.radius)) * intensity * through;
@@ -425,10 +437,10 @@ function build(cx, cy, sig) {
 // The map of a chunk, rebuilt if its sources or the walls changed.
 export function chunkLight(cx, cy, layer = 0) {
   const key = map.chunkKey(cx, cy, layer);
-  const sig = sigFor(cx, cy, key);
+  const sig = sigFor(cx, cy, key, layer);
   let entry = cache.get(key);
   if (!entry || entry.sig !== sig) {
-    entry = build(cx, cy, sig);
+    entry = build(cx, cy, sig, layer);
     cache.set(key, entry);
   }
   return entry;
@@ -465,10 +477,11 @@ export function lightAt(gx, gy, layer = 0) {
   l += staticContribAt(gx, gy, layer);
   for (const c of carriers()) {
     if (l >= 1) break;
+    if ((c.layer || 0) !== layer) continue; // a flame lights its own layer (docs/49 section 10)
     const d = Math.hypot(gx - c.gx, gy - c.gy);
     // Holding a torch (or burning) makes you a fully visible point in the dark.
     if (d < 0.6) l += 1;
-    else if (d < c.radius) l += Math.min(1, CORE_GAIN * (1 - d / c.radius)) * lightPath(c.gx, c.gy, gx, gy);
+    else if (d < c.radius) l += Math.min(1, CORE_GAIN * (1 - d / c.radius)) * lightPath(c.gx, c.gy, gx, gy, layer);
   }
   return Math.min(1, l);
 }

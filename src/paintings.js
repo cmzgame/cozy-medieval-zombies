@@ -182,7 +182,7 @@ export function takeDown(player, tx, ty, edge) {
   const bag = inventory.bagOf(player);
   const entry = makeEntry(item, 1);
   if (!bag || !grid.insert(bag, entry)) {
-    map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+    map.dropItem(Math.round(player.gx), Math.round(player.gy), entry, player.layer || 0);
     showMessage("Your bag is full: the painting is at your feet.");
   }
   return true;

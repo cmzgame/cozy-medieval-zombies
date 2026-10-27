@@ -1,5 +1,5 @@
 {
-  "version": "f1c11c1a",
+  "version": "30c2ea19",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3364, "stamp": "72416da6"},
@@ -833,7 +833,7 @@
     "data/layers/head/onion.json": {"size": 63920, "stamp": "8eaa09dd"},
     "data/layers/legs/index.json": {"size": 19, "stamp": "e924073b"},
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
-    "data/maps/square.json": {"size": 12940, "stamp": "91f0d8ea"},
+    "data/maps/square.json": {"size": 16823, "stamp": "8bd79b63"},
     "data/maps/staging.json": {"size": 8761, "stamp": "c49d0cd7"},
     "data/maps/valley.json": {"size": 170411, "stamp": "d443da2e"},
     "data/site/staging_day_wide.webp": {"size": 103152, "stamp": "d59a0e45"},

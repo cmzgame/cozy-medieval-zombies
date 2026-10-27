@@ -401,6 +401,37 @@ map.setHolder(mountTarget, false); did("the torch taken out");
   inventory.bagOf(me).items = bag0;
 }
 
+// The other layers (docs/49 step 1): a floor laid on the first floor grows its chunk there, then an item, a wall, a door opened, a prop
+// placed and lifted, a fire lit on it; and the same in a cellar. Each marks its own layer's chunk, never the ground's under it, and the
+// cache must hear it. A wall on the ground under them changes nothing above.
+{
+  const me = game.state.player;
+  const [ux, uy] = [Math.round(me.gx) + 30, Math.round(me.gy) + 30];
+  for (const layer of [1, -1]) {
+    const groundRec = () => JSON.stringify(game.serialize().map.chunks.find((c) => c.cx === Math.floor(ux / map.CHUNK) && c.cy === Math.floor(uy / map.CHUNK) && !(c.layer || 0)));
+    const ground0 = groundRec();
+    for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) map.setFloor(ux + dx, uy + dy, "floor_wood", layer);
+    did(`a floor laid on layer ${layer}`);
+    const it = map.dropItem(ux + 1, uy + 1, { id: "stick", count: 1 }, layer); did(`an item dropped on layer ${layer}`);
+    map.takeItem(ux + 1, uy + 1, it, layer); did(`an item taken on layer ${layer}`);
+    map.buildWall(ux + 1, uy + 1, "n", "wall", "wall_wood", null, layer); did(`a wall built on layer ${layer}`);
+    map.buildWall(ux + 1, uy + 1, "n", "door", "wall_wood", null, layer); did(`a door stamped on layer ${layer}`);
+    const dw = map.tileAt(ux + 1, uy + 1, layer).n;
+    dw.open = true; map.touch(dw.at[0], dw.at[1], dw.at[2] || 0); did(`a door opened on layer ${layer}`);
+    map.damageOpening(dw, 1, 1); did(`a door hit short of breaking on layer ${layer}`);
+    map.destroyWall(ux + 1, uy + 1, "n", true, layer); did(`a door taken out of its wall on layer ${layer}`);
+    const box = map.createProp({ sprite: "chest", tile: [ux + 2, uy + 2], layer });
+    map.placeProp(box, ux + 2, uy + 2, layer); did(`a prop placed on layer ${layer}`);
+    const lamp = map.createProp({ sprite: "lantern_post", tile: [ux, uy], layer });
+    map.placeProp(lamp, ux, uy, layer); did(`a light set on layer ${layer}`);
+    map.setFireLit(lamp, false); did(`a light put out on layer ${layer}`);
+    map.removeProp(box); did(`a prop lifted on layer ${layer}`);
+    if (groundRec() !== ground0) fail(`a change on layer ${layer} changed the ground's record under it`);
+    const rec = game.serialize().map.chunks.find((c) => c.cx === Math.floor(ux / map.CHUNK) && c.cy === Math.floor(uy / map.CHUNK) && (c.layer || 0) === layer);
+    if (!rec || !rec.dirty || !rec.props.some((q) => q.id === lamp.id && q.layer === layer)) fail(`the layer ${layer} chunk's record is missing, not dirty, or its light has no layer`);
+  }
+}
+
 // The save as the server writes it: the snapshot's text, the same characters as the object's.
 const extra = { worldId: "w", name: "n", owners: {}, dormant: {}, myPlayerId: null, server: true };
 const st = save.snapshotText("valley", extra);

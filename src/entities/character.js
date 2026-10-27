@@ -23,7 +23,7 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
     sprite: null, // a sheet id, set by dress()
     gx,
     gy,
-    layer: 0, // always 0 for now (docs/08)
+    layer: 0, // the layer it stands on (docs/49 section 3): 0 the ground, 1 and up the floors above, -1 a cellar; its `rise` up a stair is step 3's
     facing: "s",
     speed,
     radius,
@@ -64,6 +64,7 @@ export function serializeCharacter(ch) {
   const out = {};
   for (const [k, v] of Object.entries(ch)) {
     if (CH_BY_ID.has(k) || CH_DROPPED.has(k) || typeof v === "function") continue;
+    if ((k === "rise" || k === "layer") && !v) continue; // its layer and the pixels climbed up a stair ride only when not 0 (docs/49 section 12)
     out[k] = v;
   }
   out.targetId = ch.target ? ch.target.id : null;
@@ -160,16 +161,16 @@ export function lootOf(ch) {
   ch.hands.main = null;
   ch.hands.off = null;
   if (ch.pockets) ch.pockets.items = [];
-  for (const e of entries) if (!grid.insert(bag, e)) dropItem(Math.round(ch.gx), Math.round(ch.gy), e);
+  for (const e of entries) if (!grid.insert(bag, e)) dropItem(Math.round(ch.gx), Math.round(ch.gy), e, ch.layer || 0);
   // What hit it and stayed: arrows by count, stacked, and below them a thrown thing as itself (`lodgedItems`); what did not fit lies at its feet.
   for (const [id, n] of Object.entries(ch.lodged || {})) {
     const put = grid.add(bag, id, n);
-    for (let i = put; i < n; i++) dropItem(Math.round(ch.gx), Math.round(ch.gy), { id, count: 1 });
+    for (let i = put; i < n; i++) dropItem(Math.round(ch.gx), Math.round(ch.gy), { id, count: 1 }, ch.layer || 0);
   }
   ch.lodged = {};
   for (const e of ch.lodgedItems || []) {
     if (e.uid == null) e.uid = nextId("e");
-    if (!grid.insert(bag, e)) dropItem(Math.round(ch.gx), Math.round(ch.gy), e);
+    if (!grid.insert(bag, e)) dropItem(Math.round(ch.gx), Math.round(ch.gy), e, ch.layer || 0);
   }
   ch.lodgedItems = [];
   return bag;

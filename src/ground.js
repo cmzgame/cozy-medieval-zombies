@@ -273,6 +273,9 @@ function zoneOf(x, y) {
 }
 
 export function kindOf(floorId) {
+  // The engine's own floors (docs/49 section 3: the void, the earth, a hole) have no sheet: the ground's bake takes them as dirt until
+  // the storeys are drawn (docs/49 step 2; a hole's opening is step 3's art). Only a cellar's hole is ever on the ground.
+  if (map.isEngineFloor(floorId)) return "dirt";
   return (data && data.floors[floorId]) || "laid";
 }
 

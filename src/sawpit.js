@@ -33,7 +33,7 @@ verbs.define("saw", {
     const prop = map.propById(target.prop);
     if (!isSawpit(prop)) return "There is no sawpit there.";
     if (!yieldOf()) return "There is nothing to saw.";
-    { const why = reachProblem(player, prop.tiles, REACH); if (why) return why; }
+    { const why = reachProblem(player, prop.tiles, REACH, prop.layer || 0); if (why) return why; }
     if (inventory.countAll(player, WK.saw.item) < 1) return `You need ${article(sawnName())}.`;
     return true;
   },
@@ -42,7 +42,7 @@ verbs.define("saw", {
     if (!out || inventory.takeAll(player, WK.saw.item, 1) < 1) return false;
     const bag = inventory.bagOf(player);
     const placed = bag ? inventory.addItem(bag, out.id, out.count) : 0;
-    for (let i = placed; i < out.count; i++) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(out.id, 1));
+    for (let i = placed; i < out.count; i++) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(out.id, 1), player.layer || 0);
     const name = items.getItem(out.id).name.toLowerCase();
     const fell = out.count - placed;
     const message = fell > 0 ? `You saw the ${sawnName()} into ${out.count} ${name}s; ${fell} ${fell === 1 ? "falls" : "fall"} at your feet.` : `You saw the ${sawnName()} into ${out.count} ${name}s.`;

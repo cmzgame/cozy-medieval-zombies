@@ -14,7 +14,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles, sideOf } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles, sideOf, addr, layerOf } from "../map.js";
 import { lineOfSight, openingOnLine } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -125,7 +125,7 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
   // The dead then know where the blow came from, when they are hunting at all.
   if (from && rules.zombieAggro) {
     z.aggro = true;
-    z.lastSeen = [from[0], from[1]];
+    z.lastSeen = addr(from[0], from[1], z.layer || 0); // a tile address names its layer off the ground (docs/49 section 12): a blow is on one layer
     z.sincePlayer = 0;
     // A player's blow it lives through is a first-hand turn to a player (docs/48): the pull, made at the top of its next step, where the
     // list of the dead is (a killing blow returned above and calls no one).
@@ -202,7 +202,7 @@ export function burnZombie(z, amount) {
 function updateHurt(z, dt, sheet) {
   if (z.knock) {
     const k = Math.min(dt, z.knock.left) / T.knockTime;
-    const moved = moveCircle(z.gx, z.gy, z.radius, z.knock.x * k, z.knock.y * k);
+    const moved = moveCircle(z.gx, z.gy, z.radius, z.knock.x * k, z.knock.y * k, z.layer || 0);
     z.gx = moved.gx;
     z.gy = moved.gy;
     z.knock.left -= dt;
@@ -246,7 +246,7 @@ function updateHurt(z, dt, sheet) {
 // The room the dead want into: where they last saw the player.
 function goalRoom(z) {
   if (!z.lastSeen) return 0;
-  return tileAt(Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])).room;
+  return tileAt(Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1]), layerOf(z.lastSeen)).room; // the room on the layer it saw them on (docs/49 section 12)
 }
 
 // The way in to a room the dead want: the nearest opening of it they can walk to and stand beside. A door is the way in
@@ -284,7 +284,7 @@ function wayIn(z, room, want, seen = new Set([room.id]), depth = 0) {
 function fenceWay(z, goal) {
   const start = tileOf(z);
   for (const mode of ["gate", "fence"]) {
-    const path = findPath(start, goal, canStepAcross(mode), 500);
+    const path = findPath(start, goal, canStepAcross(mode, z.layer || 0), 500);
     if (!path) continue;
     let px = start[0];
     let py = start[1];
@@ -447,6 +447,7 @@ function nearestFlame(z) {
   let best = null;
   let bestD = Infinity;
   for (const s of light.allSources()) {
+    if ((s.layer || 0) !== (z.layer || 0)) continue; // a flame on another layer is behind a floor: seeing across storeys is docs/49 step 4's ray
     const d = Math.hypot(s.gx - z.gx, s.gy - z.gy);
     // A torch on the belt is a weaker flame (docs/02): seen from `beltLight` (0.6) as far.
     if (d > range * (s.strength ?? 1) || d >= bestD) continue;
@@ -473,8 +474,8 @@ function moveToward(z, dt, goalTile, others) {
   const dy = goalTile[1] - z.gy;
   const n = iso.normalize(dx, dy);
   faceToward(z, dx, dy);
-  const sp = z.speed * floorSpeedAt(z.gx, z.gy); // shallow water slows the dead too (docs/30, law 8)
-  const moved = moveCircle(z.gx, z.gy, z.radius, n.x * sp * dt, n.y * sp * dt);
+  const sp = z.speed * floorSpeedAt(z.gx, z.gy, z.layer || 0); // shallow water slows the dead too (docs/30, law 8)
+  const moved = moveCircle(z.gx, z.gy, z.radius, n.x * sp * dt, n.y * sp * dt, z.layer || 0);
   z.gx = moved.gx;
   z.gy = moved.gy;
   separate(z, dt, others);
@@ -493,9 +494,9 @@ function startSearch(z) {
 
 const hashId = (id) => [...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-function rememberOpening(s, o) {
+function rememberOpening(s, o, layer = 0) {
   if (s.openings.some((k) => k.tx === o.tx && k.ty === o.ty && k.edge === o.edge)) return;
-  s.openings.push({ tx: o.tx, ty: o.ty, edge: o.edge });
+  s.openings.push(layer ? { tx: o.tx, ty: o.ty, edge: o.edge, layer } : { tx: o.tx, ty: o.ty, edge: o.edge }); // its layer off the ground (docs/49 section 12)
   if (s.openings.length > 4) s.openings.shift();
 }
 
@@ -503,12 +504,13 @@ function rememberOpening(s, o) {
 // crossed on the way in (the sighting that finds them in a room after one outside), and any window it sees them
 // through; a player seen out in the open ends it, and the ordinary chase goes on.
 function noteSighting(z, p) {
-  const room = tileAt(Math.round(p.gx), Math.round(p.gy)).room;
-  const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
+  const PL = p.layer || 0;
+  const room = tileAt(Math.round(p.gx), Math.round(p.gy), PL).room;
+  const here = tileAt(Math.round(z.gx), Math.round(z.gy), z.layer || 0).room;
   // A siege is the night's ("They stay at night", "the siege bites at night"): from dusk to the dawn it ends at; by day a sighting
   // is the ordinary chase, and a watcher is not given another siege to the next morning.
   const night = ["dusk", "night"].includes(clock.getPhase());
-  if (room <= 0) z.lastOut = [p.gx, p.gy]; // where the player was last seen in the open: the way in is the door on the line from there
+  if (room <= 0) z.lastOut = addr(p.gx, p.gy, PL); // where the player was last seen in the open: the way in is the door on the line from there
   if (room <= 0 || room === here || !night) {
     z.siege = null;
     z.seenRoom = room;
@@ -516,17 +518,17 @@ function noteSighting(z, p) {
   }
   if (!z.siege) z.siege = { at: [0, 0], openings: [], dawn: clock.getElapsed() + clock.secondsUntilHour(T.siegeEndHour), idx: hashId(z.id), switchAt: clock.getElapsed() + T.siegeSwitch, pid: p.id };
   const s = z.siege;
-  s.at = [Math.round(p.gx), Math.round(p.gy)];
+  s.at = addr(Math.round(p.gx), Math.round(p.gy), PL);
   s.pid = p.id;
   if (z.seenRoom === 0) { // its last sighting had the player out in the open, this one has them in: they went in by a door near them
     // The door the line from where it last saw them outside to where it sees them now crosses, which is the one they went through
     // when two doors stand close; failing that (a sighting through a window), the door nearest them.
     const crossed = z.lastOut ? openingOnLine(z.lastOut[0], z.lastOut[1], p.gx, p.gy) : null;
     const door = crossed && crossed.wall.kind === "door" ? crossed : openingsNear(p.gx, p.gy, 1.6).find((o) => o.wall.kind === "door");
-    if (door) rememberOpening(s, door);
+    if (door) rememberOpening(s, door, PL);
   }
   const win = openingOnLine(z.gx, z.gy, p.gx, p.gy);
-  if (win && win.wall.kind === "window") rememberOpening(s, win);
+  if (win && win.wall.kind === "window") rememberOpening(s, win, PL);
   z.seenRoom = room;
 }
 
@@ -574,7 +576,7 @@ function callOthers(z, others) {
     if (Math.hypot(o.gx - z.gx, o.gy - z.gy) > r || !lineOfSight(o.gx, o.gy, z.gx, z.gy)) continue;
     o.huntsPlayer = true;
     o.aggro = true;
-    if (!o.breach) o.lastSeen = z.lastSeen ? [z.lastSeen[0], z.lastSeen[1]] : [z.gx, z.gy]; // a breacher keeps its door (docs/48)
+    if (!o.breach) o.lastSeen = z.lastSeen ? z.lastSeen.slice() : addr(z.gx, z.gy, z.layer || 0); // a breacher keeps its door (docs/48)
     o.sincePlayer = 0;
     if (o.state === "search") {
       o.state = "chase";
@@ -636,7 +638,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     if (seen) {
       z.target = seen;
       z.aggro = true;
-      z.lastSeen = [seen.gx, seen.gy];
+      z.lastSeen = addr(seen.gx, seen.gy, seen.layer || 0);
       z.sincePlayer = 0;
       noteSighting(z, seen);
       // Its first sight of a player while not hunting one is a first-hand turn: the pull (docs/48). One already walking to a flame or after a
@@ -653,7 +655,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         z.target = prey;
         z.seesNow = true;
         z.aggro = true;
-        z.lastSeen = [prey.gx, prey.gy];
+        z.lastSeen = addr(prey.gx, prey.gy, prey.layer || 0);
         if (z.state === "search") {
           z.state = "chase";
           z.repathTimer = 0;
@@ -664,7 +666,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         const f = nearestFlame(z);
         if (f) {
           z.aggro = true;
-          z.lastSeen = [f.gx, f.gy]; // a carried flame is where its carrier stands (light.js: the source moves with them)
+          z.lastSeen = addr(f.gx, f.gy, f.layer || 0); // a carried flame is where its carrier stands (light.js: the source moves with them)
           if (z.state === "search") {
             z.state = "chase";
             z.repathTimer = 0;
@@ -689,7 +691,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
   }
   const tgt = z.target || nearestPlayer(z, players);
   if (!tgt) return; // no one alive to hunt: nothing to do this step
-  if (z.aggro && !z.lastSeen) z.lastSeen = [tgt.gx, tgt.gy]; // spawned aggro
+  if (z.aggro && !z.lastSeen) z.lastSeen = addr(tgt.gx, tgt.gy, tgt.layer || 0); // spawned aggro
 
   // The closing burst (Michael, 2026-10-24, #385, a trial): one of the dead in the chase, with its target in sight and close, walks
   // faster, as Zomboid's do, so one or two can close on a player not paying attention and a careful one can kite one away from the
@@ -704,7 +706,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         z.state = "chase";
         z.repathTimer = 0;
       } else if (z.idleTimer <= 0) {
-        const target = pickTargetAround(z.gx, z.gy, 3, roomOf(z));
+        const target = pickTargetAround(z.gx, z.gy, 3, roomOf(z), z.layer || 0);
         if (target) {
           repath(z, target);
           z.state = "wander";
@@ -910,7 +912,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         show(z, "idle");
         z.idleTimer -= dt;
         if (z.idleTimer <= 0) {
-          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], T.searchRadius, roomOf(z));
+          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], T.searchRadius, roomOf(z), z.layer || 0);
           if (target) repath(z, target);
           z.idleTimer = rng.range(0.8, 2.0);
         }
@@ -1009,7 +1011,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         z.repathTimer = 0;
         break;
       }
-      const roomHere = tileAt(s.at[0], s.at[1]).room;
+      const roomHere = tileAt(s.at[0], s.at[1], layerOf(s.at)).room;
       const room = roomHere > 0 ? getRoom(roomHere) : null;
       const cands = room ? breachTargets(room, z.gx, z.gy, 0, true) : [];
       if (!cands.length) {
@@ -1020,7 +1022,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         const ok = reach !== null ? reach : canReach(z, s.at);
         if (reach === null) s.reach = { ok, until: clock.getElapsed() + T.siegeSwitch };
         if (ok || !room) {
-          z.lastSeen = [s.at[0], s.at[1]];
+          z.lastSeen = s.at.slice();
           z.state = "chase";
           z.repathTimer = 0;
           break;
@@ -1046,7 +1048,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       const mx = c.edge === "n" ? c.tx : c.tx - 0.5;
       const my = c.edge === "n" ? c.ty - 0.5 : c.ty;
       if (Math.hypot(mx - z.gx, my - z.gy) <= T.breachReach) {
-        z.lastSeen = [s.at[0], s.at[1]];
+        z.lastSeen = s.at.slice();
         startBreach(z, { ...c, want: roomHere });
         break;
       }

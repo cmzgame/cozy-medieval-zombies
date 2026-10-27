@@ -343,7 +343,7 @@ function land(a, met = null) {
   if (a.vanish) keep = false; // a spell is gone the moment it arrives (Michael, 2026-10-14): nothing lies there
   if (a.projectile === "fireball") {
     flares.push({ gx, gy, t: 0 }); // a short light where it landed (#156)
-    map.kindleNear(gx, gy, tunables.kindleRadius, (px, py) => clearBetween(gx, gy, px, py, a.z)); // and it lights a campfire or a mounted torch there, not through a wall
+    map.kindleNear(gx, gy, tunables.kindleRadius, (px, py) => clearBetween(gx, gy, px, py, a.z), a.layer || 0); // and it lights a campfire or a mounted torch there, not through a wall
   }
   // What lands is the thrown item itself (a spear keeps whatever it carries) or a fresh arrow.
   if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground }); // a thrown knife or axe lies as its picture at this angle too (render/props.js)

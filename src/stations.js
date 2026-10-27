@@ -82,7 +82,7 @@ export function sources(player, prop) {
     const p = map.peekTile(px + dx, py + dy)?.prop;
     if (!p || p === prop || seen.has(p) || !p.bag) continue;
     seen.add(p);
-    if (canReach(player, p.tiles, REACH)) out.push(p.bag); // a chest in the next room feeds nothing through the wall (#208)
+    if (canReach(player, p.tiles, REACH, p.layer || 0)) out.push(p.bag); // a chest in the next room feeds nothing through the wall (#208)
   }
   return out;
 }
@@ -203,7 +203,7 @@ function toolInHand(player, id) {
 export function canMake(player, prop, r, count = 1) {
   if (!isOpen(r)) return "No such recipe."; // a world rule keeps it off (docs/43 section 5)
   if (!stationOf(prop).includes(r.station)) return "Not at this station.";
-  { const why = reachProblem(player, prop.tiles, REACH); if (why) return why === TOO_FAR ? "Too far from it." : why; }
+  { const why = reachProblem(player, prop.tiles, REACH, prop.layer || 0); if (why) return why === TOO_FAR ? "Too far from it." : why; }
   if (r.fire && !(prop.fire && prop.fire.lit)) return "The fire is out.";
   if (r.uses) { const why = toolProblem(player, r.uses); if (why) return why; } // a carried tool by its verb (#215)
   if (r.tool && !toolInHand(player, r.tool)) return `Needs ${aName(r.tool)} in hand.`;
@@ -221,7 +221,7 @@ export function start(player, prop, r, count = 1) {
   if (!prop.queue) prop.queue = [];
   prop.queue.push({ recipe: r.id, left: r.seconds, count, by: player.id });
   active.add(prop);
-  map.touch(prop.tile[0], prop.tile[1]);
+  map.touchProp(prop);
   emit("craftStarted", { id: prop.id, tile: prop.tile, recipe: r.id, count, by: player.id });
   return true;
 }
@@ -230,7 +230,7 @@ export function start(player, prop, r, count = 1) {
 export function outputOf(prop) {
   if (!prop.output) {
     prop.output = createBag(OUTPUT[0], OUTPUT[1], "output");
-    map.unsaved(prop.tile[0], prop.tile[1], false); // made on first use: the save's copy of its chunk is dropped
+    map.unsavedProp(prop, false); // made on first use: the save's copy of its chunk is dropped
   }
   return prop.output;
 }
@@ -373,7 +373,7 @@ export function update(dt) {
     if (!r) { prop.queue.shift(); continue; }
     if (r.fire && !(prop.fire && prop.fire.lit)) continue;
     q.left -= dt;
-    map.unsaved(prop.tile[0], prop.tile[1], false); // the job's time left is saved; the wire sends it in the frame's queues
+    map.unsavedProp(prop, false); // the job's time left is saved; the wire sends it in the frame's queues
     if (q.left > 0) continue;
     const landed = deliver(prop, r);
     if (!landed) { q.left = 1; continue; } // no room for it yet (a body on the spot, the room filled since it began): tried again in a second
@@ -381,7 +381,7 @@ export function update(dt) {
     q.count -= 1;
     if (q.count > 0) q.left = r.seconds;
     else prop.queue.shift();
-    map.touch(prop.tile[0], prop.tile[1]);
+    map.touchProp(prop);
   }
 }
 

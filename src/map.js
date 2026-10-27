@@ -27,13 +27,71 @@ export function propById(id) {
 const ROOM_MAX = 300; // a region bigger than this is outdoors, not a room
 const ROUND_BODY_RADIUS = 0.2; // a body's radius against round props; 0.3 against walls
 
-const chunks = new Map(); // "cx,cy" -> { cx, cy, layer, tiles, wild, dirty, lightVersion, saved }
-let source = null; // authored tiles: (x, y) => tile | null
+const chunks = new Map(); // chunkKey(cx, cy, layer) -> { cx, cy, layer, tiles, wild, dirty, lightVersion, saved }
+let source = null; // authored tiles of the ground: (x, y) => tile | null
+const layerSources = new Map(); // the authored tiles of every other layer (docs/49 section 11): layer -> (x, y) => tile | null
+const authoredChunks = new Map(); // layer (not 0) -> Map of chunk key -> [cx, cy]: the chunks an authored tile stands in, which ensureAround grows on that layer
 let defaultFloor = "floor_grass";
+// The map file's stairs and buildings as data, made by loadMap on host and guest alike from the file every client has (docs/49 section
+// 11): never saved or sent. Each stair { id, layer, at, dir, material, tiles, landing, before, building }; each building { id, set, rect,
+// rects: { layer: [x, y, w, h] }, layers }.
+let stairList = [];
+let stairProblems = [];
+let buildingList = [];
+export function stairs() {
+  return stairList;
+}
+export function stairProblemsOf() {
+  return stairProblems;
+}
+export function buildings() {
+  return buildingList;
+}
+// The authored building whose footprint on `layer` holds (x, y), or null (the hiding rule's, step 2; roofs').
+export function buildingAt(x, y, layer = 0) {
+  for (const b of buildingList) {
+    const r = b.rects[layer];
+    if (r && x >= r[0] && y >= r[1] && x < r[0] + r[2] && y < r[1] + r[3]) return b;
+  }
+  return null;
+}
+
+// ---- layers (docs/49, section 3) ----
+// The ground is layer 0, the floors above it 1, 2, and so on, a cellar -1. A storey is STOREY px (the wall height of docs/52): layer L's
+// floor stands STOREY * L above the ground. An unauthored tile above the ground is VOID (no floor, not walkable, nothing drawn, sight and
+// flights pass through it); below the ground it is EARTH (solid, not walkable, opaque, drawn as nothing; a cellar is a room cut out of it).
+// A HOLE is a floor kind: a stairwell cut in a floor (a cellar's stair under the ground floor), not walkable, drawn as the stair's
+// opening (step 3's art). An empty tile is never walkable and nothing falls (Michael, 2026-10-26). The three are the engine's own
+// floors, not sprite definitions: `floorRule` knows them, and the ground's bake draws no picture of its own for them.
+export const STOREY = 96;
+export const VOID = "void";
+export const EARTH = "earth";
+export const HOLE = "hole";
+const ENGINE_FLOORS = new Set([VOID, EARTH, HOLE]);
+export function isEngineFloor(id) {
+  return ENGINE_FLOORS.has(id);
+}
+// The floor an unauthored tile of a layer has: the map's base floor on the ground, void above it, earth below.
+export function emptyFloorOf(layer) {
+  return layer > 0 ? VOID : layer < 0 ? EARTH : defaultFloor;
+}
 // What a read beyond the grown chunks sees (docs/31/05 item 8): plain floor, no
 // walls, no prop, outdoors. Frozen, so a write to it throws instead of changing
 // nothing. Reading never grows a chunk; only ensureAround and the mutators do.
+// One blank a layer (docs/49 section 3): the ground's plain floor, the void above it, the earth below it; a read on an upper or a lower
+// layer where nothing is authored or built gets the void or the earth and grows no chunk, so nothing empty is saved or sent.
 let blank = Object.freeze({ floor: defaultFloor, n: null, w: null, prop: null, room: 0, items: null });
+const voidBlank = Object.freeze({ floor: VOID, n: null, w: null, prop: null, room: 0, items: null });
+const earthBlank = Object.freeze({ floor: EARTH, n: null, w: null, prop: null, room: 0, items: null });
+function blankOf(layer) {
+  return layer === 0 ? blank : layer > 0 ? voidBlank : earthBlank;
+}
+// The authored tile at (x, y) on a layer, or null.
+function sourceAt(x, y, layer) {
+  if (layer === 0) return source ? source(x, y) : null;
+  const s = layerSources.get(layer);
+  return s ? s(x, y) : null;
+}
 const rooms = new Map(); // room id -> { id, size, openings: [{ tx, ty, edge }] }
 let roomsDirty = true;
 // Every prop whose sprite definition declares `fire`, so light can list its
@@ -72,8 +130,23 @@ const openPlaces = new Map(); // a place's name -> Set of its footprint's "x,y"
 // the map does not import the ground.
 const groundListeners = [];
 
-export function reset({ floor = "floor_grass", authored = null, wildRule = null, mapBounds = null } = {}) {
+export function reset({ floor = "floor_grass", authored = null, wildRule = null, mapBounds = null, layers = null } = {}) {
   chunks.clear();
+  layerSources.clear();
+  authoredChunks.clear();
+  // The other layers' authored tiles (docs/49 section 11): { layer: Map("x,y" -> tile) }, each indexed by the chunks it stands in.
+  for (const [l, tiles] of layers ? Object.entries(layers) : []) {
+    const layer = Number(l);
+    if (!layer || !tiles || !tiles.size) continue;
+    layerSources.set(layer, (x, y) => tiles.get(`${x},${y}`) || null);
+    const keys = new Map();
+    for (const k of tiles.keys()) {
+      const [x, y] = k.split(",").map(Number);
+      const [cx, cy] = chunkCoord(x, y);
+      keys.set(chunkKey(cx, cy, layer), [cx, cy]);
+    }
+    authoredChunks.set(layer, keys);
+  }
   sleepers.clear();
   woken.length = 0;
   evicted.clear(); // a new map owes no frame a drop
@@ -113,12 +186,12 @@ export function burnFires(dt) {
     f.fuel -= dt / (f.hoursPerUnit * HOUR_SECONDS);
     // A guest's copy of the fuel refreshes when the chunk is sent: at every whole unit burned, so a guest's
     // hours left are never more than a unit behind (the sync check compares fuel to the unit; docs/31/04).
-    if (Math.floor(before) !== Math.floor(f.fuel)) markDirty(p.tile[0], p.tile[1]);
-    else unsaved(p.tile[0], p.tile[1], false); // the fuel between units: the save's copy only (the wire waits for the unit)
+    if (Math.floor(before) !== Math.floor(f.fuel)) markProp(p);
+    else unsavedProp(p, false); // the fuel between units: the save's copy only (the wire waits for the unit)
     if (f.fuel <= 0) {
       f.fuel = 0;
       f.lit = false;
-      touch(p.tile[0], p.tile[1]);
+      touchProp(p);
       emit("fireOut", { id: p.id, tile: p.tile });
     }
   }
@@ -134,7 +207,7 @@ export function feedFire(prop, light = true) {
   if (f.fuel >= f.maxFuel) return false;
   f.fuel = Math.min(f.maxFuel, f.fuel + 1);
   if (light) f.lit = true;
-  touch(prop.tile[0], prop.tile[1]);
+  touchProp(prop);
   emit("fireFed", { id: prop.id, tile: prop.tile, fuel: f.fuel });
   return true;
 }
@@ -182,7 +255,7 @@ export function burnHolders(dt) {
         touchWall(b.wall);
       }
       emit("torchSpent", { x: b.tx, y: b.ty });
-    } else if (b.wall.at && before !== hundredth(br.wear)) markDirty(b.wall.at[0], b.wall.at[1]);
+    } else if (b.wall.at && before !== hundredth(br.wear)) markDirty(b.wall.at[0], b.wall.at[1], b.wall.at[2] || 0);
     else unsavedWall(b.wall, false);
   }
   for (const p of fireProps) {
@@ -194,10 +267,10 @@ export function burnHolders(dt) {
       f.has = false;
       f.lit = false;
       delete f.wear;
-      touch(p.tile[0], p.tile[1]);
+      touchProp(p);
       emit("torchSpent", { x: p.tile[0], y: p.tile[1] });
-    } else if (before !== hundredth(f.wear)) markDirty(p.tile[0], p.tile[1]);
-    else unsaved(p.tile[0], p.tile[1], false);
+    } else if (before !== hundredth(f.wear)) markProp(p);
+    else unsavedProp(p, false);
   }
 }
 
@@ -206,15 +279,15 @@ export function burnHolders(dt) {
 // nothing else burns or spreads. `clear(x, y)` says whether the flame reaches that point (no wall between it and the landing: the
 // fireball passes it, as its hit does); the default is that it does. The authority's, from a fireball's landing (archery.js).
 // Returns how many it lit.
-export function kindleNear(x, y, r = 1, clear = null) {
+export function kindleNear(x, y, r = 1, clear = null, layer = 0) { // on one layer (docs/49): a flame lights nothing through a floor
   let n = 0;
   for (const p of fireProps) {
-    if (!lightableProp(p) || p.fire.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
+    if ((p.layer || 0) !== layer || !lightableProp(p) || p.fire.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
     if (clear && !clear(p.tile[0], p.tile[1])) continue;
     if (lightProp(p)) n++;
   }
   for (const b of bracketSet) {
-    if (!b.wall.bracket.torch || b.wall.bracket.lit !== false) continue;
+    if ((b.layer || 0) !== layer || !b.wall.bracket.torch || b.wall.bracket.lit !== false) continue;
     const [bx, by] = bracketPos(b);
     if (Math.hypot(bx - x, by - y) > r) continue;
     if (clear && !clear(bx, by)) continue;
@@ -223,29 +296,30 @@ export function kindleNear(x, y, r = 1, clear = null) {
   return n;
 }
 
-export function addBracket(tx, ty, edge, side, torch = false, lantern = false, lit = true) {
-  const wall = growTile(tx, ty)[edge];
+export function addBracket(tx, ty, edge, side, torch = false, lantern = false, lit = true, layer = 0) {
+  const wall = growTile(tx, ty, layer)[edge];
   if (!wall) return null;
   // A lantern is the village's own light (#156): steady, burning nothing, not a torch and not taken; a bracket holds one or the other.
   // Put out and lit again since docs/43 section 3: `lit: false` when out, nothing (lit) as authored.
   wall.bracket = lantern ? { side, torch: false, lantern: true } : { side, torch };
   if (torch && !lantern && lit === false) Object.assign(wall.bracket, { lit: false, wear: 0 }); // an unlit torch in it, burning from its first light (docs/43 section 4)
-  const b = { tx, ty, edge, wall };
+  const b = { tx, ty, edge, wall, layer };
   bracketSet.add(b);
   return b;
 }
 
 // A torch put on the camera face of a wall from a player's own hands, belt, or bag (Place torch, docs/43 section 4, #523; src/setdown.js),
 // on a bracket drawn with it: `made`, so the bracket goes with the torch. The torch keeps its own entry's uid, its wear, and whether it is
-// lit. Touches the wall's chunk, so the save has it and a guest's replica gets it and rebuilds its bracket list (net.js).
-export function mountTorch(tx, ty, edge, entry) {
-  const wall = peekTile(tx, ty) && peekTile(tx, ty)[edge];
+// lit. Touches the wall's chunk, so the save has it and a guest's replica gets it and rebuilds its bracket list (net.js). On a layer
+// (docs/49): the player's own.
+export function mountTorch(tx, ty, edge, entry, layer = 0) {
+  const wall = peekTile(tx, ty, layer) && peekTile(tx, ty, layer)[edge];
   if (!wall || wall.bracket || !entry) return null;
   wall.bracket = { side: 1, torch: true, made: true, wear: entry.wear || 0, lit: !!entry.lit };
   if (entry.uid != null) wall.bracket.uid = entry.uid;
-  const b = { tx, ty, edge, wall };
+  const b = { tx, ty, edge, wall, layer };
   bracketSet.add(b);
-  touch(tx, ty);
+  touch(tx, ty, layer);
   return b;
 }
 
@@ -269,7 +343,7 @@ function releaseBracket(wall) {
   for (const b of [...bracketSet]) {
     if (b.wall !== wall) continue;
     bracketSet.delete(b);
-    if (br.torch && !br.lantern) dropItem(...bracketFloor(b), torchEntryOf(br));
+    if (br.torch && !br.lantern) dropItem(...bracketFloor(b), torchEntryOf(br), b.layer || 0); // onto the bracket's own layer (docs/49)
   }
 }
 
@@ -278,8 +352,14 @@ export function removeBracket(b) {
   if (!b || !b.wall || !b.wall.bracket) return false;
   delete b.wall.bracket;
   for (const q of [...bracketSet]) if (q.wall === b.wall) bracketSet.delete(q);
-  touch(b.tx, b.ty);
+  touch(b.tx, b.ty, b.layer || 0);
   return true;
+}
+
+// The bracket on an edge of a layer, by its address, or null (docs/49: an address is on one layer).
+export function bracketAt(tx, ty, edge, layer = 0) {
+  for (const b of bracketSet) if (b.tx === tx && b.ty === ty && b.edge === edge && (b.layer || 0) === layer) return b;
+  return null;
 }
 
 // Where a bracket's torch burns, in grid space: a little off the edge on its side.
@@ -288,9 +368,10 @@ export function bracketPos(b) {
   return b.edge === "n" ? [b.tx, b.ty - 0.5 + s] : [b.tx - 0.5 + s, b.ty];
 }
 
-export function bracketsNear(gx, gy, r = 1.15) {
+export function bracketsNear(gx, gy, r = 1.15, layer = 0) {
   const out = [];
   for (const b of bracketSet) {
+    if ((b.layer || 0) !== layer) continue; // reach is on one layer (docs/49 section 9)
     const mx = b.edge === "n" ? b.tx : b.tx - 0.5;
     const my = b.edge === "n" ? b.ty - 0.5 : b.ty;
     const d = Math.hypot(gx - mx, gy - my);
@@ -301,10 +382,10 @@ export function bracketsNear(gx, gy, r = 1.15) {
 }
 
 // Holders (posts) within `r` tiles, nearest first.
-export function holdersNear(gx, gy, r = 1.3) {
+export function holdersNear(gx, gy, r = 1.3, layer = 0) {
   const out = [];
   for (const p of fireProps) {
-    if (!p.fire.holds) continue;
+    if (!p.fire.holds || (p.layer || 0) !== layer) continue;
     const d = Math.hypot(gx - p.tile[0], gy - p.tile[1]);
     if (d <= r) out.push({ prop: p, d });
   }
@@ -346,7 +427,7 @@ export function setHolder(target, has, entry = null) {
     f.lit = has && (entry ? !!entry.lit : true);
     if (has && entry) f.wear = entry.wear || 0;
     else delete f.wear;
-    touch(target.prop.tile[0], target.prop.tile[1]);
+    touchProp(target.prop);
   }
   // It touched nothing before 2026-10-15: a guest saw a torch mounted or taken only once its chunk went for another
   // reason (found auditing the changes for the save's cache, `02`).
@@ -382,7 +463,7 @@ export function setFireLit(prop, lit) {
   if (!f || f.lit === !!lit) return false;
   if (lit && !f.switch) return false; // lighting a burner or a torch is lightProp's (it asks for fuel or a torch)
   f.lit = !!lit;
-  touch(prop.tile[0], prop.tile[1]);
+  touchProp(prop);
   emit(lit ? "fireLit" : "firePutOut", { id: prop.id, tile: prop.tile }); // not fireOut: that one tells the players near that a fire burnt out
   return true;
 }
@@ -412,7 +493,7 @@ export function lightProp(prop) {
   if (!lightableProp(prop) || prop.fire.lit) return false;
   const f = prop.fire;
   f.lit = true;
-  touch(prop.tile[0], prop.tile[1]);
+  touchProp(prop);
   emit("fireLit", { id: prop.id, tile: prop.tile });
   return true;
 }
@@ -427,10 +508,10 @@ export function lightBracket(b) {
 }
 
 // Burners within `r` tiles of (gx, gy), nearest first.
-export function burnersNear(gx, gy, r = 1.3) {
+export function burnersNear(gx, gy, r = 1.3, layer = 0) {
   const out = [];
   for (const p of fireProps) {
-    if (!p.fire.burns) continue;
+    if (!p.fire.burns || (p.layer || 0) !== layer) continue;
     const d = Math.hypot(gx - p.tile[0], gy - p.tile[1]);
     if (d <= r) out.push({ prop: p, d });
   }
@@ -790,7 +871,7 @@ export function dropItem(x, y, entry, layer = 0) {
     return last;
   }
   const t = growTile(x, y, layer);
-  markDirty(x, y);
+  markDirty(x, y, layer);
   if (!t.items) t.items = [];
   // The entry itself goes on the floor, less its grid position, so a bag
   // keeps everything in it and a belt its slots (docs/11).
@@ -804,7 +885,7 @@ export function dropItem(x, y, entry, layer = 0) {
 }
 
 export function takeItem(x, y, entry, layer = 0) {
-  markDirty(x, y);
+  markDirty(x, y, layer);
   const t = tileAt(x, y, layer);
   if (!t.items) return false;
   const i = t.items.indexOf(entry);
@@ -828,18 +909,32 @@ function slotOf(prop) {
   return getDef(prop.sprite).rug ? "rug" : "prop";
 }
 
-export function placeProp(prop, tx, ty) {
+// Every prop knows its layer (`layer`, 0 on the ground: saved and sent only when it is not, serializeProp); placed with none given, it
+// stays on the layer it was on (docs/49 section 3).
+export function placeProp(prop, tx, ty, layer = prop.layer || 0) {
   const [w, h] = prop.footprint;
   prop.tile = [tx, ty];
+  prop.layer = layer;
   prop.tiles = [];
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) prop.tiles.push([tx + dx, ty + dy]);
   const slot = slotOf(prop);
-  for (const [x, y] of prop.tiles) growTile(x, y)[slot] = prop;
+  for (const [x, y] of prop.tiles) growTile(x, y, layer)[slot] = prop;
   if (prop.fire) fireProps.add(prop);
   propsById.set(prop.id, prop); // a lifted prop left the registry (removeProp); put down, it is findable by its id again
-  touch(tx, ty);
+  touch(tx, ty, layer);
   markFootprint(prop);
-  groundChanged(prop.tiles, prop);
+  if (!layer) groundChanged(prop.tiles, prop); // the ground's bake is layer 0's (an upper floor's is docs/49 step 2's)
+}
+
+// A change on a prop's chunk, on the prop's own layer: what a guest must see (touch, markDirty) and what only the save keeps (unsaved).
+export function touchProp(prop) {
+  touch(prop.tile[0], prop.tile[1], prop.layer || 0);
+}
+export function markProp(prop) {
+  markDirty(prop.tile[0], prop.tile[1], prop.layer || 0);
+}
+export function unsavedProp(prop, near = true) {
+  unsaved(prop.tile[0], prop.tile[1], near, prop.layer || 0);
 }
 
 // Whether (x, y) lies in chunk c.
@@ -851,13 +946,14 @@ function inChunkTile(c, x, y) {
 // neighbour's record (which names the part, `parts` in serializeChunk) goes to a guest, and the neighbour is dirty and
 // never evicted: a wild chunk dropped and grown again would grow without the prop's tiles.
 function markFootprint(prop) {
+  const layer = prop.layer || 0;
   const [acx, acy] = chunkCoord(prop.tile[0], prop.tile[1]);
   const done = new Set();
   for (const [x, y] of prop.tiles) {
     const [cx, cy] = chunkCoord(x, y);
-    if ((cx === acx && cy === acy) || done.has(chunkKey(cx, cy))) continue;
-    done.add(chunkKey(cx, cy));
-    markDirty(x, y);
+    if ((cx === acx && cy === acy) || done.has(chunkKey(cx, cy, layer))) continue;
+    done.add(chunkKey(cx, cy, layer));
+    markDirty(x, y, layer);
   }
 }
 
@@ -870,7 +966,7 @@ function clearForeignTiles(c, pr) {
     const t = peekTile(x, y, c.layer);
     if (t && t[slot] === pr) {
       t[slot] = null;
-      unsaved(x, y, false); // the neighbour's saved copy named the part
+      unsaved(x, y, false, c.layer); // the neighbour's saved copy named the part
     }
   }
 }
@@ -902,20 +998,21 @@ export function restage(prop, sprite, regrowAt) {
   prop.sprite = sprite;
   if (regrowAt === null || regrowAt === undefined) delete prop.regrowAt;
   else prop.regrowAt = regrowAt;
-  touch(prop.tile[0], prop.tile[1]);
+  touchProp(prop);
 }
 
 export function removeProp(prop) {
+  const layer = prop.layer || 0;
   for (const [tx, ty] of prop.tiles) {
-    const t = tileAt(tx, ty);
+    const t = tileAt(tx, ty, layer);
     if (t.prop === prop) t.prop = null;
     if (t.rug === prop) t.rug = null;
   }
   fireProps.delete(prop);
   propsById.delete(prop.id);
-  touch(prop.tile[0], prop.tile[1]);
+  touch(prop.tile[0], prop.tile[1], layer);
   markFootprint(prop); // the neighbour's record loses the part (#341)
-  groundChanged(prop.tiles, prop);
+  if (!layer) groundChanged(prop.tiles, prop);
 }
 
 // ---- the ground's hooks (docs/15) ----
@@ -933,8 +1030,8 @@ export function setFloor(x, y, id, layer = 0) {
   const t = growTile(x, y, layer);
   if (t.floor === id) return;
   t.floor = id;
-  touch(x, y);
-  groundChanged([[x, y]]);
+  touch(x, y, layer);
+  if (!layer) groundChanged([[x, y]]);
 }
 
 // The zone a tile belongs to: inside the bounds the first scatter rule whose
@@ -990,36 +1087,36 @@ export function canStampOver(existing, kind) {
 // Whether a wall of this kind may be built on the edge: nothing there yet (or a plain wall or a broken opening a door or a
 // window may stand in, `canStampOver`), no solid prop whose footprint spans it, and a door needs both its tiles to be
 // walkable and clear so it can be walked through and stood at.
-export function canBuildWall(tx, ty, edge, kind = "wall") {
-  if (!canStampOver(tileAt(tx, ty)[edge], kind)) return false;
+export function canBuildWall(tx, ty, edge, kind = "wall", layer = 0) {
+  if (!canStampOver(tileAt(tx, ty, layer)[edge], kind)) return false;
   const [a, b] = edgeTiles(tx, ty, edge);
-  const pa = tileAt(a[0], a[1]).prop;
-  const pb = tileAt(b[0], b[1]).prop;
+  const pa = tileAt(a[0], a[1], layer).prop;
+  const pb = tileAt(b[0], b[1], layer).prop;
   if (pa && pa === pb && pa.solid) return false;
-  const ra = tileAt(a[0], a[1]).rug;
-  if (ra && ra === tileAt(b[0], b[1]).rug) return false; // a wall is not built through a laid rug: it would cut it in two (#327)
-  if (kind === "door" && (!isWalkableTile(a[0], a[1]) || !isWalkableTile(b[0], b[1]) || pa || pb)) return false; // both its tiles clear: the dead go for a door, and need to stand at it
+  const ra = tileAt(a[0], a[1], layer).rug;
+  if (ra && ra === tileAt(b[0], b[1], layer).rug) return false; // a wall is not built through a laid rug: it would cut it in two (#327)
+  if (kind === "door" && (!isWalkableTile(a[0], a[1], layer) || !isWalkableTile(b[0], b[1], layer) || pa || pb)) return false; // both its tiles clear: the dead go for a door, and need to stand at it
   return true;
 }
 
 // Whether a tile is one of the two a door stands between (nothing is put down on one, and nothing is generated there:
 // the dead who want a room go for its door and must be able to stand at it, #134).
-export function besideDoor(x, y) {
-  const t = tileAt(x, y);
+export function besideDoor(x, y, layer = 0) {
+  const t = tileAt(x, y, layer);
   if ((t.n && t.n.kind === "door") || (t.w && t.w.kind === "door")) return true;
-  const s = tileAt(x, y + 1);
+  const s = tileAt(x, y + 1, layer);
   if (s.n && s.n.kind === "door") return true;
-  const e = tileAt(x + 1, y);
+  const e = tileAt(x + 1, y, layer);
   return !!(e.w && e.w.kind === "door");
 }
 
 // Build a wall, door, or window on an edge, as an authored one would be, and
 // tell sight, light, and the rooms.
-export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf = null) {
-  const t = growTile(tx, ty);
+export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf = null, layer = 0) {
+  const t = growTile(tx, ty, layer);
   const existing = t[edge];
   if (existing && !canStampOver(existing, kind)) return false;
-  if (existing) releaseHangings(tx, ty, edge); // a door or a window stamped over a wall that held a painting: it falls to the floor (#326)
+  if (existing) releaseHangings(tx, ty, edge, layer); // a door or a window stamped over a wall that held a painting: it falls to the floor (#326)
   if (existing) {
     // Stamped over a wall (or a broken opening): the new one is of the same material, so a door in a wood wall is a wood door,
     // and it remembers the wall it replaced, which the removal tool puts back (never a hole where a wall stood).
@@ -1039,10 +1136,10 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
   const own = kind !== "wall" ? storedLeaf(sprite, leaf || (existing && existing.kind === kind ? carriedLeaf(existing) : "")) : null; // a door or window of another wood than its wall (#334); nothing stored when it is the wall's own; over a broken one of its kind the default is the old one's wood
   if (own) wall.leaf = own;
-  wall.at = [tx, ty];
+  wall.at = addr(tx, ty, layer);
   t[edge] = wall;
-  touch(tx, ty);
-  rebuildRoomsAround(tx, ty, edge);
+  touch(tx, ty, layer);
+  rebuildRoomsAround(tx, ty, edge, layer);
   return true;
 }
 
@@ -1055,56 +1152,56 @@ export function nextAlong(tx, ty, edge) {
 }
 
 // Take a painting off the wall (the holder's record `rec` on the segment (tx, ty)), its cover too: returns its item id. Nothing is given: the caller puts it in a bag or drops it.
-export function removeHanging(tx, ty, edge, rec) {
-  const wall = tileAt(tx, ty)[edge];
+export function removeHanging(tx, ty, edge, rec, layer = 0) {
+  const wall = tileAt(tx, ty, layer)[edge];
   if (!wall || !wall.hangings || !wall.hangings.includes(rec) || !rec.item) return null;
   wall.hangings.splice(wall.hangings.indexOf(rec), 1);
   if (!wall.hangings.length) delete wall.hangings;
-  touch(tx, ty);
+  touch(tx, ty, layer);
   if (rec.span === 2) {
     const [nx, ny] = nextAlong(tx, ty, edge);
-    const w2 = tileAt(nx, ny)[edge];
+    const w2 = tileAt(nx, ny, layer)[edge];
     if (w2 && w2.hangings) {
       const i = w2.hangings.findIndex((q) => q.cover && q.cover[0] === tx && q.cover[1] === ty && q.slot === rec.slot);
       if (i >= 0) w2.hangings.splice(i, 1);
       if (!w2.hangings.length) delete w2.hangings;
-      touch(nx, ny);
+      touch(nx, ny, layer);
     }
   }
   return rec.item;
 }
 
 // What hangs on a wall about to go (taken down, or stamped over by a door or a window) falls to the floor on the face's side, as an item, whole: a painting is never lost with its wall.
-function releaseHangings(tx, ty, edge) {
-  const wall = tileAt(tx, ty)[edge];
+function releaseHangings(tx, ty, edge, layer = 0) {
+  const wall = tileAt(tx, ty, layer)[edge];
   if (!wall || !wall.hangings) return;
   for (const h of [...wall.hangings]) {
     const [htx, hty] = h.cover || [tx, ty];
-    const holder = tileAt(htx, hty)[edge];
+    const holder = tileAt(htx, hty, layer)[edge];
     const rec = holder && holder.hangings && holder.hangings.find((q) => q.item && (h.item ? q === h : q.slot === h.slot));
-    const item = rec ? removeHanging(htx, hty, edge, rec) : null;
-    if (item) dropItem(htx, hty, { id: item, count: 1, uid: nextId("e") });
+    const item = rec ? removeHanging(htx, hty, edge, rec, layer) : null;
+    if (item) dropItem(htx, hty, { id: item, count: 1, uid: nextId("e") }, layer);
   }
 }
 
 // Take a wall, door, or window off an edge, and whatever hangs on it (its
 // boards go with it, a torch bracket is forgotten and the torch in it falls to the floor, a painting falls to the floor).
-export function destroyWall(tx, ty, edge, restoreUnder = false) {
-  const t = growTile(tx, ty);
+export function destroyWall(tx, ty, edge, restoreUnder = false, layer = 0) {
+  const t = growTile(tx, ty, layer);
   const wall = t[edge];
   if (!wall) return false;
-  releaseHangings(tx, ty, edge);
+  releaseHangings(tx, ty, edge, layer);
   releaseBracket(wall);
   t[edge] = null;
   if (restoreUnder && wall.under) {
     // The removal tool takes a built door or window out of the wall it was stamped into, and the wall is back.
     t[edge] = createWall("wall", wall.under);
-    t[edge].at = [tx, ty];
+    t[edge].at = addr(tx, ty, layer);
     if (wall.underBuilt) t[edge].built = true;
     if (wall.underFree) t[edge].free = true; // a wall built while Free building was on comes back free: it gives nothing when taken apart (docs/43, section 2)
   }
-  touch(tx, ty);
-  rebuildRoomsAround(tx, ty, edge);
+  touch(tx, ty, layer);
+  rebuildRoomsAround(tx, ty, edge, layer);
   return true;
 }
 
@@ -1122,7 +1219,7 @@ export function isFence(wall) {
 
 // The closed fence (or gate) a body at (gx, gy) is pressed against on the way to (tx, ty): within reach of the edge's middle
 // and on the goal's side, the most so of the four edges round its tile; null when there is none.
-export function fenceAhead(gx, gy, tx, ty, reach = 0.8) {
+export function fenceAhead(gx, gy, tx, ty, reach = 0.8, layer = 0) {
   const x = Math.round(gx);
   const y = Math.round(gy);
   const dx = tx - gx;
@@ -1130,7 +1227,7 @@ export function fenceAhead(gx, gy, tx, ty, reach = 0.8) {
   const len = Math.hypot(dx, dy) || 1;
   let best = null;
   for (const [ex, ey, edge, mx, my] of [[x, y, "n", x, y - 0.5], [x, y, "w", x - 0.5, y], [x, y + 1, "n", x, y + 0.5], [x + 1, y, "w", x + 0.5, y]]) {
-    const wall = tileAt(ex, ey)[edge];
+    const wall = tileAt(ex, ey, layer)[edge];
     if (!isFence(wall) || (wall.kind === "door" && wall.open)) continue;
     if (Math.hypot(mx - gx, my - gy) > reach) continue;
     const dot = ((mx - gx) * dx + (my - gy) * dy) / len;
@@ -1148,15 +1245,15 @@ function fenceLimit(wall) {
 // One strike on a fence or gate by one of the dead (zombie.js, the `pressHit` state at its active frame). Short of a break the health is
 // the save's alone (`unsavedWall`, as a door's is: the wire sends no chunk for it; every client gets the jolt as an fx), and at nothing
 // left it bursts (the destroyed wall rides the chunk).
-export function strikeFence(wall, tx, ty, edge, amount) {
-  if (tileAt(tx, ty)[edge] !== wall) return false;
+export function strikeFence(wall, tx, ty, edge, amount, layer = layerOf(wall && wall.at)) {
+  if (tileAt(tx, ty, layer)[edge] !== wall) return false;
   if (!Number.isFinite(wall.hp)) wall.hp = fenceLimit(wall); // a fence made before fences had hit points
   wall.hp -= amount;
   emit("wallStruck", { tx, ty, edge });
   if (wall.hp <= 0) {
     const [mx, my] = edgeMid(tx, ty, edge);
-    destroyWall(tx, ty, edge);
-    emit("fenceBurst", { x: mx, y: my, tx, ty, edge });
+    destroyWall(tx, ty, edge, false, layer);
+    emit("fenceBurst", { x: mx, y: my, tx, ty, edge, ...(layer ? { layer } : {}) });
     return true;
   }
   unsavedWall(wall); // its health, short of a break, is the save's alone, as a door's is: the wire sends the break and the jolt
@@ -1265,7 +1362,7 @@ export function wayOpen(wall) {
 export function roomSealed(room) {
   if (!room) return false; // a room id from a step before a refind
   for (const op of room.openings) {
-    const w = tileAt(op.tx, op.ty)[op.edge];
+    const w = tileAt(op.tx, op.ty, room.layer || 0)[op.edge];
     if (!w) continue;
     if (boarded(w)) continue;
     if (w.broken) return false;
@@ -1292,22 +1389,23 @@ export function breachTarget(room, gx, gy, want = 0, windows = false) {
 export function breachTargets(room, gx, gy, want = 0, windows = false) {
   // Breaking in from outside, or out from inside: the attacker stands on
   // whichever side of the opening they are on and goes through to the other.
-  const inside = tileAt(Math.round(gx), Math.round(gy)).room === room.id;
+  const L = room.layer || 0; // a room is on one layer (docs/49 section 3), and so are its openings and the tiles beside them
+  const inside = tileAt(Math.round(gx), Math.round(gy), L).room === room.id;
   const out = [];
   for (const op of room.openings) {
-    const w = tileAt(op.tx, op.ty)[op.edge];
+    const w = tileAt(op.tx, op.ty, L)[op.edge];
     if (!w || !needsBreaking(w)) continue; // an opening that is already a way through is nothing to break (the dead walk through it)
     if (w.kind !== "door" && !(windows && !inside)) continue;
     const nearTile = [op.tx, op.ty];
     const farTile = op.edge === "n" ? [op.tx, op.ty - 1] : [op.tx - 1, op.ty];
-    const nearIn = tileAt(nearTile[0], nearTile[1]).room === room.id;
+    const nearIn = tileAt(nearTile[0], nearTile[1], L).room === room.id;
     const roomTile = nearIn ? nearTile : farTile;
     const outTile = nearIn ? farTile : nearTile;
     const stand = inside ? roomTile : outTile;
     const into = inside ? outTile : roomTile;
     const side = stand === nearTile ? 1 : -1;
-    if (!isWalkableTile(stand[0], stand[1])) continue;
-    const toward = want > 0 && tileAt(into[0], into[1]).room === want;
+    if (!isWalkableTile(stand[0], stand[1], L)) continue;
+    const toward = want > 0 && tileAt(into[0], into[1], L).room === want;
     const d = Math.hypot(gx - stand[0], gy - stand[1]) - (toward ? 1000 : 0);
     out.push({ wall: w, tx: op.tx, ty: op.ty, edge: op.edge, stand, side, d, into });
   }
@@ -1321,16 +1419,17 @@ export function breachTargets(room, gx, gy, want = 0, windows = false) {
 // B4); with none, every loaded chunk's version is bumped.
 export let worldVersion = 0;
 const touched = new Set(); // chunk keys changed since the wire last asked (docs/31/04: a chunk delta per change)
+// Each as [cx, cy], or [cx, cy, layer] off the ground (docs/49 section 12: the touched list names its layer).
 export function takeTouched() {
   const out = [];
   for (const k of touched) {
     const c = chunks.get(k);
-    if (c) out.push([c.cx, c.cy]);
+    if (c) out.push(c.layer ? [c.cx, c.cy, c.layer] : [c.cx, c.cy]);
   }
   touched.clear();
   return out;
 }
-export function touch(x = null, y = null) {
+export function touch(x = null, y = null, layer = 0) {
   worldVersion++;
   if (x === null) {
     for (const c of chunks.values()) {
@@ -1342,17 +1441,25 @@ export function touch(x = null, y = null) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
-      const c = getChunk(cx + dx, cy + dy, false);
+      const c = getChunk(cx + dx, cy + dy, false, layer);
       if (c) c.lightVersion++;
     }
   }
-  markDirty(x, y);
+  markDirty(x, y, layer);
 }
 
-// A change on a wall names the wall's tile when the wall knows it.
+// A change on a wall names the wall's tile when the wall knows it: `at` is [x, y], or [x, y, layer] off the ground (docs/49 section 12:
+// a tile address carries its layer, left out when it is 0).
 function touchWall(wall) {
-  if (wall.at) touch(wall.at[0], wall.at[1]);
+  if (wall.at) touch(wall.at[0], wall.at[1], wall.at[2] || 0);
   else touch();
+}
+// A tile address [x, y] with its layer when it is not the ground's (docs/49 section 12), and the layer an address names.
+export function addr(x, y, layer = 0) {
+  return layer ? [x, y, layer] : [x, y];
+}
+export function layerOf(a) {
+  return (a && (Array.isArray(a) ? a[2] : a.layer)) || 0;
 }
 
 // A chunk changed by play (a floor, a prop, an item, a wall): kept in memory for good.
@@ -1360,15 +1467,15 @@ let touchHook = null; // the chart's: a chunk changed (docs/33), by touch or mar
 export function setTouchHook(fn) {
   touchHook = fn;
 }
-export function markDirty(x, y) {
+export function markDirty(x, y, layer = 0) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
-  if (touchHook) touchHook(cx, cy);
-  const c = getChunk(cx, cy, false);
+  if (touchHook && !layer) touchHook(cx, cy); // the chart is the ground's alone (docs/49 section 12)
+  const c = getChunk(cx, cy, false, layer);
   if (c) {
     c.dirty = true;
     touched.add(chunkKey(cx, cy, c.layer));
   }
-  unsaved(x, y);
+  unsaved(x, y, true, layer);
 }
 
 // ---- the save's copy of each chunk (2026-10-15, `02`: a save that costs what changed) ----
@@ -1380,16 +1487,16 @@ export function markDirty(x, y) {
 // breaking, a container's bag made on first use. A change that forgets both is caught: the server's rolling copy
 // and its last save, and the browser's every tenth autosave, make the whole save afresh and say which chunk the
 // copy had wrong (game.verifySaveCache).
-export function unsaved(x, y, near = true) {
+export function unsaved(x, y, near = true, layer = 0) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
   if (!near) {
-    const c = getChunk(cx, cy, false);
+    const c = getChunk(cx, cy, false, layer);
     if (c) c.saved = null;
     return;
   }
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
-      const c = getChunk(cx + dx, cy + dy, false);
+      const c = getChunk(cx + dx, cy + dy, false, layer);
       if (c) c.saved = null;
     }
   }
@@ -1397,7 +1504,7 @@ export function unsaved(x, y, near = true) {
 
 // A wall's change that the wire does not send (its health): the save's copy of its tile's chunks is dropped.
 function unsavedWall(wall, near = true) {
-  if (wall.at) unsaved(wall.at[0], wall.at[1], near);
+  if (wall.at) unsaved(wall.at[0], wall.at[1], near, wall.at[2] || 0);
   else for (const c of chunks.values()) c.saved = null;
 }
 
@@ -1540,7 +1647,7 @@ export function installChunk(d) {
   for (let i = 0; i < CHUNK * CHUNK; i++) {
     const x = cx * CHUNK + (i % CHUNK);
     const y = cy * CHUNK + Math.floor(i / CHUNK);
-    const st = layer === 0 && source && source(x, y);
+    const st = sourceAt(x, y, layer);
     // Only an authored prop anchored here: one anchored on a neighbour is that chunk's (installed from it, or grown with it), and this
     // chunk's `parts` stand it on its tiles here again (#341's review: a save holding the neighbour but not the anchor lost the tile).
     if (st && st.prop && inChunkTile({ cx, cy }, st.prop.tile[0], st.prop.tile[1])) {
@@ -1551,7 +1658,7 @@ export function installChunk(d) {
   const tiles = new Array(CHUNK * CHUNK);
   let i = 0;
   for (const [floor, n] of d.floors) for (let j = 0; j < n; j++) tiles[i++] = createTile(floor);
-  for (const [lx, ly, edge, w] of d.walls) tiles[ly * CHUNK + lx][edge] = { ...w, at: [cx * CHUNK + lx, cy * CHUNK + ly] };
+  for (const [lx, ly, edge, w] of d.walls) tiles[ly * CHUNK + lx][edge] = { ...w, at: addr(cx * CHUNK + lx, cy * CHUNK + ly, layer) };
   for (const [lx, ly, list] of d.items) tiles[ly * CHUNK + lx].items = list;
   // The tiles of props anchored on a neighbour (#341): stood again from the registry when the prop is there and still covers the tile. A prop not
   // in it yet (its anchor's chunk comes later in a restore or a frame) stands on this tile when that chunk's installProp runs.
@@ -1574,7 +1681,7 @@ export function installChunk(d) {
 // A prop from its record, not on any tile: what a character carries (docs/13) rides in its own
 // record (entities/character.js `carried`), since a lifted prop is on no chunk to be found by id.
 export function reviveProp(data, onMap = true) {
-  const prop = createProp({ id: data.id, sprite: data.sprite, tile: data.tile, footprint: data.footprint, facing: data.facing, offset: data.offset, solid: data.solid, radius: data.radius });
+  const prop = createProp({ id: data.id, sprite: data.sprite, tile: data.tile, layer: data.layer, footprint: data.footprint, facing: data.facing, offset: data.offset, solid: data.solid, radius: data.radius });
   const { gone, ...rest } = data;
   Object.assign(prop, rest, { tiles: prop.tiles, kind: "prop" });
   if (prop.fire && !Number.isFinite(prop.fire.fuel)) prop.fire.fuel = 0; // a save from before 2026-10-15 may hold the word (createProp)
@@ -1605,8 +1712,8 @@ export function rebuildBrackets() {
       const t = c.tiles[i];
       const tx = c.cx * CHUNK + (i % CHUNK);
       const ty = c.cy * CHUNK + Math.floor(i / CHUNK);
-      if (t.n && t.n.bracket) bracketSet.add({ tx, ty, edge: "n", wall: t.n });
-      if (t.w && t.w.bracket) bracketSet.add({ tx, ty, edge: "w", wall: t.w });
+      if (t.n && t.n.bracket) bracketSet.add({ tx, ty, edge: "n", wall: t.n, layer: c.layer });
+      if (t.w && t.w.bracket) bracketSet.add({ tx, ty, edge: "w", wall: t.w, layer: c.layer });
     }
   }
 }
@@ -1634,9 +1741,10 @@ export function onEvict(fn) {
   evictListeners.push(fn);
 }
 
-// The chunks evicted since the last call, as [cx, cy] (layer 0: only the wild is dropped), for the frame: a guest's
-// replica drops what the host dropped (the sync check found a guest holding chunks the host no longer had, 2026-10-18).
-// One grown again since is left out: it is in the touched list, and a guest's installChunk replaces its old copy whole.
+// The chunks evicted since the last call, as [cx, cy], or [cx, cy, layer] off the ground (only the wild is dropped, and the wild is
+// the ground's), for the frame: a guest's replica drops what the host dropped (the sync check found a guest holding chunks the host no
+// longer had, 2026-10-18). One grown again since is left out: it is in the touched list, and a guest's installChunk replaces its old
+// copy whole.
 export function takeEvicted() {
   const out = [];
   for (const [k, at] of evicted) if (!chunks.has(k)) out.push(at);
@@ -1663,7 +1771,7 @@ export function dropChunk(cx, cy, layer = 0) {
   }
   chunks.delete(k);
   lastChunk = null;
-  for (const fn of evictListeners) fn(k, c.cx, c.cy);
+  for (const fn of evictListeners) fn(k, c.cx, c.cy, c.layer);
   return true;
 }
 
@@ -1675,13 +1783,15 @@ export function dropChunk(cx, cy, layer = 0) {
 export function evictFar(gx, gy, radius, keep = () => false) {
   const [pcx, pcy] = chunkCoord(Math.round(gx), Math.round(gy));
   const out = [];
+  // Every layer by the one rule (docs/49 section 16, step 1): an unchanged wild chunk far from everyone goes. Only the ground grows
+  // wild, so a chunk of another layer (authored, or built on) is never dropped; the rule is the same for it all the same.
   for (const [k, c] of chunks) {
-    if (!c.wild || c.dirty || c.layer !== 0) continue;
+    if (!c.wild || c.dirty) continue;
     if (Math.max(Math.abs(c.cx - pcx), Math.abs(c.cy - pcy)) <= radius) continue;
-    if (keep(c.cx, c.cy)) continue;
+    if (keep(c.cx, c.cy, c.layer)) continue;
     dropChunk(c.cx, c.cy, c.layer); // the walk's own entry deleted from the Map: the walk goes on safely
-    evicted.set(k, [c.cx, c.cy]); // for the next frame (net.js): a guest drops it too
-    out.push([k, c.cx, c.cy]);
+    evicted.set(k, c.layer ? [c.cx, c.cy, c.layer] : [c.cx, c.cy]); // for the next frame (net.js): a guest drops it too
+    out.push([k, c.cx, c.cy, c.layer]);
   }
   return out;
 }
@@ -1711,8 +1821,8 @@ export function takeWoken() {
 // cost when visibility walked thousands of edges per step (2026-10-09).
 const KEY_OFF = 32768;
 // Every lookup takes a layer (docs/02, 2026-10-08: layer-ready data from day
-// one; docs/08: added 2026-10-09). It is always 0 for now; a chunk on another
-// layer is empty and never wild.
+// one; docs/08: added 2026-10-09; docs/49: the layers used). A chunk on another
+// layer holds its authored and built tiles, void or earth elsewhere, and is never wild.
 export function chunkKey(cx, cy, layer = 0) {
   return layer * 4294967296 + (cx + KEY_OFF) * 65536 + (cy + KEY_OFF);
 }
@@ -1736,17 +1846,18 @@ export function getChunk(cx, cy, create = true, layer = 0) {
     for (let lx = 0; lx < CHUNK; lx++) {
       const x = cx * CHUNK + lx;
       const y = cy * CHUNK + ly;
-      let t = layer === 0 && source && source(x, y);
+      let t = sourceAt(x, y, layer);
       if (!t) {
-        if (layer !== 0 || inBounds(x, y)) t = createTile();
+        if (layer !== 0) t = createTile(emptyFloorOf(layer)); // void above the ground, earth below it (docs/49 section 3)
+        else if (inBounds(x, y)) t = createTile();
         else {
           t = wildTile(x, y);
           anyWild = true;
         }
       }
       if (t.n || t.w) hasWalls = true;
-      if (t.n) t.n.at = [x, y]; // so a change on the wall can name its tile (touchWall)
-      if (t.w) t.w.at = [x, y];
+      if (t.n) t.n.at = addr(x, y, layer); // so a change on the wall can name its tile (touchWall)
+      if (t.w) t.w.at = addr(x, y, layer);
       tiles[ly * CHUNK + lx] = t;
     }
   }
@@ -1791,7 +1902,7 @@ export function tileAt(x, y, layer = 0) {
   const cx = Math.floor(x / CHUNK);
   const cy = Math.floor(y / CHUNK);
   const c = getChunk(cx, cy, false, layer);
-  if (!c) return blank;
+  if (!c) return blankOf(layer);
   return c.tiles[(y - cy * CHUNK) * CHUNK + (x - cx * CHUNK)];
 }
 
@@ -1809,9 +1920,9 @@ export function baseFloor() {
   return defaultFloor;
 }
 
-// The blank tile a read beyond the grown ring returns (for a check to recognise).
-export function blankTile() {
-  return blank;
+// The blank tile a read beyond the grown ring returns on a layer (for a check to recognise): the ground's floor, the void, the earth.
+export function blankTile(layer = 0) {
+  return blankOf(layer);
 }
 
 // The tile at (x, y) only if its chunk is loaded.
@@ -1832,11 +1943,11 @@ export function edgeBetween(x0, y0, x1, y1) {
 }
 
 // The wall on the edge between two 4-adjacent tiles, or null.
-export function wallBetween(x0, y0, x1, y1) {
-  if (x1 === x0 + 1) return tileAt(x1, y0).w;
-  if (x1 === x0 - 1) return tileAt(x0, y0).w;
-  if (y1 === y0 + 1) return tileAt(x0, y1).n;
-  if (y1 === y0 - 1) return tileAt(x0, y0).n;
+export function wallBetween(x0, y0, x1, y1, layer = 0) {
+  if (x1 === x0 + 1) return tileAt(x1, y0, layer).w;
+  if (x1 === x0 - 1) return tileAt(x0, y0, layer).w;
+  if (y1 === y0 + 1) return tileAt(x0, y1, layer).n;
+  if (y1 === y0 - 1) return tileAt(x0, y0, layer).n;
   return null;
 }
 
@@ -1867,13 +1978,13 @@ export function blocksSight(wall) {
 
 // Openings (doors and windows) within `r` tiles of (gx, gy), nearest first.
 // Each carries the edge midpoint and the tile on the far side from the asker.
-export function openingsNear(gx, gy, r = 1.15) {
+export function openingsNear(gx, gy, r = 1.15, layer = 0) {
   const out = [];
   const cx = Math.round(gx);
   const cy = Math.round(gy);
   for (let ty = cy - 2; ty <= cy + 2; ty++) {
     for (let tx = cx - 2; tx <= cx + 2; tx++) {
-      const t = tileAt(tx, ty);
+      const t = tileAt(tx, ty, layer);
       if (t.n && t.n.kind !== "wall") {
         const mx = tx;
         const my = ty - 0.5;
@@ -1895,9 +2006,9 @@ export function openingsNear(gx, gy, r = 1.15) {
 // Which side of the edge at (tx, ty) is outdoors: +1 for the near side (south
 // of a north edge, east of a west edge), -1 for the far side. When both sides
 // are rooms or both are outdoors, the near side is treated as outside.
-export function outsideSign(tx, ty, edge) {
-  const near = tileAt(tx, ty).room;
-  const far = edge === "n" ? tileAt(tx, ty - 1).room : tileAt(tx - 1, ty).room;
+export function outsideSign(tx, ty, edge, layer = 0) {
+  const near = tileAt(tx, ty, layer).room;
+  const far = edge === "n" ? tileAt(tx, ty - 1, layer).room : tileAt(tx - 1, ty, layer).room;
   if (far !== 0 && near === 0) return 1;
   if (far === 0 && near !== 0) return -1;
   return 1;
@@ -1922,6 +2033,13 @@ const floorRules = new Map();
 export function floorRule(id) {
   let r = floorRules.get(id);
   if (r) return r;
+  if (ENGINE_FLOORS.has(id)) {
+    // The void, the earth, and a hole (docs/49 section 3): never walked, never drunk from. Nothing falls through one: an empty tile
+    // simply is not a place a body can be.
+    r = { walk: false, drink: false, void: id === VOID, earth: id === EARTH, hole: id === HOLE };
+    floorRules.set(id, r);
+    return r;
+  }
   let def = null;
   try { def = getDef(id); } catch { def = null; }
   const walk = def && def.walk !== undefined ? def.walk : true;
@@ -1944,19 +2062,19 @@ export function wallRule(sprite) {
   return r;
 }
 
-export function isWalkableTile(x, y) {
-  const t = tileAt(x, y);
+export function isWalkableTile(x, y, layer = 0) {
+  const t = tileAt(x, y, layer);
   return !(t.prop && t.prop.solid) && floorRule(t.floor).walk !== false;
 }
 
 // The speed factor of the ground under a point: 1 on land, less in shallow water.
-export function floorSpeedAt(gx, gy) {
-  const r = floorRule(tileAt(Math.round(gx), Math.round(gy)).floor);
+export function floorSpeedAt(gx, gy, layer = 0) {
+  const r = floorRule(tileAt(Math.round(gx), Math.round(gy), layer).floor);
   return r.walk === false ? 1 : r.walk;
 }
 
-export function drinkableAt(x, y) {
-  return floorRule(tileAt(x, y).floor).drink;
+export function drinkableAt(x, y, layer = 0) {
+  return floorRule(tileAt(x, y, layer).floor).drink;
 }
 
 // The named bodies of water the map file authored (a water floor rect's `group`: "river", "pond"): which one a water tile is in,
@@ -1973,28 +2091,38 @@ export function waterBodyAt(x, y) {
 // The same move for finding which fence lies across the dead's way to a goal they cannot reach (zombie.js `fenceWay`): in mode
 // "gate" a closed gate (a door in a fence) is crossed, in mode "fence" any closed fence is, and only in a straight step, a
 // diagonal never cutting through one.
-export function canStepAcross(mode) {
+export function canStepAcross(mode, layer = 0) {
   const through = (w) => isFence(w) && (mode === "fence" || w.kind === "door");
   return (x0, y0, x1, y1) => {
-    if (x0 !== x1 && y0 !== y1) return canStep(x0, y0, x1, y1);
-    if (!isWalkableTile(x1, y1)) return false;
-    const w = wallBetween(x0, y0, x1, y1);
+    if (x0 !== x1 && y0 !== y1) return canStep(x0, y0, x1, y1, layer);
+    if (!isWalkableTile(x1, y1, layer)) return false;
+    const w = wallBetween(x0, y0, x1, y1, layer);
     return !blocksMove(w) || through(w);
   };
 }
 
 // One tile-to-tile move for pathing. Diagonals need both corner tiles free and
-// both L-shaped routes clear of walls, so nothing cuts a wall corner.
-export function canStep(x0, y0, x1, y1) {
+// both L-shaped routes clear of walls, so nothing cuts a wall corner. On one layer
+// (docs/49 section 16, step 1; the stair's edge between layers is step 3's).
+export function canStep(x0, y0, x1, y1, layer = 0) {
   const dx = x1 - x0;
   const dy = y1 - y0;
-  if (!isWalkableTile(x1, y1)) return false;
+  if (!isWalkableTile(x1, y1, layer)) return false;
   if (dx !== 0 && dy !== 0) {
-    if (!isWalkableTile(x0 + dx, y0) || !isWalkableTile(x0, y0 + dy)) return false;
-    return !blocksMove(wallBetween(x0, y0, x0 + dx, y0)) && !blocksMove(wallBetween(x0 + dx, y0, x1, y1))
-      && !blocksMove(wallBetween(x0, y0, x0, y0 + dy)) && !blocksMove(wallBetween(x0, y0 + dy, x1, y1));
+    if (!isWalkableTile(x0 + dx, y0, layer) || !isWalkableTile(x0, y0 + dy, layer)) return false;
+    return !blocksMove(wallBetween(x0, y0, x0 + dx, y0, layer)) && !blocksMove(wallBetween(x0 + dx, y0, x1, y1, layer))
+      && !blocksMove(wallBetween(x0, y0, x0, y0 + dy, layer)) && !blocksMove(wallBetween(x0, y0 + dy, x1, y1, layer));
   }
-  return !blocksMove(wallBetween(x0, y0, x1, y1));
+  return !blocksMove(wallBetween(x0, y0, x1, y1, layer));
+}
+
+// canStep bound to a layer, for the pathfinder: the ground's is canStep itself, so its searches are the ones they always were.
+const stepOn = new Map();
+export function canStepOn(layer = 0) {
+  if (!layer) return canStep;
+  let f = stepOn.get(layer);
+  if (!f) stepOn.set(layer, (f = (x0, y0, x1, y1) => canStep(x0, y0, x1, y1, layer)));
+  return f;
 }
 
 function pointSegDist2(px, py, ax, ay, bx, by) {
@@ -2008,8 +2136,9 @@ function pointSegDist2(px, py, ax, ay, bx, by) {
   return (px - cx) * (px - cx) + (py - cy) * (py - cy);
 }
 
-// Circle at float (gx, gy) with radius r against solid props and wall segments.
-export function circleBlocked(gx, gy, r) {
+// Circle at float (gx, gy) with radius r against solid props and wall segments, on one layer (an empty tile, void or
+// earth or a hole, blocks as water does: no body stands on one).
+export function circleBlocked(gx, gy, r, layer = 0) {
   const r2 = r * r;
   const minX = Math.floor(gx - r + 0.5);
   const maxX = Math.floor(gx + r + 0.5);
@@ -2017,7 +2146,7 @@ export function circleBlocked(gx, gy, r) {
   const maxY = Math.floor(gy + r + 0.5);
   for (let ty = minY; ty <= maxY + 1; ty++) {
     for (let tx = minX; tx <= maxX + 1; tx++) {
-      const t = tileAt(tx, ty);
+      const t = tileAt(tx, ty, layer);
       // Water blocks like a solid tile: no body enters a wholly-water tile (docs/30, law 8).
       if (tx <= maxX && ty <= maxY && floorRule(t.floor).walk === false) {
         const cx = Math.max(tx - 0.5, Math.min(gx, tx + 0.5));
@@ -2065,19 +2194,19 @@ export function circleBlocked(gx, gy, r) {
 
 // The nearest open doorway on the row of north edges `row`, among the tiles
 // within one of `x`. Returns its tile x, or null.
-function doorOnRow(x, row) {
+function doorOnRow(x, row, layer = 0) {
   let best = null;
   for (const tx of [x, x - 1, x + 1]) {
-    const w = tileAt(tx, row).n;
+    const w = tileAt(tx, row, layer).n;
     if (w && w.kind === "door" && wayOpen(w) && (best === null || Math.abs(tx - x) < Math.abs(best - x))) best = tx;
   }
   return best;
 }
 
-function doorOnColumn(col, y) {
+function doorOnColumn(col, y, layer = 0) {
   let best = null;
   for (const ty of [y, y - 1, y + 1]) {
-    const w = tileAt(col, ty).w;
+    const w = tileAt(col, ty, layer).w;
     if (w && w.kind === "door" && wayOpen(w) && (best === null || Math.abs(ty - y) < Math.abs(best - y))) best = ty;
   }
   return best;
@@ -2092,14 +2221,14 @@ function doorOnColumn(col, y) {
 // and an open doorway is within a tile along that wall, the blocked motion
 // becomes a slide toward the doorway's centre instead.
 // The round prop (trunk, barrel) that blocks a body at (gx, gy), or null.
-function roundBlockerAt(gx, gy, r) {
+function roundBlockerAt(gx, gy, r, layer = 0) {
   const cx = Math.round(gx);
   const cy = Math.round(gy);
   let best = null;
   let bestD = Infinity;
   for (let ty = cy - 1; ty <= cy + 1; ty++) {
     for (let tx = cx - 1; tx <= cx + 1; tx++) {
-      const p = tileAt(tx, ty).prop;
+      const p = tileAt(tx, ty, layer).prop;
       if (!p || !p.solid || !p.radius) continue;
       const dx = gx - tx;
       const dy = gy - ty;
@@ -2114,15 +2243,15 @@ function roundBlockerAt(gx, gy, r) {
   return best;
 }
 
-export function moveCircle(gx, gy, r, dx, dy) {
-  if (circleBlocked(gx, gy, r)) return { gx: gx + dx, gy: gy + dy };
+export function moveCircle(gx, gy, r, dx, dy, layer = 0) {
+  if (circleBlocked(gx, gy, r, layer)) return { gx: gx + dx, gy: gy + dy };
   // Round things deflect: a step that would hit a trunk slides along its
   // tangent instead of stopping, so two trunks a tile apart funnel you into
   // the gap between them rather than catching you at the edge.
   const tx = gx + dx;
   const ty0 = gy + dy;
-  if ((dx !== 0 || dy !== 0) && circleBlocked(tx, ty0, r)) {
-    const c = roundBlockerAt(tx, ty0, r);
+  if ((dx !== 0 || dy !== 0) && circleBlocked(tx, ty0, r, layer)) {
+    const c = roundBlockerAt(tx, ty0, r, layer);
     if (c) {
       const vx = gx - c[0];
       const vy = gy - c[1];
@@ -2132,28 +2261,28 @@ export function moveCircle(gx, gy, r, dx, dy) {
       const s = dx * tangX + dy * tangY;
       const sx = gx + tangX * s;
       const sy = gy + tangY * s;
-      if (s !== 0 && !circleBlocked(sx, sy, r)) return { gx: sx, gy: sy };
+      if (s !== 0 && !circleBlocked(sx, sy, r, layer)) return { gx: sx, gy: sy };
     }
   }
   let nx = gx + dx;
   let ny = gy;
-  if (dx !== 0 && circleBlocked(nx, gy, r)) {
+  if (dx !== 0 && circleBlocked(nx, gy, r, layer)) {
     nx = gx;
     // Blocked crossing a west edge: the column of edges is at the tile we are entering.
     const col = dx > 0 ? Math.round(gx) + 1 : Math.round(gx);
-    const door = doorOnColumn(col, Math.round(gy));
+    const door = doorOnColumn(col, Math.round(gy), layer);
     if (door !== null && Math.abs(door - gy) <= 1) {
       const slide = Math.sign(door - gy) * Math.min(Math.abs(door - gy), Math.abs(dx));
-      if (slide !== 0 && !circleBlocked(nx, gy + slide, r)) ny = gy + slide;
+      if (slide !== 0 && !circleBlocked(nx, gy + slide, r, layer)) ny = gy + slide;
     }
   }
   const ty = ny + dy;
-  if (dy !== 0 && circleBlocked(nx, ty, r)) {
+  if (dy !== 0 && circleBlocked(nx, ty, r, layer)) {
     const row = dy > 0 ? Math.round(ny) + 1 : Math.round(ny);
-    const door = doorOnRow(Math.round(nx), row);
+    const door = doorOnRow(Math.round(nx), row, layer);
     if (door !== null && Math.abs(door - nx) <= 1) {
       const slide = Math.sign(door - nx) * Math.min(Math.abs(door - nx), Math.abs(dy));
-      if (slide !== 0 && !circleBlocked(nx + slide, ny, r)) nx += slide;
+      if (slide !== 0 && !circleBlocked(nx + slide, ny, r, layer)) nx += slide;
     }
   } else {
     ny = ty;
@@ -2196,12 +2325,12 @@ export function authoredNear(x, y, taken) {
 }
 
 // Nearest walkable tile to (x, y), in expanding rings.
-export function nearestWalkable(x, y, occupied = () => false, maxRing = 12) {
+export function nearestWalkable(x, y, occupied = () => false, maxRing = 12, layer = 0) {
   for (let ring = 0; ring <= maxRing; ring++) {
     for (let dy = -ring; dy <= ring; dy++) {
       for (let dx = -ring; dx <= ring; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
-        if (isWalkableTile(x + dx, y + dy) && !occupied(x + dx, y + dy)) return [x + dx, y + dy];
+        if (isWalkableTile(x + dx, y + dy, layer) && !occupied(x + dx, y + dy)) return [x + dx, y + dy];
       }
     }
   }
@@ -2229,10 +2358,13 @@ let nextRoomId = 1; // never reused in a session, so a local refind cannot colli
 // there (a local refind throws the region away), without it the fill goes on
 // to mark the whole outdoors in one pass (a full rebuild, which must not start
 // a fill from every grass tile). Returns { region, outdoors, openings }.
-function fillRegion(x0, y0, id, fillable, stopOutdoors = false) {
+// On one layer (docs/49 section 3): every read is that layer's, so a tile of another never leaks into it. Earth bounds the fill as a
+// wall does (a cellar is a room by its earth), and below the ground a chunk not grown is earth; void it enters as it enters any floor
+// (a stairwell inside a room's walls is the room's), and above the ground a chunk not grown is the outside at once, as on the ground.
+function fillRegion(x0, y0, id, fillable, stopOutdoors = false, layer = 0) {
   const region = [];
   const stack = [x0, y0];
-  tileAt(x0, y0).room = id;
+  tileAt(x0, y0, layer).room = id;
   let outdoors = false;
   // The doors and windows the fill touched, so light can ask how much
   // daylight a room's openings admit (docs/07-lighting.md).
@@ -2256,12 +2388,30 @@ function fillRegion(x0, y0, id, fillable, stopOutdoors = false) {
     for (const [dx, dy] of STEPS4) {
       const nx = x + dx;
       const ny = y + dy;
-      const nt = peekTile(nx, ny);
+      const nt = peekTile(nx, ny, layer);
+      // Off the ground a wall on this tile's own edge bounds the room even where the chunk beyond has not grown (a built room against a
+      // chunk's edge, with nothing built past it); on the ground an ungrown neighbour is the outside first, as it always was.
+      if (layer && !nt) {
+        const w0 = wallBetween(x, y, nx, ny, layer);
+        if (w0 && !wallRule(w0.sprite).seeThrough) {
+          if (w0.kind !== "wall" && !outdoors) {
+            const [ex, ey, edge] = edgeBetween(x, y, nx, ny);
+            const k = `${ex},${ey},${edge}`;
+            if (!seenEdges.has(k)) {
+              seenEdges.add(k);
+              openings.push({ tx: ex, ty: ey, edge });
+            }
+          }
+          continue;
+        }
+      }
       if (!nt) {
+        if (layer < 0) continue; // below the ground an ungrown chunk is earth, which bounds
         outdoors = true;
         continue;
       }
-      const wall = wallBetween(x, y, nx, ny);
+      if (nt.floor === EARTH) continue; // earth bounds a room as a wall does
+      const wall = wallBetween(x, y, nx, ny, layer);
       // Any wall bounds a room, except a see-through one (a fence round a field, bars): a
       // region closed by fences is outdoors, and a cell behind bars is its corridor's room (docs/30 step 0).
       if (wall && !wallRule(wall.sprite).seeThrough) {
@@ -2283,6 +2433,8 @@ function fillRegion(x0, y0, id, fillable, stopOutdoors = false) {
   return { region, outdoors, openings };
 }
 
+// Every loaded chunk's rooms, each chunk's on its own layer (docs/49 section 3: before step 0 the fill read layer 0 whatever chunk it
+// walked, so a tile of another layer would have taken a ground room's id). Earth is no room and starts no fill (it stays 0).
 export function rebuildRooms() {
   roomsDirty = false;
   rooms.clear();
@@ -2292,17 +2444,18 @@ export function rebuildRooms() {
   // the freeze Michael saw when walking into new ground (2026-10-09).
   for (const c of chunks.values()) for (const t of c.tiles) t.room = UNVISITED;
   for (const c of chunks.values()) {
+    const layer = c.layer;
     for (let i = 0; i < c.tiles.length; i++) {
       const t0 = c.tiles[i];
-      if (t0.room !== UNVISITED) continue;
+      if (t0.room !== UNVISITED || t0.floor === EARTH) continue;
       const x0 = c.cx * CHUNK + (i % CHUNK);
       const y0 = c.cy * CHUNK + Math.floor(i / CHUNK);
       const id = nextRoomId;
-      const { region, outdoors, openings } = fillRegion(x0, y0, id, (r) => r === UNVISITED);
+      const { region, outdoors, openings } = fillRegion(x0, y0, id, (r) => r === UNVISITED, false, layer);
       if (outdoors) {
-        for (let j = 0; j < region.length; j += 2) peekTile(region[j], region[j + 1]).room = OUTDOORS;
+        for (let j = 0; j < region.length; j += 2) peekTile(region[j], region[j + 1], layer).room = OUTDOORS;
       } else {
-        rooms.set(id, { id, size: region.length / 2, openings });
+        rooms.set(id, { id, size: region.length / 2, openings, layer });
         nextRoomId++;
       }
     }
@@ -2316,8 +2469,9 @@ export function rebuildRooms() {
 // room opened to the yard must become the yard, and a fill that crosses open
 // ground reaches ROOM_MAX and is outdoors as before; a yard newly walled in is
 // a bounded fill from a tile of room 0, and becomes a room. A full rebuild
-// scanned every loaded chunk (7 to 10 ms) on every wall built.
-export function rebuildRoomsAround(tx, ty, edge) {
+// scanned every loaded chunk (7 to 10 ms) on every wall built. On the edge's own
+// layer: a change on one layer refills that layer alone (docs/49 section 7).
+export function rebuildRoomsAround(tx, ty, edge, layer = 0) {
   if (roomsDirty) {
     rebuildRooms();
     return;
@@ -2325,35 +2479,35 @@ export function rebuildRoomsAround(tx, ty, edge) {
   const seeds = [[tx, ty], edge === "n" ? [tx, ty - 1] : [tx - 1, ty]];
   const ids = new Set();
   for (const [x, y] of seeds) {
-    const t = peekTile(x, y);
+    const t = peekTile(x, y, layer);
     if (t && t.room > 0) ids.add(t.room);
   }
   if (ids.size) {
-    for (const c of chunks.values()) for (const t of c.tiles) if (ids.has(t.room)) t.room = UNVISITED;
+    for (const c of chunks.values()) if (c.layer === layer) for (const t of c.tiles) if (ids.has(t.room)) t.room = UNVISITED;
     for (const id of ids) rooms.delete(id);
   }
   for (const [x, y] of seeds) {
-    const t = peekTile(x, y);
-    if (!t || t.room > 0) continue; // unloaded, or already refilled from the other seed
+    const t = peekTile(x, y, layer);
+    if (!t || t.room > 0 || t.floor === EARTH) continue; // unloaded, earth, or already refilled from the other seed
     const id = nextRoomId;
-    const { region, outdoors, openings } = fillRegion(x, y, id, (r) => r === UNVISITED || r === 0, true);
+    const { region, outdoors, openings } = fillRegion(x, y, id, (r) => r === UNVISITED || r === 0, true, layer);
     if (outdoors) {
-      for (let j = 0; j < region.length; j += 2) peekTile(region[j], region[j + 1]).room = 0;
+      for (let j = 0; j < region.length; j += 2) peekTile(region[j], region[j + 1], layer).room = 0;
     } else {
-      rooms.set(id, { id, size: region.length / 2, openings });
+      rooms.set(id, { id, size: region.length / 2, openings, layer });
       nextRoomId++;
     }
   }
-  for (const c of chunks.values()) for (const t of c.tiles) if (t.room === UNVISITED) t.room = 0;
+  for (const c of chunks.values()) if (c.layer === layer) for (const t of c.tiles) if (t.room === UNVISITED) t.room = 0;
 }
 
 export function roomsIfDirty() {
   if (roomsDirty) rebuildRooms();
 }
 
-export function roomAt(x, y) {
+export function roomAt(x, y, layer = 0) {
   roomsIfDirty();
-  return tileAt(x, y).room;
+  return tileAt(x, y, layer).room;
 }
 
 export function roomCount() {
@@ -2394,6 +2548,7 @@ function propBase(def, offset = [0, 0]) {
     id: def.id || nextId("p"), // the map file may carry one; else the world's counter (docs/31/08, habit 1)
     sprite: def.sprite,
     tile: [ox, oy],
+    layer: def.layer | 0, // its layer (docs/49 section 3): 0 on the ground, and then left out of its record (serializeProp)
     footprint: [w, h],
     tiles,
     solid: def.solid !== false,
@@ -2490,9 +2645,22 @@ function setFootprint(s) {
 // Make sure every chunk within `radius` chunks of (x, y) exists, so wild
 // forest and its dead are grown well outside the viewport, never in it. The
 // simulation's ring round each player is four chunks (docs/02, 2026-10-13).
+// On the other layers only the chunks an authored tile stands in grow (docs/49 section 3: growth of authored and built tiles only; a
+// built one grows its chunk through its mutator): the void and the earth are the blanks, and nothing empty is saved or sent.
 export function ensureAround(x, y, radius = 4) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
   for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) getChunk(cx + dx, cy + dy);
+  for (const [layer, keys] of authoredChunks) {
+    for (const [k, [acx, acy]] of keys) {
+      if (chunks.has(k) || Math.max(Math.abs(acx - cx), Math.abs(acy - cy)) > radius) continue;
+      getChunk(acx, acy, true, layer);
+    }
+  }
+}
+
+// The layers that hold anything authored, the ground's first (docs/49 section 11; for the checks and the drawing).
+export function authoredLayers() {
+  return [0, ...[...authoredChunks.keys()].sort((a, b) => a - b)];
 }
 
 // Build an authored-tile lookup from a map file, then reset the map onto it.
@@ -2539,6 +2707,76 @@ export function loadMap(json, options = {}) {
     props.push(prop);
     for (const [tx, ty] of prop.tiles) get(tx, ty).prop = prop;
   };
+  // The other layers' authored tiles (docs/49 section 11): a tile made on first use is void above the ground and earth below it.
+  const layered = new Map(); // layer -> Map("x,y" -> tile)
+  const getL = (x, y, layer) => {
+    if (!layer) return get(x, y);
+    let m = layered.get(layer);
+    if (!m) layered.set(layer, (m = new Map()));
+    let t = m.get(key(x, y));
+    if (!t) {
+      t = createTile(layer > 0 ? VOID : EARTH);
+      m.set(key(x, y), t);
+    }
+    return t;
+  };
+  // An authored tile as it stands, made by nothing (null where nothing is authored).
+  const readL = (x, y, layer) => (layer ? (layered.get(layer) && layered.get(layer).get(key(x, y))) || null : authored.get(key(x, y)) || null);
+  // A prop on a layer: the ground's by placeProp (the Trees rule and all); another layer's carries its layer.
+  const placePropOn = (def, offset, layer) => {
+    if (!layer) return placeProp(def, offset);
+    const prop = createProp({ ...def, layer }, offset);
+    props.push(prop);
+    for (const [tx, ty] of prop.tiles) getL(tx, ty, layer).prop = prop;
+  };
+  // A stair (docs/49 section 4): `{ at, dir, layer, material }`, `at` its low end relative to the building's corner, climbing one storey
+  // in `dir`. Its three tiles on its layer; the landing beyond the third step on the layer above, floored with planks where nothing is
+  // authored and never built on; the tile before its bottom step walkable; the stairwell over its three tiles void (no floor is built
+  // over a stair), or a hole in the ground floor over a cellar's stair (its three tiles cut out of the earth). Kept as data
+  // (`stairs()`); the stair as a thing a body climbs is step 3's. A stair that does not fit is left out, and why is kept (`stairProblems`).
+  const STAIR_DIRS = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+  const stairTaken = new Set(); // "layer,x,y" of every stair's three tiles and landing
+  const edgeWall = (a, b, layer) => {
+    const [ex, ey, slot] = edgeBetween(a[0], a[1], b[0], b[1]);
+    const t = readL(ex, ey, layer);
+    return t ? t[slot] : null;
+  };
+  const layStair = (s, [bx, by], building) => {
+    const d = STAIR_DIRS[s.dir];
+    const layer = s.layer | 0;
+    const up = layer + 1;
+    const where = `${building.id}'s stair at ${s.at} ${s.dir} on layer ${layer}`;
+    if (!d || !Array.isArray(s.at)) return stairProblems.push(`${where}: no direction or low end`);
+    const x0 = bx + s.at[0];
+    const y0 = by + s.at[1];
+    const tiles = [0, 1, 2].map((k) => [x0 + d[0] * k, y0 + d[1] * k]);
+    const before = [x0 - d[0], y0 - d[1]];
+    const landing = [x0 + d[0] * 3, y0 + d[1] * 3];
+    const mine = [...tiles.map(([x, y]) => `${layer},${x},${y}`), `${up},${landing[0]},${landing[1]}`];
+    if (mine.some((k) => stairTaken.has(k)) || stairTaken.has(`${layer},${before[0]},${before[1]}`)) return stairProblems.push(`${where}: it crosses another stair`);
+    const bt = readL(before[0], before[1], layer);
+    const bFloor = bt ? bt.floor : layer ? emptyFloorOf(layer) : json.floor || "floor_grass";
+    if (isEngineFloor(bFloor) || (bt && bt.prop && bt.prop.solid)) return stairProblems.push(`${where}: the tile before its bottom step is not walkable`);
+    const lt = readL(landing[0], landing[1], up);
+    if (lt && (lt.prop || lt.rug)) return stairProblems.push(`${where}: something stands on its landing`);
+    if (edgeWall(before, tiles[0], layer) || edgeWall(tiles[0], tiles[1], layer) || edgeWall(tiles[1], tiles[2], layer) || edgeWall(tiles[2], landing, up)) return stairProblems.push(`${where}: a wall across its run`);
+    for (const [x, y] of tiles) {
+      const t = readL(x, y, layer);
+      if (t && t.prop) return stairProblems.push(`${where}: a ${t.prop.sprite} stands on a step`);
+      const a = readL(x, y, up);
+      if (a && (a.prop || a.rug)) return stairProblems.push(`${where}: a ${(a.prop || a.rug).sprite} stands over a step`); // the stairwell is cut through nothing authored
+    }
+    for (const k of mine) stairTaken.add(k);
+    const land = getL(landing[0], landing[1], up);
+    if (isEngineFloor(land.floor)) land.floor = "floor_wood"; // the stair brings its own landing, a plank floor held up by the stair
+    for (const [x, y] of tiles) {
+      const t = getL(x, y, layer);
+      if (t.floor === EARTH || t.floor === VOID) t.floor = s.floor || (layer < 0 ? "floor_dirt" : "floor_wood"); // a cellar's stair is cut out of the earth
+      getL(x, y, up).floor = up === 0 ? HOLE : VOID; // the stairwell
+    }
+    stairList.push({ id: `stair_${stairList.length}`, layer, at: [x0, y0], dir: s.dir, material: s.material === "stone" ? "stone" : "wood", tiles, landing, before, building: building.id });
+    return 0;
+  };
   // placeProp above the map's `placeProp` export: the sheet's slices need the prop placed before the tiles exist.
   const floorRect = (r, offset) => {
     const [x0, y0, w, h] = r.rect;
@@ -2582,11 +2820,15 @@ export function loadMap(json, options = {}) {
     for (const r of s.floorRects || []) floorRect(r, origin);
     for (const f of s.fences || []) fence(f, origin);
     for (const p of s.props || []) placeProp(p, origin);
-    for (const b of s.buildings || []) buildings.push({ ...b, origin });
+    for (const b of s.buildings || []) buildings.push({ ...b, origin, set: s.name || null });
   }
-  for (const b of buildings) {
-    const [bx, by, bw, bh] = [b.rect[0] + b.origin[0], b.rect[1] + b.origin[1], b.rect[2], b.rect[3]];
-    for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) get(x, y).floor = b.floor || json.floor;
+  // A building's rooms on one layer: its own on the ground, and each of its `floors` on theirs (docs/49 section 11: `{ layer, rect,
+  // floor, wall, openings, partitions, props, brackets }`, a negative layer a cellar). `b` has the building's shape: its rect relative
+  // to `origin`, and everything else relative to that rect's corner.
+  const lay = (b, origin, layer) => {
+    const at = (x, y) => getL(x, y, layer);
+    const [bx, by, bw, bh] = [b.rect[0] + origin[0], b.rect[1] + origin[1], b.rect[2], b.rect[3]];
+    for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) at(x, y).floor = b.floor || (layer ? "floor_wood" : json.floor);
     // The material: one for all, or one per side (`{ n, s, e, w }`, stone at the back and
     // wood at the front; docs/30 step 0). The renderer's material-change posts handle the corners.
     const matOf = (side) => (typeof b.wall === "string" ? b.wall : (b.wall && (b.wall[side] || b.wall.all)) || WALL_SPRITE_DEFAULT);
@@ -2594,12 +2836,12 @@ export function loadMap(json, options = {}) {
     // the left column. South wall: n edge of the row below. East wall: w edge
     // of the column to the right.
     for (let x = bx; x < bx + bw; x++) {
-      get(x, by).n = createWall("wall", matOf("n"));
-      get(x, by + bh).n = createWall("wall", matOf("s"));
+      at(x, by).n = createWall("wall", matOf("n"));
+      at(x, by + bh).n = createWall("wall", matOf("s"));
     }
     for (let y = by; y < by + bh; y++) {
-      get(bx, y).w = createWall("wall", matOf("w"));
-      get(bx + bw, y).w = createWall("wall", matOf("e"));
+      at(bx, y).w = createWall("wall", matOf("w"));
+      at(bx + bw, y).w = createWall("wall", matOf("e"));
     }
     for (const o of b.openings || []) {
       const wall = createWall(o.kind, o.wall || matOf(o.side));
@@ -2615,10 +2857,10 @@ export function loadMap(json, options = {}) {
         for (let i = 0; i < Math.min(BOARDS_PER_SIDE, o.boards.in || 0); i++) inside.push(BOARD_HP);
         for (let i = 0; i < Math.min(BOARDS_PER_SIDE, o.boards.out || 0); i++) outside.push(BOARD_HP);
       }
-      if (o.side === "n") get(bx + o.at, by).n = wall;
-      else if (o.side === "s") get(bx + o.at, by + bh).n = wall;
-      else if (o.side === "w") get(bx, by + o.at).w = wall;
-      else if (o.side === "e") get(bx + bw, by + o.at).w = wall;
+      if (o.side === "n") at(bx + o.at, by).n = wall;
+      else if (o.side === "s") at(bx + o.at, by + bh).n = wall;
+      else if (o.side === "w") at(bx, by + o.at).w = wall;
+      else if (o.side === "e") at(bx + bw, by + o.at).w = wall;
     }
     // Interior partitions (docs/30 step 0): a run of `len` edges on the `n` or `w` slot
     // starting at a tile inside the building, with openings along it by index, so a house
@@ -2629,22 +2871,39 @@ export function loadMap(json, options = {}) {
       for (let i = 0; i < part.len; i++) {
         const o = (part.openings || []).find((op) => op.at === i);
         const wall = createWall(o ? o.kind : "wall", mat);
-        if (part.edge === "n") get(px + i, py).n = wall;
-        else get(px, py + i).w = wall;
+        if (part.edge === "n") at(px + i, py).n = wall;
+        else at(px, py + i).w = wall;
       }
     }
-    for (const p of b.props || []) placeProp(p, [bx, by]);
+    for (const p of b.props || []) placePropOn(p, [bx, by], layer);
     // Brackets: `{ side, at, facing: "in" | "out", torch | lantern }`. The inside of a
     // north or west wall is the near side of its edge (+1); of a south or east
     // wall, the far side (-1).
     for (const br of b.brackets || []) {
       const inSide = br.side === "n" || br.side === "w" ? 1 : -1;
       const side = br.facing === "out" ? -inSide : inSide;
-      if (br.side === "n") pendingBrackets.push([bx + br.at, by, "n", side, !!br.torch, !!br.lantern, br.lit !== false]);
-      else if (br.side === "s") pendingBrackets.push([bx + br.at, by + bh, "n", side, !!br.torch, !!br.lantern, br.lit !== false]);
-      else if (br.side === "w") pendingBrackets.push([bx, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false]);
-      else if (br.side === "e") pendingBrackets.push([bx + bw, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false]);
+      if (br.side === "n") pendingBrackets.push([bx + br.at, by, "n", side, !!br.torch, !!br.lantern, br.lit !== false, layer]);
+      else if (br.side === "s") pendingBrackets.push([bx + br.at, by + bh, "n", side, !!br.torch, !!br.lantern, br.lit !== false, layer]);
+      else if (br.side === "w") pendingBrackets.push([bx, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false, layer]);
+      else if (br.side === "e") pendingBrackets.push([bx + bw, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false, layer]);
     }
+    return [bx, by, bw, bh];
+  };
+  stairList = [];
+  stairProblems = [];
+  buildingList = [];
+  for (const b of buildings) {
+    const rect = lay(b, b.origin, 0);
+    const rects = { 0: rect };
+    for (const f of b.floors || []) {
+      const layer = f.layer | 0;
+      if (!layer) continue; // the ground's storey is the building itself
+      rects[layer] = lay({ ...f, wall: f.wall || b.wall }, b.origin, layer);
+    }
+    // The building index (docs/49 section 11): every authored building's footprint on each of its layers, kept at load on host and
+    // guest alike from the map file every client has; the hiding rule of step 2 reads it, and roofs will.
+    buildingList.push({ id: `b${buildingList.length}`, set: b.set || null, rect, rects, layers: Object.keys(rects).map(Number).sort((a, c) => a - c) });
+    for (const s of b.stairs || []) layStair(s, [rect[0], rect[1]], buildingList[buildingList.length - 1]);
   }
   const baseFloor = json.floor || "floor_grass";
   // Reserved tiles take no scatter: each building's rectangle plus its
@@ -2696,6 +2955,7 @@ export function loadMap(json, options = {}) {
     authored: (x, y) => authored.get(key(x, y)) || null,
     wildRule,
     mapBounds: json.bounds || null,
+    layers: Object.fromEntries(layered),
   });
   zoneRects = (json.scatter || []).filter((sc) => sc.zone).map((sc) => ({ rect: sc.rect, zone: sc.zone }));
   wildZone = json.wild?.zone || null;
@@ -2757,11 +3017,11 @@ export function loadMap(json, options = {}) {
   // The brackets last: placing one grows its chunk, and a chunk grown before the forage pass took a blank
   // tile wherever nothing was authored, so the forage's mushroom landed on an authored tile that chunk never
   // saw (fifteen ghosts in the registry, found by the sync check, 2026-10-13).
-  for (const [tx, ty, edge, side, torch, lantern, lit] of pendingBrackets) addBracket(tx, ty, edge, side, torch, lantern, lit);
+  for (const [tx, ty, edge, side, torch, lantern, lit, layer] of pendingBrackets) addBracket(tx, ty, edge, side, torch, lantern, lit, layer || 0);
   // A crop's rows follow the furrows of the soil it stands in (docs/17), unless
   // the map gave it a facing; the floors are all laid by now.
   for (const prop of props) {
-    if (prop.furrowsPending) prop.facing = furrowsOf(get(prop.tile[0], prop.tile[1]).floor) || prop.facing;
+    if (prop.furrowsPending) prop.facing = furrowsOf(getL(prop.tile[0], prop.tile[1], prop.layer || 0).floor) || prop.facing;
     delete prop.furrowsPending;
   }
   // The named sets, for the map panel (docs/33): a name and the box round the footprint; the panel draws the name once any tile in the box is charted.

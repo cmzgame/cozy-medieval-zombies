@@ -151,7 +151,13 @@ export function makeCode() {
 // 22 (2026-10-27, a torch goes on a wall with its bracket, #523): the `place` command's `torch` kind (a carried torch's uid and the face's tx,
 // ty, edge) replaces `bracket` (a Wall bracket item's uid), which is gone with the item; a wall's bracket may carry its torch's `uid`. An older
 // guest's Place on a bracket item finds none here, and an older host drops a `torch` command.
-export const PROTOCOL = 22;
+// 23 (2026-10-27, docs/49 step 1, the map in layers): every sent tile address names its layer, left out on the ground: the frame's touched
+// chunks (`chunks`, each record with its `layer` as it always had) and `evicted` ([cx, cy] or [cx, cy, layer]); a guest's `act`, `place`,
+// and `use` commands (`layer`, the acting player's, only off the ground), which the host refuses on another layer than its player's; a
+// guest's aim point (`aimAt`, [gx, gy] or [gx, gy, layer]); the dead's and villagers' slim records (`layer` and `rise` when not 0); and a
+// player's `layer` moves from the heavy part to the light record (with `rise` when not 0), so a stair's crossing resends no bag. An older
+// guest would drop an upper chunk onto the ground and keep a body on the layer it last saw it on.
+export const PROTOCOL = 23;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -277,7 +283,8 @@ const lastRoster = { zombies: "", villagers: "", corpses: "", animals: "" };
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
 const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock", "shoveCooldown"]); // shoveCooldown: the shove's recovery gates a swing too (docs/41, step 2)
-const HEAVY = new Set(["worn", "hidden", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxMana", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+// A player's `layer` is light since protocol 22 (docs/49 section 12): a stair's crossing changes it, and must not resend the bag.
+const HEAVY = new Set(["worn", "hidden", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxMana", "maxThirst", "maxTired", "radius", "speed", "kind"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame
@@ -520,7 +527,12 @@ export function cleanSnap(raw) {
   const vec = (v, lim) => (v && typeof v === "object" && !Array.isArray(v) ? { x: num(v.x, lim), y: num(v.y, lim) } : null);
   // The aim point is a grid point, [gx, gy], an array (archery.aimPoint, which the bow's code unpacks): kept as one.
   // Cleaned as an object it became {x: 0, y: 0} and crashed the host the first time a joiner drew a bow (found 2026-10-13).
-  const point = (v, lim) => (Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === "number" && Number.isFinite(n)) ? [num(v[0], lim), num(v[1], lim)] : null);
+  // Since protocol 22 it may name its layer, [gx, gy, layer] (docs/49 section 12), a small whole number, kept only when it is not 0.
+  const point = (v, lim) => {
+    if (!Array.isArray(v) || (v.length !== 2 && v.length !== 3) || !v.every((n) => typeof n === "number" && Number.isFinite(n))) return null;
+    const layer = v.length === 3 ? layerIn(v[2]) : 0;
+    return layer ? [num(v[0], lim), num(v[1], lim), layer] : [num(v[0], lim), num(v[1], lim)];
+  };
   const axis = vec(s.axis, 1) || { x: 0, y: 0 };
   let keys = null;
   if (s.keys && typeof s.keys === "object") for (const k of KEY_EVENTS) if (s.keys[k] === true) (keys = keys || {})[k] = true;
@@ -687,7 +699,7 @@ export function hostStep(mySnap, me) {
       // label on that address, rebuilt here and run as the guest's player, the walk there and the bar included.
       const g = guests.get(msg.from);
       const p = g && game.state.players.find((q) => q.id === g.playerId);
-      if (p && msg.target && typeof msg.label === "string") {
+      if (p && msg.target && typeof msg.label === "string" && onPlayersLayer(p, msg)) {
         game.state.acting = p;
         try {
           interact.performByLabel(p, msg.target, msg.label);
@@ -702,7 +714,7 @@ export function hostStep(mySnap, me) {
       const g = guests.get(msg.from);
       const p = g && game.state.players.find((q) => q.id === g.playerId);
       const hook = msg.type === "item" ? hooks.item : msg.type === "use" ? hooks.use : msg.type === "place" ? hooks.place : msg.type === "dye" ? hooks.dye : hooks.craft;
-      if (p && hook) {
+      if (p && hook && ((msg.type !== "use" && msg.type !== "place") || onPlayersLayer(p, msg))) { // a placement and a Use name a tile: on the player's own layer (protocol 22)
         game.state.acting = p;
         try {
           hook(p, msg);
@@ -801,6 +813,8 @@ function poisonOf(po) {
 
 function slim(c) {
   const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: roundAnim(c.anim), hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line ? { text: c.line.text, left: Math.ceil(c.line.left * 2) / 2 } : null, blocking: c.blocking, talkingWith: c.talkingWith, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
+  if (c.layer) r.layer = c.layer; // its layer and its rise up a stair when not 0 (docs/49 section 12); none sent is 0 (the record is whole)
+  if (c.rise) r.rise = r2(c.rise);
   if (c.cremate) r.cremate = true; // a body set alight by Burn corpse (docs/43 section 7): a guest's menu greys its search; its removal is the roster's
   if (c.poison) r.po = [c.poison.tier, c.poison.stacks]; // a poison's tier and stacks (docs/47 section 6), all the tint is drawn from; none sent is none (the record is whole)
   if (c.searched) {
@@ -1022,7 +1036,7 @@ export function hostAfterStep() {
     simTime: loop.simTime(),
     timeScale: world.world.timeScale,
     ...(evicted.length ? { evicted } : {}), // the wild chunks dropped since the last frame, [cx, cy] each: the field only when there are any (protocol 10)
-    chunks: touched.map(([cx, cy]) => map.getChunk(cx, cy, false)).filter(Boolean).map(map.serializeChunk),
+    chunks: touched.map(([cx, cy, layer]) => map.getChunk(cx, cy, false, layer || 0)).filter(Boolean).map(map.serializeChunk), // each on its layer (docs/49), its record naming it
     ...(chartChanged.length ? { chart: chartChanged } : {}), // the chart cells written since the last frame, [cx, cy, [index, cell, ...]] per chunk (#237; whole chunks only in the welcome): the field only when there are any
     players: S.players.map(playerRecord),
     zombies: delta(S.zombies),
@@ -1153,7 +1167,7 @@ export function guestStep(mySnap) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
     // a ground point; the host resolves the swing, the draw, and the shove against its own dead.
-    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: s.aimAt || null, space: !!s.space, clicked: !!s.clicked && !s.clickSpent, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked, keys: s.keys || null };
+    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: aimOnLayer(s.aimAt, client.me.layer), space: !!s.space, clicked: !!s.clicked && !s.clickSpent, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked, keys: s.keys || null };
     seq++;
     pending.push({ seq, snap });
     if (pending.length > MAX_PENDING) pending.shift(); // a host that has acknowledged nothing for seconds: the replay is bounded
@@ -1297,7 +1311,7 @@ function applyFrame(f) {
   // host keeps every chunk within `evictChunks` (8) of every player, mine among them, twice the ring of 4 it grows, so a chunk
   // named here is far beyond where my prediction has me.
   if (Array.isArray(f.evicted)) for (const at of f.evicted) {
-    if (Array.isArray(at) && Number.isInteger(at[0]) && Number.isInteger(at[1]) && map.dropChunk(at[0], at[1])) evictedDropped++;
+    if (Array.isArray(at) && Number.isInteger(at[0]) && Number.isInteger(at[1]) && map.dropChunk(at[0], at[1], layerIn(at[2]))) evictedDropped++; // [cx, cy] or [cx, cy, layer] (protocol 22)
   }
   if (f.chunks.length) {
     for (const d of f.chunks) map.installChunk(d);
@@ -1342,6 +1356,8 @@ function applyFrame(f) {
         const wasX = c.gx;
         const wasY = c.gy;
         Object.assign(c, rest);
+        c.layer = layerIn(rest.layer); // the record is whole: no `rise` is none (serializeCharacter leaves a 0 out)
+        c.rise = Number.isFinite(rest.rise) ? rest.rise : 0;
         if (r.id !== myPlayerId && typeof rest.gx === "number") { const toX = c.gx; const toY = c.gy; c.gx = wasX; c.gy = wasY; aimAt(c, toX, toY); }
         // A two-handed thing is one object in both hands (restoreCharacter does this on a character's first appearance):
         // came through JSON as two, the watcher drew a bow or a halberd in each hand (found 2026-10-13).
@@ -1370,6 +1386,12 @@ function applyFrame(f) {
       const wasX = c.gx;
       const wasY = c.gy;
       Object.assign(c, rest);
+      // Its layer and rise (docs/49 section 12): a slim record is whole, and a player's light record carries every light field when it is
+      // sent with any (its `layer` always, `rise` when not 0); an acknowledgement alone carries neither and changes nothing.
+      if (!isLight || rest.gx !== undefined) {
+        c.layer = layerIn(rest.layer);
+        c.rise = Number.isFinite(rest.rise) ? rest.rise : 0;
+      }
       c.poison = poisonOf(po); // the slim record is whole: no `po` is no poison (docs/47 section 6)
       if (r.id !== myPlayerId && typeof rest.gx === "number") { const toX = c.gx; const toY = c.gy; c.gx = wasX; c.gy = wasY; aimAt(c, toX, toY); }
       if (loot) {
@@ -1446,9 +1468,31 @@ export function sendSay(text) {
   if (role === "guest") send({ type: "say", text });
 }
 
+// A tile address names its layer (docs/49 section 12, protocol 22): my player's, left out on the ground. A command reaches only the
+// layer its player stands on (reach is on one layer, section 9), so the host refuses one that names another (`onPlayersLayer`).
+function myLayer() {
+  return (client.me && client.me.layer) || 0;
+}
+function withLayer(msg) {
+  const L = myLayer();
+  return L ? { ...msg, layer: L } : msg;
+}
+// A layer from the wire: a small whole number, else 0 (the ground). The host trusts no payload.
+export function layerIn(v) {
+  return Number.isInteger(v) && v >= -8 && v <= 8 ? v : 0;
+}
+export function onPlayersLayer(p, msg) {
+  return layerIn(msg && msg.layer) === ((p && p.layer) || 0);
+}
+// My aim point with my layer (docs/49 section 12): the host's aimPoint will project it on that layer's floor (step 5).
+function aimOnLayer(aimAt, layer) {
+  if (!Array.isArray(aimAt)) return null;
+  return layer ? [aimAt[0], aimAt[1], layer] : [aimAt[0], aimAt[1]];
+}
+
 // A verb on the world, by its address and label (interact.js): the host performs it as my player.
 export function sendAct(target, label) {
-  if (role === "guest" && target && label) send({ type: "act", target, label });
+  if (role === "guest" && target && label) send(withLayer({ type: "act", target, label }));
 }
 
 // The panel's command (ui/inventory-actions.js, createRemoteInventoryActions): an op by uid, slot, and bag address.
@@ -1491,12 +1535,12 @@ export function sendDye(cmd) {
 
 // A placement (placement.js): a carried prop put down at a tile, a wall built on an edge, a built thing removed.
 export function sendPlace(cmd) {
-  if (role === "guest" && cmd && cmd.kind) send({ type: "place", ...cmd });
+  if (role === "guest" && cmd && cmd.kind) send(withLayer({ type: "place", ...cmd }));
 }
 
 // The Use mode's pair (use.js): the item by uid and source, the target by address.
 export function sendUse(cmd) {
-  if (role === "guest" && cmd && cmd.uid != null && cmd.target) send({ type: "use", ...cmd });
+  if (role === "guest" && cmd && cmd.uid != null && cmd.target) send(withLayer({ type: "use", ...cmd }));
 }
 
 // A log line for a player whose screen is on a guest (main.js's log sink).

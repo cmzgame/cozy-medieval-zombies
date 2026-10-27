@@ -180,6 +180,6 @@ export function update(player) {
   if (!open) return;
   const prop = map.propById(open.propId);
   if (!prop) return close();
-  if (!canReach(player, prop.tiles, stations.REACH + 1)) return close(); // walked away, or a wall between (#208)
+  if (!canReach(player, prop.tiles, stations.REACH + 1, prop.layer || 0)) return close(); // walked away, or a wall between (#208)
   render(player);
 }

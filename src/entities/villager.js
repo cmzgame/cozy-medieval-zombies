@@ -194,7 +194,7 @@ export function updateVillager(v, dt, others, players = []) {
         // (the picker draws from a square; the leash is a circle).
         let target = null;
         for (let tries = 0; tries < 6 && !target; tries++) {
-          const t = pickTargetAround(v.home[0], v.home[1], T.wanderRadius, roomOf(v));
+          const t = pickTargetAround(v.home[0], v.home[1], T.wanderRadius, roomOf(v), v.layer || 0);
           if (t && Math.hypot(t[0] - v.home[0], t[1] - v.home[1]) <= T.wanderRadius) target = t;
         }
         if (target) {

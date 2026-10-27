@@ -477,7 +477,7 @@ export function leadProblem(player, a) {
   if (isWild(a)) return `A ${a.name} will not be led.`;
   if (a.leaderId === player.id) return "You are leading it.";
   if (a.leaderId) return "Someone else is leading it.";
-  const why = reachProblem(player, [[Math.round(a.gx), Math.round(a.gy)]], BODY_REACH);
+  const why = reachProblem(player, [[Math.round(a.gx), Math.round(a.gy)]], BODY_REACH, a.layer || 0);
   if (why) return why === "Too far away." ? `Too far from the ${a.name}.` : why;
   const tool = inventory.toolProblem(player, "lead");
   if (tool) return tool;
@@ -521,7 +521,7 @@ export function produceProblem(player, a) {
   if (!a || a.dead || !pr) return "There is nothing to take.";
   if (a.fedDay !== today()) return `The ${a.name} has not been fed today.`;
   if (a.takenDay === today()) return pr.verb === "milk" ? "It has been milked today." : "It has been shorn today.";
-  const why = player ? reachProblem(player, [[Math.round(a.gx), Math.round(a.gy)]], BODY_REACH) : "";
+  const why = player ? reachProblem(player, [[Math.round(a.gx), Math.round(a.gy)]], BODY_REACH, a.layer || 0) : "";
   if (why) return why === "Too far away." ? `Too far from the ${a.name}.` : why;
   if (!player) return "";
   const tool = inventory.toolProblem(player, pr.verb);
@@ -773,7 +773,7 @@ export function hasHide(a) {
 // Into the bag, the rest at the feet (as every gather does).
 function give(player, id, count) {
   const placed = Math.min(count, inventory.addItem(inventory.bagOf(player), id, count));
-  if (placed < count) dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(id, count - placed));
+  if (placed < count) dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(id, count - placed), player.layer || 0);
 }
 
 function said(list) {
@@ -791,7 +791,7 @@ export function workProblem(player, a, verb) {
     if (a.skinned) return "It is skinned already.";
   }
   if (verb === "butcher" && hasHide(a) && !a.skinned) return "Skin it first.";
-  const why = player ? reachProblem(player, [[Math.round(a.gx), Math.round(a.gy)]], BODY_REACH) : "";
+  const why = player ? reachProblem(player, [[Math.round(a.gx), Math.round(a.gy)]], BODY_REACH, a.layer || 0) : "";
   if (why) return why === "Too far away." ? `Too far from the ${a.name}.` : why;
   return player ? inventory.toolProblem(player, verb) || "" : "";
 }
@@ -819,7 +819,7 @@ verbs.define("butcher", {
     for (const y of got) give(player, y.id, y.count);
     // What hit it and stayed (archery.js): arrows by count and a thrown thing as itself come back with the meat.
     for (const [id, n] of Object.entries(a.lodged || {})) give(player, id, n);
-    for (const e of a.lodgedItems || []) if (!grid.insert(inventory.bagOf(player), e)) dropItem(Math.round(player.gx), Math.round(player.gy), e);
+    for (const e of a.lodgedItems || []) if (!grid.insert(inventory.bagOf(player), e)) dropItem(Math.round(player.gx), Math.round(player.gy), e, player.layer || 0);
     a.lodged = {};
     a.lodgedItems = [];
     a.butchered = true;

@@ -194,7 +194,7 @@ export function update(player) {
   if (!open || !player) return;
   const prop = map.propById(open.propId);
   if (!prop) return close();
-  if (!canReach(player, prop.tiles, REACH + 1)) return close(); // walked away, or a wall between (#208), as a station's panel
+  if (!canReach(player, prop.tiles, REACH + 1, prop.layer || 0)) return close(); // walked away, or a wall between (#208), as a station's panel
   render(player);
 }
 

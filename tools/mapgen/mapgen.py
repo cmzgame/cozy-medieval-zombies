@@ -262,6 +262,67 @@ class Place:
         self.s["buildings"].append(b)
         return b
 
+    def storey(self, b, layer, rect=None, wall=None, floor="floor_wood", openings=(), partitions=(), props=(), brackets=()):
+        """A storey of building `b` on another layer (docs/49 section 11): 1, 2, ... above the ground, -1 a cellar under it. Its
+        `rect` (relative to the set, as the building's; the building's own by default) is floored with `floor` and walled round with
+        `wall` (the building's by default), with openings, partitions, props, and brackets as a building's are (relative to the storey's
+        own corner). map.loadMap lays it
+        on its layer; whatever is not authored there is void above the ground and earth below it."""
+        layer = int(layer)
+        if layer == 0:
+            raise ValueError("a storey is on another layer than the ground (the building itself is the ground's)")
+        f = {"layer": layer, "rect": _norm_rect(rect or b["rect"]), "floor": floor, "wall": wall or b["wall"], "openings": [dict(o) for o in openings]}
+        if partitions:
+            f["partitions"] = [dict(p) for p in partitions]
+        if props:
+            f["props"] = [_wall_facing(dict(p)) for p in props]
+        if brackets:
+            f["brackets"] = [dict(x) for x in brackets]
+        b.setdefault("floors", []).append(f)
+        return f
+
+    def stair(self, b, at, dir, layer=0, material="wood"):
+        """A stair of building `b` (docs/49 section 4): three tiles on `layer` from its low end `at` (relative to the building's corner) climbing
+        one storey in `dir` ("n", "e", "s", "w"), with its landing, the tile beyond the third step on the layer above, which the map
+        floors and nothing stands on, and the tile before its bottom step, which must be walkable. Checked here, and again by the
+        loader: the five tiles in a line inside the storeys they belong to, the landing free of any prop, no stair crossing another.
+        The stairwell over its three tiles is void (map.loadMap), a hole in the ground floor over a cellar's."""
+        d = {"n": (0, -1), "e": (1, 0), "s": (0, 1), "w": (-1, 0)}[dir]
+        layer = int(layer)
+        if material not in ("wood", "stone"):
+            raise ValueError(f"a stair is wood or stone, not {material!r}")
+        rect_of = {0: b["rect"]}
+        for f in b.get("floors", []):
+            rect_of[f["layer"]] = f["rect"]
+        inside = lambda l, x, y: l in rect_of and rect_of[l][0] <= x < rect_of[l][0] + rect_of[l][2] and rect_of[l][1] <= y < rect_of[l][1] + rect_of[l][3]
+        # `at` is relative to the building's corner, as its props and partitions are; the checks below run in the set's frame.
+        bx, by = b["rect"][0], b["rect"][1]
+        ax, ay = bx + int(at[0]), by + int(at[1])
+        line = [(ax + d[0] * k, ay + d[1] * k) for k in range(-1, 3)]  # the tile before, then the three steps
+        landing = (ax + d[0] * 3, ay + d[1] * 3)
+        for x, y in line:
+            if not inside(layer, x, y):
+                raise ValueError(f"the stair at {at} {dir}: {x - bx},{y - by} is outside its storey on layer {layer}")
+        if not inside(layer + 1, *landing):
+            raise ValueError(f"the stair at {at} {dir}: its landing is outside the storey on layer {layer + 1}")
+        above = [b] if layer + 1 == 0 else [f for f in b.get("floors", []) if f["layer"] == layer + 1]
+        for f in above:
+            fx, fy = f["rect"][0], f["rect"][1]
+            for p in f.get("props", []):
+                fw, fh = p.get("footprint", [1, 1])
+                if fx + p["tile"][0] <= landing[0] < fx + p["tile"][0] + fw and fy + p["tile"][1] <= landing[1] < fy + p["tile"][1] + fh:
+                    raise ValueError(f"the stair at {at} {dir}: a {p['sprite']} stands on its landing")
+        for o in b.get("stairs", []):
+            od = {"n": (0, -1), "e": (1, 0), "s": (0, 1), "w": (-1, 0)}[o["dir"]]
+            ox, oy = bx + o["at"][0], by + o["at"][1]
+            theirs = {(o["layer"], ox + od[0] * k, oy + od[1] * k) for k in range(3)} | {(o["layer"] + 1, ox + od[0] * 3, oy + od[1] * 3)}
+            mine = {(layer, x, y) for x, y in line[1:]} | {(layer + 1, landing[0], landing[1])}
+            if theirs & mine:
+                raise ValueError(f"the stair at {at} {dir} crosses the one at {o['at']} {o['dir']}")
+        s = {"at": [int(at[0]), int(at[1])], "dir": dir, "layer": layer, "material": material}
+        b.setdefault("stairs", []).append(s)
+        return s
+
     def floor_rect(self, rect, sprite, group=None):
         f = {"rect": _norm_rect(rect), "sprite": sprite}
         if group:

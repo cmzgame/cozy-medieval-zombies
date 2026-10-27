@@ -36,12 +36,12 @@ export function reachFor(player, tx, ty) {
 }
 
 // A campfire put on the map: out, holding `fuel` logs, made by a player when `made` (Take apart takes only what a player made).
-export function makeFire(tx, ty, fuel = 0, made = false) {
+export function makeFire(tx, ty, fuel = 0, made = false, layer = 0) {
   const prop = map.createProp({ sprite: SPRITE, tile: [tx, ty] });
   if (made) prop.made = true;
   prop.fire.fuel = Math.max(0, Math.min(prop.fire.maxFuel, fuel));
   prop.fire.lit = false;
-  map.placeProp(prop, tx, ty);
+  map.placeProp(prop, tx, ty, layer);
   return prop;
 }
 
@@ -96,7 +96,7 @@ export function place(player, uid, tx, ty) {
     return false;
   }
   grid.remove(inventory.bagOf(player), entry);
-  makeFire(tx, ty, 0, entry.made !== false);
+  makeFire(tx, ty, 0, entry.made !== false, player.layer || 0);
   showMessage("You set the campfire down.");
   return true;
 }

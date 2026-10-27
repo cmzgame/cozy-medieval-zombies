@@ -4,7 +4,7 @@
 
 import * as floaters from "../floaters.js"; // the floating numbers over heads (#294)
 import * as iso from "../iso.js";
-import { moveCircle, canStep, floorSpeedAt, propById, roomAt } from "../map.js";
+import { moveCircle, canStepOn, floorSpeedAt, propById, roomAt } from "../map.js";
 import { findPath } from "../pathfind.js";
 import { getSheet, getDef } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
@@ -275,8 +275,8 @@ verbs.define("sleep", {
     if (!getDef(bed.sprite).sleep) return "You cannot sleep on that.";
     if (player.sleeping) return "You are asleep.";
     if (player.carrying) return "Your hands are full.";
-    { const why = reachProblem(player, bed.tiles, 1.6); if (why) return why === "Too far away." ? "Too far from the bed." : why; }
-    if (roomAt(bed.tile[0], bed.tile[1]) === 0) return "Not out here.";
+    { const why = reachProblem(player, bed.tiles, 1.6, bed.layer || 0); if (why) return why === "Too far away." ? "Too far from the bed." : why; }
+    if (roomAt(bed.tile[0], bed.tile[1], bed.layer || 0) === 0) return "Not out here.";
     if (siegeOn(player)) return "The dead that know you are in here are still about.";
     const h = clock.getHour();
     if (tiredStage(player) === 0 && h >= T.wakeHour && h < 20) return "You are not tired.";
@@ -294,7 +294,7 @@ verbs.define("sleep", {
 // `range`. Calls onArrive once. Returns false if there is no path.
 export function autoWalk(player, goalTile, { tiles = [goalTile], range = 0, onArrive = null } = {}) {
   const from = [Math.round(player.gx), Math.round(player.gy)];
-  const path = findPath(from, goalTile, canStep, 2500);
+  const path = findPath(from, goalTile, canStepOn(player.layer || 0), 2500); // on the player's own layer (docs/49 section 16, step 1)
   if (!path) return false;
   if (!path.length) path.push([goalTile[0], goalTile[1]]); // already on the goal's tile but not at its middle: step to it, or an action a hand's breadth out of reach is refused though it is a step away (#194: a crop)
   player.auto = { path, tiles, range, onArrive, goalTile };
@@ -327,8 +327,8 @@ function followAuto(player, dt) {
     }
     const before = [player.gx, player.gy];
     const n = iso.normalize(dx, dy);
-    const step = Math.min(d, player.speed * (player.sprinting ? T.sprintMult : 1) * (player.moveMult ?? 1) * floorSpeedAt(player.gx, player.gy) * dt);
-    const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step);
+    const step = Math.min(d, player.speed * (player.sprinting ? T.sprintMult : 1) * (player.moveMult ?? 1) * floorSpeedAt(player.gx, player.gy, player.layer || 0) * dt);
+    const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step, player.layer || 0);
     player.gx = moved.gx;
     player.gy = moved.gy;
     if (Math.hypot(player.gx - before[0], player.gy - before[1]) < 1e-4) return finishAuto(player); // stuck
@@ -352,8 +352,8 @@ function finishAuto(player) {
 
 function moveToward(player, dt, dx, dy, mult = 1) {
   const n = iso.normalize(dx, dy);
-  const step = player.speed * mult * floorSpeedAt(player.gx, player.gy) * dt; // shallow water slows everyone (docs/30, law 8)
-  const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step);
+  const step = player.speed * mult * floorSpeedAt(player.gx, player.gy, player.layer || 0) * dt; // shallow water slows everyone (docs/30, law 8)
+  const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step, player.layer || 0); // on the player's own layer (docs/49)
   player.gx = moved.gx;
   player.gy = moved.gy;
 }

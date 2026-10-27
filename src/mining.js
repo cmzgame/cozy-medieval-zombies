@@ -45,7 +45,7 @@ verbs.define("mine", {
     const [lo, hi] = m.count;
     const n = lo + rng.int(hi - lo + 1);
     const placed = Math.min(n, inventory.addItem(inventory.bagOf(player), m.item, n));
-    if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(m.item, n - placed));
+    if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(m.item, n - placed), player.layer || 0);
     resources.taken(prop); // its replacement is owed to its area, before it goes (none for a rock in the wild)
     map.removeProp(prop);
     const name = items.getItem(m.item).name.toLowerCase();

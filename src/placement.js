@@ -569,7 +569,7 @@ function targetReach(player, t) {
 // a made prop by distance and a clear line, so a chest or a station cannot be taken down through a wall (#227).
 function removeReachProblem(player, t) {
   if (t.type === "wall") return targetReach(player, t) > REMOVE_REACH ? "Too far" : "";
-  const why = reachProblem(player, t.prop.tiles, REMOVE_REACH);
+  const why = reachProblem(player, t.prop.tiles, REMOVE_REACH, t.prop.layer || 0);
   return why === TOO_FAR ? "Too far" : why || "";
 }
 
@@ -679,7 +679,7 @@ export function takeApart(player, t) {
   const bag = inventory.bagOf(player);
   for (const b of back) {
     const added = bag ? inventory.addItem(bag, b.id, b.count) : 0;
-    if (b.count - added > 0) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(b.id, b.count - added));
+    if (b.count - added > 0) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(b.id, b.count - added), player.layer || 0);
   }
   showMessage(back.length ? `You take the ${name} apart: ${partsText(back)}.` : `You take the ${name} apart; nothing is left worth keeping.`);
   return true;
@@ -819,7 +819,7 @@ export function tryConfirm(player) {
       end();
       return true;
     }
-    map.placeProp(state.prop, g.tx, g.ty);
+    map.placeProp(state.prop, g.tx, g.ty, player.layer || 0); // on the player's own layer (docs/49)
     player.carrying = null;
     end();
     return true;
@@ -972,7 +972,7 @@ export function performPlacement(player, cmd) {
       showMessage("No room");
       return true;
     }
-    map.placeProp(prop, tx, ty);
+    map.placeProp(prop, tx, ty, player.layer || 0); // on the player's own layer (docs/49)
     player.carrying = null;
     return true;
   }
@@ -1069,7 +1069,7 @@ function startPropBuild(player, what, tx, ty) {
       const prop = map.createProp({ sprite: d.sprite, tile: [tx, ty], footprint: f.footprint, ...(f.facing ? { facing: f.facing } : {}) });
       prop.made = true;
       if (prop.fire && fuel) prop.fire.fuel = Math.min(prop.fire.maxFuel, fuel);
-      map.placeProp(prop, tx, ty);
+      map.placeProp(prop, tx, ty, player.layer || 0);
       if (rules.freeBuilding) prop.free = true; // it cost nothing, so taking it apart gives nothing back (docs/43, section 2)
       return true;
     },

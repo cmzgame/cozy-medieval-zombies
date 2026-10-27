@@ -74,7 +74,7 @@ verbs.define("fish", {
     }
     const id = pick(table.catch);
     const placed = inventory.addItem(inventory.bagOf(player), id, 1);
-    if (placed < 1) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(id, 1));
+    if (placed < 1) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(id, 1), player.layer || 0);
     showMessage(`You catch ${/^[aeiou]/i.test(items.getItem(id).name) ? "an" : "a"} ${items.getItem(id).name.toLowerCase()}.`);
     return { caught: id };
   },
