@@ -88,6 +88,7 @@ export function initLog(handlers = {}) {
 // line), warn (something to act on). `who` names the speaker for `say`.
 // A sink takes a line before it is shown here (main.js: a line for a guest's player, over the wire).
 let sink = null;
+let shown = 0; // lines shown since the page began (count, since)
 export function setSink(fn) {
   sink = fn;
 }
@@ -105,10 +106,22 @@ export function push(text, kind = "info", who = null) {
   }
   line.appendChild(document.createTextNode(text));
   root.appendChild(line);
+  shown++;
   while (root.childElementCount > KEEP) root.firstElementChild.remove();
   if (pinned) root.scrollTop = root.scrollHeight;
 }
 
 export function lines() {
   return root ? [...root.children].map((el) => el.textContent) : [];
+}
+
+// How many lines have been shown since the page began, and the lines shown since a count was taken (`since(count())` before an action, the
+// lines it said after): a check reads what an action said this way, never by the kept lines' length, which stops growing at KEEP (a sweep of
+// every check in one page fills it, and the lines an action said read as none).
+export function count() {
+  return shown;
+}
+export function since(mark) {
+  const all = lines();
+  return all.slice(Math.max(0, all.length - Math.min(all.length, shown - mark)));
 }
