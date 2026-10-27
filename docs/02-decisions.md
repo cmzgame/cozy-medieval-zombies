@@ -8,7 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
-- Round rooms are a spec (`50`): circles, not slanted walls; odd sizes 3, 5, and 7 across; doors at the four points where the circle touches its square; built by players and placed on the map, the map first; rounded corners too; the cost scales with the size (2026-10-26, Round rooms: a spec)
+- Round rooms are a spec (`50`): circles, not slanted walls; odd sizes ~~3,~~ 5 and 7 across (the 3 struck on Primary's scan, 2026-10-26: 5 by 5 the smallest); the world's logic on the stepped tile edges, bodies stopped by the drawn curve too, the ring counting as wall for hearths and torches; doors at the four points where the circle touches its square; built by players and placed on the map, the map first; rounded corners too; the cost scales with the size (2026-10-26, Round rooms: a spec)
 - The demo pass: the dev chest holds every weapon and tool, the basic materials, the potions, seeds, the bearskin rug and one wide painting; your cottage 11 by 7 inside; mana regenerates 0.667 a second and its bar sits between health and stamina (2026-10-26, The demo pass)
 - Any key or click wakes a sleeper early, the screen fading back in; the menu's Burn corpse works with a lit torch in hand as well as a tinderbox (2026-10-26, Waking early, and Burn corpse by a lit torch)
 - Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills (2026-10-26, Fill waterskins skips clean water)
@@ -318,10 +318,12 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 Michael asked whether rooms could be more than rectangles: slanted walls for a hexagon or an octagon, "immediate value in building castles and just making some nicer looking rooms". The research (#513) found no hexagon on a square grid and an octagon's left and right slants seen edge-on from this camera, so he asked for circles: "It would be minimum 2x2 then if you drag outward while building it becomes a 3x3 circle then a 4x4 circle and so on. Doors stamped in fit on any edge of the circle that touches an outside edge of the grid?" Shown that a door is centred on an edge only for odd sizes, and that a 2 by 2 takes no door, he answered: "Odd only is fine, so 3x3 becomes the smallest full circle", "doorless 2x2 would not exist", "Maybe 3,5, and 7 for now, no bigger?", "Both build them, but I am more worried about the map first", and of quarter-circle rounded corners, "Yes please! This is a small side benefit I had not even thought of." The goal: "variety in building look, and obviously circular stone buildings were common in the middle ages: it unlocks real towers, cool castle rooms, small rounded additions". He set the order the same night: upper floors (`49`), then round rooms, then roofs, none waiting on roofs. The spec is `docs/50`; its defaults are the spec's own, his to overrule.
 
-- **Round rooms are circles in odd squares, 3, 5, and 7 across;** there is no 2 by 2.
+- **Round rooms are circles in odd squares, ~~3,~~ 5 and 7 across;** there is no 2 by 2 (and, below, no 3 by 3).
 - **Doors and windows go at the four points where the circle touches its square.**
 - **Built by players and placed on the map, the map first;** the cost scales with the size.
 - **Quarter-circle rounded corners** for square rooms.
+
+Then the model, on Primary's scan of the spec (2026-10-26, #518). The first draft had the world's logic on tile edges and bodies, sight, light, and flights on the true curve; the scan found that tiles straddle the curve, so the dead could bite through a round room's wall, and that a 3 by 3's corners are narrower than a body. Primary measured the stepped alternative for him and he ruled, in his words: **"Yes: round rooms are option A. The world's logic on the stepped tile edges, bodies also stopped by the drawn curve so nobody walks into the wall, 5 by 5 the smallest, the ring counts as wall for hearths and torches."** So the ring is edge walls, no exception to "walls are state on tile edges"; bodies collide with the union of those edges and the drawn curve; the 3 by 3 is struck; a hearth or a torch stands against the ring.
 
 ### 2026-10-26 — A dyed thing's pictures show its dye (Michael)
 
