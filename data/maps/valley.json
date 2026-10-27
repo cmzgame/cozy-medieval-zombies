@@ -4826,11 +4826,11 @@
        "sprite": "workbench",
        "tile": [
         0,
-        3
+        2
        ],
        "footprint": [
-        2,
-        1
+        1,
+        2
        ]
       }
      ]

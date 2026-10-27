@@ -1,5 +1,5 @@
 {
-  "version": "d978b4ee",
+  "version": "46ec727d",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3016, "stamp": "87aeb2be"},
@@ -9,7 +9,7 @@
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
     "data/ground.json": {"size": 3492, "stamp": "fb2c261c"},
     "data/interactions.json": {"size": 5302, "stamp": "90b414b3"},
-    "data/items.json": {"size": 67323, "stamp": "1522c500"},
+    "data/items.json": {"size": 67323, "stamp": "eeb1a523"},
     "data/kit.json": {"size": 939, "stamp": "628d28a8"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
     "data/loot.json": {"size": 8999, "stamp": "8213dd05"},
@@ -814,7 +814,7 @@
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
     "data/maps/square.json": {"size": 12940, "stamp": "91f0d8ea"},
     "data/maps/staging.json": {"size": 8761, "stamp": "c49d0cd7"},
-    "data/maps/valley.json": {"size": 169961, "stamp": "b1767ec2"},
+    "data/maps/valley.json": {"size": 169961, "stamp": "3271f7b6"},
     "data/site/staging_day_wide.webp": {"size": 103152, "stamp": "d59a0e45"},
     "data/site/staging_dusk_wide.webp": {"size": 60390, "stamp": "234b2082"},
     "data/sprites/altar.json": {"size": 368, "stamp": "d22d8cb9"},
