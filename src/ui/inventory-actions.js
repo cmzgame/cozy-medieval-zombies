@@ -91,6 +91,11 @@ function beltRefusal(entry, slotId) {
 // A slot's double-click entry: Unequip or Equip anywhere, Eat on the belt (#179), Drink only off the belt (a skin on the belt drinks by itself).
 // On the belt it is the key's path alone: the plain Equip (the slot's draw) or Eat; the menu's Equip into a hand for a thing the key does not
 // draw ("Equip (both hands)" in the utility slot, as from the bag) is never a double-click's, so the double-click says why as the key does.
+// The menu entries that only begin a mode on this screen (the Use mode, a rug's or a painting's ghost, a torch's for a wall: Place torch,
+// #523): a guest runs them on its own replica and never sends them; the command that follows is the mode's own, and the host never runs them
+// for a guest. "Place torch" is interact.PLACE_TORCH, written out: the two modules import each other, so neither reads the other at load.
+const LOCAL = new Set(["Use", "Place", "Place torch"]);
+
 function slotUse(menu, slotId) {
   const belt = inventory.parseSlot(slotId).kind === "belt";
   if (belt) return menu.find((q) => q.label === "Equip" || q.label === "Eat" || q.label === "Drink"); // Drink: a potion, the key's own (docs/47; a skin's is "Drink (80%)", never a double-click's)
@@ -339,7 +344,6 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
   };
   // Use begins here as it does alone, with the bag's address kept on the mode, since the replica's bag
   // object is new with every frame (main.js's sender reads it when the click lands).
-  const LOCAL = new Set(["Use", "Place"]); // each only begins a mode on this screen (Use mode, a rug's ghost); the command that follows is the mode's own
   const remoteMenu = (entries, more) => entries.map((en) => (LOCAL.has(en.label) ? en : { ...en, onSelect: () => send({ op: "menu", label: en.label, ...more }) }));
   const useFromBag = (entries, entry, bag, address) => entries.map((en) => (en.label === "Use" ? { ...en, onSelect: () => use.begin(entry, { kind: "bag", bag, address }) } : en));
   return {
@@ -499,7 +503,7 @@ export function performItemCommand(player, c) {
       entries = h.itemMenu(entry, from.bag, other ? other.bag : null);
     }
     const en = entries.find((q) => q.label === c.label);
-    if (en && en.enabled && en.label !== "Use" && en.label !== "Place") {
+    if (en && en.enabled && !LOCAL.has(en.label)) {
       en.onSelect();
       ran = true;
     }

@@ -55,7 +55,7 @@ import * as stationPanel from "./ui/station-panel.js";
 import * as rugs from "./rugs.js"; // a rug laid from the bag and picked up again (#327)
 import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag and taken down again (#326)
 import * as campfire from "./campfire.js"; // a campfire picked up and set down again (docs/43, section 3)
-import * as setdown from "./setdown.js"; // an item set down as its prop, a bracket hung on a wall, and each picked up again (docs/43, section 4)
+import * as setdown from "./setdown.js"; // an item set down as its prop, a torch put on a wall, and each picked up again (docs/43, section 4)
 import * as repair from "./repair.js"; // the grindstone sharpens, the anvil repairs, on one count per item (docs/43 section 6)
 import * as sawpit from "./sawpit.js"; // the sawpit saws a log into planks with no hatchet (docs/43 section 6)
 import * as hives from "./hives.js"; // the beehives give honey every few days (docs/43 section 6)
@@ -715,6 +715,8 @@ function holderActions(target, player) {
       my,
       perform: () => runVerb("putout", player, target.kind === "bracket" ? { bracket: { tx: target.bracket.tx, ty: target.bracket.ty, edge: target.bracket.edge } } : { prop: target.prop.id }),
     })] : [];
+    // A torch a player put on a wall (Place torch, #523) is picked up with its bracket; the map's own brackets keep theirs and give the torch.
+    if (bk && bk.wall.bracket.made) return [...out, ...putOut, act({ kind: "holder", simple: true, label: "Pick up torch", tiles, mx, my, perform: () => setdown.pickUpTorch(player, bk) })];
     return [...out, ...putOut, act({
       kind: "holder",
       simple: true,
@@ -723,8 +725,9 @@ function holderActions(target, player) {
       mx,
       my,
       perform() {
+        // As burnt as it is, and out: a torch leaving a holder is doused (#156); a bracket's keeps its own uid (#523).
         const st = map.holderState(target);
-        const entry = makeEntry("torch", 1, { wear: st.wear || 0, lit: false }); // as burnt as it is, and out: a torch leaving a holder is doused (#156)
+        const entry = bk ? map.torchEntryOf(bk.wall.bracket) : makeEntry("torch", 1, { wear: st.wear || 0, lit: false });
         if (!takeIn(player, entry)) return false;
         map.setHolder(target, false);
         return true;
@@ -732,9 +735,7 @@ function holderActions(target, player) {
     })];
   }
   const have = countAll(player, "torch") > 0;
-  // A bracket a player hung, empty, is taken down again into the bag (docs/43, section 4).
-  const down = bk && bk.wall.bracket.made ? [act({ kind: "holder", simple: false, label: "Take down the bracket", tiles, mx, my, perform: () => setdown.takeDown(player, bk) })] : [];
-  return [...down, act({
+  return [act({
     kind: "holder",
     simple: have,
     label: have ? "Mount the torch" : `An empty ${what} (need a torch)`,
@@ -1739,6 +1740,13 @@ export function beltEquip(player, i, hand = null, onto = false) {
 
 // ---- the item menus, for the panel ----
 
+// Place torch (Michael, 2026-10-27, #523): a torch in the bag, on the belt, or in a hand goes on a wall's face with a bracket drawn with it.
+// The entry begins the ghost on this screen (placement.beginTorch), a guest's too; the click that follows is the mode's own command.
+export const PLACE_TORCH = "Place torch";
+function placeTorchEntry(entry) {
+  return entry && setdown.mountsOnWall(getItem(entry.id)) ? [{ label: PLACE_TORCH, enabled: true, onSelect: () => placement.beginTorch(entry) }] : [];
+}
+
 // An item in a grid: yours or an open container's.
 export function itemMenu(player, entry, bag, otherBag) {
   const def = getItem(entry.id);
@@ -1756,11 +1764,11 @@ export function itemMenu(player, entry, bag, otherBag) {
   if (def.painting && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginPainting(entry) });
   // A Campfire item is set down from the bag: Place begins the ghost on the ground (placement.js; docs/43, section 3).
   if (def.place === campfire.SPRITE && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginCampfire(entry) });
-  // An item that sets down as its prop (a torch post, a decorative pumpkin) or hangs on a wall (a bracket; docs/43, section 4); food placed as
-  // decoration is one way (it comes back a decoration, not food), so the entry says so.
+  // An item that sets down as its prop (a torch post, a decorative pumpkin; docs/43, section 4); food placed as decoration is one way (it comes
+  // back a decoration, not food), so the entry says so.
   if (def.place && def.place !== campfire.SPRITE && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginSetdown(entry) });
   if (def.placeAs && mine) out.push({ label: "Place as decoration (it will not be food again)", enabled: true, onSelect: () => placement.beginSetdown(entry) });
-  if (def.bracket && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginBracket(entry) });
+  if (mine) out.push(...placeTorchEntry(entry));
   if (def.hands && mine) {
     if (def.hands === "either") {
       // A weapon fits either hand: the main hand swaps what is there, the off hand takes a second weapon (docs/21).
@@ -1901,6 +1909,7 @@ export function slotMenu(player, slotId) {
       out.push({ label: `Equip (${bdef.hands === "both" ? "both hands" : `${bdef.hands} hand`})`, enabled: true, onSelect: () => beltEquip(player, i, bdef.hands === "both" ? "main" : bdef.hands) });
     }
     if (bdef.vessel) { const boil = boilSkinEntry(player, entry); if (boil) out.push(boil); } // a bucket of tainted water on the belt (Michael, 2026-10-26)
+    out.push(...placeTorchEntry(entry)); // a torch on the belt goes on a wall (#523)
     out.push({
       label: "Put in bag",
       enabled: !!bagOf(player),
@@ -1918,6 +1927,7 @@ export function slotMenu(player, slotId) {
     if (!entry) return out;
     out.push({ label: "Unequip", enabled: true, onSelect: () => unequip(player, entry) });
     if (getItem(entry.id).vessel) { const boil = boilSkinEntry(player, entry); if (boil) out.push(boil); } // a bucket held (the builder's reading: a bucket is a hand thing)
+    out.push(...placeTorchEntry(entry)); // a torch in a hand goes on a wall, lit or not (#523)
     out.push(dropEntry(entry));
   }
   return out;
