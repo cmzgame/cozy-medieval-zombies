@@ -323,6 +323,31 @@ class Place:
         b.setdefault("stairs", []).append(s)
         return s
 
+    def round(self, at, size, wall="wall_stone", openings=None, floor=None, layer=0):
+        """A round room (docs/50 section 5): a circle inscribed in a `size` by `size` square (5 or 7) whose corner is `at`, relative to the
+        set; `openings` by side ("n", "e", "s", "w") at the four door points, each "door", "window", or a dict with `kind` and `open` or
+        `broken`. map.loadMap floors its stepped tiles (`floor`, stone on the ground and planks above by default) and lays its outline's
+        edges as walls carrying its id. A tower is a round on each `layer` at the same `at`. Stone only for now (Michael, 2026-10-27)."""
+        size = int(size)
+        if size not in (5, 7):
+            raise ValueError(f"a round room is 5 or 7 across, not {size}")
+        if wall != "wall_stone":
+            raise ValueError(f"round walls are stone only for now (Michael, 2026-10-27), not {wall!r}")
+        for side, o in (openings or {}).items():
+            kind = o if isinstance(o, str) else o.get("kind")
+            if side not in ("n", "e", "s", "w") or kind not in ("door", "window"):
+                raise ValueError(f"a round room's opening is a door or a window at n, e, s, or w, not {side}: {o!r}")
+        r = {"at": [int(at[0]), int(at[1])], "size": size, "wall": wall, "layer": int(layer)}
+        if openings:
+            r["openings"] = {k: (v if isinstance(v, str) else dict(v)) for k, v in openings.items()}
+        if floor:
+            r["floor"] = floor
+        for o in self.s.setdefault("rounds", []):
+            if o["layer"] == r["layer"] and not (o["at"][0] + o["size"] <= r["at"][0] or r["at"][0] + size <= o["at"][0] or o["at"][1] + o["size"] <= r["at"][1] or r["at"][1] + size <= o["at"][1]):
+                raise ValueError(f"the round room at {at} overlaps the one at {o['at']} on layer {layer}")
+        self.s["rounds"].append(r)
+        return r
+
     def floor_rect(self, rect, sprite, group=None):
         f = {"rect": _norm_rect(rect), "sprite": sprite}
         if group:

@@ -20,6 +20,7 @@ import { emitRugs } from "./rugs.js"; // laid rugs, flat on the ground under eve
 import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/45 section 2)
 import { postDrawables, wallDrawables } from "./walls.js";
+import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
 import { emitFloors, hiderFor, layersFor, liftOf, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
 
@@ -252,6 +253,7 @@ export function renderScene(args) {
       const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
       const drawables = [];
       wallDrawables(tilesL, visible, roomHere, drawables);
+      ringDrawables(tilesL, visible, roomHere, drawables, L); // round rooms on this layer, their two halves (docs/50 section 4)
       postDrawables(tilesL, visible, roomHere, drawables);
       propDrawables(tilesL, visible, drawables);
       floorItemDrawables(tilesL, visible, drawables);

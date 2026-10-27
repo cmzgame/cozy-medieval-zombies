@@ -13,6 +13,7 @@ import { OCCLUDER_MIN_HEIGHT, DEPTH_BIAS, DEPTH_ROOM, frameQuad } from "./scene.
 import * as depth from "./depth.js"; // a slice's two front faces, or a canopy's billboard (docs/51)
 import { WALL_T } from "../placeholders.js";
 import { makeWall } from "./walls.js";
+import * as rings from "./rings.js"; // a ring as the ghost, and a torch's ghost on one (docs/50)
 import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim milliseconds (docs/23a, C2)
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import * as paintingArt from "./paintings.js"; // a painting hung on a wall (#326)
@@ -72,12 +73,18 @@ export function emitGhost(ghost) {
   if (ghost.kind === "remove") {
     // What the removal tool would take, washed in green (red when out of reach).
     const t = ghost.target;
-    if (t.type === "wall") {
+    if (t.type === "round") {
+      rings.emitRingGhost(t.ring, tint, GHOST_FLAGS()); // a ring is taken apart whole (docs/50 section 5)
+    } else if (t.type === "wall") {
       const shut = { ...t.wall, open: false, shutter: t.wall.kind === "window" ? "closed" : null };
       makeWall(shut, t.edge, t.tx, t.ty, true, false, tint).emit();
     } else {
       emitPropCells(getSheet(t.prop.sprite, t.prop.tiles.length), t.prop.tiles.map(([x, y], i) => [x, y, i]), ghost.ok, t.prop);
     }
+    return;
+  }
+  if (ghost.kind === "round") {
+    rings.emitRingGhost({ id: "ghost", x0: ghost.x0, y0: ghost.y0, n: ghost.n, layer: ghost.layer || 0, sprite: ghost.sprite }, tint, GHOST_FLAGS()); // a round room as it would stand (docs/50 section 5)
     return;
   }
   if (ghost.kind === "wall") {
@@ -94,9 +101,10 @@ export function emitGhost(ghost) {
   if (ghost.kind === "torch") {
     // A torch for a wall (Place torch, docs/43 section 4, #523): its wall drawn again, washed, with the bracket and the torch, lit or not, on
     // the face it would go on.
-    const t = map.peekTile(ghost.tx, ghost.ty);
+    const t = map.peekTile(ghost.tx, ghost.ty, ghost.layer || 0);
     const wall = t && t[ghost.edge];
-    if (wall && !ghost.none) makeWall({ ...wall, bracket: { side: 1, torch: true, lit: !!(ghost.torch && ghost.torch.lit) } }, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
+    if (wall && !ghost.none && map.isRingWall(wall)) rings.emitTorchGhost(ghost.tx, ghost.ty, ghost.edge, !!(ghost.torch && ghost.torch.lit), tint, ghost.layer || 0); // on a ring: at its point on the curve (docs/50)
+    else if (wall && !ghost.none) makeWall({ ...wall, bracket: { side: 1, torch: true, lit: !!(ghost.torch && ghost.torch.lit) } }, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
     return;
   }
   if (ghost.kind === "prop" || ghost.kind === "rug") {

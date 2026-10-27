@@ -522,6 +522,20 @@ for key, e in load("data/build.json").items():
         fail(f"build {key}: a region entry names the wall of a region's wood")
     if e.get("sprite") in wood_walls and wood_walls[e["sprite"]].get("region") and not e.get("region"):
         fail(f"build {key}: a region's wood is offered only with Free building on: mark it `region`")
+    # Round walls (docs/50): stone only and not in the game yet, offered only with Free building on (Michael, 2026-10-27).
+    if e.get("kind") == "round" and (e.get("sprite") != "wall_stone" or not e.get("dev")):
+        fail(f"build {key}: a round wall is stone only and `dev` (Free building alone) for now")
+# The round rooms on the maps (docs/50 section 5): 5 or 7 across, stone, their openings at the four door points.
+for mp in glob.glob("data/maps/*.json"):
+    mj = load(mp.replace("\\", "/"))
+    for where, rd in [(f"{mp} rounds", r) for r in mj.get("rounds", [])] + [(f"{mp} {s.get('name')} rounds", r) for s in mj.get("sets", []) for r in s.get("rounds", [])]:
+        if rd.get("size") not in (5, 7):
+            fail(f"{where}: a round room is 5 or 7 across, not {rd.get('size')}")
+        if rd.get("wall", "wall_stone") != "wall_stone":
+            fail(f"{where}: round walls are stone only for now")
+        for side, o in (rd.get("openings") or {}).items():
+            if side not in ("n", "e", "s", "w") or (o if isinstance(o, str) else o.get("kind")) not in ("door", "window"):
+                fail(f"{where}: an opening is a door or a window at n, e, s, or w")
 # The sounds (docs/40, #379): every slot has a known group, a volume from 0 to 1, a radius above 0, at least one variant,
 # a voice cap, and either a recipe sound-gen.js knows or a delivered file that exists; every slot the ear asks for (the
 # footsteps' floors, the dead's shuffle, the swing, the hit) is a slot.

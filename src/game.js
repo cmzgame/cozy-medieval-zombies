@@ -485,6 +485,7 @@ export function syncParts() {
     map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : k === "boards" && v && Array.isArray(v.near) ? { near: v.near.length, far: v.far.length } : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening), a board's health (a bare number in `wall.boards`) not either, only how many boards stand, so a broken one still shows
     chart: hashOf(chart.hashText()), // what the world has seen, the charted chunks sorted (docs/33)
     registry: hashOf([...map.allProps()].map((p) => p.id).sort().join(",")),
+    rings: hashOf(map.allRings().map((r) => `${r.id} ${r.n} ${r.sprite}${r.built ? " built" : ""}${r.free ? " free" : ""}`).sort().join(",")), // the round rooms' records, made from their walls on every client (docs/50 section 6)
     fires: hashOf(`${[...map.fires()].map((p) => `${p.id}:${p.fire && p.fire.lit ? "lit" : "out"}`).sort().join(",")}`),
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
     // The dead as the frames carry them (the wire sends them as a delta, so a missed update shows here): where, state, hp,

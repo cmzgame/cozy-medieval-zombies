@@ -762,6 +762,59 @@
       "floorRects": [],
       "fences": [],
       "props": []
+    },
+    {
+      "name": "the round rooms",
+      "rect": [
+        21,
+        0,
+        11,
+        12
+      ],
+      "padding": 0,
+      "buildings": [],
+      "floorRects": [],
+      "fences": [],
+      "props": [],
+      "rounds": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "size": 7,
+          "wall": "wall_stone",
+          "layer": 0,
+          "openings": {
+            "s": "door",
+            "w": "window"
+          }
+        },
+        {
+          "at": [
+            5,
+            7
+          ],
+          "size": 5,
+          "wall": "wall_stone",
+          "layer": 0,
+          "openings": {
+            "w": "door"
+          }
+        },
+        {
+          "at": [
+            5,
+            7
+          ],
+          "size": 5,
+          "wall": "wall_stone",
+          "layer": 1,
+          "openings": {
+            "s": "window"
+          }
+        }
+      ]
     }
   ],
   "zones": {

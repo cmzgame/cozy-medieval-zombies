@@ -15,6 +15,7 @@ import { douse, getItem, hasItemDef } from "./items.js";
 import { nextId } from "./world.js";
 import { storedLeaf, carriedLeaf } from "./woods.js"; // the wood of a door's or window's leaves (#334)
 import { emit } from "./events.js";
+import * as round from "./round.js"; // round rooms' geometry (docs/50)
 import { world as W, resources as RES } from "./tuning.js";
 
 export const CHUNK = 16;
@@ -51,7 +52,7 @@ export function buildings() {
 export function buildingAt(x, y, layer = 0) {
   for (const b of buildingList) {
     const r = b.rects[layer];
-    if (r && x >= r[0] && y >= r[1] && x < r[0] + r[2] && y < r[1] + r[3]) return b;
+    if (r && x >= r[0] && y >= r[1] && x < r[0] + r[2] && y < r[1] + r[3] && (!b.round || round.isStepped(r[0], r[1], r[2], x, y))) return b; // a round tower holds its stepped tiles, never its pockets (docs/50 section 3)
   }
   return null;
 }
@@ -160,6 +161,10 @@ export function reset({ floor = "floor_grass", authored = null, wildRule = null,
   bounds = mapBounds;
   pendingSpawns.length = 0;
   roomsDirty = true;
+  rings.clear();
+  ringMarks.clear();
+  unreachableKeys.clear();
+  curveTiles = 0;
 }
 
 export function takePendingSpawns() {
@@ -365,6 +370,14 @@ export function bracketAt(tx, ty, edge, layer = 0) {
 // Where a bracket's torch burns, in grid space: a little off the edge on its side.
 export function bracketPos(b) {
   const s = b.wall.bracket.side * 0.3;
+  if (isRingWall(b.wall)) {
+    // On a ring (docs/50 section 3): at its point on the curve, kept on the tile it looks onto so its light is that tile's room's.
+    const f = ringFace(b.tx, b.ty, b.edge, b.wall.bracket.side, b.layer || 0, true);
+    if (f) {
+      const [fx, fy] = bracketFloor(b);
+      return [Math.max(fx - 0.45, Math.min(fx + 0.45, f.gx)), Math.max(fy - 0.45, Math.min(fy + 0.45, f.gy))];
+    }
+  }
   return b.edge === "n" ? [b.tx, b.ty - 0.5 + s] : [b.tx - 0.5 + s, b.ty];
 }
 
@@ -1089,6 +1102,7 @@ export function canStampOver(existing, kind) {
 // walkable and clear so it can be walked through and stood at.
 export function canBuildWall(tx, ty, edge, kind = "wall", layer = 0) {
   if (!canStampOver(tileAt(tx, ty, layer)[edge], kind)) return false;
+  if (ringWallProblem(tx, ty, edge, kind, layer)) return false; // a ring's rules (docs/50 section 5)
   const [a, b] = edgeTiles(tx, ty, edge);
   const pa = tileAt(a[0], a[1], layer).prop;
   const pb = tileAt(b[0], b[1], layer).prop;
@@ -1128,10 +1142,18 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf
     wall.under = existing.sprite;
     if (existing.built) wall.underBuilt = true; // the player's own wall comes back the player's own
     if (existing.free) wall.underFree = true; // and a free one free
+    if (existing.round) wall.underRound = existing.round; // a ring's door point: the door keeps the ring under it, so taking it away restores the ring wall (docs/50 section 3)
+    if (existing.roundTaken) wall.roundTaken = true; // a wall the ring took in (a house's) stays the house's under a door too
   } else if (existing && existing.under) {
     wall.under = existing.under; // a new door over a broken stamped one still stands in the wall it was stamped into
     if (existing.underBuilt) wall.underBuilt = true;
     if (existing.underFree) wall.underFree = true;
+  }
+  if (existing && existing.kind !== "wall") {
+    // Over a broken door or window at a ring's door point: the ring stays under the new one whether or not the old one stood in a wall
+    // (the map's openings and a door taken in), so taking the new one away gives the ring wall back (destroyWall), never a hole.
+    if (existing.underRound) wall.underRound = existing.underRound;
+    if (existing.roundTaken) wall.roundTaken = true;
   }
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
   const own = kind !== "wall" ? storedLeaf(sprite, leaf || (existing && existing.kind === kind ? carriedLeaf(existing) : "")) : null; // a door or window of another wood than its wall (#334); nothing stored when it is the wall's own; over a broken one of its kind the default is the old one's wood
@@ -1193,7 +1215,18 @@ export function destroyWall(tx, ty, edge, restoreUnder = false, layer = 0) {
   releaseHangings(tx, ty, edge, layer);
   releaseBracket(wall);
   t[edge] = null;
-  if (restoreUnder && wall.under) {
+  if (wall.underRound) {
+    // A door or a window at a ring's door point, taken away by any path (the removal tool, a ring's own take-down, a fence's burst): the ring
+    // wall is back, never a hole in a ring that is still drawn whole (a sealed round room stays a cell). In what stood under it, else the
+    // ring's own material; one the ring took in stays the house's (roundTaken) only where a wall of the house stood under the opening.
+    const r = rings.get(round.idOf(wall.underRound[0], wall.underRound[1], layer));
+    t[edge] = createWall("wall", wall.under || (r && r.sprite) || "wall_stone");
+    t[edge].at = addr(tx, ty, layer);
+    t[edge].round = wall.underRound; // drawn as the curve (docs/50 section 3)
+    if (wall.under ? wall.underBuilt : wall.built) t[edge].built = true;
+    if (wall.under ? wall.underFree : wall.free) t[edge].free = true;
+    if (wall.roundTaken && wall.under) t[edge].roundTaken = true;
+  } else if (restoreUnder && wall.under) {
     // The removal tool takes a built door or window out of the wall it was stamped into, and the wall is back.
     t[edge] = createWall("wall", wall.under);
     t[edge].at = addr(tx, ty, layer);
@@ -1203,6 +1236,322 @@ export function destroyWall(tx, ty, edge, restoreUnder = false, layer = 0) {
   touch(tx, ty, layer);
   rebuildRoomsAround(tx, ty, edge, layer);
   return true;
+}
+
+// ---- round rooms (docs/50; Michael, 2026-10-26: "round rooms are option A") ----
+// A ring is edge walls: every edge of its stepped outline a plain wall in its tile's `n` or `w` slot, carrying `round: [x0, y0, n]` (its
+// square's corner and size; the layer is the wall's own), so rooms, paths, sight, light, reach, bites, the siege, the save, and the wire
+// read it as any wall. A door or a window at one of its four door points keeps the ring under it (`underRound`). The record (id, square,
+// size, layer, material, built) is made from its walls, never saved or sent on its own: every chunk holding an edge carries it, so a chunk
+// sent alone (a guest's frame) brings it, and one installed without it (taken apart on the host) drops it. From the record, on host and
+// guest alike and never saved: the curve's chords on the tiles they cross (body collision, `circleBlocked`), the eight tiles the curve
+// crosses inside (no furniture, ruled), and the tiles a body cannot reach the centre of (`unreachable`: never walkable for a path).
+
+const rings = new Map(); // id -> { id, x0, y0, n, layer, sprite, built, free, authored }
+const ringMarks = new Map(); // chunkKey(x, y, layer) of a tile -> { owner, stepped, crossed, unreachable, curve: [[ax, ay, bx, by, id]] }
+const unreachableKeys = new Set(); // chunkKey(x, y, layer) of each unreachable tile
+let curveTiles = 0; // tiles carrying a chord: circleBlocked looks only while there are any
+
+function markOf(x, y, layer, make = true) {
+  const k = chunkKey(x, y, layer);
+  let m = ringMarks.get(k);
+  if (!m && make) ringMarks.set(k, (m = { owner: null, stepped: false, crossed: false, unreachable: false, curve: null }));
+  return m || null;
+}
+
+// The ring with this id, every ring (on one layer when one is named), and the ring whose square holds (x, y).
+export function ringById(id) {
+  return rings.get(id) || null;
+}
+export function allRings(layer = null) {
+  const out = [...rings.values()];
+  return layer == null ? out : out.filter((r) => r.layer === layer);
+}
+export function ringAt(x, y, layer = 0) {
+  const m = ringMarks.get(chunkKey(x, y, layer));
+  return m && m.owner ? rings.get(m.owner) || null : null;
+}
+// The ring a wall is an edge of (its own, or the one under a door at a door point), or null.
+export function ringOfWall(wall) {
+  const r = wall && (wall.round || wall.underRound);
+  if (!r) return null;
+  return rings.get(round.idOf(r[0], r[1], layerOf(wall.at))) || null;
+}
+// Whether a wall is a ring's edge drawn as the curve (a plain wall with the ring's id; a door or a window at a door point is drawn as itself).
+export function isRingWall(wall) {
+  return !!wall && wall.kind === "wall" && !!wall.round;
+}
+// The face of a ring edge on its `side` (+1 the edge's near side, -1 its far), at the edge's point on the curve: { gx, gy, a, out } (the ground
+// point `off` tiles off the curve on that side, the angle, and +1 when the side is the ring's outside), or null when it is no ring edge or,
+// unless `any`, when the camera does not see that face (a torch is put only where it can be seen, as on a straight wall's camera face).
+export function ringFace(tx, ty, edge, side = 1, layer = 0, any = false, off = 0.3) {
+  const wall = tileAt(tx, ty, layer)[edge];
+  const r = ringOfWall(wall);
+  if (!r) return null;
+  const [mx, my] = edgeMid(tx, ty, edge);
+  const s = round.shape(r.x0, r.y0, r.n);
+  const len = Math.hypot(mx - s.cx, my - s.cy) || 1;
+  const ux = (mx - s.cx) / len;
+  const uy = (my - s.cy) / len;
+  const [dx, dy] = edge === "n" ? [0, side] : [side, 0];
+  const out = dx * ux + dy * uy >= 0 ? 1 : -1;
+  if (!any && out * (ux + uy) <= 0) return null; // the face looks away from the camera (its outward normal's x + y is the depth toward it)
+  const p = round.onCurve(s, mx, my, out * off);
+  return { gx: p.gx, gy: p.gy, a: p.a, out };
+}
+
+// The geometry of a ring's record.
+export function ringShape(r) {
+  return round.shape(r.x0, r.y0, r.n);
+}
+// One of the eight tiles the curve crosses inside a ring: no furniture stands there (Michael, 2026-10-26: "furniture can't be placed on those 8 tiles").
+export function curveCrossed(x, y, layer = drawLayer) { // the layer a read names, else the one being read (map.withDrawLayer: a storey drawn, E and the menu on the player's floor)
+  const m = ringMarks.get(chunkKey(x, y, layer));
+  return !!(m && m.crossed);
+}
+// A tile whose centre no body can reach for the curve (docs/50 section 2).
+export function unreachableAt(x, y, layer = drawLayer) {
+  return unreachableKeys.has(chunkKey(x, y, layer));
+}
+// Why furniture (a prop that stands, set down, built, carried, or made) may not stand on (x, y), or "": the ring's curve crosses the tile.
+export function ringFurnitureProblem(x, y, layer = drawLayer) {
+  return curveCrossed(x, y, layer) ? "Not against the curve" : "";
+}
+
+// The record into the index, its marks made: the square's tiles owned, the stepped and crossed ones marked, the unreachable ones kept,
+// each chord on every tile its box touches.
+function addRing(rec) {
+  if (rings.has(rec.id)) return rings.get(rec.id);
+  rings.set(rec.id, rec);
+  const s = round.shape(rec.x0, rec.y0, rec.n);
+  const L = rec.layer;
+  for (let y = rec.y0; y < rec.y0 + rec.n; y++) for (let x = rec.x0; x < rec.x0 + rec.n; x++) markOf(x, y, L).owner = rec.id;
+  for (const [x, y] of s.stepped) markOf(x, y, L).stepped = true;
+  for (const [x, y] of s.crossed) markOf(x, y, L).crossed = true;
+  for (const [x, y] of s.unreachable) {
+    markOf(x, y, L).unreachable = true;
+    unreachableKeys.add(chunkKey(x, y, L));
+  }
+  for (const c of s.chords) {
+    const [ax, ay, bx, by] = c;
+    for (let y = Math.floor(Math.min(ay, by) + 0.5 - 1e-6); y <= Math.floor(Math.max(ay, by) + 0.5 + 1e-6); y++) {
+      for (let x = Math.floor(Math.min(ax, bx) + 0.5 - 1e-6); x <= Math.floor(Math.max(ax, bx) + 0.5 + 1e-6); x++) {
+        const m = markOf(x, y, L);
+        if (!m.curve) {
+          m.curve = [];
+          curveTiles++;
+        }
+        m.curve.push([ax, ay, bx, by, rec.id]);
+      }
+    }
+  }
+  roomsDirty = true;
+  return rec;
+}
+
+function dropRing(id) {
+  const rec = rings.get(id);
+  if (!rec) return;
+  rings.delete(id);
+  const L = rec.layer;
+  for (let y = rec.y0 - 1; y <= rec.y0 + rec.n; y++) {
+    for (let x = rec.x0 - 1; x <= rec.x0 + rec.n; x++) {
+      const k = chunkKey(x, y, L);
+      const m = ringMarks.get(k);
+      if (!m) continue;
+      if (m.owner === id) {
+        m.owner = null;
+        m.stepped = m.crossed = m.unreachable = false;
+        unreachableKeys.delete(k);
+      }
+      if (m.curve) {
+        m.curve = m.curve.filter((c) => c[4] !== id);
+        if (!m.curve.length) {
+          m.curve = null;
+          curveTiles--;
+        }
+      }
+      if (!m.owner && !m.curve) ringMarks.delete(k);
+    }
+  }
+  roomsDirty = true;
+}
+
+// A record made from one of its walls (installed from a save or a frame).
+function ringFromWall(wall, layer) {
+  const [x0, y0, n] = wall.round || wall.underRound;
+  return { id: round.idOf(x0, y0, layer), x0, y0, n, layer, sprite: wall.kind === "wall" ? wall.sprite : wall.under || wall.sprite, built: !!(wall.built || wall.underBuilt), free: !!(wall.free || wall.underFree), authored: false };
+}
+
+// A chunk installed or grown: a ring with an outline edge on it that no longer carries it is gone (taken apart on the host), and a ring
+// its walls name that the index lacks is added (built on the host, or kept by the save).
+function settleRings(c) {
+  const x0 = c.cx * CHUNK;
+  const y0 = c.cy * CHUNK;
+  const wallAt = (tx, ty, edge) => {
+    if (tx < x0 || ty < y0 || tx >= x0 + CHUNK || ty >= y0 + CHUNK) return undefined;
+    return c.tiles[(ty - y0) * CHUNK + (tx - x0)][edge];
+  };
+  for (const r of [...rings.values()]) {
+    if (r.layer !== c.layer || r.authored) continue;
+    if (r.x0 > x0 + CHUNK || r.y0 > y0 + CHUNK || r.x0 + r.n < x0 || r.y0 + r.n < y0) continue;
+    let mine = 0;
+    let kept = 0;
+    for (const [tx, ty, edge] of round.shape(r.x0, r.y0, r.n).outline) {
+      const w = wallAt(tx, ty, edge);
+      if (w === undefined) continue;
+      mine++;
+      const tag = w && (w.round || w.underRound);
+      if (tag && tag[0] === r.x0 && tag[1] === r.y0 && tag[2] === r.n) kept++;
+    }
+    if (mine && !kept) dropRing(r.id);
+  }
+  for (const t of c.tiles) {
+    for (const w of [t.n, t.w]) {
+      if (!w || !(w.round || w.underRound)) continue;
+      const rec = ringFromWall(w, c.layer);
+      const have = rings.get(rec.id);
+      if (!have) {
+        if (w.roundTaken) rec.fromTaken = true; // a wall it took in says nothing of the ring's own (the house's, an authored one): kept until one of its own is seen
+        addRing(rec);
+      } else if (have.fromTaken && !w.roundTaken) {
+        Object.assign(have, { sprite: rec.sprite, built: rec.built, free: rec.free });
+        delete have.fromTaken;
+      }
+    }
+  }
+}
+
+// The edges of a ring's outline (at x0, y0, n) with nothing on them yet: the ones it would lay, and pay for (a wall already there is taken in).
+export function ringNewEdges(x0, y0, n, layer = 0) {
+  return round.shape(x0, y0, n).outline.filter(([tx, ty, e]) => !(peekTile(tx, ty, layer) && peekTile(tx, ty, layer)[e])).length;
+}
+
+// The plain walls a ring laid itself (not taken in), still standing: what taking it apart gives back for.
+// The edges a ring laid itself (not taken in), still its own: a plain ring wall, or the ring's wall under a door or a window stamped into it
+// later (taken down with the ring, door and all): what taking it apart gives back for.
+export function ringOwnEdges(r) {
+  return round.shape(r.x0, r.y0, r.n).outline.filter(([tx, ty, e]) => {
+    const w = tileAt(tx, ty, r.layer)[e];
+    const tag = w && (w.round || w.underRound);
+    if (!tag || w.roundTaken || tag[0] !== r.x0 || tag[1] !== r.y0 || tag[2] !== r.n) return false;
+    return w.kind === "wall" || !!w.under;
+  }).length;
+}
+
+// Why a ring's rule refuses a wall of `kind` on this edge, or "" (docs/50 sections 3 and 5): a door or a window on a ring edge only at one of
+// its four door points; no wall on an edge between two of a ring's stepped tiles; a ring's edge is already a wall (canStampOver).
+export function ringWallProblem(tx, ty, edge, kind = "wall", layer = 0) {
+  if (!rings.size) return "";
+  const existing = tileAt(tx, ty, layer)[edge];
+  const r = existing ? ringOfWall(existing) : null;
+  if (r && (kind === "door" || kind === "window") && !round.isDoorPoint(r.x0, r.y0, r.n, tx, ty, edge)) return "Only at a door point of the curve";
+  const [a, b] = edgeTiles(tx, ty, edge);
+  const ra = ringAt(a[0], a[1], layer);
+  if (ra && ra === ringAt(b[0], b[1], layer) && round.isStepped(ra.x0, ra.y0, ra.n, a[0], a[1]) && round.isStepped(ra.x0, ra.y0, ra.n, b[0], b[1])) return "Not inside a round room";
+  return "";
+}
+
+// Why a ring of size n with its square's corner at (x0, y0) may not be built on `layer`, or "" (docs/50 section 5): 5 or 7 across; no other
+// ring's square overlapping its own; every stepped tile open floor (walkable, off the water) with nothing on it (no prop, rug, or item) and
+// no wall between two of them; every outline edge free, a plain solid wall (taken into the ring), or a door or a window at a door point.
+export function ringProblem(x0, y0, n, layer = 0) {
+  if (!round.validSize(n)) return "A round room is 5 or 7 across";
+  for (let y = y0 - 1; y <= y0 + n; y++) for (let x = x0 - 1; x <= x0 + n; x++) if (ringAt(x, y, layer) && x >= x0 && y >= y0 && x < x0 + n && y < y0 + n) return "Another round room is there";
+  const s = round.shape(x0, y0, n);
+  for (const [x, y] of s.stepped) {
+    const t = peekTile(x, y, layer);
+    if (!t) return "Too far from anyone"; // a chunk not grown: nothing is built where no one is
+    if (floorRule(t.floor).walk !== 1 || floorRule(t.floor).drink) return "Not on water or empty ground";
+    if (t.prop || t.rug) return "Something is in the way";
+    if (t.items && t.items.length) return "Clear the floor first";
+    if (round.isStepped(x0, y0, n, x, y - 1) && t.n) return "A wall is in the way";
+    if (round.isStepped(x0, y0, n, x - 1, y) && t.w) return "A wall is in the way";
+  }
+  for (const [tx, ty, edge] of s.outline) {
+    const w = peekTile(tx, ty, layer) ? peekTile(tx, ty, layer)[edge] : null;
+    if (!w) continue;
+    if (w.round || w.underRound) return "Another round room is there";
+    if (w.bracket && w.bracket.lantern) return "A lantern is in the way"; // the village's, never taken down by a player (a torch on a wall taken in falls, buildRing)
+    if (w.kind === "wall" && !wallRule(w.sprite).seeThrough) continue;
+    if ((w.kind === "door" || w.kind === "window") && round.isDoorPoint(x0, y0, n, tx, ty, edge) && !wallRule(w.sprite).seeThrough) continue;
+    return w.kind === "wall" ? "Not over a fence" : "A door or a window is in the way";
+  }
+  return "";
+}
+
+// Build a ring: its outline's edges walls of `sprite` carrying its id, a plain wall already there taken into it (drawn as the curve now,
+// what hung on it falling to the floor), a door or a window at a door point keeping the ring under it. Touches every chunk it stands on.
+export function buildRing(x0, y0, n, sprite, layer = 0, { built = true, free = false } = {}) {
+  if (ringProblem(x0, y0, n, layer)) return null;
+  const tag = [x0, y0, n];
+  for (const [tx, ty, edge] of round.shape(x0, y0, n).outline) {
+    const t = growTile(tx, ty, layer);
+    const w = t[edge];
+    if (w && w.kind !== "wall") {
+      w.underRound = tag; // a door or a window already at a door point stays, the ring under it; taken in, it is not the ring's to take away
+      w.roundTaken = true;
+    } else if (w) {
+      releaseHangings(tx, ty, edge, layer); // no painting on the curve (docs/50 section 3)
+      releaseBracket(w); // and a torch on its face falls to the floor, put out, as when a wall goes: the curve's faces are not the wall's (#523)
+      delete w.bracket;
+      w.round = tag; // a plain wall already there (a house's, against which the ring stands as an apse): drawn as the curve, its own still
+      w.roundTaken = true;
+    } else {
+      const nw = createWall("wall", sprite);
+      nw.round = tag;
+      if (built) nw.built = true;
+      if (free) nw.free = true;
+      nw.at = addr(tx, ty, layer);
+      t[edge] = nw;
+    }
+    touch(tx, ty, layer);
+  }
+  const rec = addRing({ id: round.idOf(x0, y0, layer), x0, y0, n, layer, sprite, built, free, authored: false });
+  for (const [tx, ty] of round.shape(x0, y0, n).stepped) touch(tx, ty, layer); // every chunk under it is sent, never evicted
+  markRoomsDirty();
+  return rec;
+}
+
+// Take a ring down whole (the removal tool, docs/50 section 5): its doors and windows at the door points first, then every edge of it,
+// a torch on it falling to the floor as from any wall. Returns the walls taken (what they cost is the caller's to give back).
+export function removeRing(id) {
+  const r = rings.get(id);
+  if (!r) return null;
+  const taken = [];
+  const s = round.shape(r.x0, r.y0, r.n);
+  const mine = (w) => {
+    const tag = w && (w.round || w.underRound);
+    return !!tag && tag[0] === r.x0 && tag[1] === r.y0 && tag[2] === r.n;
+  };
+  // A wall or an opening the ring took in when it was built is left as it was before, straight again; only what the ring laid goes.
+  const release = (tx, ty, edge, w) => {
+    delete w.round;
+    delete w.underRound;
+    delete w.roundTaken;
+    touch(tx, ty, r.layer);
+  };
+  for (const [tx, ty, edge] of s.outline) {
+    const w = tileAt(tx, ty, r.layer)[edge];
+    if (!mine(w) || w.kind === "wall") continue;
+    if (w.roundTaken) release(tx, ty, edge, w);
+    else {
+      taken.push({ ...w });
+      destroyWall(tx, ty, edge, true, r.layer); // the ring wall comes back under it, then goes with the rest
+    }
+  }
+  for (const [tx, ty, edge] of s.outline) {
+    const w = tileAt(tx, ty, r.layer)[edge];
+    if (!mine(w)) continue;
+    if (w.roundTaken) release(tx, ty, edge, w);
+    else {
+      taken.push({ ...w });
+      destroyWall(tx, ty, edge, false, r.layer);
+    }
+  }
+  dropRing(id);
+  markRoomsDirty();
+  return taken;
 }
 
 // ---- fences (Michael, 2026-10-17, #147; 2026-10-18, #174): the dead strike one down ----
@@ -1672,6 +2021,7 @@ export function installChunk(d) {
   chunks.set(k, c);
   lastChunk = null;
   roomsDirty = true;
+  settleRings(c); // a ring built or taken apart on the host, or kept by the save: its record follows its edges (docs/50 section 6)
   return c;
 }
 
@@ -1865,6 +2215,7 @@ export function getChunk(cx, cy, create = true, layer = 0) {
   c = { cx, cy, layer, tiles, wild: anyWild, dirty: false, lightVersion: 0, saved: null };
   settleForeignParts(c); // an authored prop anchored on a neighbour already loaded: that neighbour's copy, or none (#341)
   chunks.set(k, c);
+  if (hasWalls) settleRings(c); // an authored ring is registered by the load; this finds nothing new, as nothing was built here yet
   touched.add(k); // grown: a guest learns of it like any change (net.js; the guest cannot grow it itself, its settings could shape it differently)
   lastChunk = c;
   // Open field cannot change any room, so only a chunk with walls (or one whose
@@ -2077,6 +2428,7 @@ export function wallRule(sprite) {
 }
 
 export function isWalkableTile(x, y, layer = 0) {
+  if (unreachableKeys.size && unreachableKeys.has(chunkKey(x, y, layer))) return false; // held off by a ring's curve (docs/50 section 2): no path, wander, or set-down ends there
   const t = tileAt(x, y, layer);
   return !(t.prop && t.prop.solid) && floorRule(t.floor).walk !== false;
 }
@@ -2318,6 +2670,11 @@ export function circleBlocked(gx, gy, r, layer = 0, sFrom = undefined) {
           const dy = gy - cy;
           if (dx * dx + dy * dy < r2) return true;
         }
+      }
+      if (curveTiles) {
+        // A ring's drawn curve (docs/50 section 3, option A ruled): its chords on the tiles they cross, tested beside the tile's own edges.
+        const m = ringMarks.get(chunkKey(tx, ty, layer));
+        if (m && m.curve) for (const c of m.curve) if (pointSegDist2(gx, gy, c[0], c[1], c[2], c[3]) < r2) return true;
       }
       const ns = moveSegments(t.n);
       if (ns) {
@@ -3060,6 +3417,49 @@ export function loadMap(json, options = {}) {
     buildingList.push({ id: `b${buildingList.length}`, set: b.set || null, rect, rects, layers: Object.keys(rects).map(Number).sort((a, c) => a - c) });
     for (const s of b.stairs || []) layStair(s, [rect[0], rect[1]], buildingList[buildingList.length - 1]);
   }
+  // Round rooms (docs/50 section 5): `{ at, size, wall, openings: { n, e, s, w }, floor, layer }`, `at` the square's corner (relative to the
+  // set's origin), an opening at a door point "door", "window", or `{ kind, open, broken }`. Its stepped tiles floored, its outline's edges
+  // walls carrying its id, its openings keeping the ring under them; one on each layer of a tower is one building in the index, its
+  // stepped tiles its footprint. Registered once the map is reset (below).
+  const roundList = [];
+  const layRound = (rd, origin, set) => {
+    const n = rd.size | 0;
+    const layer = rd.layer | 0;
+    const x0 = rd.at[0] + origin[0];
+    const y0 = rd.at[1] + origin[1];
+    if (!round.validSize(n)) return stairProblems.push(`a round room at ${x0},${y0} is ${n} across (5 or 7)`);
+    const mat = rd.wall || "wall_stone";
+    const tag = [x0, y0, n];
+    const s = round.shape(x0, y0, n);
+    for (const [x, y] of s.stepped) getL(x, y, layer).floor = rd.floor || (layer ? "floor_wood" : "floor_stone");
+    for (const [tx, ty, edge] of s.outline) {
+      const w = createWall("wall", mat);
+      w.round = tag;
+      getL(tx, ty, layer)[edge] = w;
+    }
+    const sides = ["n", "e", "s", "w"];
+    for (const [side, o] of Object.entries(rd.openings || {})) {
+      const i = sides.indexOf(side);
+      const kind = typeof o === "string" ? o : o && o.kind;
+      if (i < 0 || (kind !== "door" && kind !== "window")) continue;
+      const [tx, ty, edge] = s.doors[i];
+      const w = createWall(kind, mat);
+      w.underRound = tag;
+      w.under = mat; // stamped into the ring's own wall, as a built one is: taken away (broken and replaced, then removed), the ring wall comes back
+      if (o && o.open) { w.open = true; if (kind === "window") w.shutter = "open"; }
+      if (o && o.broken) { w.broken = true; w.hp = 0; if (kind === "door") w.open = true; if (kind === "window") w.shutter = "open"; }
+      getL(tx, ty, layer)[edge] = w;
+    }
+    roundList.push({ id: round.idOf(x0, y0, layer), x0, y0, n, layer, sprite: mat, built: false, free: false, authored: true });
+    const rect = [x0, y0, n, n];
+    let b = buildingList.find((q) => q.round && q.rect[0] === x0 && q.rect[1] === y0 && q.rect[2] === n);
+    if (!b) buildingList.push((b = { id: `b${buildingList.length}`, set: set || null, rect, rects: {}, layers: [], round: true }));
+    b.rects[layer] = rect;
+    b.layers = Object.keys(b.rects).map(Number).sort((a, c) => a - c);
+    return 0;
+  };
+  for (const rd of json.rounds || []) layRound(rd, [0, 0], null);
+  for (const s of json.sets || []) for (const rd of s.rounds || []) layRound(rd, setOrigin(s), s.name || null);
   indexStairs(); // the stairs as walked (docs/49 step 3)
   const baseFloor = json.floor || "floor_grass";
   // Reserved tiles take no scatter: each building's rectangle plus its
@@ -3083,6 +3483,7 @@ export function loadMap(json, options = {}) {
     reserveRect(b.rect[0] - pad, b.rect[1] - pad, b.rect[2] + pad * 2, b.rect[3] + pad * 2);
   }
   for (const r of json.reserve || []) reserveRect(...r);
+  for (const rd of json.rounds || []) reserveRect(rd.at[0] - 1, rd.at[1] - 1, (rd.size | 0) + 2, (rd.size | 0) + 2); // a round room and a ring round it (docs/50)
   const zones = json.zones || {};
   for (const sc of json.scatter || []) {
     const zone = sc.zone ? zones[sc.zone] : { kinds: sc.kinds, scale: sc.scale || 8 };
@@ -3113,6 +3514,7 @@ export function loadMap(json, options = {}) {
     mapBounds: json.bounds || null,
     layers: Object.fromEntries(layered),
   });
+  for (const r of roundList) addRing(r); // the authored rings' records and marks, from the file every client has (docs/50)
   zoneRects = (json.scatter || []).filter((sc) => sc.zone).map((sc) => ({ rect: sc.rect, zone: sc.zone }));
   wildZone = json.wild?.zone || null;
   // Forage inside the bounds, now that the trees and the wild rule are known:

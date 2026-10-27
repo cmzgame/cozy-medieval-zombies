@@ -1,8 +1,8 @@
 {
-  "version": "14b0a781",
+  "version": "4d63e80b",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
-    "data/build.json": {"size": 3364, "stamp": "72416da6"},
+    "data/build.json": {"size": 4055, "stamp": "8b83f4f2"},
     "data/combat.json": {"size": 6412, "stamp": "2bc2110b"},
     "data/crops.json": {"size": 2313, "stamp": "36c5359c"},
     "data/dyes.json": {"size": 2539, "stamp": "b65fc8c1"},
@@ -833,9 +833,9 @@
     "data/layers/head/onion.json": {"size": 63920, "stamp": "8eaa09dd"},
     "data/layers/legs/index.json": {"size": 19, "stamp": "e924073b"},
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
-    "data/maps/square.json": {"size": 16823, "stamp": "8bd79b63"},
+    "data/maps/square.json": {"size": 17748, "stamp": "753b4445"},
     "data/maps/staging.json": {"size": 8761, "stamp": "c49d0cd7"},
-    "data/maps/valley.json": {"size": 172749, "stamp": "0519e9e9"},
+    "data/maps/valley.json": {"size": 173130, "stamp": "d3cab397"},
     "data/site/staging_day_wide.webp": {"size": 103152, "stamp": "d59a0e45"},
     "data/site/staging_dusk_wide.webp": {"size": 60390, "stamp": "234b2082"},
     "data/sprites/altar.json": {"size": 368, "stamp": "d22d8cb9"},

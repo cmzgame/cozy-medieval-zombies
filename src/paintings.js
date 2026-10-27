@@ -54,6 +54,7 @@ export function segmentProblem(tx, ty, edge) {
   const wall = wallOf(tx, ty, edge);
   if (!wall) return "No wall to hang it on";
   if (wall.kind !== "wall" || map.wallRule(wall.sprite).seeThrough || wall.broken) return "Nothing to hang it on";
+  if (map.isRingWall(wall)) return "It would not hang flat on the curve"; // docs/50 section 3: paintings on a curved face are later
   if (!getDef(wall.sprite).wall) return "Nothing to hang it on"; // only a drawn wall has a face to hang on
   if (wall.bracket && wall.bracket.side > 0) return "A bracket is in the way";
   if (wall.hangings && wall.hangings.length) return "Something already hangs there";
