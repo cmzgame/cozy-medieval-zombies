@@ -37,7 +37,7 @@ export const DEFAULTS = {
   logSize: null, // { w, h } in UI pixels the text log was resized to (ui/log.js)
   extraKit: "", // items added to the starting kit, one `item_id count` a line (#136): chosen at a new world's Sandbox step
   devBag: false, // start wearing the Developer Bag in place of the sack (#136): chosen at a new world's Sandbox step
-  devChest: true, // the chest of every item placed by the spawn: chosen at a new world's Sandbox step (docs/38), this is the next world's first choice; docs/30 step 0: the map file stays clean
+  devChest: true, // the dev chest placed by the spawn (every weapon and tool, the basic materials; data/loot.json dev_kit): chosen at a new world's Sandbox step (docs/38), this is the next world's first choice; docs/30 step 0: the map file stays clean
   identities: [], // [{ id, name, look }]: the identities kept in this browser (identities.js; docs/31/09)
   lastIdentity: "", // the one picked last, offered first on the next creation
   clientId: "", // the browser id a world remembers a character's owner by (docs/31/09)
@@ -81,7 +81,7 @@ export const REGISTRY = [
   { key: "debugCorner", group: "testing", label: "Debug corner", help: "The numbers and the keys in the top-left corner.", choices: SHOWN },
   { key: "objectHighlight", group: "testing", label: "Object Highlight", help: "An outline on the game object under the cursor that you can act on: a tree, a crop, a chest, an item on the ground, a villager. Plain scenery gets none.", choices: ON_OFF },
   { key: "showHitShapes", group: "testing", label: "Hit shapes", help: "The dead's body samples, green when the next swing reaches them.", choices: ON_OFF },
-  { key: "devChest", group: "sandbox", label: "Dev chest", help: "A chest of every item by the spawn, made with the world.", choices: ON_OFF },
+  { key: "devChest", group: "sandbox", label: "Dev chest", help: "A chest beside you of every weapon and tool, the basic materials, potions, and seeds, made with the world.", choices: ON_OFF },
   { key: "devBag", group: "sandbox", fixed: true, label: "Dev bag", help: "Everyone starts wearing the Developer Bag, a big bag, in place of the sack. Chosen when the world is made.", choices: ON_OFF },
   { key: "extraKit", group: "sandbox", fixed: true, text: true, label: "Extra starting items", help: "On top of the usual kit, for testing: type an item's name, pick it, and set how many. Chosen when the world is made.", choices: [] },
 ];
