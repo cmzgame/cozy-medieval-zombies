@@ -17,51 +17,51 @@
  "anchors": {
   "boards_door_north_1": [
    10.0,
-   21.0
+   29.0
   ],
   "boards_door_north_2": [
    10.0,
-   35.0
+   47.0
   ],
   "boards_door_north_3": [
    10.0,
-   33.0
+   45.0
   ],
   "boards_door_west_1": [
    21.0,
-   23.0
+   31.0
   ],
   "boards_door_west_2": [
    21.0,
-   33.0
+   45.0
   ],
   "boards_door_west_3": [
    21.0,
-   35.0
+   47.0
   ],
   "boards_window_north_1": [
    8.0,
-   32.0
+   40.0
   ],
   "boards_window_north_2": [
    8.0,
-   42.0
+   52.0
   ],
   "boards_window_north_3": [
    8.0,
-   40.0
+   50.0
   ],
   "boards_window_west_1": [
    19.0,
-   35.0
+   42.0
   ],
   "boards_window_west_2": [
    19.0,
-   40.0
+   50.0
   ],
   "boards_window_west_3": [
    19.0,
-   41.0
+   52.0
   ]
  },
  "note": "board overlays, one to three planks, the same on every wall material (docs/17)"

@@ -27,7 +27,7 @@ Cosy, slightly spooky autumn: chunky readable shapes, muted harvest colours, a d
 | Ground tile | 64 x 32 px diamond | a tile edge is 32 px along the screen diagonal and 16 px down it |
 | Character | about 55 px tall with hair, about 26 wide | frame 48 x 72, feet anchor (24, 66); **older briefs say 48 px, which is stale** (`25`) |
 | Held item grip | hand is about 14 px above the feet and 9 to 10 px out from the body | the grip pixel of every item lands here |
-| Wall | 80 px tall; stone 16 thick, wood 14, log 18 | settled 2026-10-11 after 64 (too short) and 96 (too tall) |
+| Wall | 96 px tall, three one-tile crates; the door's top at 64, the window 24 to 64; stone 16 thick, wood 14, log 18 | 96 since 2026-10-26 (`52`, drawn 2026-10-27); 80 from 2026-10-11, after 64 (too short) and a 96 whose door had grown with it |
 | Doorway | 20 px across the edge, 48 px tall | window 16 across, sill 22, top 51 |
 | Furniture | bed 97 x 75, table 91 x 64, chair 39 x 44/51, well 74 x 104, fireplace 83 x 91 | footprints in `06-village-furniture-and-fixtures.md` |
 | Trees | oak 82..158 x 103..198, spire 71..130 x 112..212 | three sizes, two shapes, `02-trees.md` |

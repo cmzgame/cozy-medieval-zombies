@@ -1,17 +1,17 @@
 # Art 05: Walls, posts, openings, boards, floors
 
-**Status: in the game and played** ("looks and works great", Michael, 2026-10-11). Files in `data/art/village/`. The plumbing is `history/17-village-art-build.md`; the briefs that asked for this are `16` and `18`. This page is the art side. Written 2026-10-12.
+**Status: in the game and played** ("looks and works great", Michael, 2026-10-11); **redrawn at 96 px on 2026-10-27** (`13`, `docs/52`) by rerunning the same generators with the wall 96, the door 64, and the window 24 to 64, nothing else moved (the generators and their README: `tools/art-gen/round7/walls/`). Files in `data/art/village/`. The plumbing is `history/17-village-art-build.md`; the briefs that asked for this are `16`, `18`, and `13`. This page is the art side. Written 2026-10-12, its numbers rewritten for 96 on 2026-10-27.
 
 ## Pieces
 
-Everything is hard-pixel, tightly cropped, drawn at 1:1, with an anchor on the **tile's top vertex at ground level** (`anchors_walls.json`; log anchors `[9, 85]` north and `[41, 85]` west, wood `[7, 84]` and `[39, 84]`).
+Everything is hard-pixel, tightly cropped, drawn at 1:1, with an anchor on the **tile's top vertex at ground level** (`anchors_walls.json`; log anchors `[9, 101]` north and `[41, 101]` west, wood and the woods `[7, 100]` and `[39, 100]`, stone `[8, 100]` and `[40, 100]`).
 
 | Set | Files | Notes |
 |---|---|---|
-| Wall segments | `wall_<wood|stone|log>_<north|west>_<plain|door_shut|door_open|window_shut|window_open>` (30) | one tile edge long (32 px along the edge), 80 px tall. PNG sizes: wood 47 x 104, stone 49 x 105, log 51 x 106 |
-| Corner posts | `post_wood`, `post_stone`, `post_log` | the wall's thickness square, a pixel proud; 33 x 98 / 37 x 101 / 39 x 99 |
-| Open door leaves | `door_open_<wood|stone|log>_<north|west>` | swung 90 degrees outward toward the camera, 28 x 60 or 61 |
-| Open shutters | `shutter_<left|right>_<mat>_<o>` | folded back 160 degrees against the outside face; 10 or 16 wide, 34 to 37 tall |
+| Wall segments | `wall_<wood|stone|log>_<north|west>_<plain|door_shut|door_open|window_shut|window_open>` (30) | one tile edge long (32 px along the edge), 96 px tall. PNG sizes: wood 47 x 120, stone 49 x 121, log 51 x 122 |
+| Corner posts | `post_wood`, `post_stone`, `post_log` | the wall's thickness square, a pixel proud, 96 tall; 33 x 114 / 37 x 117 / 39 x 115 |
+| Open door leaves | `door_open_<wood|stone|log>_<north|west>` | swung 90 degrees outward toward the camera, 28 x 76 or 77 |
+| Open shutters | `shutter_<left|right>_<mat>_<o>` | folded back 160 degrees against the outside face; 10 or 16 wide, 11 px taller than the 80 px set's |
 | Far-side leaves and shutters | `door_open_far_<mat>_<o>`, `shutter_far_<left|right>_<mat>_<o>` | real away-swings, drawn *before* the wall and only when the wall is translucent |
 | Board overlays | `boards_<door|window>_<north|west>_<1|2|3>` | 12 files, one set for every material |
 | Floors | `floor_<wood|stone>_0..3` | 64 x 32 diamonds |
@@ -30,9 +30,9 @@ The orientation names are the trap here: `north` is `\` (top vertex to right ver
 - **Seamless:** patterns repeat every 32 px along the wall so segments butt end to end. Each sprite includes its near end face, which the next segment covers when drawn after.
 - **Walls are not outlined.** Closed doors and shutters get a dark inner outline because the player uses them.
 - **The cap** (the top face) is part of the sprite. The engine redraws it from the same picture with the sky's light so a lit room's back walls keep dark caps at night (ruling 3 in `17`); the art needs nothing special for that, except that the cap must be an exact parallelogram so the redraw covers it.
-- **Doorway:** 20 px across, 48 px tall from the floor. The open doorway shows the wall's thickness (the jamb facing the camera) and a threshold slab; the opening itself is transparent.
-- **Window:** 16 px wide, sill at 22, top at 51. A deep stone sill that juts 2 px out so its flat top reads as a shelf, a timber frame 1 px proud. The open window is transparent through the opening; the shut one has two plank shutters inside the frame.
-- Opening heights are fixed from the floor, whatever the wall height (door 48, window 22 to 51, torch bracket 32), so changing wall height only adds wall above them.
+- **Doorway:** 20 px across, 64 px tall from the floor (two crates; the leaf's two strap hinges keep their distances from its ends, 9 up and 12 under its top). The open doorway shows the wall's thickness (the jamb facing the camera) and a threshold slab; the opening itself is transparent.
+- **Window:** 16 px wide, sill at 24, top at 64 (40 px of opening, the window big on purpose; kept 16 wide, since a wider one would fold its shutters past the segment's end). A deep stone sill that juts 2 px out so its flat top reads as a shelf, a timber frame 1 px proud. The open window is transparent through the opening; the shut one has two plank shutters inside the frame.
+- Opening heights are fixed from the floor, the same for every material (door 64, window 24 to 64, torch bracket 48; `src/placeholders.js`). **Engine correction (2026-10-27, Claude Code):** the open window has no see-through pixels, in the 96 set or the 80: seen from the camera's angle a 16 px opening through a 14 to 18 px wall shows only its jambs and sill (the delivery's README); sight through it is the engine's rule, not the picture's.
 
 ## Posts
 

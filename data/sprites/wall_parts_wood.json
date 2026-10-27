@@ -17,51 +17,51 @@
  "anchors": {
   "leaf_north": [
    23.0,
-   43.0
+   59.0
   ],
   "leaf_far_north": [
    -10.0,
-   60.0
+   76.0
   ],
   "shutter_left_north": [
    13.0,
-   47.0
+   60.0
   ],
   "shutter_right_north": [
    -12.0,
-   36.0
+   49.0
   ],
   "shutter_far_left_north": [
    -10.0,
-   58.0
+   71.0
   ],
   "shutter_far_right_north": [
    -29.0,
-   46.0
+   59.0
   ],
   "leaf_west": [
    5.0,
-   43.0
+   59.0
   ],
   "leaf_far_west": [
    38.0,
-   60.0
+   76.0
   ],
   "shutter_left_west": [
    22.0,
-   36.0
+   49.0
   ],
   "shutter_right_west": [
    3.0,
-   47.0
+   60.0
   ],
   "shutter_far_left_west": [
    45.0,
-   46.0
+   59.0
   ],
   "shutter_far_right_west": [
    20.0,
-   58.0
+   71.0
   ]
  },
  "note": "a drawn wall's open door leaves and shutters, near and far side (docs/17)"

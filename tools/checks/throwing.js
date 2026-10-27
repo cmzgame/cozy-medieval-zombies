@@ -4,7 +4,7 @@
 // other mode); a throw takes one from the stack as an entry of its own, with a fresh uid, and the hand empties with the last; they spin along
 // the arc from sheets turned out of their drawn art (whole pixels, eight steps) and lie where they land as their own picture; a hit lodges
 // one in the body, which comes out of its loot stacked, and a miss lies on the ground; the axe staggers every hit and knocks down about one
-// in three, the knife never; they break about 30% and 10% of throws, hit or miss; neither clears a wall's 80 px; E takes a pile from the
+// in three, the knife never; they break about 30% and 10% of throws, hit or miss; neither clears a wall's 96 px (archery.tunables.wallHeight, the wall's height since docs/52; the spear, its arcMax 80, does); E takes a pile from the
 // tile and its neighbours, each floor entry by itself; and after a run of throws the item census holds no uid twice.
 // It works on open ground with dead of its own, the world's dead, villagers, and animals held out, the generator seeded, and puts back the
 // player's hands, bag, place, aim, health and needs, the rules, the generator, and the floor round the ground it used (docs/testing.md).
@@ -54,9 +54,9 @@ export async function run(game, opts = {}) {
     const a = A.thrown;
     row("the knife's numbers are Michael's: 18 damage (2026-10-26; 15 until then), 13 tiles, a 0.3 stagger, no knockdown, 30% to break, stacks of 20", k.damage === 18 && k.range === 13 && k.staggerChance === 0.3 && !k.knockdown && k.breakChance === 0.3 && K.stack === 20 && !K.weapon, JSON.stringify(k));
     row("the axe's numbers are Michael's: 30 damage, 9 tiles, always staggers, knocks down at 0.35, 10% to break, stacks of 10", a.damage === 30 && a.range === 9 && a.staggerChance === 1 && a.knockdown === 0.35 && a.breakChance === 0.1 && A.stack === 10 && !A.weapon, JSON.stringify(a));
-    // Neither clears a wall: the highest point of a full-range throw is under the 80 px a shot must clear (archery.wallStops).
+    // Neither clears a wall: the highest point of a full-range throw is under the wall's height a shot must clear (archery.wallStops; 96 since docs/52, read from tunables.wallHeight), and the spear's, its arcMax 80 (docs/52 section 4.6, a default), is over it.
     const peak = (t) => { let m = 0; for (let u = 0; u <= 1; u += 0.01) m = Math.max(m, t.z0 * (1 - u) + 4 * t.arcMax * u * (1 - u)); return m; };
-    row("neither clears a wall: a full-range throw peaks under the wall's 80 px (the spear's clears)", peak(k) < archery.tunables.wallHeight && peak(a) < archery.tunables.wallHeight && peak(I("spear").thrown) > archery.tunables.wallHeight, `knife ${peak(k).toFixed(1)}, axe ${peak(a).toFixed(1)}, spear ${peak(I("spear").thrown).toFixed(1)} px`);
+    row("neither clears a wall: a full-range throw peaks under a wall's 96 px (the spear's clears it)", peak(k) < archery.tunables.wallHeight && peak(a) < archery.tunables.wallHeight && peak(I("spear").thrown) > archery.tunables.wallHeight, `knife ${peak(k).toFixed(1)}, axe ${peak(a).toFixed(1)}, spear ${peak(I("spear").thrown).toFixed(1)} px`);
 
     // 2. The button and the hand.
     p.hands.off = null;

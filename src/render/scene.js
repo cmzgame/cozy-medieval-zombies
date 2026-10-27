@@ -31,7 +31,7 @@ export const night = {
   alpha: 0.96,
   pool: 190,
   poolStrength: 0.42,
-  climb: 70, // px a pool climbs a wall face or a trunk; 0 for the flat face (56 on the old 64 px walls)
+  climb: 84, // px a pool climbs a wall face or a trunk; 0 for the flat face: seven eighths of the 96 px wall (docs/52; 56 on the 64 px walls, 70 on the 80); one setting, so trees and tall props climb by it too
   linear: true,
   standingFloor: 0, // a floor on the light of props and characters, for legibility
   softLight: false, // true: ambient and standing light combine without a hard cap (no knee where a pool's climb runs out on a bright wall)

@@ -14,7 +14,7 @@ import { HELD_ANGLES, angleIndex, poseAt } from "./figure.js";
 import * as settings from "./settings.js";
 import { guardedMult, styleOf } from "./combat.js";
 import { getItem } from "./items.js";
-import { getSheet, idleFrame, turnPixels } from "./assets.js";
+import { getSheet, getDef, idleFrame, turnPixels } from "./assets.js";
 import { damageZombie, isDown } from "./entities/zombie.js";
 import { damageAnimal, isWild } from "./entities/animal.js"; // game shot, and stock only when aimed at (docs/45 section 2)
 import * as burn from "./burn.js";
@@ -50,7 +50,7 @@ export const tunables = {
   hitRadius: 0.5, // tiles around the landing point that count as a hit (a body's radius 0.3 and a little)
   damage: 38, // at a full draw; scaled by 0.4 + 0.6 c (a bow's own `damage` overrides it)
   knockback: 0.2, // tiles of push along the arrow's ground direction
-  wallHeight: 80, // px: an arrow below this is stopped by a wall (an opening's own heights let it through)
+  wallHeight: 96, // px: an arrow below this is stopped by a wall whose definition gives no height of its own (a fence stops one below its own 36; an opening's own heights let it through)
   trunkHeight: 40, // px: a trunk, a barrel: round obstacles block below this
   propHeight: 50, // px: a tile prop blocks below its own height, to at most this
   scanStep: 0.1, // tiles between the steps the flight is checked at, once, when the arrow is shot
@@ -176,8 +176,21 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
 
 const heightAt = (a, u) => (a.flat ? a.z0 : a.z0 * (1 - u) + 4 * a.H * u * (1 - u));
 
-function wallStops(wall, z) {
-  if (!wall || z >= tunables.wallHeight) return false;
+// A wall stops a flight below its own height (docs/52): a fence at its 36 px, a house wall at its 96, read from the wall's
+// definition (`wall.height`), which every world loads, a browser's, a server world's, and the headless tools' alike (no picture is
+// needed); a definition with none, or one not loaded, falls back to `wallHeight`.
+export function heightOfWall(wall) {
+  try {
+    const d = getDef(wall.sprite);
+    if (d && d.wall && typeof d.wall.height === "number") return d.wall.height;
+  } catch {
+    // not loaded: the fallback
+  }
+  return tunables.wallHeight;
+}
+
+export function wallStops(wall, z) {
+  if (!wall || z >= heightOfWall(wall)) return false;
   if (map.boarded(wall)) return true;
   if (wall.kind === "door") return !((wall.open || wall.broken) && z < DOOR_TOP);
   if (wall.kind === "window") return !((wall.shutter === "open" || wall.broken) && z >= WINDOW_SILL && z < WINDOW_TOP);
