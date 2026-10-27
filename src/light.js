@@ -56,7 +56,14 @@ export function update() {
       const id = map.tileAt(p.tile[0], p.tile[1]).room;
       if (id > 0 && !litRooms.has(id)) litRooms.set(id, p.fire.flicker ? { flicker: p.fire.flicker, seed: sourceSeed(p.tile[0], p.tile[1]) } : null); // the first lit fire in it sets its flicker
     }
-    if (p.fire.radius > 0) curSources.push({ gx: p.tile[0], gy: p.tile[1], radius: p.fire.radius, intensity: 1, kind: p.sprite, flicker: p.fire.flicker });
+    if (p.fire.radius > 0) {
+      // The footprint's middle (the wiki's sync, 2026-10-27: a 2 by 2 fire pit's pool sat on its back tile, half a tile off its flames; a
+      // fireplace's between its two tiles): a one-tile fire's middle is its tile, as before.
+      const ts = p.tiles && p.tiles.length ? p.tiles : [p.tile];
+      const gx = ts.reduce((a, t) => a + t[0], 0) / ts.length;
+      const gy = ts.reduce((a, t) => a + t[1], 0) / ts.length;
+      curSources.push({ gx, gy, radius: p.fire.radius, intensity: 1, kind: p.sprite, flicker: p.fire.flicker });
+    }
   }
   const torchFire = getItem("torch").fire;
   for (const b of map.brackets()) {
