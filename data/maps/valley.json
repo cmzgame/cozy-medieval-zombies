@@ -1881,6 +1881,35 @@
    ]
   },
   {
+   "name": "a fire pit by your cottage",
+   "rect": [
+    126,
+    216,
+    2,
+    2
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "fire_pit",
+     "tile": [
+      0,
+      0
+     ],
+     "footprint": [
+      2,
+      2
+     ],
+     "lit": true,
+     "fuel": 3,
+     "note": "the fire pit by the home (the fire rulings, 2026-10-26), lit so it is seen at once"
+    }
+   ]
+  },
+  {
    "name": "the inn",
    "rect": [
     98,

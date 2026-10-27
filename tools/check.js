@@ -5036,6 +5036,29 @@ check("the fires: a lit room's drawn light dips with its fire's flicker within [
   return `the fireplace's and the fire pit's rooms drawn ${min} to 1; the world's lit room 1 at every step`;
 });
 
+// The valley's fire pit by your cottage (Michael, 2026-10-27: "So I can see one pretty quick in game"): on open grass outside the yard's
+// fence, lit, a place of its own, so no tree, node, or comeback stands on it or the ring round it, and no resource spot rule takes it.
+check("the fires: the valley's fire pit stands lit on open grass east of your cottage, clear of the trees and the resources", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const pits = mapMod.allProps().filter((p) => p.sprite === "fire_pit");
+  assert(pits.length === 1, `${pits.length} fire pits on the valley`);
+  const p = pits[0];
+  const [x, y] = p.tile;
+  assert(x >= 121 && x <= 130 && y >= 212 && y <= 226 && p.fire.lit && p.tiles.length === 4 && !p.made, `the fire pit at ${x},${y}: lit ${p.fire.lit}, ${p.tiles.length} tiles, made ${p.made}`);
+  for (const [a, b] of p.tiles) {
+    const t = mapMod.peekTile(a, b);
+    const takes = mapMod.resourceKinds().filter((k) => !mapMod.resourceSpotProblem(k, a, b));
+    assert(t.prop === p && t.floor === "floor_grass" && !(t.room > 0) && !takes.length, `tile ${a},${b}: floor ${t.floor}, room ${t.room}, a spot for ${takes.map((k) => k.name).join(", ")}`);
+  }
+  for (let dy = -1; dy <= 2; dy++) for (let dx = -1; dx <= 2; dx++) {
+    const t = mapMod.peekTile(x + dx, y + dy);
+    assert(!t.prop || t.prop === p, `the ring holds ${t.prop && t.prop.sprite} at ${x + dx},${y + dy}`);
+  }
+  const guide = gameMod.state.villagers.find((v) => v.guide || v.name === "Wyn");
+  assert(!guide || Math.hypot(guide.gx - x, guide.gy - y) > 6, "the fire pit stands by the guide");
+  return `at ${x},${y}, lit, its ring clear; ${guide ? `${Math.hypot(guide.gx - x, guide.gy - y).toFixed(0)} tiles from the guide` : "no guide found"}`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;
