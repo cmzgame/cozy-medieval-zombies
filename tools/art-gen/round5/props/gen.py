@@ -325,79 +325,93 @@ def pot(W, cx, cy, z0, h, R, ramp, neck=0.7, lip=1.0, bias=0.3):
 
 # ======================================================================== the workbench
 def workbench():
-    """a heavy plank workbench, long side along Y, its back to a west wall (low X), the worker's side
-    toward +X: a thick top on four square legs with low stretchers, a leg vice at the far end of the
-    front, a low rack along the back holding three chisels, a saw and a mallet on the top, shavings"""
+    """a long, heavy plank workbench across two tiles (footprint 1 by 2 along Y as drawn, as the table
+    and the bed), its back to a west wall (low X), the worker's side toward +X: a thick top of three
+    planks on four stout legs with a low shelf between the stretchers, a leg vice at the far end of the
+    front, a rack along the back with three chisels, a saw, a plane, a mallet stood on its head, shavings.
+    World Y runs 0 to 64 here; the anchor is the first tile's top vertex at ground level."""
     W = World()
-    X0, X1, Y0, Y1 = 8.0, 24.0, 2.0, 30.0
-    ZT0, ZT1 = 19.0, 22.0
-    # legs
-    for (lx, ly) in ((X0 + 1, Y0 + 1.5), (X1 - 4, Y0 + 1.5), (X0 + 1, Y1 - 4.5), (X1 - 4, Y1 - 4.5)):
-        wood_block(W, lx, ly, 0, lx + 3, ly + 3, ZT0, grain=True)
-    # stretchers: a long one low at the front and the back, short ones across each end
-    for x in (X0 + 1.5, X1 - 3.5):
-        wood_block(W, x, Y0 + 4.5, 4.0, x + 2.0, Y1 - 4.5, 6.5, grain=False, bias=-0.1)
-    for y in (Y0 + 2.0, Y1 - 3.5):
-        wood_block(W, X0 + 4.0, y, 4.0, X1 - 4.0, y + 1.5, 6.5, grain=False, bias=-0.1)
-    # the top: thick planks along Y (the joints step along X), shavings curled on it toward the front
-    plank_top = boards("top", 0, 5)
-    def top(P):
-        out = plank_top(P)
-        x, y = P[:, 0], P[:, 1]
-        return out
+    X0, X1, Y0, Y1 = 7.0, 25.0, 3.0, 61.0
+    ZT0, ZT1 = 20.0, 24.0               # the top: four thick, its face at 24 (the table's at 22)
+    # legs: four stout square legs, set in a little from the ends
+    for (lx, ly) in ((X0 + 1, Y0 + 2), (X1 - 5, Y0 + 2), (X0 + 1, Y1 - 6), (X1 - 5, Y1 - 6)):
+        wood_block(W, lx, ly, 0, lx + 4, ly + 4, ZT0, grain=True)
+    # stretchers low at the front and the back, across each end, and a shelf board laid on them
+    for x in (X0 + 1.5, X1 - 4.5):
+        wood_block(W, x, Y0 + 6, 4.0, x + 3.0, Y1 - 6, 7.0, grain=False, bias=-0.1)
+    for y in (Y0 + 2.5, Y1 - 5.0):
+        wood_block(W, X0 + 5.0, y, 4.0, X1 - 5.0, y + 2.5, 7.0, grain=False, bias=-0.1)
+    W.block(X0 + 4.5, Y0 + 6.0, 7.0, X1 - 4.5, Y1 - 6.0, 8.2, top=boards("top", 0, 4), west=None,
+            east=boards("east", None), bias=-0.2)
+    # on the shelf: a couple of offcuts and a short log end
+    W.block(X0 + 6.0, Y0 + 32.0, 8.2, X0 + 9.0, Y0 + 44.0, 10.0, top=solid("#a07c4e"), west=solid("#8a6a42"), east=solid("#6a4e30"), bias=-0.15)
+    W.block(X0 + 6.5, Y0 + 12.0, 8.2, X0 + 10.5, Y0 + 16.0, 12.0, top=solid(ENDGRAIN[0]), west=solid(BARK[1]), east=solid(BARK[2]), bias=-0.15)
+    # the top: thick planks along Y (the joints step along X), the end grain on the near end
+    plank_top = boards("top", 0, 6)
     def end_grain(P):
-        out = boards("west", 0, 5)(P)
-        u = P[:, 0] % 5
-        out[(np.abs(u - 2.5) < 0.6) & (np.abs(P[:, 2] - (ZT0 + ZT1) / 2) < 0.6)] = hx(WGRAIN["west"])
+        out = boards("west", 0, 6)(P)
+        u = P[:, 0] % 6
+        out[(np.abs(u - 3.0) < 0.7) & (np.abs(P[:, 2] - (ZT0 + ZT1) / 2) < 0.7)] = hx(WGRAIN["west"])
         return out
-    W.block(X0, Y0, ZT0, X1, Y1, ZT1, top=top, west=end_grain, east=boards("east", None))
-    # the rack: a low rail along the back on two blocks, three chisels standing in it, handles up
-    RY0, RY1 = Y0 + 5.0, Y0 + 17.0
-    W.block(X0 + 0.5, RY0, ZT1, X0 + 2.5, RY1, ZT1 + 2.5, top=boards("top", None), west=boards("west", None),
+    W.block(X0, Y0, ZT0, X1, Y1, ZT1, top=plank_top, west=end_grain, east=boards("east", None))
+    # the rack along the back, on the top at the far half: a rail with three chisels standing in it
+    RY0, RY1 = Y0 + 9.0, Y0 + 25.0
+    W.block(X0 + 0.5, RY0, ZT1, X0 + 3.0, RY1, ZT1 + 3.0, top=boards("top", None), west=boards("west", None),
             east=boards("east", None), bias=0.05)
-    for i, y in enumerate((RY0 + 2.5, RY0 + 6.0, RY0 + 9.5)):
-        h = (5.5, 7.0, 5.0)[i]
-        W.block(X0 + 1.0, y, ZT1 + 2.5, X0 + 2.2, y + 1.2, ZT1 + 2.5 + h, top=solid("#c8a470"),
+    for i, y in enumerate((RY0 + 3.0, RY0 + 7.0, RY0 + 11.0)):
+        h = (6.0, 8.0, 5.5)[i]
+        W.block(X0 + 1.1, y, ZT1 + 3.0, X0 + 2.5, y + 1.4, ZT1 + 3.0 + h, top=solid("#c8a470"),
                 west=solid("#a8784a"), east=solid("#73502e"), bias=0.2)
-        W.block(X0 + 0.8, y - 0.2, ZT1 + 2.5, X0 + 2.4, y + 1.4, ZT1 + 3.3, top=solid(IRON["top"]), west=solid(IRON["west"]),
-                east=solid(IRON["dark"]), bias=0.25)                       # the ferrule
+        W.block(X0 + 0.9, y - 0.2, ZT1 + 3.0, X0 + 2.7, y + 1.6, ZT1 + 3.9, top=solid(IRON["top"]), west=solid(IRON["west"]),
+                east=solid(IRON["dark"]), bias=0.25)
     # the leg vice at the far end of the front: a tall chop before the front leg, its screw and bar
-    VY0, VY1 = Y0 + 1.0, Y0 + 5.5
-    chop_e = lambda P: np.where((P[:, 2] > ZT1 - 1.2)[:, None], hx("#6a4a30"), hx("#5a3d25")).astype(np.uint8)
-    W.block(X1, VY0, 1.0, X1 + 2.0, VY1, ZT1 + 1.0, top=solid("#8c6646"), west=solid("#7a5636"), east=chop_e, bias=0.2)
-    yv, zv = (VY0 + VY1) / 2, 15.5
-    W.block(X1 + 2.0, yv - 1.0, zv - 1.0, X1 + 3.4, yv + 1.0, zv + 1.0, top=solid("#8a6a4a"), west=solid("#76583a"),
-            east=solid("#5a4028"), bias=0.3)                                  # the screw's boss
-    W.block(X1 + 3.4, yv - 5.0, zv - 0.5, X1 + 4.4, yv + 5.0, zv + 0.5, top=solid("#c8a470"), west=solid("#a8784a"),
-            east=solid("#8a6a42"), bias=0.35)                                 # the tommy bar
-    for e in (yv - 5.0, yv + 4.0):
-        W.block(X1 + 3.2, e, zv - 0.9, X1 + 4.6, e + 1.0, zv + 0.9, top=solid("#c8a470"), west=solid("#a8784a"),
+    VY0, VY1 = Y0 + 1.5, Y0 + 7.0
+    chop_e = lambda P: np.where((P[:, 2] > ZT1 - 1.4)[:, None], hx("#6a4a30"), hx("#5a3d25")).astype(np.uint8)
+    W.block(X1, VY0, 1.0, X1 + 2.5, VY1, ZT1 + 1.0, top=solid("#8c6646"), west=solid("#7a5636"), east=chop_e, bias=0.2)
+    yv, zv = (VY0 + VY1) / 2, 16.5
+    W.block(X1 + 2.5, yv - 1.2, zv - 1.2, X1 + 4.0, yv + 1.2, zv + 1.2, top=solid("#8a6a4a"), west=solid("#76583a"),
+            east=solid("#5a4028"), bias=0.3)
+    W.block(X1 + 4.0, yv - 6.0, zv - 0.6, X1 + 5.2, yv + 6.0, zv + 0.6, top=solid("#c8a470"), west=solid("#a8784a"),
+            east=solid("#8a6a42"), bias=0.35)
+    for e in (yv - 6.0, yv + 4.8):
+        W.block(X1 + 3.8, e, zv - 1.0, X1 + 5.4, e + 1.2, zv + 1.0, top=solid("#c8a470"), west=solid("#a8784a"),
                 east=solid("#73502e"), bias=0.4)
-    # the saw, lying on the top: a steel blade, its teeth toward the front, a wooden handle at the near end
+    # the saw on the top, toward the far end: a steel blade, its teeth toward the front, a dark handle
     SZ = ZT1 + 0.3
     def blade(P):
         x, y = P[:, 0], P[:, 1]
         out = np.broadcast_to(hx(STEEL[1]), (len(P), 3)).copy()
-        out[x < 13.8] = hx(STEEL[0])
-        out[(x > 17.2) & ((np.floor(y).astype(int) % 2) == 0)] = hx(STEEL[2])
+        out[x < 13.2] = hx(STEEL[0])
+        out[(x > 17.6) & ((np.floor(y).astype(int) % 2) == 0)] = hx(STEEL[2])
         return out
-    W.face([(12.6, 7.0, SZ), (18.0, 7.0, SZ), (18.0, 20.0, SZ), (14.6, 20.0, SZ)], blade, 0.3)
+    W.face([(12.0, 14.0, SZ), (18.4, 14.0, SZ), (18.4, 30.0, SZ), (14.2, 30.0, SZ)], blade, 0.3)
     def handle(P):
-        hole = (P[:, 0] > 14.2) & (P[:, 0] < 16.4) & (P[:, 1] > 21.0) & (P[:, 1] < 22.6)
+        hole = (P[:, 0] > 13.8) & (P[:, 0] < 16.4) & (P[:, 1] > 31.2) & (P[:, 1] < 33.0)
         return np.where(hole[:, None], hx("#3a2716"), hx("#8a5a34")).astype(np.uint8)
-    W.block(12.6, 20.0, ZT1, 18.0, 24.0, SZ + 0.8, top=handle, west=solid("#6e4628"), east=solid("#5a3a20"), bias=0.35)
+    W.block(12.0, 30.0, ZT1, 18.4, 34.5, SZ + 0.9, top=handle, west=solid("#6e4628"), east=solid("#5a3a20"), bias=0.35)
+    # a smoothing plane in the middle of the front, its iron showing, a curl of shaving off its mouth
+    PX0, PX1, PY0, PY1 = 17.5, 21.5, 37.0, 47.0
+    def plane_top(P):
+        y = P[:, 1]
+        out = np.broadcast_to(hx("#b08254"), (len(P), 3)).copy()
+        out[(y > 41.2) & (y < 42.6)] = hx("#3a2716")                       # the mouth
+        out[(y > 42.6) & (y < 44.4) & (P[:, 0] > 18.8) & (P[:, 0] < 20.7)] = hx(STEEL[1])   # the iron's wedge
+        return out
+    W.block(PX0, PY0, ZT1, PX1, PY1, ZT1 + 2.4, top=plane_top, west=solid("#94683e"), east=solid("#73502e"), bias=0.3)
+    W.block(PX0 + 0.8, PY0 + 4.6, ZT1 + 2.4, PX1 - 0.8, PY0 + 6.0, ZT1 + 4.0, top=solid(STEEL[0]), west=solid(STEEL[1]),
+            east=solid(STEEL[2]), bias=0.35)                                   # the iron's top, standing proud
     # the mallet, stood on its head at the near end with its handle up
-    W.block(17.5, 24.5, ZT1, 21.5, 27.3, ZT1 + 2.8, top=solid("#c09868"), west=solid("#a07a4c"), east=solid("#7a5a36"), bias=0.3)
-    W.block(18.9, 25.3, ZT1 + 2.8, 20.1, 26.5, ZT1 + 9.5, top=solid("#c8a470"), west=solid("#a8784a"), east=solid("#73502e"), bias=0.3)
-    # shavings: a few curls, each a pale ring round a dark heart, by the vice and along the front
-    for (cx_, cy_) in ((20.5, 4.5), (18.6, 7.2), (21.4, 9.0), (19.6, 11.6), (21.0, 14.4), (12.5, 25.0)):
+    W.block(14.0, 52.0, ZT1, 18.0, 55.0, ZT1 + 3.0, top=solid("#c09868"), west=solid("#a07a4c"), east=solid("#7a5a36"), bias=0.3)
+    W.block(15.4, 52.9, ZT1 + 3.0, 16.6, 54.1, ZT1 + 10.5, top=solid("#c8a470"), west=solid("#a8784a"), east=solid("#73502e"), bias=0.3)
+    # shavings: pale curls by the vice, round the plane, and a few fallen to the near end
+    for (cx_, cy_) in ((21.6, 7.0), (19.8, 10.6), (22.4, 34.8), (21.6, 49.2), (23.0, 52.4)):
         def curl(P, cx_=cx_, cy_=cy_):
             d = np.hypot(P[:, 0] - cx_, P[:, 1] - cy_)
             out = np.broadcast_to(hx(SHAVE[0]), (len(P), 3)).copy()
             out[(P[:, 0] - cx_) > 0.5] = hx(SHAVE[1])
             out[d < 0.7] = hx(SHAVE[2])
             return out
-        disc(W, cx_, cy_, ZT1 + 0.35, 1.5, curl, n=12, bias=0.25)
+        disc(W, cx_, cy_, ZT1 + 0.35, 1.3, curl, n=12, bias=0.25)
     return W.draw()
 
 
@@ -990,19 +1004,27 @@ def chair_check():
 
 
 # ======================================================================== the definitions and the manifest
+# what a definition's picture is (replaced here); every other field of today's definition is kept
+PICTURE_FIELDS = ("placeholder", "note", "anchorVertex", "facings", "facingFootprint", "drawings", "images", "image",
+                  "frames", "anchor", "anchors", "bounds")
+
+
 def definitions(res, fire):
     """each keeps every non-picture field of today's data/sprites/<id>.json, `placeholder` replaced"""
     today = {k: json.load(open(f"{REPO}/data/sprites/{k}.json", encoding="utf-8")) for k in ("cupboard", "workbench", "cauldron")}
     defs = {}
     for k, note in (
         ("cupboard", "the drawn cupboard (art round 5): a tall kitchen cupboard, two framed doors with sunk panels, iron strap hinges and ring pulls, a moulded cornice with a crock and a jug on top; backs against a west wall as drawn (y), a north wall as its mirror (x), as the shelf; once a dev box (docs/30 step 1; docs/29/09 has its art request)"),
-        ("workbench", "the drawn workbench (art round 5): a heavy plank bench on four square legs with low stretchers, a leg vice at the far end of its front, three chisels in a rack along the back, a saw and a mallet on the top, shavings; backs against a west wall as drawn (y), a north wall as its mirror (x), the worker's side toward +x (+y mirrored); once a dev box (docs/30 step 1; docs/29/09 has its art request)"),
+        ("workbench", "the drawn workbench (art round 5): a long, heavy plank bench across two tiles, its top at 24, on four stout legs with a shelf between the stretchers, a leg vice at the far end of its front, three chisels in a rack along the back, a saw, a plane, and a mallet on the top, shavings; long side along y as drawn with its back to a west wall and the worker's side toward +x, along x as its mirror (as the table); once a dev box (docs/30 step 1; docs/29/09 has its art request)"),
     ):
         old = today[k]
         d = {"anchorVertex": "top", "facings": ["y", "x"],
              "drawings": {"y": {"image": f"data/art/village/{k}.png", "anchor": res[k][1]}, "x": {"from": "y", "mirror": True}}}
+        if k == "workbench":       # two tiles, as the table and the bed: 1 by 2 along y, 2 by 1 along x
+            d = {"anchorVertex": "top", "facings": ["y", "x"], "facingFootprint": {"y": [1, 2], "x": [2, 1]},
+                 "drawings": d["drawings"]}
         for f, v in old.items():
-            if f not in ("placeholder", "note"):
+            if f not in PICTURE_FIELDS:
                 d[f] = v
         d["note"] = note
         defs[k] = d
@@ -1016,9 +1038,10 @@ def definitions(res, fire):
     f.update({"at": fire["at"], "frames": [f"data/art/village/cauldron_fire_{k}.png" for k in range(3)], "base": fire["base"], "fps": 6})
     d["fire"] = f
     for k_, v in old.items():
-        if k_ not in ("placeholder", "note", "name", "fire"):
+        if k_ not in PICTURE_FIELDS + ("name", "fire"):
             d[k_] = v
-    assert "A dev box until its art is drawn" in old["note"]
+    # today's note with its dev-box words replaced (or, once this art is in the game, as it stands)
+    assert "A dev box until its art is drawn" in old["note"] or "Drawn (art round 5)" in old["note"]
     d["note"] = old["note"].replace(
         "A dev box until its art is drawn",
         "Drawn (art round 5): a black iron pot on three short legs over a ring of fieldstones, three logs and ash under it, two lugs and a bail; one drawing, lit from the top left and never mirrored (round, so one facing); its three flame frames stand under the pot, already cut where the pot, its legs, and the front log stand in front of them")
@@ -1090,28 +1113,45 @@ def preview(res, fire, items):
     ref = lambda n: Image.open(f"{REPO}/data/art/village/{n}.png").convert("RGBA")
     mir = lambda im: im.transpose(Image.FLIP_LEFT_RIGHT)
     tile, fig = floor_tile(), figure()
-    cells = [("barrel", ref("barrel"), (14, 18)), ("shelf", ref("shelf"), (25, 58))]
-    for k in ("cupboard", "workbench"):
-        im, a = res[k]
-        cells.append((k + " y", im, tuple(a)))
-        cells.append((k + " x", mir(im), (im.width - a[0], a[1])))
+    # (label, picture, anchor, footprint): the anchor is the first tile's top vertex; a 1 by 2 piece's
+    # second tile lies along +Y (down left), a 2 by 1 piece's along +X (down right)
+    cells = [("barrel", ref("barrel"), (14, 18), (1, 1)), ("shelf", ref("shelf"), (25, 58), (1, 1))]
+    im, a = res["cupboard"]
+    cells.append(("cupboard y", im, tuple(a), (1, 1)))
+    cells.append(("cupboard x", mir(im), (im.width - a[0], a[1]), (1, 1)))
+    t = ref("table")
+    cells.append(("table y", t, (61, 21), (1, 2)))
+    im, a = res["workbench"]
+    cells.append(("workbench y", im, tuple(a), (1, 2)))
+    cells.append(("workbench x", mir(im), (im.width - a[0], a[1]), (2, 1)))
+    cells.append(("table x", mir(t), (t.width - 61, 21), (2, 1)))
     im, a = res["cauldron"]
-    cells.append(("cauldron", im, tuple(a)))
+    cells.append(("cauldron", im, tuple(a), (1, 1)))
     for k in range(3):
-        cells.append((f"lit {k}", lit(res, fire, k), tuple(a)))
-    cells.append(("figure", fig, None))
-    pad, H, base = 6, 132, 100           # base: the screen row of each tile's bottom vertex
-    Wd = len(cells) * (64 + pad) + pad
+        cells.append((f"lit {k}", lit(res, fire, k), tuple(a), (1, 1)))
+    cells.append(("figure", fig, None, (1, 1)))
+    pad, H, base = 6, 132, 108           # base: the screen row of the tiles' bottom vertex
+    cw = lambda fp: 64 + (32 if fp != (1, 1) else 0)
+    Wd = sum(cw(fp) + pad for (_, _, _, fp) in cells) + pad
     strip = Image.new("RGBA", (Wd, H), (34, 30, 28, 255))
     x = pad
-    for (_, im, anc) in cells:
-        tx, ty = x + 32, base - 32
-        strip.alpha_composite(tile, (tx - 32, ty))
+    for (_, im, anc, fp) in cells:
+        if fp == (1, 2):
+            tx, ty = x + 64, base - 48
+            tiles = [(tx - 32, ty), (tx - 64, ty + 16)]
+        elif fp == (2, 1):
+            tx, ty = x + 32, base - 48
+            tiles = [(tx - 32, ty), (tx, ty + 16)]
+        else:
+            tx, ty = x + 32, base - 32
+            tiles = [(tx - 32, ty)]
+        for p in tiles:
+            strip.alpha_composite(tile, p)
         if anc is None:
             strip.alpha_composite(im, (tx - im.width // 2, ty + 16 - im.height + 1))
         else:
             strip.alpha_composite(im, (tx - anc[0], ty - anc[1]))
-        x += 64 + pad
+        x += cw(fp) + pad
     # the items: each icon and portrait at 2x on the slot colour, the world picture at 3x with its grip
     # marked in magenta, and at 1x held by the figure (the grip on its right hand, 14 px above the feet
     # and 10 px out)

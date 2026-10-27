@@ -1,5 +1,5 @@
 {
-  "version": "60e37136",
+  "version": "d978b4ee",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3016, "stamp": "87aeb2be"},
@@ -790,7 +790,7 @@
     "data/art/village/well_1.png": {"size": 3130, "stamp": "ddf1b0e7"},
     "data/art/village/well_2.png": {"size": 2966, "stamp": "42854c92"},
     "data/art/village/woodpile.png": {"size": 1528, "stamp": "fd41d313"},
-    "data/art/village/workbench.png": {"size": 1700, "stamp": "6d4b3fc7"},
+    "data/art/village/workbench.png": {"size": 2315, "stamp": "53a31c20"},
     "data/fonts/PirataOne-OFL.txt": {"size": 4427, "stamp": "c0f9fc09"},
     "data/fonts/PirataOne-Regular.ttf": {"size": 56316, "stamp": "663bde04"},
     "data/fonts/PixelifySans-OFL.txt": {"size": 4395, "stamp": "1cdc009e"},
@@ -814,7 +814,7 @@
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
     "data/maps/square.json": {"size": 12940, "stamp": "91f0d8ea"},
     "data/maps/staging.json": {"size": 8761, "stamp": "c49d0cd7"},
-    "data/maps/valley.json": {"size": 169644, "stamp": "9706aad3"},
+    "data/maps/valley.json": {"size": 169961, "stamp": "b1767ec2"},
     "data/site/staging_day_wide.webp": {"size": 103152, "stamp": "d59a0e45"},
     "data/site/staging_dusk_wide.webp": {"size": 60390, "stamp": "234b2082"},
     "data/sprites/altar.json": {"size": 368, "stamp": "d22d8cb9"},
@@ -1018,7 +1018,7 @@
     "data/sprites/wheelbarrow.json": {"size": 381, "stamp": "4c6182c3"},
     "data/sprites/winch.json": {"size": 190, "stamp": "7e8a7872"},
     "data/sprites/woodpile.json": {"size": 495, "stamp": "d4dec8ce"},
-    "data/sprites/workbench.json": {"size": 669, "stamp": "752d3e53"},
+    "data/sprites/workbench.json": {"size": 820, "stamp": "a6e88066"},
     "data/sprites/zombie.json": {"size": 60, "stamp": "e139efcc"},
     "data/talk/apprentice.json": {"size": 806, "stamp": "b1a25f39"},
     "data/talk/child.json": {"size": 721, "stamp": "30c61c33"},

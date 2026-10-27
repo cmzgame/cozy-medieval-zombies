@@ -147,7 +147,7 @@ def cottage_c(g, x, y, name, trade, wall="wall_wood"):
     s.building(
         [7, 1, 2, 4], wall, "floor_wood",
         openings=[door("w", 1), window("e", 2)],
-        props=[one("shelf", 1, 0), one("barrel", 0, 3)] if trade == "cooper" else [one("shelf", 1, 0), one("workbench", 0, 3)],
+        props=[one("shelf", 1, 0), one("barrel", 0, 3)] if trade == "cooper" else [one("shelf", 1, 0), along_x("workbench", 0, 3)],  # the workbench two tiles along the back (Michael, 2026-10-26)
     )
     return s
 
