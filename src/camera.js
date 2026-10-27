@@ -8,11 +8,13 @@ import { feel } from "./tuning.js";
 export const cam = { gx: 0, gy: 0 };
 const before = { gx: 0, gy: 0 }; // where it stood before the last step, for the draw between steps (interp.js)
 
-export function snapTo(gx, gy) {
-  cam.gx = gx;
-  cam.gy = gy;
-  before.gx = gx;
-  before.gy = gy;
+// `body`, when given, is the one the camera will follow: snapped where follow aims, lifted by its storey and its rise (docs/49 section 6).
+export function snapTo(gx, gy, body = null) {
+  const up = body ? (((body.layer || 0) * 96) + (body.rise || 0)) / (2 * iso.HH) : 0;
+  cam.gx = gx - up;
+  cam.gy = gy - up;
+  before.gx = cam.gx;
+  before.gy = cam.gy;
 }
 
 // At the start of every sim step: where it stands now is where it stood before the step.

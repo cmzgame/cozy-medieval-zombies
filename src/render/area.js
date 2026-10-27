@@ -35,6 +35,7 @@ function makeSet(set) {
     flickerRooms: [], // the lit rooms in the area whose fire flickers: [{ rec: { flicker, seed }, cells: [index, ...] }]
     lightEpoch: -1,
     wasDynamic: false, // the last frame had a carried light or a flicker in it: one more composition clears it
+    dirty: null, // the light cells last frame's flicker and carried light wrote, [i0, i1, j0, j1] each; null: the whole area
     sized: 0,
   };
   function resize() {
@@ -48,6 +49,7 @@ function makeSet(set) {
     A.ambientArea = new Uint8Array(areaTiles * areaTiles);
     A.ambientBase = new Uint8Array(areaTiles * areaTiles);
     A.flickerRooms = [];
+    A.dirty = null;
     A.fogArea = new Uint8Array(areaTiles * areaTiles);
   }
   // ---- the light, ambient, and fog textures ----
@@ -105,7 +107,12 @@ function makeSet(set) {
     const carriers = light.carriers().filter((c) => (c.layer || 0) === layer); // a flame lights its own layer (docs/49 section 10)
     const dynamic = anyFlicker || carriers.length > 0;
     if (staticChanged || dynamic || A.wasDynamic || A.lightEpoch !== epoch) {
-      A.lightArea.set(A.staticArea);
+      // Only what last frame's flicker and carried light touched goes back to the static light (the review of #534: a storey's one
+      // flickering lantern recomposed the whole area every frame); a new static light or a new texture takes the whole copy.
+      if (staticChanged || A.lightEpoch !== epoch || !A.dirty) A.lightArea.set(A.staticArea);
+      else for (const [i0, i1, j0, j1] of A.dirty) for (let j = j0; j <= j1; j++) A.lightArea.set(A.staticArea.subarray(j * LW + i0, j * LW + i1 + 1), j * LW + i0);
+      const dirty = [];
+      A.dirty = dirty;
       if (anyFlicker) {
         for (let cy = 0; cy < areaChunks; cy++) {
           for (let cx = 0; cx < areaChunks; cx++) {
@@ -113,6 +120,7 @@ function makeSet(set) {
             if (!entry.any || !entry.layers.length) continue;
             const bx = cx * map.CHUNK * RES;
             const by = cy * map.CHUNK * RES;
+            dirty.push([bx, bx + map.CHUNK * RES - 1, by, by + map.CHUNK * RES - 1]);
             // Flicker: each flickering source's own layer is taken back by the
             // share its weight leaves out this frame.
             const dims = entry.layers.map((l) => ({ own: l.contrib, loss: 1 - light.flickerWeight(l.flicker, l.seed, now) }));
@@ -137,6 +145,7 @@ function makeSet(set) {
         const i1 = Math.min(LW - 1, Math.ceil((carrier.gx + r - ox + 0.25) * RES));
         const j0 = Math.max(0, Math.floor((carrier.gy - r - oy + 0.25) * RES));
         const j1 = Math.min(LW - 1, Math.ceil((carrier.gy + r - oy + 0.25) * RES));
+        if (i0 <= i1 && j0 <= j1) dirty.push([i0, i1, j0, j1]);
         for (let j = j0; j <= j1; j++) {
           const gy = oy - 0.25 + j / RES;
           for (let i = i0; i <= i1; i++) {

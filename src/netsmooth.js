@@ -23,19 +23,21 @@ export function reset() {
 }
 
 // A frame's position for a body (host time `h`, in seconds): kept in its buffer; the body's own position is left where it is drawn.
-export function aim(c, gx, gy, h) {
+// `l` and `r` are the body's layer and its rise up a stair at that time (docs/49 section 12): kept with the position and drawn with it, so a
+// body climbing a stair is not lifted ahead of where it is drawn (the review of #534).
+export function aim(c, gx, gy, h, l = c.layer || 0, r = c.rise || 0) {
   if (typeof gx !== "number" || typeof gy !== "number" || typeof h !== "number") return;
   const buf = c.netBuf || (c.netBuf = []);
   const last = buf[buf.length - 1];
   if (last && h <= last.h) {
-    if (h === last.h) { last.x = gx; last.y = gy; }
-    c.netTo = [gx, gy];
+    if (h === last.h) { last.x = gx; last.y = gy; last.l = l; last.r = r; }
+    c.netTo = [gx, gy, l, r];
     return;
   }
-  buf.push({ h, x: gx, y: gy });
+  buf.push({ h, x: gx, y: gy, l, r });
   if (buf.length > KEEP) buf.shift();
-  c.netTo = [gx, gy]; // the host's truth, which the sync check hashes
-  if (!last) { c.gx = gx; c.gy = gy; } // first sight: here
+  c.netTo = [gx, gy, l, r]; // the host's truth, which the sync check hashes
+  if (!last) { c.gx = gx; c.gy = gy; c.layer = l; c.rise = r; } // first sight: here
 }
 
 // Once per frame that arrives, before the bodies are aimed: where the draw clock should be.
@@ -54,10 +56,10 @@ export function frameArrived(h, timeScale = 1) {
 export function hold(list, h) {
   if (typeof h !== "number") return;
   for (const c of list) {
-    if (!c.netBuf) { if (typeof c.gx === "number") c.netBuf = [{ h, x: c.gx, y: c.gy }]; continue; }
+    if (!c.netBuf) { if (typeof c.gx === "number") c.netBuf = [{ h, x: c.gx, y: c.gy, l: c.layer || 0, r: c.rise || 0 }]; continue; }
     const last = c.netBuf[c.netBuf.length - 1];
     if (!last || last.h >= h) continue;
-    c.netBuf.push({ h, x: last.x, y: last.y });
+    c.netBuf.push({ h, x: last.x, y: last.y, l: last.l, r: last.r });
     if (c.netBuf.length > KEEP) c.netBuf.shift();
   }
 }
@@ -83,32 +85,43 @@ export function step(list, timeScale = 1) {
   for (const c of list) {
     const buf = c.netBuf;
     if (!buf || !buf.length) continue;
-    if (timeScale > 1) { const e = buf[buf.length - 1]; c.gx = e.x; c.gy = e.y; continue; }
+    if (timeScale > 1) { const e = buf[buf.length - 1]; c.gx = e.x; c.gy = e.y; c.layer = e.l || 0; c.rise = e.r || 0; continue; }
     const p = sample(buf, R);
     c.gx = p[0];
     c.gy = p[1];
+    c.layer = p[2];
+    c.rise = p[3];
   }
+}
+
+// The layer and the rise between two kept positions: the rise eased on one layer; across a stair's top edge (the layer changes, the lift
+// does not) the nearer one's.
+function lr(a, b, k) {
+  const la = a.l || 0;
+  const lb = b.l || 0;
+  if (la !== lb) return k < 0.5 ? [la, a.r || 0] : [lb, b.r || 0];
+  return [la, (a.r || 0) + ((b.r || 0) - (a.r || 0)) * Math.max(0, Math.min(1, k))];
 }
 
 // Where a body was at host time `t`: between the two positions either side of it; before the first, the first; after the newest (a frame later than the delay allows), held
 // at the newest and moved on by the last speed for up to two steps, so a late frame does not stop it dead.
 export function sample(buf, t) {
   const first = buf[0];
-  if (t <= first.h) return [first.x, first.y];
+  if (t <= first.h) return [first.x, first.y, first.l || 0, first.r || 0];
   for (let i = buf.length - 1; i > 0; i--) {
     const a = buf[i - 1];
     const b = buf[i];
     if (t >= a.h && t <= b.h) {
-      if (Math.abs(b.x - a.x) > tuning.netJump || Math.abs(b.y - a.y) > tuning.netJump) return [b.x, b.y]; // a jump: where it landed
+      if (Math.abs(b.x - a.x) > tuning.netJump || Math.abs(b.y - a.y) > tuning.netJump) return [b.x, b.y, b.l || 0, b.r || 0]; // a jump: where it landed
       const k = (t - a.h) / (b.h - a.h);
-      return [a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k];
+      return [a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, ...lr(a, b, k)];
     }
   }
   const b = buf[buf.length - 1];
-  if (buf.length < 2) return [b.x, b.y];
+  if (buf.length < 2) return [b.x, b.y, b.l || 0, b.r || 0];
   const a = buf[buf.length - 2];
-  if (Math.abs(b.x - a.x) > tuning.netJump || Math.abs(b.y - a.y) > tuning.netJump) return [b.x, b.y];
+  if (Math.abs(b.x - a.x) > tuning.netJump || Math.abs(b.y - a.y) > tuning.netJump) return [b.x, b.y, b.l || 0, b.r || 0];
   const over = Math.min(t - b.h, 2 * STEP);
   const k = over / (b.h - a.h);
-  return [b.x + (b.x - a.x) * k, b.y + (b.y - a.y) * k];
+  return [b.x + (b.x - a.x) * k, b.y + (b.y - a.y) * k, b.l || 0, b.r || 0]; // past the newest: its layer and rise, never guessed on
 }

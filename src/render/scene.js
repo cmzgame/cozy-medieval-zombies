@@ -200,6 +200,7 @@ function grownOn(x, y, L) {
 export function renderScene(args) {
   const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null } = probe.override ? { ...args, ...probe.override } : args;
   ensureArea(w, h);
+  grownKey = -1; // a chunk grown or dropped since the last frame is asked again (the review of #534)
   hl.set(highlight); // the object under the cursor, outlined by the drawables below (#301)
   if (lastLinear !== night.linear) {
     gl.setLightSampling(night.linear);
@@ -211,12 +212,21 @@ export function renderScene(args) {
   gl.begin((cam.gx + cam.gy) * 32); // the depth range follows the camera (docs/51 section 5)
   // The storeys (docs/49 section 6): the layers the viewer sees, lowest first, each lifted by its height; the ground's flat things first.
   const VL = (player && player.layer) || 0;
-  const layers = layersFor(VL);
   const hidden = hiderFor(player);
+  // Each storey's tiles in view, first: only those whose chunk that layer holds (most of the view is no storey's). A storey with none in
+  // view is not drawn at all, so away from every house the frame is the ground's alone (the review of #534: every loaded chunk's layer
+  // took the extra pass and the second area every frame). The viewer's own layer is always drawn.
+  const grown = new Map();
+  const layers = layersFor(VL).filter((L) => {
+    if (!L) return true;
+    const t = tilesOf(tiles, L).filter(([x, y]) => grownOn(x, y, L));
+    grown.set(L, t);
+    return t.length > 0 || L === VL;
+  });
   // A storey's own light, ambient, and fog (the second set of area textures): the viewer's layer when it is not the ground, else the
   // first storey in view; a storey besides those is lit as the open air (the sky's flag) until the light is kept per layer for all.
   const upperL = VL !== 0 ? VL : layers.find((l) => l > 0) ?? null;
-  if (upperL !== null) buildStoreyArea(tilesOf(tiles, upperL), visible, drawAll || !fog, cam.gx, cam.gy, upperL);
+  if (upperL !== null) buildStoreyArea(grown.get(upperL), visible, drawAll || !fog, cam.gx, cam.gy, upperL);
   gl.setUpperSet(upperL !== null);
   if (layers[0] === 0) {
     emitGround(tiles);
@@ -233,14 +243,14 @@ export function renderScene(args) {
     withLift(L * map.STOREY, () => map.withDrawLayer(L, () => {
       // A storey's tiles in view: only those whose chunk that layer holds (most of the view is no storey's), less what the hiding rule
       // hides; the ground's whole (nothing below the viewer is hidden).
-      const tilesL = L ? tilesOf(tiles, L).filter(([x, y]) => grownOn(x, y, L) && !hidden(x, y, L)) : tiles;
+      const tilesL = L ? grown.get(L).filter(([x, y]) => !hidden(x, y, L)) : tiles;
       if (L) {
         // An upper floor's ground (or a cellar's), a quad a chunk with its depth written, and what lies flat on it just over it.
         gl.setPass(gl.PASS_STAND);
         emitFloors(tilesL, L, DEPTH_BIAS.liftedFloor, hidden);
         emitRugs(tilesL);
       }
-      const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 ? playerRoom : 0;
+      const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
       const drawables = [];
       wallDrawables(tilesL, visible, roomHere, drawables);
       ringDrawables(tilesL, visible, roomHere, drawables, L); // round rooms on this layer, their two halves (docs/50 section 4)
@@ -249,9 +259,9 @@ export function renderScene(args) {
       floorItemDrawables(tilesL, visible, drawables);
       stairDrawables(tilesL, L, DEPTH_BIAS.prop, drawables); // the stairs on this layer, dev art (docs/49 section 11)
       // The bodies on this layer, each a further `rise` up when it is on a stair, its picture made and drawn at that height.
-      entityDrawables(entities.filter((e) => (e.layer || 0) === L && !e.rise), visible, drawables, drawAll, player);
+      entityDrawables(entities.filter((e) => (e.layer || 0) === L && !e.rise && !hidden(Math.round(e.gx), Math.round(e.gy), L)), visible, drawables, drawAll, player);
       for (const e of entities) {
-        if ((e.layer || 0) !== L) continue;
+        if ((e.layer || 0) !== L || hidden(Math.round(e.gx), Math.round(e.gy), L)) continue; // a body on a hidden storey is not drawn (the review of #534)
         const r = e.rise || 0;
         if (!r) continue;
         const n0 = drawables.length;
@@ -262,10 +272,8 @@ export function renderScene(args) {
           d.emit = () => withLift(r, emit);
         }
       }
-      if (L === 0) {
-        arrowDrawables(arrows, visible, drawables);
-        fireDrawables(fire, visible, drawables);
-      }
+      if (arrows && arrows.length) arrowDrawables(arrows.filter((a) => (a.layer || 0) === L), visible, drawables); // a flight on its own layer (docs/49)
+      if (L === 0) fireDrawables(fire, visible, drawables);
       drawables.sort((a, b) => a.key - b.key);
       if (L === VL) {
         computeOcclusion(drawables, player);

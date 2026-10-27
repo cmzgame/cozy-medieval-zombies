@@ -157,11 +157,13 @@ export function makeCode() {
 // guest's aim point (`aimAt`, [gx, gy] or [gx, gy, layer]); the dead's and villagers' slim records (`layer` and `rise` when not 0); and a
 // player's `layer` moves from the heavy part to the light record (with `rise` when not 0), so a stair's crossing resends no bag. An older
 // guest would drop an upper chunk onto the ground and keep a body on the layer it last saw it on.
-// 24 (2026-10-27, docs/50, round rooms): a wall may carry `round` ([x0, y0, n], a ring's edge, drawn as the curve) and a door or a window
+// 24 (2026-10-27, docs/49 steps 2 and 3): a flight's launch record names its layer off the ground (`l`), and a flight hits and lands on its
+// own layer alone; an older guest would draw an upstairs arrow on the ground.
+// 25 (2026-10-27, docs/50, round rooms): a wall may carry `round` ([x0, y0, n], a ring's edge, drawn as the curve) and a door or a window
 // `underRound` (the ring under it at a door point); the `place` command's `build` kind for a ring names its square's corner and `size` and
 // no edge, and its `remove` may name `{ type: "round", id }`. An older guest would draw a ring as straight walls with posts and walk
 // through its curve (it has no curve index), and an older host drops a ring's build for want of an edge.
-export const PROTOCOL = 24;
+export const PROTOCOL = 25;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).

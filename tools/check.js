@@ -5334,8 +5334,8 @@ check("upper floors, step 1: the save keeps every layer: a prop, a wall, and an 
   assert(lit.length === 1, `${lit.length} brackets on the first floor`);
   return `a stick on the landing, a wall on the second floor, a stone floor in the cellar, all on their layers after the restore`;
 });
-check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 23 and on)", () => {
-  assert(netMod.PROTOCOL >= 23, `PROTOCOL ${netMod.PROTOCOL}`);
+check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 24 since steps 2 and 3, and on)", () => {
+  assert(netMod.PROTOCOL >= 24, `PROTOCOL ${netMod.PROTOCOL}`);
   const s2 = netMod.cleanSnap({ aimAt: [3.5, 4.5] });
   const s3 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 1] });
   const s0 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 0] });
@@ -5407,6 +5407,34 @@ check("upper floors, step 1 (the review of #533): reach is on one layer, a put-d
   assert(why.length === 1 && /stands over a step/.test(why[0]) && mapMod.tileAt(4, 27, 0).prop && mapMod.tileAt(4, 27, 0).prop.sprite === "chest" && mapMod.tileAt(4, 27, 0).floor !== mapMod.HOLE, `the stair under the chest: ${why.join("; ") || "laid"}`);
   return `reach refused across a floor; the table put down upstairs; refused: ${why[0]}`;
 });
+check("upper floors, step 3 (the review of #534): E, the menu, and the cursor read the player's own floor: an apple upstairs is taken, the table below has no actions", () => {
+  towerHouse();
+  const p = gameMod.state.player;
+  const table = mapMod.allProps().find((q) => q.sprite === "table" && (q.layer || 0) === 0 && q.tile[0] === 7 && q.tile[1] === 27);
+  assert(table, "no table on the ground");
+  const o = isoMod.getOrigin();
+  p.gx = 5; p.gy = 24; p.layer = 1;
+  try {
+    const below = mapMod.dropItem(5, 24, { id: "apple", count: 1 }, 0);
+    const above = mapMod.dropItem(5, 24, { id: "apple", count: 1 }, 1);
+    const e = interactImport.nearestSimpleAction(p);
+    assert(e && e.target.kind === "item" && e.target.uid === above.uid, `E upstairs: ${e ? JSON.stringify(e.target) : "nothing"}`);
+    assert(interactImport.actionsForTarget({ kind: "prop", id: table.id }, p).length === 0, "the table on the ground has actions for a player upstairs");
+    // The cursor: the point where the first floor's tile (5, 24) is drawn, a storey up the screen, names the apple up there and not the one below.
+    isoMod.setOrigin(0, 0);
+    const s = isoMod.toScreen(5, 24);
+    const at = interactImport.actionsAt(s.x, s.y - mapMod.STOREY, p).filter((a) => a.target && a.target.kind === "item").map((a) => a.target.uid);
+    assert(at.includes(above.uid) && !at.includes(below.uid), `the cursor upstairs: ${at.join(", ") || "no item"}`);
+    assert(isoMod.getOrigin().y === 0, "the pick left the origin lifted");
+    p.layer = 0;
+    const atGround = interactImport.actionsAt(s.x, s.y, p).filter((a) => a.target && a.target.kind === "item").map((a) => a.target.uid);
+    assert(atGround.includes(below.uid) && !atGround.includes(above.uid), `the cursor on the ground: ${atGround.join(", ") || "no item"}`);
+  } finally {
+    p.layer = 0;
+    isoMod.setOrigin(o.x, o.y);
+  }
+  return "E upstairs takes the upstairs apple; the ground's table offers nothing; the cursor reads each floor at its own height";
+});
 // ---- upper floors (docs/49), step 3: stairs and walking ----
 check("upper floors, step 3: a body walks up the tower house's stair (rise 32 a tile), crosses its top edge onto the first floor, and back down; nothing steps on from the side", () => {
   towerHouse();
@@ -5433,6 +5461,24 @@ check("upper floors, step 3: a body walks up the tower house's stair (rise 32 a 
   const up = pathfind.findPath([3, 25], [6, 25], mapMod.canStepOn(0));
   assert(up && up.map((t) => t.join(",")).join(" ") === "4,25 5,25 6,25" && !mapMod.canStep(5, 24, 5, 25, 0) && !mapMod.canStep(6, 25, 7, 25, 0), `the path up ${JSON.stringify(up)}`);
   return "up 32 a tile, onto the first floor past the top edge, back down; the sides closed on both layers";
+});
+check("upper floors, step 3 (the review of #534): from under a landing, walking any way never climbs onto the stair over its top edge", () => {
+  towerHouse();
+  const out = [];
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+    const b = { gx: 7.2, gy: 25, layer: 0, rise: 0 };
+    let rose = 0;
+    for (let i = 0; i < 80; i++) {
+      const m = mapMod.moveCircle(b.gx, b.gy, 0.3, dx * 0.05, dy * 0.05, b.layer);
+      b.gx = m.gx;
+      b.gy = m.gy;
+      mapMod.stairStep(b);
+      rose = Math.max(rose, b.rise || 0, b.layer ? 99 : 0);
+    }
+    out.push(`${dx},${dy}: ${b.gx.toFixed(2)},${b.gy.toFixed(2)} L${b.layer}`);
+    assert(!rose, `walking ${dx},${dy} from under the landing it rose (${out[out.length - 1]})`);
+  }
+  return out.join("; ");
 });
 check("upper floors, step 3: one of the dead that sees a player go up follows by the stair (the stair-first rule), and bites and blows stay on one layer", () => {
   const json = read("data/maps/square.json");
@@ -5865,7 +5911,7 @@ check("round rooms, step 1: the ring is per layer (docs/49): one on the first fl
   assert(rec.includes('"round":[2,2,5]') && rec.includes('"layer":1'), "the first floor's chunk record does not carry the ring");
   return `a room of ${room.size} on layer 1, the ground open under it`;
 });
-check("round rooms, step 1: the save and the wire carry a ring in its walls: restored whole, a replica gets it from its chunks alone and drops it when they come without it (PROTOCOL 24)", () => {
+check("round rooms, step 1: the save and the wire carry a ring in its walls: restored whole, a replica gets it from its chunks alone and drops it when they come without it (PROTOCOL 25)", () => {
   roundSquare();
   const r = ownRing({ built: true, free: true });
   mapMod.buildWall(4, 2, "n", "door", "wall_stone");
@@ -5890,7 +5936,7 @@ check("round rooms, step 1: the save and the wire carry a ring in its walls: res
   assert(mapMod.ringById(r.id) && mapMod.curveCrossed(3, 2), "a replica did not get the ring from its chunks");
   for (const d of without) mapMod.installChunk(d);
   assert(!mapMod.ringById(r.id) && !mapMod.curveCrossed(3, 2) && !mapMod.allRings(0).some((q) => q.x0 === 2 && q.y0 === 2), "a replica kept the ring its chunks came without");
-  assert(netMod.PROTOCOL === 24, `PROTOCOL ${netMod.PROTOCOL}`);
+  assert(netMod.PROTOCOL === 25, `PROTOCOL ${netMod.PROTOCOL}`);
   return `restored with its door and its record; a replica's ring from ${withRing.length} chunk record(s), and gone with them`;
 });
 check("round rooms, step 6: the round stone wall is in the palette only with Free building (Michael, 2026-10-27), built by a guest's command on its square's corner and size, and taken apart whole; an authored one never", () => {

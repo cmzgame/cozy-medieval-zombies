@@ -91,19 +91,19 @@ export function tileKey(x, y) {
 const CORNER = 0.42;
 const CORNERS = [[-CORNER, -CORNER], [CORNER, -CORNER], [-CORNER, CORNER], [CORNER, CORNER]];
 
-export function tileVisible(ox, oy, tx, ty) {
-  if (lineOfSight(ox, oy, tx, ty)) return true;
+export function tileVisible(ox, oy, tx, ty, layer = 0) { // seen from a layer (docs/49): the interim before the ray with heights, step 4
+  if (lineOfSight(ox, oy, tx, ty, layer)) return true;
   for (const [dx, dy] of CORNERS) {
-    if (lineOfSight(ox, oy, tx + dx, ty + dy)) return true;
+    if (lineOfSight(ox, oy, tx + dx, ty + dy, layer)) return true;
   }
   return false;
 }
 
 // The set of tiles (as numeric keys) visible from (ox, oy) among `tiles`.
-export function computeVisible(ox, oy, tiles) {
+export function computeVisible(ox, oy, tiles, layer = 0) {
   const out = new Set();
   for (const [tx, ty] of tiles) {
-    if (tileVisible(ox, oy, tx, ty)) out.add(tileKey(tx, ty));
+    if (tileVisible(ox, oy, tx, ty, layer)) out.add(tileKey(tx, ty));
   }
   return out;
 }

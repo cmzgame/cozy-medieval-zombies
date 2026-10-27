@@ -107,14 +107,14 @@ export function actionsForTarget(t, player) {
     const [tx, ty] = t.tile;
     const out = [];
     if (player.carrying) out.push(putDownAction(player, tx, ty));
-    else if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...waterTileActions(tx, ty, player));
+    else if (map.peekTile(tx, ty, player.layer || 0) && map.drinkableAt(tx, ty, player.layer || 0)) out.push(...waterTileActions(tx, ty, player));
     if (!player.carrying) out.push(...farmTileActions(tx, ty, player), ...bucket.tileActions(tx, ty, player, act, world));
     if (map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
     return tag(out, t);
   }
   if (t.kind === "item") {
     const [tx, ty] = t.tile;
-    const entry = map.itemsAt(tx, ty).find((e) => e.uid === t.uid);
+    const entry = map.itemsAt(tx, ty, player.layer || 0).find((e) => e.uid === t.uid);
     return entry ? tag(itemActions(entry, tx, ty, player), t) : [];
   }
   if (t.kind === "prop") {
@@ -184,7 +184,7 @@ export function containerAt(player, a) {
     return bag ? { bag, corpse: null, tiles: outer.tiles, outer } : null;
   }
   if (a.entryUid && a.tile) {
-    const e = map.itemsAt(a.tile[0], a.tile[1]).find((q) => q.uid === a.entryUid);
+    const e = map.itemsAt(a.tile[0], a.tile[1], player.layer || 0).find((q) => q.uid === a.entryUid);
     const bag = e ? (e.bag || (getItem(e.id).beltSlots ? containerBagOf(e) : null)) : null; // a bag's grid, or a belt's slots as a view (inventory.slotsView)
     return bag ? { bag, corpse: null, tiles: [a.tile] } : null;
   }
@@ -226,7 +226,7 @@ export function addressOfBag(player, bag) {
         if (p.output && p.output === bag) return { propId: p.id, name: "output" }; // read as it is: a hit test never makes an output bag (stations.outputOf would)
         if (p.bag) outers.push([{ propId: p.id }, p.bag]);
       }
-      for (const e of map.itemsAt(x, y)) {
+      for (const e of map.itemsAt(x, y, player.layer || 0)) {
         if (!openedBagOf(e)) continue;
         if (isBagOf(e, bag)) return { entryUid: e.uid, tile: [x, y] };
         if (e.bag) outers.push([{ entryUid: e.uid, tile: [x, y] }, e.bag]);
@@ -283,7 +283,7 @@ function wearAction(entry, tx, ty, player) {
     mx: tx,
     my: ty,
     perform() {
-      map.takeItem(tx, ty, entry);
+      map.takeItem(tx, ty, entry, player.layer || 0);
       const old = player.worn[def.wear];
       if (old) {
         player.worn[def.wear] = null;
@@ -359,7 +359,7 @@ function pileOf(entry, tx, ty, player) {
     for (let dx = -1; dx <= 1; dx++) {
       const x = tx + dx;
       const y = ty + dy;
-      const here = map.itemsAt(x, y).filter((e) => e.id === entry.id && e !== entry);
+      const here = map.itemsAt(x, y, player.layer || 0).filter((e) => e.id === entry.id && e !== entry);
       if (here.length && (dx || dy) && !canReach(player, [[x, y]], INTERACT_RANGE + PILE_SPREAD)) continue;
       for (const e of here) out.push([e, x, y]);
     }
@@ -393,7 +393,7 @@ function pickUpAction(entry, tx, ty, player, simple) {
           if (added <= 0) break;
           any = true;
           e.count -= added;
-          if (e.count <= 0) map.takeItem(x, y, e);
+          if (e.count <= 0) map.takeItem(x, y, e, player.layer || 0);
           else map.touch(x, y); // a part of a stack came up: the count left on the floor reaches a guest
         }
         if (!any) {
@@ -402,7 +402,7 @@ function pickUpAction(entry, tx, ty, player, simple) {
         }
         return true;
       }
-      map.takeItem(tx, ty, entry);
+      map.takeItem(tx, ty, entry, player.layer || 0);
       if (!takeIn(player, entry)) {
         map.dropItem(tx, ty, entry);
         return false;
@@ -930,7 +930,7 @@ function farmTileActions(tx, ty, player) {
   const soil = farming.get().soil;
   const t = map.peekTile(tx, ty);
   if (!t || t.prop) return out;
-  if (!lineOfSight(player.gx, player.gy, tx, ty)) return out; // a wall in the way: not offered, rather than offered and refused (the verbs refuse it too)
+  if (!lineOfSight(player.gx, player.gy, tx, ty, player.layer || 0)) return out; // a wall in the way: not offered, rather than offered and refused (the verbs refuse it too)
   const base = { tiles: [[tx, ty]], mx: tx, my: ty };
   const run = (verb, args = {}) => () => {
     const r = verbs.run(verb, world, player, { tile: [tx, ty], ...args });
@@ -1144,6 +1144,7 @@ function pointInRect(x, y, r) {
 // uses lists them all.
 function propActions(prop, player) {
   if (player.carrying) return [];
+  if ((prop.layer || 0) !== (player.layer || 0)) return []; // a thing on another floor is out of reach (docs/49 section 9): the chest under your feet is not yours to open from upstairs
   if (getDef(prop.sprite).rug) return rugActions(prop, player); // a laid rug has one action: Pick up (#327)
   const out = [];
   if (prop.container) out.push(...containerActions(prop));
@@ -1273,8 +1274,29 @@ export function bracketAt(sx, sy) {
   return near.length ? near[0].bracket : null;
 }
 
-// Every action for whatever is under a canvas point.
+// A cursor point read on the viewer's own floor (docs/49 section 6): the screen origin lifted by that floor's storeys, as the renderer lifts
+// it (render/storeys.js withLift), and the map's reads there (map.withDrawLayer), so what is under the cursor upstairs is the upstairs. On
+// the ground it is the call unchanged. An inner pick inside an outer one is the outer's, never lifted twice.
+let picking = 0;
+export function onFloorOf(player, fn) {
+  const L = (player && player.layer) || 0;
+  if (!L || picking) return fn();
+  const o = iso.getOrigin();
+  iso.setOrigin(o.x, o.y - L * map.STOREY);
+  picking++;
+  try {
+    return map.withDrawLayer(L, fn);
+  } finally {
+    picking--;
+    iso.setOrigin(o.x, o.y);
+  }
+}
+
+// Every action for whatever is under a canvas point, on the player's own floor.
 export function actionsAt(sx, sy, player) {
+  return onFloorOf(player, () => actionsAtHere(sx, sy, player));
+}
+function actionsAtHere(sx, sy, player) {
   const g = iso.toGrid(sx, sy);
   const tx = Math.round(g.gx);
   const ty = Math.round(g.gy);
@@ -1285,7 +1307,7 @@ export function actionsAt(sx, sy, player) {
     if (map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty)));
     return out;
   }
-  for (const entry of map.itemsAt(tx, ty)) out.push(...tag(itemActions(entry, tx, ty, player), onItem(entry, tx, ty)));
+  for (const entry of map.itemsAt(tx, ty, player.layer || 0)) out.push(...tag(itemActions(entry, tx, ty, player), onItem(entry, tx, ty)));
   if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...tag(waterTileActions(tx, ty, player), onTile(tx, ty))); // the river, a pond (docs/30, law 8)
   const farmActs = tag(farmTileActions(tx, ty, player), onTile(tx, ty)); // Till the soil with a hoe, Plant with a seed (#194)
   out.push(...farmActs);
@@ -1349,10 +1371,10 @@ export function nearestSimpleAction(player) {
   const seen = new Set();
   for (let dy = -2; dy <= 2; dy++) {
     for (let dx = -2; dx <= 2; dx++) {
-      const t = map.peekTile(px + dx, py + dy); // a hit test never grows a chunk (docs/23a, A4)
+      const t = map.peekTile(px + dx, py + dy, player.layer || 0); // a hit test never grows a chunk (docs/23a, A4)
       if (!t) continue;
-      for (const entry of map.itemsAt(px + dx, py + dy)) consider(tag(itemActions(entry, px + dx, py + dy, player), onItem(entry, px + dx, py + dy)));
-      if (map.drinkableAt(px + dx, py + dy)) consider(tag(waterTileActions(px + dx, py + dy, player), onTile(px + dx, py + dy))); // E at the bank
+      for (const entry of map.itemsAt(px + dx, py + dy, player.layer || 0)) consider(tag(itemActions(entry, px + dx, py + dy, player), onItem(entry, px + dx, py + dy)));
+      if (map.drinkableAt(px + dx, py + dy, player.layer || 0)) consider(tag(waterTileActions(px + dx, py + dy, player), onTile(px + dx, py + dy))); // E at the bank
       if (t.prop && !seen.has(t.prop)) {
         seen.add(t.prop);
         consider(tag(propActions(t.prop, player), onProp(t.prop)));
@@ -1426,9 +1448,9 @@ export function approachTile(action, player) {
       for (let dx = -2; dx <= 2; dx++) {
         const x = tx + dx;
         const y = ty + dy;
-        if (!map.isWalkableTile(x, y)) continue;
+        if (!map.isWalkableTile(x, y, player.layer || 0)) continue;
         if (Math.hypot(dx, dy) > action.range) continue;
-        if (!lineOfSight(x, y, tx, ty)) continue; // a tile with a clear line to it, so a player behind a wall walks round (#208)
+        if (!lineOfSight(x, y, tx, ty, player.layer || 0)) continue; // a tile with a clear line to it, so a player behind a wall walks round (#208)
         const d = Math.hypot(player.gx - x, player.gy - y);
         if (d < bestD) {
           bestD = d;
@@ -2115,7 +2137,7 @@ export function stampFromGuest(player, id, kind) {
 }
 
 export function pokeAt(sx, sy, player) {
-  const prop = interactableAt(sx, sy);
+  const prop = onFloorOf(player, () => interactableAt(sx, sy)); // on the player's own floor (docs/49 section 6)
   if (!prop) return null;
   const def = getDef(prop.sprite);
   if (def.sway === false || def.clickAnim) return prop;
@@ -2164,11 +2186,16 @@ export function setCharacters(fn) {
 // information, never physics, so a dead one lost in the dark has no hover hand and cannot be clicked or right-clicked,
 // while a swing or a shot that meets it still hits it. Without a viewer nothing is hidden.
 export function characterAt(sx, sy, viewer = null) {
+  return onFloorOf(viewer, () => characterAtHere(sx, sy, viewer));
+}
+function characterAtHere(sx, sy, viewer) {
   let best = null;
   for (const c of allCharacters()) {
     if (c.kind === "player") continue;
     if (viewer && c.kind === "zombie" && !c.dead && !sight.seen(viewer, c)) continue; // lost in the dark: nothing to point at
+    if (viewer && (c.layer || 0) !== (viewer.layer || 0)) continue; // a body on another floor is not under your cursor (docs/49 section 6)
     const p = iso.toScreen(c.gx, c.gy);
+    p.y -= c.rise || 0; // drawn up its stair (render/storeys.js liftOf); the floor's own storeys are onFloorOf's
     if (sx < p.x - 40 || sx > p.x + 40 || sy < p.y - 72 || sy > p.y + 8) continue;
     // The frame's own pixels, placed as the renderer places them; a standing one also
     // keeps the forgiving column over its feet. A body lies to one side of its feet,
@@ -2349,13 +2376,14 @@ function keepingActions(c, player) {
 
 function characterActions(c, player) {
   const out = [];
+  if (c !== player && (c.layer || 0) !== (player.layer || 0)) return out; // a body on another floor is out of reach (docs/49 section 9)
   if (c.kind === "animal") return c.dead && !c.butchered ? [...carcassActions(c, player), lookAtAnimalAction(c)] : [...keepingActions(c, player), lookAtAnimalAction(c)];
   if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) out.push(searchBodyAction(c)); // a player's body too (2026-10-14)
   if (burn.isBurnableBody(c)) out.push(burnCorpseAction(c, player)); // the dead's bodies; a player's is left for its friends (docs/43 section 7)
   if (c.kind === "villager") {
     // Talk (docs/34): a simple action, so E does it when the villager is the nearest thing within reach (the prompt names it, and a door nearer wins);
     // it runs on the host as the talking player, who is told to open the panel (`talkStarted`).
-    if (lineOfSight(player.gx, player.gy, c.gx, c.gy)) out.push(act({ // a wall in the way: not offered, rather than offered and refused (#230)
+    if ((c.layer || 0) === (player.layer || 0) && lineOfSight(player.gx, player.gy, c.gx, c.gy, player.layer || 0)) out.push(act({ // a wall in the way: not offered, rather than offered and refused (#230)
       kind: "talk",
       label: `Talk to ${c.name}`,
       tiles: [[Math.round(c.gx), Math.round(c.gy)]],
@@ -2404,7 +2432,7 @@ export function play(prop) {
 // Left click: play the click animation of the thing under the cursor, by its
 // pixels, if it is within the player's reach.
 export function playAt(sx, sy, player) {
-  const prop = interactableAt(sx, sy, (p) => !!getDef(p.sprite).clickAnim);
+  const prop = onFloorOf(player, () => interactableAt(sx, sy, (p) => !!getDef(p.sprite).clickAnim));
   if (prop && inReach(prop, player)) play(prop);
   return prop;
 }
@@ -2423,6 +2451,7 @@ export function actionsForProp(prop, player) {
 // other prop's (a tree whose sprite rectangle also covers the point, as a crown over a mushroom does; a rug under the tile), or at the end
 // when no prop-addressed action is left.
 export function menuActions(sx, sy, player, poked) {
+  if (poked && (poked.layer || 0) !== ((player && player.layer) || 0)) poked = null; // a thing on another floor is not this menu's (docs/49)
   const actions = actionsAt(sx, sy, player);
   if (!poked) return actions;
   const own = actionsForProp(poked, player);
