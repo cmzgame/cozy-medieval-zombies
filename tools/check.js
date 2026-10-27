@@ -6170,6 +6170,37 @@ check("round rooms (the review of #536): the 7 by 7's outer corner keeps the dea
   assert(up.every((w) => w === "Not against the curve"), `on the tower's first floor: ${up.join(", ")}`);
   return `the corner's two ${gap.toFixed(2)} apart with no line of sight; the first floor's eight crossed tiles refused`;
 });
+check("round rooms: the inside skirt (Michael, 2026-10-27) covers every point inside the stone wall's inner face that is off the stepped floor, and reaches no further out than under that face", () => {
+  const t = (getDef("wall_stone").wall.thickness || 16) / 2 / 32;
+  const K = roundMod.SKIRT_SAMPLES;
+  const out = [];
+  for (const n of [5, 7]) {
+    const s = roundMod.shape(0, 0, n);
+    const ends = roundMod.floorEnd(n);
+    const inner = s.R - t;
+    const rIn = (a) => {
+      const f = ((a / (2 * Math.PI)) * K + K) % K;
+      const j = Math.floor(f);
+      const u = f - j;
+      return Math.min(ends[j] - 0.04, inner - 0.08) * (1 - u) + Math.min(ends[(j + 1) % K] - 0.04, inner - 0.08) * u;
+    };
+    let bare = 0;
+    let off = 0;
+    for (let i = 0; i < 40000; i++) {
+      const a = (i / 40000) * 2 * Math.PI * 97;
+      const rad = inner * Math.sqrt(((i * 7919) % 40000) / 40000);
+      const x = s.cx + Math.cos(a) * rad;
+      const y = s.cy + Math.sin(a) * rad;
+      if (roundMod.isStepped(0, 0, n, Math.floor(x + 0.5), Math.floor(y + 0.5))) continue;
+      off++;
+      if (rad < rIn(a) - 1e-9) bare++;
+    }
+    assert(off > 0 && bare === 0, `${n} by ${n}: ${bare} of ${off} points off the floor inside the wall left bare`);
+    assert([...ends].every((e, j) => Math.min(e - 0.04, inner - 0.08) <= inner - 0.08 + 1e-9), "the skirt's edge past its least width");
+    out.push(`${n}: ${off} points off the floor inside the wall, all covered`);
+  }
+  return out.join("; ");
+});
 
 let failed = 0;
 for (const r of results) {

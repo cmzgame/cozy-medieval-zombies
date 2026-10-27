@@ -1281,6 +1281,11 @@ export function ringOfWall(wall) {
 export function isRingWall(wall) {
   return !!wall && wall.kind === "wall" && !!wall.round;
 }
+// Whether a wall is drawn by its ring (render/rings.js): a ring's edge, or a door or a window at one of its door points (drawn in the curve,
+// with no straight frame: Michael's playtest, 2026-10-27).
+export function drawnByRing(wall) {
+  return !!wall && !!(wall.round || wall.underRound);
+}
 // The face of a ring edge on its `side` (+1 the edge's near side, -1 its far), at the edge's point on the curve: { gx, gy, a, out } (the ground
 // point `off` tiles off the curve on that side, the angle, and +1 when the side is the ring's outside), or null when it is no ring edge or,
 // unless `any`, when the camera does not see that face (a torch is put only where it can be seen, as on a straight wall's camera face).
