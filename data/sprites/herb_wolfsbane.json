@@ -1,1 +1,35 @@
-{"placeholder": {"kind": "herb", "leaf": "#3e7448", "stems": 2, "height": 15, "spread": 2, "base": 2, "leafSize": 2, "leafGap": 3, "flowers": "hood", "flower": "#5a5ae0", "seed": 15}, "carry": false, "interactable": true, "gather": {"item": "wolfsbane", "count": [1, 1], "seconds": 1.5, "skill": "herbalism", "level": 5}, "name": "wolfsbane", "note": "Wolfsbane: for poisons, in the woods (docs/39 section 4, Herbalism 5). Grows like a weed at random on natural ground and comes back elsewhere once gathered (docs/46, src/resources.js); gathered by hand (src/gather.js). Dev art drawn from this design (src/gather-art.js), the item's icon from the same."}
+{
+ "image": "data/art/ground/herb_wolfsbane.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   14,
+   20
+  ]
+ },
+ "anchor": [
+  6,
+  19
+ ],
+ "bounds": {
+  "x": 0,
+  "y": 0,
+  "w": 14,
+  "h": 20
+ },
+ "carry": false,
+ "interactable": true,
+ "gather": {
+  "item": "wolfsbane",
+  "count": [
+   1,
+   1
+  ],
+  "seconds": 1.5,
+  "skill": "herbalism",
+  "level": 5
+ },
+ "name": "wolfsbane",
+ "note": "Wolfsbane: for poisons, in the woods (docs/39 section 4, Herbalism 5). Grows like a weed at random on natural ground and comes back elsewhere once gathered (docs/46, src/resources.js); gathered by hand (src/gather.js). Drawn art: art round 5 (the herbs), the node and the item from one design."
+}
