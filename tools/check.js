@@ -4766,7 +4766,7 @@ check("the fires: a 2 by 2 picture cut into three screen columns, each sorted by
   const H = 116;
   const a = [64, 64]; // the back tile's centre, as the fire pit's picture has it
   const fp = [2, 2];
-  const col = (u) => (u < a[0] - 32 + 9 ? 2 : u >= a[0] + 32 - 9 ? 1 : 3); // the expected owner, written out
+  const col = (u) => (u < a[0] - 32 ? 2 : u >= a[0] + 32 ? 1 : 3); // the expected owner, written out: the lines at the side tiles' centres
   const pic = new Uint8ClampedArray(W * H * 4);
   for (let v = 0; v < H; v++) for (let u = 0; u < W; u++) { const k = (v * W + u) * 4; pic[k] = col(u) * 60; pic[k + 3] = 255; }
   const shown = [];
@@ -4778,7 +4778,7 @@ check("the fires: a 2 by 2 picture cut into three screen columns, each sorted by
     assert(!wrong, `slice ${i} holds ${wrong} pixels of another column`);
     shown.push(n);
   }
-  assert(shown[0] === 0 && shown[1] === (W - 87) * H && shown[2] === 41 * H && shown[3] === (87 - 41) * H, `the columns' pixels: ${shown.join(", ")}`);
+  assert(shown[0] === 0 && shown[1] === (W - 96) * H && shown[2] === 32 * H && shown[3] === (96 - 32) * H, `the columns' pixels: ${shown.join(", ")}`);
   // Drawn at its own tile, each slice lands where the whole picture would at the anchor tile.
   const [tx, ty] = [40, 50];
   const at0 = isoMod.toScreen(tx, ty);
@@ -4789,6 +4789,10 @@ check("the fires: a 2 by 2 picture cut into three screen columns, each sorted by
     assert(p.x - (a[0] + o[0]) === at0.x - a[0] && p.y - (a[1] + o[1]) === at0.y - a[1], `slice ${i} lands ${p.x - (a[0] + o[0]) - (at0.x - a[0])}, ${p.y - (a[1] + o[1]) - (at0.y - a[1])} off`);
   }
   assert(assetsMod.sliceTileAt(64, a, fp) === 3 && assetsMod.sliceTileAt(20, a, fp) === 2 && assetsMod.sliceTileAt(100, a, fp) === 1, "the flame's tile from `at`");
+  // The drawn fire pit's layout (art round 6: 114 px wide, its anchor's top vertex at (58, 19)): the lines at x 26 and 90, its flames (`at` x 57)
+  // in the middle column, its posts (x 10..16, 99..105) in the outer ones.
+  const art = [58, 19 + 16];
+  assert([25, 26, 89, 90, 57, 13, 102].map((u) => assetsMod.sliceTileAt(u, art, fp)).join("") === "2331321", "the drawn fire pit's columns");
   // The fire pit's own picture is cut so: its definition's footprint and facing.
   const def = getDef("fire_pit");
   assert(JSON.stringify(assetsMod.footprintOf(def)) === "[2,2]" && def.placeholder.kind === "fire_pit" && def.fire.radius === 5 && def.fire.room && def.fire.cooks && def.fire.switch && def.fire.maxFuel === 6 && def.fire.hoursPerUnit === 3 && def.fire.flicker.amp === 0.24 && def.carry === false, `the fire pit's definition: ${JSON.stringify(def.fire)}`);
@@ -4851,7 +4855,7 @@ check("the fires: the fire pit built by a guest's command indoors and out, refus
       placementMod.performPlacement(me, { kind: "build", what: "fire_pit", tx: x, ty: y });
       const p = mapMod.peekTile(x, y).prop;
       assert(p && p.sprite === "fire_pit", `nothing built at ${x},${y}: "${said[said.length - 1]}"`);
-      assert(JSON.stringify(p.footprint) === "[2,2]" && p.tiles.length === 4 && p.tiles.every(([a, b]) => mapMod.peekTile(a, b).prop === p) && p.facing === "s", `its tiles: ${JSON.stringify(p.tiles)}, facing ${p.facing}`);
+      assert(JSON.stringify(p.footprint) === "[2,2]" && p.tiles.length === 4 && p.tiles.every(([a, b]) => mapMod.peekTile(a, b).prop === p) && p.facing === "y", `its tiles: ${JSON.stringify(p.tiles)}, facing ${p.facing}`);
       assert(p.made && p.solid && p.fire.switch && !p.fire.lit && p.fire.radius === 5 && p.fire.room && stationsMod.stationOf(p).length > 0 && !placementMod.canCarry(p), `made ${p.made}, lit ${p.fire.lit}, radius ${p.fire.radius}, a station ${stationsMod.stationOf(p).length}`);
       assert(inventoryMod.countAll(me, "stone") === 0, `the eight stone not paid: ${inventoryMod.countAll(me, "stone")}`);
       assert(gameMod.syncParts().map !== before, "the build did not move the map's sync part");
@@ -4904,6 +4908,89 @@ check("the fires: the fire pit built by a guest's command indoors and out, refus
     return `outdoors at ${out}, on the road at ${road}, indoors at ${inside} (room ${roomId}); refused on water at ${water} and over another; a switch lit with no fuel, radius 5 outdoors, its room lit; refused apart lit, four stone back out`;
   } finally {
     rulesMod.rules.freeBuilding = free0;
+    promptMod.setMessageSink(null);
+  }
+});
+
+// Michael's rule (2026-10-27): "I would prefer to keep the build menu exclusively things you cannot pick up and carry around." No build
+// palette entry makes a prop a player can lift or pick up: none whose sprite names an item to pick it up as (`item`), says it is carried
+// (`carry: true`), or is what an item's Place sets down (the campfire, which is made at the workbench instead).
+check("the build palette holds only what cannot be picked up and carried (Michael, 2026-10-27)", () => {
+  const build = read("data/build.json");
+  const itemsJson = read("data/items.json");
+  const placed = new Set((Array.isArray(itemsJson) ? itemsJson : itemsJson.items || []).filter((d) => d.place).map((d) => d.place));
+  const props = Object.entries(build).filter(([, b]) => b.kind === "prop");
+  const bad = [];
+  for (const [id, b] of props) {
+    const d = read(`data/sprites/${b.sprite}.json`);
+    if (d.item) bad.push(`${id}: its prop is picked up as ${d.item}`);
+    if (d.carry === true) bad.push(`${id}: its prop is carried`);
+    if (placed.has(b.sprite)) bad.push(`${id}: an item sets it down`);
+  }
+  assert(!bad.length, bad.join("; "));
+  assert(!build.campfire && props.length, "the campfire is still built");
+  return `${props.map(([id]) => id).join(", ")}: none picked up or carried`;
+});
+
+// The campfire is made (Michael, 2026-10-27): at the workbench from three stone and two logs, by the craft verb a guest's Make sends; 3 by
+// 3 in the bag; set down by a guest's `campfire` command cold and empty (no starting fuel: its logs were the make's), the player's own; its
+// card says where it is made and what Place does; taken apart, half its make back and no tool asked.
+check("the fires: the campfire made at the workbench, 3 by 3 in the bag, set down cold and empty by a guest's command, taken apart for half its make", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  try {
+    const r = stationsMod.recipe("campfire");
+    assert(r && r.station === "workbench" && r.out.id === "campfire" && JSON.stringify(r.in) === JSON.stringify([{ id: "stone", count: 3 }, { id: "log", count: 2 }]) && !r.uses && !r.tool, `the row: ${JSON.stringify(r)}`);
+    assert(JSON.stringify(itemsMod.getItem("campfire").size) === "[3,3]", `the item's size: ${JSON.stringify(itemsMod.getItem("campfire").size)}`);
+    const bench = mapMod.allProps().find((q) => q.sprite === "workbench" && mapMod.peekTile(q.tile[0], q.tile[1]).prop === q && !stationsMod.roomProblem(q, r));
+    assert(bench, "no workbench to make it at");
+    const stand = mapMod.nearestWalkable(bench.tile[0], bench.tile[1] + 1, (x, y) => !!mapMod.tileAt(x, y).prop || !bench.tiles.some(([bx, by]) => lineOfSight(x, y, bx, by)));
+    me.gx = stand[0];
+    me.gy = stand[1];
+    me.hands.main = null;
+    me.hands.off = null;
+    me.worn.back = itemsMod.makeEntry("small_sack", 1);
+    const bag = inventoryMod.bagOf(me);
+    bag.items.length = 0;
+    inventoryMod.addItem(bag, "stone", 3);
+    inventoryMod.addItem(bag, "log", 2);
+    const made = verbsMod.run("craft", worldMod.world, me, { prop: bench.id }, { recipe: "campfire", count: 1 });
+    assert(made.ok, `the make: ${made.reason}`);
+    for (let i = 0; i < 60 * 8 && bench.queue && bench.queue.length; i++) stationsMod.update(1 / 60);
+    const entry = (bench.output && bench.output.items || []).find((e) => e.id === "campfire");
+    assert(entry && inventoryMod.countAll(me, "stone") === 0 && inventoryMod.countAll(me, "log") === 0, `nothing made, or not paid: ${!!entry}, ${inventoryMod.countAll(me, "stone")} stone, ${inventoryMod.countAll(me, "log")} logs`);
+    bench.output.items.splice(bench.output.items.indexOf(entry), 1);
+    assert(gridMod.insert(bag, entry), "a 3 by 3 Campfire did not fit the sack (6 by 4)");
+    const card = itemInfoMod.textOf(itemInfoMod.cardFor(entry));
+    assert(/workbench/i.test(card) && /Place/.test(card) && /campfire/i.test(card), `its card: ${card}`);
+    // Set down outdoors by a guest's command, by its uid.
+    let spot = null;
+    for (let rr = 2; rr < 30 && !spot; rr++) for (let dy = -rr; dy <= rr && !spot; dy++) for (let dx = -rr; dx <= rr && !spot; dx++) {
+      const x = Math.round(me.gx) + dx;
+      const y = Math.round(me.gy) + dy;
+      if (!campfireMod.standProblem(x, y) && mapMod.isWalkableTile(x - 1, y) && !(mapMod.peekTile(x - 1, y).room > 0)) spot = [x, y];
+    }
+    assert(spot, "no open ground for it");
+    me.gx = spot[0] - 1;
+    me.gy = spot[1];
+    placementMod.performPlacement(me, { kind: "campfire", uid: entry.uid, tx: spot[0], ty: spot[1] });
+    const fire = mapMod.peekTile(spot[0], spot[1]).prop;
+    assert(fire && fire.sprite === "campfire" && fire.fire.fuel === 0 && !fire.fire.lit && fire.made === true && JSON.stringify(fire.footprint) === "[1,1]" && !bag.items.includes(entry), `set down: ${fire && fire.sprite}, fuel ${fire && fire.fire.fuel}, made ${fire && fire.made}: "${said[said.length - 1]}"`);
+    const ta = interactMod.actionsForProp(fire, me).find((q) => /^Take apart/.test(q.label));
+    assert(ta && ta.enabled && ta.label === "Take apart (1 stone, 1 log back)", `its Take apart: ${ta && ta.label}`);
+    assert(ta.perform() && !mapMod.propById(fire.id) && inventoryMod.countAll(me, "stone") === 1 && inventoryMod.countAll(me, "log") === 1, `taken apart: ${inventoryMod.countAll(me, "stone")} stone, ${inventoryMod.countAll(me, "log")} log`);
+    // A village campfire picked up stays the village's: set down again, it is not the player's to take apart.
+    const village = campfireMod.makeFire(spot[0], spot[1], 0, false);
+    assert(campfireMod.pickUp(me, village), `the village's campfire not picked up: "${said[said.length - 1]}"`);
+    const vEntry = bag.items.find((e) => e.id === "campfire");
+    assert(vEntry && vEntry.made === false, `its entry: ${JSON.stringify(vEntry)}`);
+    campfireMod.place(me, vEntry.uid, spot[0], spot[1]);
+    const again = mapMod.peekTile(spot[0], spot[1]).prop;
+    assert(again && again.sprite === "campfire" && !again.made, "the village's campfire came down the player's");
+    return `3 stone and 2 logs at ${bench.id} into a 3 by 3 Campfire; set down cold and empty at ${spot}, the player's; Take apart 1 stone, 1 log, no tool; the village's stays the village's`;
+  } finally {
     promptMod.setMessageSink(null);
   }
 });

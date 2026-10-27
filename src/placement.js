@@ -608,14 +608,18 @@ function targetName(t) {
 // cloth) gives nothing back: which item it was is not kept.
 export function partsOf(t) {
   if (t.type === "prop") {
-    const item = getDef(t.prop.sprite).item; // a prop set down from an item (a torch post: docs/43, section 4) is taken apart by the item's recipe
+    // A prop set down from an item is taken apart by the item's recipe: the item its definition names (a torch post: docs/43, section 4), or
+    // the item whose Place sets it down (the campfire, made at the workbench since 2026-10-27).
+    const item = getDef(t.prop.sprite).item || (items.allItems().find((d) => d.place === t.prop.sprite) || {}).id;
     const r = stations.recipes().find((q) => q.out && (q.out.prop === t.prop.sprite || (item && q.out.id === item)));
     if (r) {
       const back = (r.in || []).filter((i) => i.id).map((i) => ({ id: i.id, count: Math.floor((i.count || 1) / 2) })).filter((i) => i.count > 0);
-      return { back, tool: r.uses || tuning.world.boardTool };
+      // Its recipe's tool; a made prop or a smith's make with none named wants the hammer, and an item made by hand with none (the
+      // campfire's stones and logs) wants none, as it wanted none to build when it was the palette's.
+      return { back, tool: r.uses || (r.out.prop || r.tool ? tuning.world.boardTool : null) };
     }
-    // Built from the palette (a campfire): half its cost but its fuel (the campfire's logs were fuel, not materials), with the entry's
-    // tool, or none if it names none (a campfire wants no tool to build or to take apart).
+    // Built from the palette (the Fireplace, the fire pit, a feeding trough): half its cost but its fuel (a build's `fuel` item is its
+    // starting fuel, not a material), with the entry's tool, or none if it names none (a built fire wants no tool to build or to take apart).
     const id = Object.keys(buildData).find((k) => buildData[k].kind === "prop" && buildData[k].sprite === t.prop.sprite);
     const d = id ? buildData[id] : null;
     const back = !d || t.prop.free ? [] : Object.entries(d.cost || {}).filter(([k]) => k !== d.fuel).map(([k, n]) => ({ id: k, count: Math.floor(n / 2) })).filter((i) => i.count > 0);

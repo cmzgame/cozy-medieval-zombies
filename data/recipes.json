@@ -787,6 +787,26 @@
    "uses": "build"
   },
   {
+   "id": "campfire",
+   "station": "workbench",
+   "out": {
+    "id": "campfire",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "stone",
+     "count": 3
+    },
+    {
+     "id": "log",
+     "count": 2
+    }
+   ],
+   "seconds": 6,
+   "note": "the campfire is made, not built (Michael, 2026-10-27: \"Make it from the workbench\"; the build menu holds only what cannot be carried): the Campfire item, set down from the bag with Place cold and empty, its logs then fed as any fire's (the two logs are the make's, not its fuel); no tool, as it was built with none; the seconds the builder's default, as the torch post's"
+  },
+  {
    "id": "charcoal",
    "station": "clamp",
    "out": {

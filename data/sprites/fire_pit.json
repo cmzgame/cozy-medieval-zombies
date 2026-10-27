@@ -1,9 +1,10 @@
 {
+ "name": "fire pit",
  "facings": [
-  "s"
+  "y"
  ],
  "facingFootprint": {
-  "s": [
+  "y": [
    2,
    2
   ]
@@ -28,5 +29,5 @@
   "fps": 6
  },
  "carry": false,
- "note": "the fire pit (Michael, 2026-10-26, the fire rulings under Round rooms: a spec): the 2 by 2 floor fire, a stone base and short walls with a rack over it on legs, built from the palette on open ground indoors or out, never moved, taken apart out; it cooks as every fire does, lights its room indoors as the fireplace does, and outdoors is the brightest fire (radius 5, docs/42); a switch as the home lights are (docs/43 section 3), the fuel fields the fireplace's own. Dev art generated (src/placeholders.js generateFirePit) and cut into three screen columns by src/assets.js sliceSheet until the drawn art lands (`drawings`, and `fire.frames`, `fire.at`, `fire.base` as the fireplace's)"
+ "note": "the fire pit (Michael, 2026-10-26, the fire rulings under Round rooms: a spec): the 2 by 2 floor fire, a stone base and short walls with a rack over it on legs, built from the palette on open ground indoors or out, never moved, taken apart out; it cooks as every fire does, lights its room indoors as the fireplace does, and outdoors is the brightest fire (radius 5, docs/42); a switch as the home lights are (docs/43 section 3), the fuel fields the fireplace's own. Dev art generated (src/placeholders.js generateFirePit) and cut into three screen columns by src/assets.js sliceSheet at the left and right tiles' centres until the drawn art lands (`drawings`, and `fire.frames`, `fire.at`, `fire.base` as the fireplace's)"
 }

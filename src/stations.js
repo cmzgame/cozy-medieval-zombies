@@ -23,7 +23,7 @@ import { emit } from "./events.js";
 import { rules } from "./rules.js"; // a recipe a world rule keeps off (docs/43 section 5)
 
 export const REACH = 2.6; // tiles: the click's reach (interact.js CLICK_REACH); containers this close feed a craft
-const OUTPUT = [3, 2]; // the output bag's grid
+const OUTPUT = [3, 3]; // the output bag's grid: 3 by 3 since the Campfire item, 3 by 3, is made at the workbench (2026-10-27; 3 by 2 before), so a made one lands in it
 
 let rows = [];
 const active = new Set(); // stations with something in their queue

@@ -207,7 +207,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       case "campfire": sheet = placeholders.generateCampfire(ph); break;
       case "fire_pit": { // the 2 by 2 floor fire's dev art (the fire rulings, 2026-10-26), cut into its three columns as its drawn art will be
         const g = placeholders.generateFirePit(ph);
-        const facings = def.facings || ["s"];
+        const facings = def.facings || ["y"];
         sheet = sliceSheet({ ...def, facings, fire: { ...(def.fire || {}), base: g.base } }, Object.fromEntries(facings.map((f) => [f, { canvas: g.canvas, anchor: g.anchor, at: g.at }])), g.flames);
         break;
       }
@@ -549,11 +549,12 @@ function canvasOf(img, mirror) {
 // toward the first tile: everything beyond it stands on the second tile however high it is drawn, and the first tile's slice stops short
 // of the far wall behind the second, whose near face stands that far out. A cut along the ground line put the high parts of the second
 // tile (a quilt, a chimney breast) in the first tile's slice, which sorts before that far wall, and the wall drew over them (Michael,
-// 2026-10-11). A 2 by 2 piece (the fire pit, the fire rulings of 2026-10-26) is cut the same way at both of those lines into three columns:
-// the left tile (its anchor's neighbour along y, footprint index 2) left of the first, the right tile (along x, index 1) right of the
-// second, and the middle two tiles' column between, drawn by the front one of them (index 3, the tile nearest the camera: what stands
-// high in the middle, a rack over the fire, is in front of everything behind the piece); the back tile (index 0) draws nothing. Each slice
-// is sorted by its own tile's key (render/props.js). `a` is the centre anchor of the anchor tile, in the drawing's pixels.
+// 2026-10-11). A 2 by 2 piece (the fire pit, the fire rulings of 2026-10-26) is cut into three columns at the left and right tiles' centres
+// (the anchor's x less and more 32, as the drawn fire pit is laid out, art round 6: its posts in the outer columns, its pots in the middle):
+// the left tile (its anchor's neighbour along y, footprint index 2) left of the first line, the right tile (along x, index 1) from the second,
+// and the middle two tiles' column between, drawn by the front one of them (index 3, the tile nearest the camera: what stands high in the
+// middle, a rack's pots over the fire, is in front of everything behind the piece); the back tile (index 0) draws nothing. Each slice is
+// sorted by its own tile's key (render/props.js). `a` is the centre anchor of the anchor tile, in the drawing's pixels.
 const SLICE_INSET = 9;
 
 // Which footprint tile draws pixel column `u` of a drawing of footprint `fp` anchored at `a`: pure, the one rule the slices and the flame's
@@ -562,8 +563,8 @@ export function sliceTileAt(u, a, fp) {
   const [w, h] = fp;
   if (w * h === 1) return 0;
   if (w === 2 && h === 2) {
-    if (u < a[0] - 32 + SLICE_INSET) return 2;
-    if (u >= a[0] + 32 - SLICE_INSET) return 1;
+    if (u < a[0] - 32) return 2;
+    if (u >= a[0] + 32) return 1;
     return 3;
   }
   // Along y the second tile lies down-left (32 px left), along x down-right.
@@ -601,7 +602,8 @@ function sliceOf(canvas, a, fp, i) {
 
 // A sheet of furniture from its drawings: each facing is a drawing or a mirror of one; a piece of several tiles is sliced per tile, each
 // slice with its own anchor (the drawing's anchor moved by its tile's offset); a fire's flame frames are placed on the tile that holds the
-// firebox. Frames are `idle_<facing>_<i>` and `flame_<facing>_<k>`.
+// firebox, mirrored with a mirrored facing (art round 6: the frames are cut against the drawing and slant with its firebox). Frames are
+// `idle_<facing>_<i>` and `flame_<facing>_<k>`.
 async function sheetFromDrawings(def) {
   const loaded = new Map();
   const imageOf = async (p) => {
@@ -618,20 +620,21 @@ async function sheetFromDrawings(def) {
     if (d.mirror) a = [img.width - a[0], a[1]];
     let at = def.fire && def.fire.at ? [def.fire.at[0], def.fire.at[1]] : null;
     if (at && d.mirror) at = [img.width - at[0], at[1]];
-    pictures[facing] = { canvas: canvasOf(img, !!d.mirror), anchor: a, at };
+    pictures[facing] = { canvas: canvasOf(img, !!d.mirror), anchor: a, at, mirror: !!d.mirror };
   }
-  return sliceSheet(def, pictures, fireImgs.map((im) => canvasOf(im, false)));
+  return sliceSheet(def, pictures, fireImgs);
 }
 
 // The sheet of a piece from its pictures, one per facing ({ canvas, anchor (the centre anchor of its anchor tile), at (the flame's base in
-// its pixels, or null) }) and its flame frames (canvases, each pinned at `def.fire.base`): the drawn furniture's (sheetFromDrawings) and a
-// generated piece's alike (the fire pit's placeholder), so the dev art goes through the cut the drawn art will.
-export function sliceSheet(def, pictures, flameCanvases = []) {
+// its pixels, or null), mirror (a mirrored facing) }) and its flame frames (images or canvases, each pinned at `def.fire.base`; on a
+// mirrored facing each is mirrored too and pinned at its width less the pin's x): the drawn furniture's (sheetFromDrawings) and a generated
+// piece's alike (the fire pit's placeholder), so the dev art goes through the cut the drawn art will.
+export function sliceSheet(def, pictures, flameFrames = []) {
   const pieces = [];
   const frameAnchors = {};
   const flames = {};
   for (const facing of def.facings) {
-    const { canvas, anchor: a, at } = pictures[facing];
+    const { canvas, anchor: a, at, mirror } = pictures[facing];
     const fp = (def.facingFootprint && def.facingFootprint[facing]) || [1, 1];
     const n = fp[0] * fp[1];
     if (n === 1) {
@@ -644,16 +647,18 @@ export function sliceSheet(def, pictures, flameCanvases = []) {
         frameAnchors[`idle_${facing}_${i}`] = [a[0] + o[0], a[1] + o[1]];
       }
     }
-    if (flameCanvases.length && at) {
+    if (flameFrames.length && at) {
       const tile = sliceTileAt(at[0], a, fp);
       const o = sliceOffset(tile, fp);
-      const pin = def.fire.base || [9, 15];
-      flameCanvases.forEach((c, k) => {
+      const base = def.fire.base || [9, 15];
+      flameFrames.forEach((im, k) => {
         const name = `flame_${facing}_${k}`;
+        const c = canvasOf(im, !!mirror);
+        const pin = mirror ? [c.width - base[0], base[1]] : base;
         pieces.push([name, c]);
         frameAnchors[name] = [o[0] + a[0] - at[0] + pin[0], o[1] + a[1] - at[1] + pin[1]];
       });
-      flames[facing] = { tile, count: flameCanvases.length };
+      flames[facing] = { tile, count: flameFrames.length };
     }
   }
   // Pack the pieces side by side into one canvas.
