@@ -382,15 +382,18 @@ export function restore(saved, json) {
 // The world as a text, for a hash: the clock, every player, every one of the
 // dead, villager, and corpse, at three decimals (tools/checks/determinism.js
 // reads the same, so a headless world and the pane's agree by the same number).
+// A character's layer and `rise` (docs/49 section 12) ride on its line when either is not 0, so a world wholly on the ground hashes as it
+// always did, and a replica on the wrong storey does not.
+const storeyText = (c) => (c.layer || c.rise ? ` L${c.layer || 0} r${(c.rise || 0).toFixed(3)}` : "");
 export function hashText() {
   const S = state;
   const f = (n) => n.toFixed(3);
   return [
     `clock ${f(clock.getElapsed())}`,
-    ...S.players.map((p) => `player ${f(p.gx)},${f(p.gy)} hp ${p.hp}`),
-    ...S.zombies.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} ${z.state} ${z.wardrobe} hp ${z.hp}`),
-    ...S.villagers.map((v) => `${v.id} ${f(v.gx)},${f(v.gy)} ${v.state}`),
-    ...S.corpses.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} corpse`),
+    ...S.players.map((p) => `player ${f(p.gx)},${f(p.gy)} hp ${p.hp}${storeyText(p)}`),
+    ...S.zombies.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} ${z.state} ${z.wardrobe} hp ${z.hp}${storeyText(z)}`),
+    ...S.villagers.map((v) => `${v.id} ${f(v.gx)},${f(v.gy)} ${v.state}${storeyText(v)}`),
+    ...S.corpses.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} corpse${storeyText(z)}`),
     ...S.animals.map((a) => `${a.id} ${a.species} ${f(a.gx)},${f(a.gy)} ${a.state}${a.dead ? " dead" : ""}`),
   ].join("\n");
 }
@@ -465,8 +468,9 @@ export function syncParts() {
   const S = state;
   const f = (n) => (typeof n === "number" ? n.toFixed(3) : String(n));
   const m = map.serializeMap();
-  // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step.
-  const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
+  // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step. The chunks by layer, then
+  // position (docs/49 section 12).
+  const chunks = (m.chunks || []).slice().sort((a, b) => ((a.layer || 0) - (b.layer || 0)) || (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
   // An entry's wear in whole hundredths, as the wire compares it (net.js sends a player's heavy part when its wear rounds differently), and its
   // repair count (docs/43 section 6), a blade's poison coat (docs/47 section 6), its dye (section 8), whether its water is clean (docs/44), and the tree a sapling grows into (docs/46 step 3): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
   const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.clean ? "clean" : ""}${e.tree ? `t${e.tree}` : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.poison ? `p${e.poison.tier}/${e.poison.hits}` : ""}${e.colours ? `c${e.colours.join("/")}` : ""}${e.colour ? `c${e.colour}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
@@ -475,7 +479,7 @@ export function syncParts() {
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third
   // step, the first bleeding guest a sync check met; the rule a fire's fuel already follows: compare what the wire promises).
   const hp2 = (n) => (typeof n === "number" ? (Math.round(n * 100) / 100).toFixed(2) : String(n));
-  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `hidden ${(p.hidden || []).join(",")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `handed ${handedOf(p.handed)}`, `carrying ${p.carrying ? p.carrying.id : "-"}`, `bleed ${p.bleed ? `${p.bleed.stacks}/${hp2(p.bleed.left)}` : "-"}`, `sick ${p.sick ? `${p.sick.stacks}/${hp2(p.sick.left)}` : "-"}`, `mana ${hp2(p.mana)}/${hp2(p.maxMana)}`, `potion ${p.potionAt == null ? "-" : hp2(p.potionAt)}`, `buffs ${p.buffs ? Object.keys(p.buffs).sort().map((k) => `${k}/${hp2(p.buffs[k].left)}`).join(",") : "-"}`].join(" | "); // the wound a bleeding player has, and Sick (docs/44): stacks and time, as the wire carries them (#308); mana as health is, to two decimals (docs/47 section 9); the last potion's time and a potion's buff (docs/47 section 4), to two decimals as the wire carries them
+  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} L${p.layer || 0} r${hp2(p.rise || 0)} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `hidden ${(p.hidden || []).join(",")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `handed ${handedOf(p.handed)}`, `carrying ${p.carrying ? p.carrying.id : "-"}`, `bleed ${p.bleed ? `${p.bleed.stacks}/${hp2(p.bleed.left)}` : "-"}`, `sick ${p.sick ? `${p.sick.stacks}/${hp2(p.sick.left)}` : "-"}`, `mana ${hp2(p.mana)}/${hp2(p.maxMana)}`, `potion ${p.potionAt == null ? "-" : hp2(p.potionAt)}`, `buffs ${p.buffs ? Object.keys(p.buffs).sort().map((k) => `${k}/${hp2(p.buffs[k].left)}`).join(",") : "-"}`].join(" | "); // the wound a bleeding player has, and Sick (docs/44): stacks and time, as the wire carries them (#308); mana as health is, to two decimals (docs/47 section 9); the last potion's time and a potion's buff (docs/47 section 4), to two decimals as the wire carries them
   const parts = {
     map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : k === "boards" && v && Array.isArray(v.near) ? { near: v.near.length, far: v.far.length } : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening), a board's health (a bare number in `wall.boards`) not either, only how many boards stand, so a broken one still shows
     chart: hashOf(chart.hashText()), // what the world has seen, the charted chunks sorted (docs/33)
@@ -484,7 +488,7 @@ export function syncParts() {
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
     // The dead as the frames carry them (the wire sends them as a delta, so a missed update shows here): where, state, hp,
     // facing, the frame of the animation, burning, a poison's tier and stacks (docs/47 section 6: its timer is the host's), a body set alight by Burn corpse (docs/43 section 7), a villager's cowering (its state).
-    dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}${z.poison ? ` poison ${z.poison.tier}/${z.poison.stacks}` : ""}${z.cremate ? " cremate" : ""}${z.talkingWith && z.talkingWith.length ? ` talk ${z.talkingWith.join("+")}` : ""}`).join("\n")),
+    dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} L${z.layer || 0} r${hp2(z.rise || 0)} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}${z.poison ? ` poison ${z.poison.tier}/${z.poison.stacks}` : ""}${z.cremate ? " cremate" : ""}${z.talkingWith && z.talkingWith.length ? ` talk ${z.talkingWith.join("+")}` : ""}`).join("\n")),
     // The animals as the frames carry them (docs/45 section 7): where, the state, health, dead, how it was killed and whether it is
     // skinned (a carcass, step 2; a butchered one has left the list), who leads it and the days it was fed and its milk or wool taken
     // (step 3), a poison's tier and stacks (docs/47 section 6), the facing and the frame of the animation, the home; and each home's renewal.
@@ -767,17 +771,18 @@ export function begin(dt) {
   // Chunks far behind are dropped and the characters in them sleep with their
   // chunk, back when it grows again (docs/23a, B1, B2). Villagers hold a chunk,
   // and so does any player (the nearest decides, docs/31/05 item 19).
-  const inChunk = (e, cx, cy) => {
+  // A chunk is of one layer (docs/49): the characters that sleep with it are those standing on it, on its layer.
+  const inChunk = (e, cx, cy, layer = 0) => {
     const [ex, ey] = map.chunkCoord(Math.round(e.gx), Math.round(e.gy));
-    return ex === cx && ey === cy;
+    return ex === cx && ey === cy && (e.layer || 0) === layer;
   };
   const anchor = S.players[0];
   if (anchor) {
-    const keep = (cx, cy) => S.villagers.some((v) => inChunk(v, cx, cy)) || S.players.some((p) => nearChunk(p, cx, cy, tuning.world.evictChunks));
-    for (const [key, cx, cy] of map.evictFar(anchor.gx, anchor.gy, tuning.world.evictChunks, keep)) {
+    const keep = (cx, cy, layer = 0) => S.villagers.some((v) => inChunk(v, cx, cy, layer)) || S.players.some((p) => nearChunk(p, cx, cy, tuning.world.evictChunks));
+    for (const [key, cx, cy, layer] of map.evictFar(anchor.gx, anchor.gy, tuning.world.evictChunks, keep)) {
       const sleeping = [];
-      S.zombies = S.zombies.filter((z) => !inChunk(z, cx, cy) || (sleeping.push(z), false));
-      S.corpses = S.corpses.filter((z) => !inChunk(z, cx, cy) || (sleeping.push(z), false));
+      S.zombies = S.zombies.filter((z) => !inChunk(z, cx, cy, layer) || (sleeping.push(z), false));
+      S.corpses = S.corpses.filter((z) => !inChunk(z, cx, cy, layer) || (sleeping.push(z), false));
       map.sleep(key, sleeping);
     }
   }
@@ -878,7 +883,7 @@ export function step(dt, snapshots = null) {
     // again once its catch is taken. A change marks the snare's chunk, so a guest sees what it holds.
     if (Math.floor(loop.simTime()) !== Math.floor(loop.simTime() - dt)) {
       const snares = animal.setSnares(map.propById);
-      if (snares.length) for (const pr of animal.snareStep(snares, S.animals, S.animalHomes, watching)) map.markDirty(pr.tile[0], pr.tile[1]);
+      if (snares.length) for (const pr of animal.snareStep(snares, S.animals, S.animalHomes, watching)) map.markProp(pr);
       // The keeping (docs/45 section 3): a tame animal not fed today eats as soon as a trough it can reach holds feed, a fed hen lays into
       // its coop, and two of a kind fed in a pen with room breed. Every tame animal, near a player or not: nothing waits on a visit. A lead
       // whose leader is gone (a guest away, a death) is freed.

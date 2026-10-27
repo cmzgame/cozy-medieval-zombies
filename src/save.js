@@ -26,7 +26,10 @@ import * as rules from "./rules.js";
 // The save's version, on the join too (net.js: a page and a host of different versions refuse each other).
 // 2 (2026-10-14, item 5's second step): the world's rules ride in the save.
 // 3 (2026-10-18, #203): the world's chart (what has been seen) rides in the save.
-export const VERSION = 3;
+// 4 (2026-10-27, docs/49 step 1): the map in layers: a chunk of another layer is saved with its layer, a prop off the ground with its
+// `layer`, and every tile address names its layer off the ground. No step from 3: every world saved before it fails to load
+// (`upgrade` returns null), which is accepted (Michael, 2026-10-17 and 2026-10-26: worlds are expendable while we test).
+export const VERSION = 4;
 
 // From each version to the next, in order, so a save of any older version is read (the browser's store, the old
 // slot, and the server's files run the same table when they load one; a newer version than this page's is refused).

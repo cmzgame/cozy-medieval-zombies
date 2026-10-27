@@ -549,8 +549,8 @@ export function propBag(prop) {
     prop.bag = createBag(cols, rows, names.containerName(prop.sprite));
     if (d.accepts) prop.bag.accepts = d.accepts; // a feeding trough takes feed alone (docs/45)
     prop.searched = !!d.searched; // a container that is never rolled (a feeding trough) opens at once
-    if (d.searched) map.markDirty(prop.tile[0], prop.tile[1]); // never searched, so no search marks it: its grid goes to a guest from here
-    else map.unsaved(prop.tile[0], prop.tile[1], false); // made on first use, by whichever path asks first
+    if (d.searched) map.markProp(prop); // never searched, so no search marks it: its grid goes to a guest from here
+    else map.unsavedProp(prop, false); // made on first use, by whichever path asks first
   }
   return prop.bag;
 }
@@ -572,7 +572,7 @@ function containerActions(prop) {
         prop.searched = true;
         // Rolled loot is placed into the grid; what does not fit is not spawned.
         if (!bag.items.length) grid.fill(bag, rollLoot(prop.container.loot));
-        map.touch(prop.tile[0], prop.tile[1]); // a change on the prop: the save and the wire carry it (docs/31/05, item 6)
+        map.touchProp(prop); // a change on the prop: the save and the wire carry it (docs/31/05, item 6)
       }
       emit("containerOpened", { bag, tiles: prop.tiles, name, prop });
       return true;
@@ -2086,7 +2086,7 @@ export function setStampSink(fn) {
 }
 function stamp(prop, now, field = "pokedAt") {
   prop[field] = now;
-  map.unsaved(prop.tile[0], prop.tile[1], false); // the stamp is saved; the wire sends it in the frame's pokes, not the chunk
+  map.unsavedProp(prop, false); // the stamp is saved; the wire sends it in the frame's pokes, not the chunk
   const kind = field === "playedAt" ? 1 : 0;
   if (stamped.length < 400) stamped.push([prop.id, now, kind]);
   if (stampSink) stampSink(prop.id, kind);

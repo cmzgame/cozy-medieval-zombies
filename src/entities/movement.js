@@ -5,7 +5,7 @@
 // villagers share.
 
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, canStep, tileAt, roomAt, floorSpeedAt } from "../map.js";
+import { moveCircle, isWalkableTile, canStepOn, tileAt, roomAt, floorSpeedAt, addr } from "../map.js";
 import { findPath } from "../pathfind.js";
 import * as rng from "../rng.js";
 import { zombie as T } from "../tuning.js";
@@ -15,9 +15,9 @@ export function idleTime() {
   return rng.range(T.wanderIdleMin, T.wanderIdleMax);
 }
 
-// The room a character is standing in (0 outdoors).
+// The room a character is standing in (0 outdoors), on its own layer (docs/49 section 3).
 export function roomOf(e) {
-  return tileAt(Math.round(e.gx), Math.round(e.gy)).room;
+  return tileAt(Math.round(e.gx), Math.round(e.gy), e.layer || 0).room;
 }
 
 export function tileOf(e) {
@@ -31,13 +31,15 @@ export function faceToward(e, dx, dy) {
 }
 
 // Whether a body can walk from where it stands to a tile (a path exists as things are now: doors shut or boarded stop it).
+// On the body's own layer (docs/49 section 16, step 1: the stair's edge between layers is step 3's).
 export function canReach(e, tile) {
-  return findPath(tileOf(e), tile, canStep) !== null;
+  return findPath(tileOf(e), tile, canStepOn(e.layer || 0)) !== null;
 }
 
 export function repath(e, goalTile) {
-  const path = findPath(tileOf(e), goalTile, canStep);
-  e.path = path || [];
+  const L = e.layer || 0;
+  const path = findPath(tileOf(e), goalTile, canStepOn(L));
+  e.path = path ? (L ? path.map(([x, y]) => addr(x, y, L)) : path) : []; // a path's tiles name their layer off the ground (docs/49 section 12)
   e.pathFailed = path === null;
   e.lastGoal = goalTile;
   e.repathTimer = e.pathFailed ? T.repathFailBackoff : T.repath;
@@ -53,11 +55,11 @@ export function followPath(e, dt, others) {
     e.path.shift();
     return e.path.length === 0;
   }
-  const step = Math.min(d, e.speed * floorSpeedAt(e.gx, e.gy) * dt); // shallow water slows everyone (docs/30, law 8)
+  const step = Math.min(d, e.speed * floorSpeedAt(e.gx, e.gy, e.layer || 0) * dt); // shallow water slows everyone (docs/30, law 8)
   faceToward(e, dx, dy);
   const sx = e.gx;
   const sy = e.gy;
-  const moved = moveCircle(e.gx, e.gy, e.radius, (dx / d) * step, (dy / d) * step);
+  const moved = moveCircle(e.gx, e.gy, e.radius, (dx / d) * step, (dy / d) * step, e.layer || 0);
   e.gx = moved.gx;
   e.gy = moved.gy;
   separate(e, dt, others);
@@ -81,8 +83,10 @@ export function followPath(e, dt, others) {
 export function separate(e, dt, others) {
   let px = 0;
   let py = 0;
+  const L = e.layer || 0;
   for (const o of others) {
     if (o === e || o.dead || o.state === "down") continue; // the fallen and the dead block nothing (docs/14)
+    if ((o.layer || 0) !== L) continue; // bodies are pushed apart on one layer only (docs/49 section 9)
     const dx = e.gx - o.gx;
     const dy = e.gy - o.gy;
     const d = Math.hypot(dx, dy);
@@ -96,7 +100,7 @@ export function separate(e, dt, others) {
     }
   }
   if (px !== 0 || py !== 0) {
-    const moved = moveCircle(e.gx, e.gy, e.radius, px * dt * 2, py * dt * 2);
+    const moved = moveCircle(e.gx, e.gy, e.radius, px * dt * 2, py * dt * 2, L);
     e.gx = moved.gx;
     e.gy = moved.gy;
   }
@@ -105,11 +109,11 @@ export function separate(e, dt, others) {
 // A walkable tile near (x, y) on the same side of the walls as `room`: a
 // zombie outside a cottage searching for someone seen inside walks the yard,
 // not into the wall (Michael, 2026-10-10: pacing at the window).
-export function pickTargetAround(x, y, radius, room = 0) {
+export function pickTargetAround(x, y, radius, room = 0, layer = 0) {
   for (let tries = 0; tries < 12; tries++) {
     const tx = Math.round(x) + rng.int(radius * 2 + 1) - radius;
     const ty = Math.round(y) + rng.int(radius * 2 + 1) - radius;
-    if (isWalkableTile(tx, ty) && roomAt(tx, ty) === room) return [tx, ty]; // refinds the rooms if a wall changed (docs/23a, A5)
+    if (isWalkableTile(tx, ty, layer) && roomAt(tx, ty, layer) === room) return addr(tx, ty, layer); // refinds the rooms if a wall changed (docs/23a, A5)
   }
   return null;
 }

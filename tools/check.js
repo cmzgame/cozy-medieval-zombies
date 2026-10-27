@@ -177,16 +177,14 @@ check("a save from its cache is the world made afresh, character for character (
 
 const save = await import("../src/save.js");
 const rulesMod = await import("../src/rules.js");
-check("the save's version is 3 and a version-1 save is upgraded with the rules and an empty chart (item 5's second step; #203)", () => {
-  assert(save.VERSION === 3, `VERSION ${save.VERSION}`);
-  const up = save.upgrade({ version: 1, map: {}, characters: {} });
-  assert(up && up.version === 3 && up.rules && up.chart && up.chart.chunks.length === 0, "a version-1 save was not upgraded");
-  for (const k of Object.keys(rulesMod.rules)) assert(up.rules[k] === rulesMod.DEFAULTS[k], `${k} not the default`);
-  assert(save.upgrade({ version: 4, map: {}, characters: {} }) === null, "a newer save was not refused");
+check("the save's version is 4 (docs/49 step 1, the map in layers) and every world saved before it is refused, as worlds are expendable (2026-10-17)", () => {
+  assert(save.VERSION === 4, `VERSION ${save.VERSION}`);
+  for (const v of [1, 2, 3]) assert(save.upgrade({ version: v, map: {}, characters: {} }) === null, `a version-${v} save was not refused`);
+  const now = save.upgrade({ version: 4, map: {}, characters: {}, rules: { survival: true } });
+  assert(now && now.version === 4 && now.rules.survival === true, "a version-4 save was not taken as it is");
+  assert(save.upgrade({ version: 5, map: {}, characters: {} }) === null, "a newer save was not refused");
   assert(save.upgrade({ map: {} }) === null, "a save with no version was not refused");
-  const kept = save.upgrade({ version: 2, map: {}, characters: {}, rules: { survival: true } });
-  assert(kept.rules.survival === true, "a version-2 save's rules were touched");
-  return `multiHit ${up.rules.multiHit}, survival ${up.rules.survival}; a newer or unversioned save refused`;
+  return "versions 1 to 3 refused (no migration), 4 taken, a newer or unversioned save refused";
 });
 
 // The doors of every authored map stand clear (#134): the dead who want a room go for its door and must be able to stand

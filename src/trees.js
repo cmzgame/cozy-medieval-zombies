@@ -219,7 +219,7 @@ verbs.define("sticks", {
     const placed = bag ? Math.min(n, inventory.addItem(bag, S.item, n)) : 0;
     if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(S.item, n - placed));
     prop.sticksAt = nextDay(clock.getElapsed());
-    map.touch(prop.tile[0], prop.tile[1]); // the chunk to a guest, and the save's copy dropped
+    map.touchProp(prop); // the chunk to a guest, and the save's copy dropped
     const what = items.countName(S.item, n);
     return { gathered: n, message: placed < n ? `You gather ${what}; ${n - placed} at your feet.` : `You gather ${what}.` };
   },

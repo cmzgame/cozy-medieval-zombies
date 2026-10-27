@@ -32,6 +32,29 @@ let source = null; // authored tiles of the ground: (x, y) => tile | null
 const layerSources = new Map(); // the authored tiles of every other layer (docs/49 section 11): layer -> (x, y) => tile | null
 const authoredChunks = new Map(); // layer (not 0) -> Map of chunk key -> [cx, cy]: the chunks an authored tile stands in, which ensureAround grows on that layer
 let defaultFloor = "floor_grass";
+// The map file's stairs and buildings as data, made by loadMap on host and guest alike from the file every client has (docs/49 section
+// 11): never saved or sent. Each stair { id, layer, at, dir, material, tiles, landing, before, building }; each building { id, set, rect,
+// rects: { layer: [x, y, w, h] }, layers }.
+let stairList = [];
+let stairProblems = [];
+let buildingList = [];
+export function stairs() {
+  return stairList;
+}
+export function stairProblemsOf() {
+  return stairProblems;
+}
+export function buildings() {
+  return buildingList;
+}
+// The authored building whose footprint on `layer` holds (x, y), or null (the hiding rule's, step 2; roofs').
+export function buildingAt(x, y, layer = 0) {
+  for (const b of buildingList) {
+    const r = b.rects[layer];
+    if (r && x >= r[0] && y >= r[1] && x < r[0] + r[2] && y < r[1] + r[3]) return b;
+  }
+  return null;
+}
 
 // ---- layers (docs/49, section 3) ----
 // The ground is layer 0, the floors above it 1, 2, and so on, a cellar -1. A storey is STOREY px (the wall height of docs/52): layer L's
@@ -1726,7 +1749,7 @@ export function evictFar(gx, gy, radius, keep = () => false) {
     if (keep(c.cx, c.cy, c.layer)) continue;
     dropChunk(c.cx, c.cy, c.layer); // the walk's own entry deleted from the Map: the walk goes on safely
     evicted.set(k, c.layer ? [c.cx, c.cy, c.layer] : [c.cx, c.cy]); // for the next frame (net.js): a guest drops it too
-    out.push([k, c.cx, c.cy]);
+    out.push([k, c.cx, c.cy, c.layer]);
   }
   return out;
 }
@@ -2642,6 +2665,77 @@ export function loadMap(json, options = {}) {
     props.push(prop);
     for (const [tx, ty] of prop.tiles) get(tx, ty).prop = prop;
   };
+  // The other layers' authored tiles (docs/49 section 11): a tile made on first use is void above the ground and earth below it.
+  const layered = new Map(); // layer -> Map("x,y" -> tile)
+  const getL = (x, y, layer) => {
+    if (!layer) return get(x, y);
+    let m = layered.get(layer);
+    if (!m) layered.set(layer, (m = new Map()));
+    let t = m.get(key(x, y));
+    if (!t) {
+      t = createTile(layer > 0 ? VOID : EARTH);
+      m.set(key(x, y), t);
+    }
+    return t;
+  };
+  // An authored tile as it stands, made by nothing (null where nothing is authored).
+  const readL = (x, y, layer) => (layer ? (layered.get(layer) && layered.get(layer).get(key(x, y))) || null : authored.get(key(x, y)) || null);
+  // A prop on a layer: the ground's by placeProp (the Trees rule and all); another layer's carries its layer.
+  const placePropOn = (def, offset, layer) => {
+    if (!layer) return placeProp(def, offset);
+    const prop = createProp({ ...def, layer }, offset);
+    props.push(prop);
+    for (const [tx, ty] of prop.tiles) getL(tx, ty, layer).prop = prop;
+  };
+  // A stair (docs/49 section 4): `{ at, dir, layer, material }`, `at` its low end relative to the building's corner, climbing one storey
+  // in `dir`. Its three tiles on its layer; the landing beyond the third step on the layer above, floored with planks where nothing is
+  // authored and never built on; the tile before its bottom step walkable; the stairwell over its three tiles void (no floor is built
+  // over a stair), or a hole in the ground floor over a cellar's stair (its three tiles cut out of the earth). Kept as data
+  // (`stairs()`); the stair as a thing a body climbs is step 3's. A stair that does not fit is left out, and why is kept (`stairProblems`).
+  const STAIR_DIRS = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+  const stairTaken = new Set(); // "layer,x,y" of every stair's three tiles and landing
+  const edgeWall = (a, b, layer) => {
+    const [ex, ey, slot] = edgeBetween(a[0], a[1], b[0], b[1]);
+    const t = readL(ex, ey, layer);
+    return t ? t[slot] : null;
+  };
+  const layStair = (s, [bx, by], building) => {
+    const d = STAIR_DIRS[s.dir];
+    const layer = s.layer | 0;
+    const up = layer + 1;
+    const where = `${building.id}'s stair at ${s.at} ${s.dir} on layer ${layer}`;
+    if (!d || !Array.isArray(s.at)) return stairProblems.push(`${where}: no direction or low end`);
+    const x0 = bx + s.at[0];
+    const y0 = by + s.at[1];
+    const tiles = [0, 1, 2].map((k) => [x0 + d[0] * k, y0 + d[1] * k]);
+    const before = [x0 - d[0], y0 - d[1]];
+    const landing = [x0 + d[0] * 3, y0 + d[1] * 3];
+    const mine = [...tiles.map(([x, y]) => `${layer},${x},${y}`), `${up},${landing[0]},${landing[1]}`];
+    if (mine.some((k) => stairTaken.has(k))) return stairProblems.push(`${where}: it crosses another stair`);
+    const bt = readL(before[0], before[1], layer);
+    const bFloor = bt ? bt.floor : layer ? emptyFloorOf(layer) : json.floor || "floor_grass";
+    if (isEngineFloor(bFloor) || (bt && bt.prop && bt.prop.solid)) return stairProblems.push(`${where}: the tile before its bottom step is not walkable`);
+    const lt = readL(landing[0], landing[1], up);
+    if (lt && (lt.prop || lt.rug)) return stairProblems.push(`${where}: something stands on its landing`);
+    if (edgeWall(before, tiles[0], layer) || edgeWall(tiles[0], tiles[1], layer) || edgeWall(tiles[1], tiles[2], layer) || edgeWall(tiles[2], landing, up)) return stairProblems.push(`${where}: a wall across its run`);
+    for (const [x, y] of tiles) {
+      const t = readL(x, y, layer);
+      if (t && t.prop) return stairProblems.push(`${where}: a ${t.prop.sprite} stands on a step`);
+    }
+    for (const k of mine) stairTaken.add(k);
+    const land = getL(landing[0], landing[1], up);
+    if (isEngineFloor(land.floor)) land.floor = "floor_wood"; // the stair brings its own landing, a plank floor held up by the stair
+    for (const [x, y] of tiles) {
+      const t = getL(x, y, layer);
+      if (t.floor === EARTH || t.floor === VOID) t.floor = s.floor || (layer < 0 ? "floor_dirt" : "floor_wood"); // a cellar's stair is cut out of the earth
+      const above = getL(x, y, up);
+      above.floor = up === 0 ? HOLE : VOID; // the stairwell
+      if (above.prop) stairProblems.push(`${where}: a ${above.prop.sprite} stood over a step and is taken off`);
+      above.prop = null;
+    }
+    stairList.push({ id: `stair_${stairList.length}`, layer, at: [x0, y0], dir: s.dir, material: s.material === "stone" ? "stone" : "wood", tiles, landing, before, building: building.id });
+    return 0;
+  };
   // placeProp above the map's `placeProp` export: the sheet's slices need the prop placed before the tiles exist.
   const floorRect = (r, offset) => {
     const [x0, y0, w, h] = r.rect;
@@ -2685,11 +2779,15 @@ export function loadMap(json, options = {}) {
     for (const r of s.floorRects || []) floorRect(r, origin);
     for (const f of s.fences || []) fence(f, origin);
     for (const p of s.props || []) placeProp(p, origin);
-    for (const b of s.buildings || []) buildings.push({ ...b, origin });
+    for (const b of s.buildings || []) buildings.push({ ...b, origin, set: s.name || null });
   }
-  for (const b of buildings) {
-    const [bx, by, bw, bh] = [b.rect[0] + b.origin[0], b.rect[1] + b.origin[1], b.rect[2], b.rect[3]];
-    for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) get(x, y).floor = b.floor || json.floor;
+  // A building's rooms on one layer: its own on the ground, and each of its `floors` on theirs (docs/49 section 11: `{ layer, rect,
+  // floor, wall, openings, partitions, props, brackets }`, a negative layer a cellar). `b` has the building's shape: its rect relative
+  // to `origin`, and everything else relative to that rect's corner.
+  const lay = (b, origin, layer) => {
+    const at = (x, y) => getL(x, y, layer);
+    const [bx, by, bw, bh] = [b.rect[0] + origin[0], b.rect[1] + origin[1], b.rect[2], b.rect[3]];
+    for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) at(x, y).floor = b.floor || (layer ? "floor_wood" : json.floor);
     // The material: one for all, or one per side (`{ n, s, e, w }`, stone at the back and
     // wood at the front; docs/30 step 0). The renderer's material-change posts handle the corners.
     const matOf = (side) => (typeof b.wall === "string" ? b.wall : (b.wall && (b.wall[side] || b.wall.all)) || WALL_SPRITE_DEFAULT);
@@ -2697,12 +2795,12 @@ export function loadMap(json, options = {}) {
     // the left column. South wall: n edge of the row below. East wall: w edge
     // of the column to the right.
     for (let x = bx; x < bx + bw; x++) {
-      get(x, by).n = createWall("wall", matOf("n"));
-      get(x, by + bh).n = createWall("wall", matOf("s"));
+      at(x, by).n = createWall("wall", matOf("n"));
+      at(x, by + bh).n = createWall("wall", matOf("s"));
     }
     for (let y = by; y < by + bh; y++) {
-      get(bx, y).w = createWall("wall", matOf("w"));
-      get(bx + bw, y).w = createWall("wall", matOf("e"));
+      at(bx, y).w = createWall("wall", matOf("w"));
+      at(bx + bw, y).w = createWall("wall", matOf("e"));
     }
     for (const o of b.openings || []) {
       const wall = createWall(o.kind, o.wall || matOf(o.side));
@@ -2718,10 +2816,10 @@ export function loadMap(json, options = {}) {
         for (let i = 0; i < Math.min(BOARDS_PER_SIDE, o.boards.in || 0); i++) inside.push(BOARD_HP);
         for (let i = 0; i < Math.min(BOARDS_PER_SIDE, o.boards.out || 0); i++) outside.push(BOARD_HP);
       }
-      if (o.side === "n") get(bx + o.at, by).n = wall;
-      else if (o.side === "s") get(bx + o.at, by + bh).n = wall;
-      else if (o.side === "w") get(bx, by + o.at).w = wall;
-      else if (o.side === "e") get(bx + bw, by + o.at).w = wall;
+      if (o.side === "n") at(bx + o.at, by).n = wall;
+      else if (o.side === "s") at(bx + o.at, by + bh).n = wall;
+      else if (o.side === "w") at(bx, by + o.at).w = wall;
+      else if (o.side === "e") at(bx + bw, by + o.at).w = wall;
     }
     // Interior partitions (docs/30 step 0): a run of `len` edges on the `n` or `w` slot
     // starting at a tile inside the building, with openings along it by index, so a house
@@ -2732,22 +2830,39 @@ export function loadMap(json, options = {}) {
       for (let i = 0; i < part.len; i++) {
         const o = (part.openings || []).find((op) => op.at === i);
         const wall = createWall(o ? o.kind : "wall", mat);
-        if (part.edge === "n") get(px + i, py).n = wall;
-        else get(px, py + i).w = wall;
+        if (part.edge === "n") at(px + i, py).n = wall;
+        else at(px, py + i).w = wall;
       }
     }
-    for (const p of b.props || []) placeProp(p, [bx, by]);
+    for (const p of b.props || []) placePropOn(p, [bx, by], layer);
     // Brackets: `{ side, at, facing: "in" | "out", torch | lantern }`. The inside of a
     // north or west wall is the near side of its edge (+1); of a south or east
     // wall, the far side (-1).
     for (const br of b.brackets || []) {
       const inSide = br.side === "n" || br.side === "w" ? 1 : -1;
       const side = br.facing === "out" ? -inSide : inSide;
-      if (br.side === "n") pendingBrackets.push([bx + br.at, by, "n", side, !!br.torch, !!br.lantern, br.lit !== false]);
-      else if (br.side === "s") pendingBrackets.push([bx + br.at, by + bh, "n", side, !!br.torch, !!br.lantern, br.lit !== false]);
-      else if (br.side === "w") pendingBrackets.push([bx, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false]);
-      else if (br.side === "e") pendingBrackets.push([bx + bw, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false]);
+      if (br.side === "n") pendingBrackets.push([bx + br.at, by, "n", side, !!br.torch, !!br.lantern, br.lit !== false, layer]);
+      else if (br.side === "s") pendingBrackets.push([bx + br.at, by + bh, "n", side, !!br.torch, !!br.lantern, br.lit !== false, layer]);
+      else if (br.side === "w") pendingBrackets.push([bx, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false, layer]);
+      else if (br.side === "e") pendingBrackets.push([bx + bw, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false, layer]);
     }
+    return [bx, by, bw, bh];
+  };
+  stairList = [];
+  stairProblems = [];
+  buildingList = [];
+  for (const b of buildings) {
+    const rect = lay(b, b.origin, 0);
+    const rects = { 0: rect };
+    for (const f of b.floors || []) {
+      const layer = f.layer | 0;
+      if (!layer) continue; // the ground's storey is the building itself
+      rects[layer] = lay({ ...f, wall: f.wall || b.wall }, b.origin, layer);
+    }
+    // The building index (docs/49 section 11): every authored building's footprint on each of its layers, kept at load on host and
+    // guest alike from the map file every client has; the hiding rule of step 2 reads it, and roofs will.
+    buildingList.push({ id: `b${buildingList.length}`, set: b.set || null, rect, rects, layers: Object.keys(rects).map(Number).sort((a, c) => a - c) });
+    for (const s of b.stairs || []) layStair(s, [rect[0], rect[1]], buildingList[buildingList.length - 1]);
   }
   const baseFloor = json.floor || "floor_grass";
   // Reserved tiles take no scatter: each building's rectangle plus its
@@ -2799,6 +2914,7 @@ export function loadMap(json, options = {}) {
     authored: (x, y) => authored.get(key(x, y)) || null,
     wildRule,
     mapBounds: json.bounds || null,
+    layers: Object.fromEntries(layered),
   });
   zoneRects = (json.scatter || []).filter((sc) => sc.zone).map((sc) => ({ rect: sc.rect, zone: sc.zone }));
   wildZone = json.wild?.zone || null;
@@ -2860,11 +2976,11 @@ export function loadMap(json, options = {}) {
   // The brackets last: placing one grows its chunk, and a chunk grown before the forage pass took a blank
   // tile wherever nothing was authored, so the forage's mushroom landed on an authored tile that chunk never
   // saw (fifteen ghosts in the registry, found by the sync check, 2026-10-13).
-  for (const [tx, ty, edge, side, torch, lantern, lit] of pendingBrackets) addBracket(tx, ty, edge, side, torch, lantern, lit);
+  for (const [tx, ty, edge, side, torch, lantern, lit, layer] of pendingBrackets) addBracket(tx, ty, edge, side, torch, lantern, lit, layer || 0);
   // A crop's rows follow the furrows of the soil it stands in (docs/17), unless
   // the map gave it a facing; the floors are all laid by now.
   for (const prop of props) {
-    if (prop.furrowsPending) prop.facing = furrowsOf(get(prop.tile[0], prop.tile[1]).floor) || prop.facing;
+    if (prop.furrowsPending) prop.facing = furrowsOf(getL(prop.tile[0], prop.tile[1], prop.layer || 0).floor) || prop.facing;
     delete prop.furrowsPending;
   }
   // The named sets, for the map panel (docs/33): a name and the box round the footprint; the panel draws the name once any tile in the box is charted.

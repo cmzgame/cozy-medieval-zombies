@@ -173,6 +173,7 @@ export function step(players) {
   const R = Math.ceil(W.chartRadius / CHUNK);
   for (const p of players) {
     if (p.dead || p.corpse) continue; // a dead player reveals nothing (a dormant one is not in the list)
+    if (p.layer) continue; // the chart is the ground's (docs/49 section 12, a default): it reveals by its flat walk on layer 0, from a player on layer 0
     const k = `${Math.round(p.gx)},${Math.round(p.gy)}`;
     // Look again when the tile changed, or when something changed within reach of them (a door opened, a shutter, a wall taken down), standing still or not.
     const pcx = Math.floor(Math.round(p.gx) / CHUNK);

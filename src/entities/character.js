@@ -23,7 +23,7 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
     sprite: null, // a sheet id, set by dress()
     gx,
     gy,
-    layer: 0, // always 0 for now (docs/08)
+    layer: 0, // the layer it stands on (docs/49 section 3): 0 the ground, 1 and up the floors above, -1 a cellar; its `rise` up a stair is step 3's
     facing: "s",
     speed,
     radius,
@@ -64,6 +64,7 @@ export function serializeCharacter(ch) {
   const out = {};
   for (const [k, v] of Object.entries(ch)) {
     if (CH_BY_ID.has(k) || CH_DROPPED.has(k) || typeof v === "function") continue;
+    if (k === "rise" && !v) continue; // the pixels climbed up a stair ride only when not 0 (docs/49 section 12)
     out[k] = v;
   }
   out.targetId = ch.target ? ch.target.id : null;

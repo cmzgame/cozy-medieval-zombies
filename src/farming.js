@@ -56,7 +56,7 @@ export function settle(prop, now = clock.getElapsed()) {
     c.at = now;
     c.wetUntil = now + get().soil.wetDays * DAY;
     delete c.stage;
-    map.touch(prop.tile[0], prop.tile[1]);
+    map.touchProp(prop);
   }
   return c;
 }
@@ -105,7 +105,7 @@ export function soak(prop, now = clock.getElapsed()) {
   c.grown = growth(prop, now);
   c.at = now;
   c.wetUntil = now + get().soil.wetDays * DAY;
-  map.touch(prop.tile[0], prop.tile[1]);
+  map.touchProp(prop);
 }
 
 // What stops a player reaching a tile, or null: too far, or a wall between (a shut door or shutter too: sight is what a wall stops, a fence and

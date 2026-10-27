@@ -584,6 +584,184 @@
           ]
         }
       ]
+    },
+    {
+      "name": "the tower house",
+      "rect": [
+        1,
+        22,
+        10,
+        9
+      ],
+      "padding": 1,
+      "buildings": [
+        {
+          "rect": [
+            1,
+            1,
+            8,
+            6
+          ],
+          "wall": "wall_wood",
+          "floor": "floor_wood",
+          "openings": [
+            {
+              "side": "s",
+              "at": 3,
+              "kind": "door"
+            },
+            {
+              "side": "w",
+              "at": 4,
+              "kind": "window"
+            }
+          ],
+          "props": [
+            {
+              "sprite": "table",
+              "tile": [
+                5,
+                4
+              ]
+            }
+          ],
+          "brackets": [
+            {
+              "side": "w",
+              "at": 1,
+              "facing": "in",
+              "lantern": true
+            }
+          ],
+          "floors": [
+            {
+              "layer": 1,
+              "rect": [
+                1,
+                1,
+                8,
+                6
+              ],
+              "floor": "floor_wood",
+              "wall": "wall_wood",
+              "openings": [
+                {
+                  "side": "w",
+                  "at": 2,
+                  "kind": "window"
+                },
+                {
+                  "side": "n",
+                  "at": 5,
+                  "kind": "window"
+                }
+              ],
+              "props": [
+                {
+                  "sprite": "bed",
+                  "tile": [
+                    0,
+                    4
+                  ],
+                  "footprint": [
+                    2,
+                    1
+                  ],
+                  "facing": "x"
+                }
+              ],
+              "brackets": [
+                {
+                  "side": "n",
+                  "at": 1,
+                  "facing": "in",
+                  "lantern": true
+                }
+              ]
+            },
+            {
+              "layer": 2,
+              "rect": [
+                5,
+                2,
+                4,
+                5
+              ],
+              "floor": "floor_wood",
+              "wall": "wall_wood",
+              "openings": [
+                {
+                  "side": "e",
+                  "at": 2,
+                  "kind": "window"
+                }
+              ],
+              "props": [
+                {
+                  "sprite": "chest",
+                  "tile": [
+                    0,
+                    4
+                  ],
+                  "facing": "y"
+                }
+              ]
+            },
+            {
+              "layer": -1,
+              "rect": [
+                1,
+                4,
+                4,
+                3
+              ],
+              "floor": "floor_dirt",
+              "wall": "wall_stone",
+              "openings": [],
+              "props": [
+                {
+                  "sprite": "barrel",
+                  "tile": [
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "sprite": "shelf",
+                  "tile": [
+                    3,
+                    0
+                  ],
+                  "facing": "x"
+                }
+              ]
+            }
+          ],
+          "stairs": [
+            {
+              "at": [
+                2,
+                2
+              ],
+              "dir": "e",
+              "layer": 0,
+              "material": "wood"
+            },
+            {
+              "at": [
+                6,
+                1
+              ],
+              "dir": "s",
+              "layer": 1,
+              "material": "wood"
+            }
+          ]
+        }
+      ],
+      "floorRects": [],
+      "fences": [],
+      "props": []
     }
   ],
   "zones": {
