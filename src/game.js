@@ -927,7 +927,7 @@ export function step(dt, snapshots = null) {
     const belted = held ? null : beltFire(inventory.beltOf(p));
     const fire = held || belted;
     const strength = held ? (twoHanded ? tuning.world.twoTorches : 1) : tuning.world.beltLight;
-    if (fire) carried.push({ owner: p.id, gx: p.gx, gy: p.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength });
+    if (fire) carried.push({ owner: p.id, gx: p.gx, gy: p.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength, ...(p.layer ? { layer: p.layer } : {}) }); // its layer off the ground: a flame lights its own layer (docs/49 section 10)
   }
   light.setCarriers(carried);
   light.setBurners([...burning.lights(everyone), ...archery.projectileLights()]); // and a fireball in flight (docs/24)

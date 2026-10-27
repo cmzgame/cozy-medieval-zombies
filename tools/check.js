@@ -5059,6 +5059,100 @@ check("the fires: the valley's fire pit stands lit on open grass outside your co
   return `at ${x},${y}, lit, its ring clear; ${guide ? `${Math.hypot(guide.gx - x, guide.gy - y).toFixed(0)} tiles from the guide` : "no guide found"}`;
 });
 
+// ---- upper floors (docs/49), step 0: the guards and the void ----
+// The ground's rooms as a partition, ids aside: each room's tiles, listed and sorted, so a refill that renumbers them reads the same.
+const groundRooms = () => {
+  const by = new Map();
+  for (const c of mapMod.loadedChunks()) {
+    if (c.layer !== 0) continue;
+    for (let i = 0; i < c.tiles.length; i++) {
+      const id = c.tiles[i].room;
+      if (!(id > 0)) continue;
+      if (!by.has(id)) by.set(id, []);
+      by.get(id).push(`${c.cx * mapMod.CHUNK + (i % mapMod.CHUNK)},${c.cy * mapMod.CHUNK + Math.floor(i / mapMod.CHUNK)}`);
+    }
+  }
+  return [...by.values()].map((t) => t.sort().join(" ")).sort().join("\n");
+};
+// A walled room of w by h tiles at (x, y) on a layer, its floor planks, built through the mutators (as a player's build will be).
+const roomOn = (x, y, w, h, layer, floor = "floor_wood") => {
+  for (let ty = y; ty < y + h; ty++) for (let tx = x; tx < x + w; tx++) mapMod.setFloor(tx, ty, floor, layer);
+  for (let tx = x; tx < x + w; tx++) { mapMod.buildWall(tx, y, "n", "wall", "wall_wood", null, layer); mapMod.buildWall(tx, y + h, "n", "wall", "wall_wood", null, layer); }
+  for (let ty = y; ty < y + h; ty++) { mapMod.buildWall(x, ty, "w", "wall", "wall_wood", null, layer); mapMod.buildWall(x + w, ty, "w", "wall", "wall_wood", null, layer); }
+};
+check("upper floors, step 0: a read on another layer is the void above the ground and the earth below it, grows nothing, and no body stands there", () => {
+  gameMod.create({ json: read("data/maps/square.json"), rules: { zombieAggro: false } });
+  const n0 = mapMod.chunkCount();
+  const [x, y] = gameMod.state.info.spawn;
+  const groundFloor = mapMod.tileAt(x, y, 0).floor;
+  const up = mapMod.tileAt(x, y, 1);
+  const down = mapMod.tileAt(x, y, -1);
+  assert(up.floor === mapMod.VOID && Object.isFrozen(up) && up === mapMod.blankTile(1) && up.room === 0, `layer 1 reads ${up.floor}`);
+  assert(down.floor === mapMod.EARTH && Object.isFrozen(down) && down === mapMod.blankTile(-1), `layer -1 reads ${down.floor}`);
+  assert(mapMod.tileAt(x, y, 0).floor !== mapMod.VOID && mapMod.blankTile(0).floor === "floor_grass", "the ground reads the void");
+  assert(mapMod.chunkCount() === n0 && !mapMod.peekTile(x, y, 1) && !mapMod.peekTile(x, y, -1), "a read on another layer grew a chunk");
+  for (const id of [mapMod.VOID, mapMod.EARTH, mapMod.HOLE]) assert(mapMod.floorRule(id).walk === false && !mapMod.floorRule(id).drink, `${id} is walkable or drinkable`);
+  assert(!mapMod.isWalkableTile(x, y, 1) && !mapMod.isWalkableTile(x, y, -1) && mapMod.isWalkableTile(x, y, 0), "an empty tile is walkable, or the ground is not");
+  assert(mapMod.circleBlocked(x, y, 0.3, 1) && mapMod.circleBlocked(x, y, 0.3, -1) && !mapMod.circleBlocked(x, y, 0.3, 0), "a body stands in the void or the earth");
+  // Grown by a mutator, the rest of an upper chunk is void and of a cellar's earth; a hole is a floor nobody walks.
+  mapMod.setFloor(x, y, "floor_wood", 1);
+  mapMod.setFloor(x, y, "floor_wood", -1);
+  const nx = x % mapMod.CHUNK === mapMod.CHUNK - 1 ? x - 1 : x + 1; // a neighbour in the same chunk
+  mapMod.setFloor(nx, y, mapMod.HOLE, 0);
+  assert(mapMod.peekTile(nx, y, 1).floor === mapMod.VOID && mapMod.peekTile(nx, y, -1).floor === mapMod.EARTH, "an upper chunk's unbuilt tile is not void, or a cellar's not earth");
+  assert(mapMod.isWalkableTile(x, y, 1) && mapMod.isWalkableTile(x, y, -1) && !mapMod.isWalkableTile(nx, y, 0), "a built floor is not walkable, or a hole is");
+  assert(mapMod.tileAt(x, y, 0).floor === groundFloor, "a floor laid on layer 1 or -1 changed the ground's");
+  return `void and earth blanks frozen, ${mapMod.chunkCount() - n0} chunks grown only by the mutators, STOREY ${mapMod.STOREY}`;
+});
+check("upper floors, step 0: the light: a lit fire on layer 1 lights its own layer and nothing on the ground under it (the light build's leak closed)", () => {
+  gameMod.create({ json: read("data/maps/square.json"), rules: { zombieAggro: false } });
+  clock.setHour(0);
+  const [sx, sy] = gameMod.state.info.spawn;
+  const [x, y] = [sx + 4, sy + 4];
+  lightMod.update();
+  const ground0 = [lightMod.staticContribAt(x, y, 0), lightMod.lightAt(x, y, 0)];
+  for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) mapMod.setFloor(x + dx, y + dy, "floor_wood", 1);
+  const fire = mapMod.createProp({ sprite: "lantern_post", tile: [x, y], layer: 1 });
+  mapMod.placeProp(fire, x, y, 1);
+  assert(fire.fire && fire.fire.lit && fire.layer === 1 && mapMod.peekTile(x, y, 1).prop === fire && mapMod.tileAt(x, y, 0).prop !== fire, "the lantern is not lit on layer 1 alone");
+  lightMod.update();
+  const ground1 = [lightMod.staticContribAt(x, y, 0), lightMod.lightAt(x, y, 0)];
+  const upper = lightMod.staticContribAt(x, y, 1);
+  assert(upper > 0.5, `the lantern does not light its own layer (${upper})`);
+  assert(ground1[0] === ground0[0] && ground1[1] === ground0[1], `the ground under it was lit through the floor: ${ground0.map((v) => v.toFixed(3))} to ${ground1.map((v) => v.toFixed(3))}`);
+  // A flame carried on layer 1 lights layer 1 alone too.
+  const beside0 = lightMod.lightAt(x + 2, y, 0);
+  const beside1 = lightMod.lightAt(x + 2, y, 1);
+  lightMod.setCarriers([{ owner: "t", gx: x + 1, gy: y, radius: 4, flicker: null, strength: 1, layer: 1 }]);
+  assert(lightMod.lightAt(x + 2, y, 0) === beside0 && lightMod.lightAt(x + 2, y, 1) > beside1, "a carried flame on layer 1 lit the ground, or not its own layer");
+  lightMod.setCarriers([]);
+  return `layer 1 lit ${upper.toFixed(2)}; the ground under it ${ground1[0].toFixed(3)} as before`;
+});
+check("upper floors, step 0: the rooms: a room walled on layer 1 is its own and the ground's rooms stand as they were (the room fill's leak closed)", () => {
+  gameMod.create({ json: read("data/maps/square.json"), rules: { zombieAggro: false } });
+  mapMod.rebuildRooms();
+  const before = groundRooms();
+  const cottage = (() => { for (const c of mapMod.loadedChunks()) for (let i = 0; i < c.tiles.length; i++) if (c.layer === 0 && c.tiles[i].room > 0) return [c.cx * mapMod.CHUNK + (i % mapMod.CHUNK), c.cy * mapMod.CHUNK + Math.floor(i / mapMod.CHUNK)]; return null; })();
+  assert(cottage, "no room on the square's ground");
+  // A 3 by 3 room on layer 1 over the ground's room and over open ground beside it: its walls must bound nothing on the ground.
+  const [x, y] = cottage;
+  roomOn(x, y, 3, 3, 1);
+  roomOn(x + 8, y + 8, 2, 2, 1);
+  mapMod.rebuildRooms();
+  const after = groundRooms();
+  assert(after === before, "the ground's rooms changed when a room was built on layer 1");
+  const id = mapMod.roomAt(x + 1, y + 1, 1);
+  const room = mapMod.getRoom(id);
+  assert(id > 0 && room && room.layer === 1 && room.size === 9, `the room on layer 1: id ${id}, ${room && room.size} tiles on layer ${room && room.layer}`);
+  assert(mapMod.roomAt(x + 1, y + 1, 0) !== id && mapMod.roomAt(x + 8, y + 8, 0) === 0 && mapMod.roomAt(x + 8, y + 8, 1) > 0, "a ground tile took the upper room's id, or the open ground under a room is not outdoors");
+  // The local refind (one edge) on layer 1 refills layer 1 alone: a door in the small room's wall, then a wall removed to open it to the void.
+  mapMod.destroyWall(x + 8, y + 8, "n", false, 1);
+  assert(groundRooms() === before, "a wall taken down on layer 1 changed the ground's rooms");
+  assert(mapMod.roomAt(x + 9, y + 9, 1) === 0, "a room opened onto the void is not outdoors (an open edge of a floor is a balcony, docs/49 section 3)");
+  return `the ground's rooms unchanged; layer 1's room of ${room.size} tiles`;
+});
+// ---- upper floors (docs/49), step 1 ----
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;
