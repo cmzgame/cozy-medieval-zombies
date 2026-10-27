@@ -99,7 +99,7 @@ export function placeRug(player, uid, tx, ty, facing) {
   grid.remove(bag, entry);
   const prop = map.createProp({ sprite, tile: [tx, ty], footprint: [w, h], facing, solid: false });
   prop.rugItem = def.id;
-  map.placeProp(prop, tx, ty);
+  map.placeProp(prop, tx, ty, player.layer || 0);
   return true;
 }
 
@@ -131,7 +131,7 @@ export function pickUp(player, rug) {
   const entry = makeEntry(rug.rugItem, 1);
   map.removeProp(rug);
   if (!bag || !grid.insert(bag, entry)) {
-    map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+    map.dropItem(Math.round(player.gx), Math.round(player.gy), entry, player.layer || 0);
     showMessage("Your bag is full: the rug is at your feet.");
   }
   return true;

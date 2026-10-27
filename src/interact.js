@@ -126,7 +126,7 @@ export function actionsForTarget(t, player) {
     return o ? tag(openingActions(o, player), t) : [];
   }
   if (t.kind === "bracket") {
-    const b = [...map.brackets()].find((q) => q.tx === t.tx && q.ty === t.ty && q.edge === t.edge);
+    const b = map.bracketAt(t.tx, t.ty, t.edge, player.layer || 0); // on the player's own layer (docs/49 section 9)
     if (!b) return [];
     const [mx, my] = map.bracketPos(b);
     return tag(holderActions({ kind: "bracket", bracket: b, mx, my }, player), t);
@@ -534,7 +534,7 @@ function putDownAction(player, tx, ty, simple = false) {
     enabled: ok,
     perform() {
       if (!canPutDown(player, tx, ty)) return false;
-      map.placeProp(prop, tx, ty);
+      map.placeProp(prop, tx, ty, player.layer || 0); // put down on the layer the player stands on (docs/49)
       player.carrying = null;
       return true;
     },
@@ -828,7 +828,7 @@ function openingActions(o, player) {
         if (toolProblem(player, tuning.world.boardTool)) { showMessage(toolProblem(player, tuning.world.boardTool)); return false; }
         if (!map.pullBoard(w, side)) return false;
         const back = addItem(bagOf(player), "plank", 1); // pulled with a hammer, the plank comes back (#215)
-        if (back < 1) map.dropItem(Math.round(player.gx), Math.round(player.gy), makeEntry("plank", 1));
+        if (back < 1) map.dropItem(Math.round(player.gx), Math.round(player.gy), makeEntry("plank", 1), player.layer || 0);
         return true;
       },
     }));
@@ -1310,7 +1310,7 @@ export function actionsAt(sx, sy, player) {
   const hung = paintings.paintingAt(sx, sy); // a painting hung on a wall face under the cursor: its Pick up, with Walk here beside it (#326)
   const paintActs = hung ? tag(paintingActions(hung, player), onPainting(hung)) : [];
   out.push(...paintActs);
-  for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
+  for (const b of map.bracketsNear(g.gx, g.gy, 0.8, player.layer || 0)) out.push(...tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   const under = characterAt(sx, sy, player);
   if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
   else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
@@ -1359,7 +1359,7 @@ export function nearestSimpleAction(player) {
     }
   }
   for (const o of map.openingsNear(player.gx, player.gy, INTERACT_RANGE)) consider(tag(openingActions(o, player), onEdge(o)));
-  for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE)) consider(tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
+  for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE, player.layer || 0)) consider(tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   // A body lying within reach (a corpse is a container, docs/19).
   for (const c of allCharacters()) {
     if (Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
@@ -1531,7 +1531,7 @@ export function equipFrom(player, entry, prefer = null) {
   if (!detach(player, entry)) return false;
   if (equip(player, entry, prefer)) return true;
   const word = equipProblem(player, entry, prefer); // the spear's dual rule, said as itself
-  if (!stow(player, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+  if (!stow(player, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry, player.layer || 0);
   showMessage(word || "Your hands are full.");
   return false;
 }
@@ -1547,7 +1547,7 @@ export function wearFrom(player, entry, fromBag) {
   else detach(player, entry);
   if (old) {
     player.worn[def.wear] = null;
-    if (def.wear === "back") map.dropItem(Math.round(player.gx), Math.round(player.gy), old);
+    if (def.wear === "back") map.dropItem(Math.round(player.gx), Math.round(player.gy), old, player.layer || 0);
     else if (!stow(player, old)) {
       player.worn[def.wear] = old;
       if (fromBag) grid.insert(fromBag, entry);
@@ -1727,7 +1727,7 @@ export function beltPress(player, i) {
 export function beltEquip(player, i, hand = null, onto = false) {
   const r = beltDraw(player, i, hand, onto);
   for (const d of r.drop) {
-    map.dropItem(Math.round(player.gx), Math.round(player.gy), d);
+    map.dropItem(Math.round(player.gx), Math.round(player.gy), d, player.layer || 0);
     showMessage(dropWord(d));
   }
   if (!r.ok) {
@@ -1810,7 +1810,7 @@ export function itemMenu(player, entry, bag, otherBag) {
         grid.remove(bag, entry);
         const added = addItem(bag, s.id, s.count);
         if (added < s.count) {
-          for (let i = added; i < s.count; i++) map.dropItem(Math.round(player.gx), Math.round(player.gy), { id: s.id, count: 1 });
+          for (let i = added; i < s.count; i++) map.dropItem(Math.round(player.gx), Math.round(player.gy), { id: s.id, count: 1 }, player.layer || 0);
           showMessage("Some planks fell to the floor.");
         }
       },
@@ -1832,7 +1832,7 @@ export function itemMenu(player, entry, bag, otherBag) {
       enabled: true,
       onSelect: () => {
         grid.remove(bag, entry);
-        map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+        map.dropItem(Math.round(player.gx), Math.round(player.gy), entry, player.layer || 0);
       },
     });
   }
@@ -1853,7 +1853,7 @@ export function slotMenu(player, slotId) {
     enabled: true,
     onSelect: () => {
       detach(player, entry);
-      map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+      map.dropItem(Math.round(player.gx), Math.round(player.gy), entry, player.layer || 0);
     },
   });
   if (kind === "worn") {
@@ -1865,7 +1865,7 @@ export function slotMenu(player, slotId) {
       onSelect: () => {
         player.worn[key] = null;
         if (key === "back" || !stow(player, entry)) {
-          map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+          map.dropItem(Math.round(player.gx), Math.round(player.gy), entry, player.layer || 0);
           showMessage(key === "back" ? `You set the ${nameOf(entry).toLowerCase()} down.` : "No room in your bag; it is on the floor.");
         }
       },
@@ -1931,7 +1931,7 @@ const POKE_COOLDOWN_MS = 600;
 // the same as placing and building (Michael, 2026-10-12: trees wiggled from
 // across the map). A far right-click still finds it for its menu.
 export const CLICK_REACH = 2.6; // burn.js's DIP_REACH is the same number, kept there to keep this module out of combat's imports
-const inReach = (prop, player) => !!player && canReach(player, prop.tiles, CLICK_REACH);
+const inReach = (prop, player) => !!player && canReach(player, prop.tiles, CLICK_REACH, prop.layer || 0);
 const pokePixels = new Map(); // sheet -> { w, h, a: Uint8Array of alpha }
 
 function alphaOf(sheet) {
@@ -2190,7 +2190,7 @@ function characterPixelAt(c, sx, sy, p) {
 // A guest's click on a villager, by its id (item 4): the host has no cursor of the guest's, so the guest names it.
 export function pokeVillagerFromGuest(player, id) {
   const c = allCharacters().find((q) => q.id === id && q.kind === "villager");
-  if (!c || c.dead || reachProblem(player, [[c.gx, c.gy]], CLICK_REACH)) return false;
+  if (!c || c.dead || reachProblem(player, [[c.gx, c.gy]], CLICK_REACH, c.layer || 0)) return false;
   pokeVillager(c, player);
   return true;
 }
@@ -2203,7 +2203,7 @@ export function endTalkFromGuest(player, id) {
 
 export function clickCharacterAt(sx, sy, player) {
   const c = characterAt(sx, sy, player);
-  if (c && c.kind === "villager" && canReach(player, [[c.gx, c.gy]], CLICK_REACH)) pokeVillager(c, player);
+  if (c && c.kind === "villager" && canReach(player, [[c.gx, c.gy]], CLICK_REACH, c.layer || 0)) pokeVillager(c, player);
   return c;
 }
 

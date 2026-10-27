@@ -273,15 +273,15 @@ export function burnHolders(dt) {
 // nothing else burns or spreads. `clear(x, y)` says whether the flame reaches that point (no wall between it and the landing: the
 // fireball passes it, as its hit does); the default is that it does. The authority's, from a fireball's landing (archery.js).
 // Returns how many it lit.
-export function kindleNear(x, y, r = 1, clear = null) {
+export function kindleNear(x, y, r = 1, clear = null, layer = 0) { // on one layer (docs/49): a flame lights nothing through a floor
   let n = 0;
   for (const p of fireProps) {
-    if (!lightableProp(p) || p.fire.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
+    if ((p.layer || 0) !== layer || !lightableProp(p) || p.fire.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
     if (clear && !clear(p.tile[0], p.tile[1])) continue;
     if (lightProp(p)) n++;
   }
   for (const b of bracketSet) {
-    if (!b.wall.bracket.torch || b.wall.bracket.lit !== false) continue;
+    if ((b.layer || 0) !== layer || !b.wall.bracket.torch || b.wall.bracket.lit !== false) continue;
     const [bx, by] = bracketPos(b);
     if (Math.hypot(bx - x, by - y) > r) continue;
     if (clear && !clear(bx, by)) continue;
@@ -321,6 +321,12 @@ export function removeBracket(b) {
   for (const q of [...bracketSet]) if (q.wall === b.wall) bracketSet.delete(q);
   touch(b.tx, b.ty, b.layer || 0);
   return true;
+}
+
+// The bracket on an edge of a layer, by its address, or null (docs/49: an address is on one layer).
+export function bracketAt(tx, ty, edge, layer = 0) {
+  for (const b of bracketSet) if (b.tx === tx && b.ty === ty && b.edge === edge && (b.layer || 0) === layer) return b;
+  return null;
 }
 
 // Where a bracket's torch burns, in grid space: a little off the edge on its side.
@@ -2711,7 +2717,7 @@ export function loadMap(json, options = {}) {
     const before = [x0 - d[0], y0 - d[1]];
     const landing = [x0 + d[0] * 3, y0 + d[1] * 3];
     const mine = [...tiles.map(([x, y]) => `${layer},${x},${y}`), `${up},${landing[0]},${landing[1]}`];
-    if (mine.some((k) => stairTaken.has(k))) return stairProblems.push(`${where}: it crosses another stair`);
+    if (mine.some((k) => stairTaken.has(k)) || stairTaken.has(`${layer},${before[0]},${before[1]}`)) return stairProblems.push(`${where}: it crosses another stair`);
     const bt = readL(before[0], before[1], layer);
     const bFloor = bt ? bt.floor : layer ? emptyFloorOf(layer) : json.floor || "floor_grass";
     if (isEngineFloor(bFloor) || (bt && bt.prop && bt.prop.solid)) return stairProblems.push(`${where}: the tile before its bottom step is not walkable`);
@@ -2721,6 +2727,8 @@ export function loadMap(json, options = {}) {
     for (const [x, y] of tiles) {
       const t = readL(x, y, layer);
       if (t && t.prop) return stairProblems.push(`${where}: a ${t.prop.sprite} stands on a step`);
+      const a = readL(x, y, up);
+      if (a && (a.prop || a.rug)) return stairProblems.push(`${where}: a ${(a.prop || a.rug).sprite} stands over a step`); // the stairwell is cut through nothing authored
     }
     for (const k of mine) stairTaken.add(k);
     const land = getL(landing[0], landing[1], up);
@@ -2728,10 +2736,7 @@ export function loadMap(json, options = {}) {
     for (const [x, y] of tiles) {
       const t = getL(x, y, layer);
       if (t.floor === EARTH || t.floor === VOID) t.floor = s.floor || (layer < 0 ? "floor_dirt" : "floor_wood"); // a cellar's stair is cut out of the earth
-      const above = getL(x, y, up);
-      above.floor = up === 0 ? HOLE : VOID; // the stairwell
-      if (above.prop) stairProblems.push(`${where}: a ${above.prop.sprite} stood over a step and is taken off`);
-      above.prop = null;
+      getL(x, y, up).floor = up === 0 ? HOLE : VOID; // the stairwell
     }
     stairList.push({ id: `stair_${stairList.length}`, layer, at: [x0, y0], dir: s.dir, material: s.material === "stone" ? "stone" : "wood", tiles, landing, before, building: building.id });
     return 0;

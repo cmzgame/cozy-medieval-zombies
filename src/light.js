@@ -149,7 +149,7 @@ export function daylightShares(room) {
   let open = 0;
   let leak = 0;
   for (const op of room.openings) {
-    const w = map.tileAt(op.tx, op.ty)[op.edge];
+    const w = map.tileAt(op.tx, op.ty, room.layer || 0)[op.edge]; // the room's own layer (docs/49 section 10)
     if (!w) continue;
     const t = map.transmission(w);
     if (t >= 0.5) open += t;

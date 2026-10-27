@@ -426,7 +426,7 @@ function fall(p) {
     let spot = null;
     for (let r = 0; r <= 2 && !spot; r++) for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) if (canPutDown(p, x0 + dx, y0 + dy)) spot = [x0 + dx, y0 + dy];
     if (spot) {
-      map.placeProp(p.carrying, spot[0], spot[1]);
+      map.placeProp(p.carrying, spot[0], spot[1], p.layer || 0);
       p.carrying = null;
     }
   }

@@ -147,7 +147,7 @@ export function createDevApi(ctx) {
       const p = P();
       const bag = inventory.bagOf(p);
       const added = bag ? inventory.addItem(bag, id, count) : 0;
-      if (added < count) map.dropItem(Math.round(p.gx), Math.round(p.gy), { id, count: count - added });
+      if (added < count) map.dropItem(Math.round(p.gx), Math.round(p.gy), { id, count: count - added }, p.layer || 0);
       return added;
     }),
     // Every weapon, for testing (docs/21): a Developer Bag put on your back (what you carried
@@ -170,6 +170,6 @@ export function createDevApi(ctx) {
       return got;
     }),
     // The Developer Bag, twelve by eight, at your feet (docs/11). Never loot.
-    giveDevBag: host("giveDevBag", () => { const p = P(); map.dropItem(Math.round(p.gx), Math.round(p.gy), { id: "dev_bag", count: 1 }); showMessage("A Developer Bag lies at your feet."); }),
+    giveDevBag: host("giveDevBag", () => { const p = P(); map.dropItem(Math.round(p.gx), Math.round(p.gy), { id: "dev_bag", count: 1 }, p.layer || 0); showMessage("A Developer Bag lies at your feet."); }),
   };
 }

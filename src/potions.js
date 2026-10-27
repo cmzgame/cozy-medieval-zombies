@@ -142,7 +142,7 @@ export function spendVial(player, entry, place) {
   if (put && put(vial)) return true;
   const bag = bagOf(player);
   if (bag && grid.add(bag, VIAL, 1) === 1) return true;
-  map.dropItem(Math.round(player.gx), Math.round(player.gy), vial);
+  map.dropItem(Math.round(player.gx), Math.round(player.gy), vial, player.layer || 0);
   showMessage(BAG_FULL);
   return true;
 }

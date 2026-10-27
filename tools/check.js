@@ -5154,6 +5154,7 @@ check("upper floors, step 0: the rooms: a room walled on layer 1 is its own and 
 // x 2 to 5, y 26 to 28. The stair from the ground climbs east along row 25 (steps 4 to 6, landing 7 on the first floor); the one from the
 // first floor climbs south along column 8 (steps 24 to 26, landing 27 on the second).
 const movementMod = await import("../src/entities/movement.js");
+const reachImport = await import("../src/reach.js");
 const towerHouse = () => {
   gameMod.create({ json: read("data/maps/square.json"), rules: { zombieAggro: false } });
   const b = mapMod.buildings().find((q) => q.set === "the tower house");
@@ -5303,6 +5304,58 @@ check("upper floors, step 1: the wire: a touched chunk goes with its layer, an a
   for (const p of rec.props) mapMod.installProp(p);
   assert(mapMod.peekTile(2, 27, 1) && mapMod.peekTile(2, 27, 1).prop && mapMod.peekTile(2, 27, 1).prop.layer === 1 && mapMod.tileAt(2, 27, 0).prop !== mapMod.peekTile(2, 27, 1).prop, "the upper chunk's record went onto another layer");
   return "aims [gx, gy] and [gx, gy, layer], a command on another layer refused, an upper chunk's record back on its layer";
+});
+check("upper floors, step 1 (the review of #533): a first-floor window opened by day lights its own room, read on its own layer", () => {
+  towerHouse();
+  clock.setHour(12);
+  const id = mapMod.roomAt(3, 24, 1);
+  const room = mapMod.getRoom(id);
+  const win = mapMod.tileAt(2, 25, 1).w;
+  assert(win && win.kind === "window" && room.openings.some((o) => o.tx === 2 && o.ty === 25 && o.edge === "w"), "no first-floor window on the west wall at row 25");
+  lightMod.update();
+  const shut = lightMod.roomAmbient(id);
+  win.shutter = "open";
+  mapMod.touch(2, 25, 1);
+  lightMod.update();
+  const open = lightMod.roomAmbient(id);
+  win.shutter = "closed";
+  assert(open > shut + 0.1, `the first floor's room by day: ${shut.toFixed(3)} shut, ${open.toFixed(3)} open`);
+  return `${shut.toFixed(2)} shut to ${open.toFixed(2)} open`;
+});
+check("upper floors, step 1 (the review of #533): reach is on one layer, a put-down lands on the player's layer, a bracket is found on its own, a stair over a prop is refused", () => {
+  towerHouse();
+  const p = gameMod.state.player;
+  const bed = mapMod.allProps().find((q) => q.sprite === "bed" && q.layer === 1);
+  const table = mapMod.allProps().find((q) => q.sprite === "table" && (q.layer || 0) === 0 && q.tile[0] === 7 && q.tile[1] === 27);
+  assert(bed && table, "no bed upstairs or table below");
+  p.gx = 3; p.gy = 26; p.layer = 0;
+  try {
+    const { reachProblem, OTHER_FLOOR } = reachImport;
+    assert(reachProblem(p, bed.tiles, 3, bed.layer) === OTHER_FLOOR && reachProblem(p, table.tiles, 6, table.layer || 0) === null, "reach: the bed upstairs is in reach from the ground, or the table is not");
+    p.layer = 1;
+    assert(reachProblem(p, bed.tiles, 3, bed.layer) === null && reachProblem(p, table.tiles, 6, 0) === OTHER_FLOOR, "reach from the first floor");
+    // A prop picked up on the ground and put down by a player on the first floor lands there.
+    mapMod.removeProp(table);
+    mapMod.placeProp(table, 5, 24, p.layer);
+    assert(table.layer === 1 && mapMod.peekTile(5, 24, 1).prop === table && mapMod.tileAt(5, 24, 0).prop !== table, "the table did not land on the player's layer");
+    // A bracket by its address on its own layer: the first floor's lantern is not found from the ground.
+    const lamp = [...mapMod.brackets()].find((b) => b.layer === 1);
+    assert(lamp && mapMod.bracketAt(lamp.tx, lamp.ty, lamp.edge, 1) === lamp && mapMod.bracketAt(lamp.tx, lamp.ty, lamp.edge, 0) === null, "a bracket is found on another layer");
+    // A dropped item at the player's feet lands on the player's layer (the drop helpers pass it).
+    const it = mapMod.dropItem(Math.round(p.gx), Math.round(p.gy), { id: "stick", count: 1 }, p.layer || 0);
+    assert(mapMod.itemsAt(3, 26, 1).includes(it) && !mapMod.itemsAt(3, 26, 0).includes(it), "an item at an upstairs player's feet fell to the ground");
+  } finally {
+    p.layer = 0;
+  }
+  // A cellar's stair under an authored ground prop is refused with why, and the prop stays.
+  const json = read("data/maps/square.json");
+  const tower = json.sets.find((s) => s.name === "the tower house").buildings[0];
+  tower.props.push({ sprite: "chest", tile: [2, 4] }); // the world's 4, 27: over the cellar stair's middle step
+  tower.stairs.push({ at: [1, 4], dir: "e", layer: -1 });
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const why = mapMod.stairProblemsOf();
+  assert(why.length === 1 && /stands over a step/.test(why[0]) && mapMod.tileAt(4, 27, 0).prop && mapMod.tileAt(4, 27, 0).prop.sprite === "chest" && mapMod.tileAt(4, 27, 0).floor !== mapMod.HOLE, `the stair under the chest: ${why.join("; ") || "laid"}`);
+  return `reach refused across a floor; the table put down upstairs; refused: ${why[0]}`;
 });
 check("upper floors, step 1: the sync check sees a replica on the wrong storey (the players' and the dead's parts and hashText hash layer and rise); the ground hashes as before", () => {
   towerHouse();

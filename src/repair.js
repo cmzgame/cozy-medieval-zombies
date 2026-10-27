@@ -88,7 +88,7 @@ function define(place, verb) {
     validate(world, player, target) {
       const prop = map.propById(target.prop);
       if (!prop || placeOf(prop) !== place) return "There is nothing there to do that with.";
-      { const why = reachProblem(player, prop.tiles, REACH); if (why) return why; } // a wall between refuses it (#208)
+      { const why = reachProblem(player, prop.tiles, REACH, prop.layer || 0); if (why) return why; } // a wall between refuses it (#208)
       return problem(place, player, inventory.carriedEntry(player, target.uid)) || true;
     },
     perform(world, player, target) {

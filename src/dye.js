@@ -196,7 +196,7 @@ export function dyeables(player) {
 export function applyProblem(player, prop, uid, colours) {
   if (!prop) return "That is gone.";
   if (!stationOf(prop).includes("dyevat")) return "That is not a dye vat.";
-  const why = reachProblem(player, prop.tiles, REACH);
+  const why = reachProblem(player, prop.tiles, REACH, prop.layer || 0);
   if (why) return why === TOO_FAR ? "Too far from the vat." : why;
   const locked = unlockProblem(player);
   if (locked) return locked;

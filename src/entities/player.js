@@ -275,7 +275,7 @@ verbs.define("sleep", {
     if (!getDef(bed.sprite).sleep) return "You cannot sleep on that.";
     if (player.sleeping) return "You are asleep.";
     if (player.carrying) return "Your hands are full.";
-    { const why = reachProblem(player, bed.tiles, 1.6); if (why) return why === "Too far away." ? "Too far from the bed." : why; }
+    { const why = reachProblem(player, bed.tiles, 1.6, bed.layer || 0); if (why) return why === "Too far away." ? "Too far from the bed." : why; }
     if (roomAt(bed.tile[0], bed.tile[1], bed.layer || 0) === 0) return "Not out here.";
     if (siegeOn(player)) return "The dead that know you are in here are still about.";
     const h = clock.getHour();

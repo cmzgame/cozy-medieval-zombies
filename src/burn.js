@@ -131,7 +131,7 @@ verbs.define("burncorpse", {
     const c = bodyOf(target);
     if (!isBurnableBody(c)) return c && c.kind === "zombie" && !c.dead ? "It is not dead yet." : "There is no body there to burn.";
     if (c.cremate || c.burning) return "It is already burning.";
-    { const why = reachProblem(player, [[Math.round(c.gx), Math.round(c.gy)]], BODY_REACH); if (why) return why === "Too far away." ? "Too far from the body." : why; }
+    { const why = reachProblem(player, [[Math.round(c.gx), Math.round(c.gy)]], BODY_REACH, c.layer || 0); if (why) return why === "Too far away." ? "Too far from the body." : why; }
     const need = burnNeed(player, target.entry);
     if (need === "a lit torch") return "The torch is not lit.";
     if (need) return `You need ${need} to burn it.`;
@@ -157,7 +157,7 @@ verbs.define("dip", {
     const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
     if (!prop || !prop.fire || !prop.fire.burns) return "That is not a fire.";
     if (!prop.fire.lit) return "The fire is out.";
-    { const why = reachProblem(player, prop.tiles || [prop.tile], DIP_REACH); if (why) return why === "Too far away." ? "Too far from the fire." : why; } // a wall between refuses it, as the light does
+    { const why = reachProblem(player, prop.tiles || [prop.tile], DIP_REACH, prop.layer || 0); if (why) return why === "Too far away." ? "Too far from the fire." : why; } // a wall between refuses it, as the light does
     const e = carried(player, target.entry);
     if (!e) return "Take the arrows out first."; // used from an open chest or a body: only arrows you carry are dipped
     if (e.id !== (args.from || "arrow")) return "You have no arrows.";
@@ -187,7 +187,7 @@ function lightTarget(player, target, flame) {
     return { light: () => { e.lit = true; return true; }, at: null };
   }
   if (target.bracket) {
-    const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
+    const b = map.bracketAt(target.bracket.tx, target.bracket.ty, target.bracket.edge, target.bracket.layer || 0);
     if (!b) return { reason: "There is nothing there to light." };
     const br = b.wall.bracket;
     if (br.lantern) return br.lit !== false ? { reason: "It is already lit." } : { light: () => map.setLantern(b, true), at: map.bracketPos(b), message: "You light the lantern." }; // put out, lit again (docs/43, section 3)
@@ -215,7 +215,7 @@ function lightTarget(player, target, flame) {
 // again by hand). { prop } or { at: [x, y] }, or null.
 function burningFire(target) {
   if (target.bracket) {
-    const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
+    const b = map.bracketAt(target.bracket.tx, target.bracket.ty, target.bracket.edge, target.bracket.layer || 0);
     if (!b) return null;
     if (b.wall.bracket.lantern) return b.wall.bracket.lit === false ? null : { at: map.bracketPos(b), lantern: true }; // a lantern is a flame while lit (Michael, 2026-10-17, #175; put out since docs/43)
     if (!b.wall.bracket.torch || !map.holderState({ kind: "bracket", bracket: b }).lit) return null;
@@ -254,7 +254,7 @@ function reaches(player, prop, at) {
 // bracket or on a post, a campfire (it keeps its fuel), a fireplace or a fire pit. Nothing is needed to put a light out.
 function putOutTarget(target) {
   if (target.bracket) {
-    const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
+    const b = map.bracketAt(target.bracket.tx, target.bracket.ty, target.bracket.edge, target.bracket.layer || 0);
     if (!b) return { reason: "There is nothing there to put out." };
     const br = b.wall.bracket;
     if (br.lantern) return br.lit === false ? { reason: "It is already out." } : { put: () => map.setLantern(b, false), name: "lantern", at: map.bracketPos(b) };

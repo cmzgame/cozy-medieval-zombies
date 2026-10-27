@@ -173,7 +173,7 @@ verbs.define("coat", {
         const bag = bagOf(player);
         const put = bag ? grid.add(bag, args.to, n) : 0;
         if (put < n) {
-          map.dropItem(Math.round(player.gx), Math.round(player.gy), makeEntry(args.to, n - put));
+          map.dropItem(Math.round(player.gx), Math.round(player.gy), makeEntry(args.to, n - put), player.layer || 0);
           showMessage(ARROWS_AT_FEET); // as the vial's line says it (potions.BAG_FULL)
         }
       }

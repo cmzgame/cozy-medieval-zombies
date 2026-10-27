@@ -43,7 +43,7 @@ verbs.define("pick", {
     const [lo, hi] = p.count;
     const n = lo + rng.int(hi - lo + 1);
     const placed = Math.min(n, inventory.addItem(inventory.bagOf(player), p.item, n));
-    if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(p.item, n - placed));
+    if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(p.item, n - placed), player.layer || 0);
     map.restage(prop, p.bare, clock.getElapsed() + p.days * clock.DAY_LENGTH);
     const name = items.getItem(p.item).name.toLowerCase();
     showMessage(placed < n ? `You pick ${n} ${name}${n > 1 ? "s" : ""}; ${n - placed} fall${n - placed > 1 ? "" : "s"} at your feet.` : `You pick ${n} ${name}${n > 1 ? "s" : ""}.`);

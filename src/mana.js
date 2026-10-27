@@ -100,7 +100,7 @@ verbs.define("pray", {
     if (player.carrying) return "Your hands are full.";
     const prop = propOf(target);
     if (!isAltar(prop)) return "There is no altar there.";
-    return reachProblem(player, prop.tiles, REACH) || true;
+    return reachProblem(player, prop.tiles, REACH, prop.layer || 0) || true;
   },
   perform(world, player, target, args = {}) {
     const prop = propOf(target);

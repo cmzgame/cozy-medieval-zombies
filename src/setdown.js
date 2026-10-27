@@ -188,7 +188,7 @@ export function place(player, uid, tx, ty) {
   if (snare) prop.snare = { setAt: clock.getElapsed(), holds: null }; // set from now: it holds a rabbit after a while (docs/45 section 2, animal.js)
   if (snare) noteSnare(prop);
   if (sapling) trees.plant(prop, clock.getElapsed(), entry.tree || null); // growing from now, into the tree its entry carries (docs/46 step 3)
-  map.placeProp(prop, tx, ty);
+  map.placeProp(prop, tx, ty, player.layer || 0); // on the player's own layer (docs/49)
   showMessage(p.decoration ? `You set the ${items.getItem(entry.id).name.toLowerCase()} down as decoration.` : sapling ? `You plant the ${nameOf(p.sprite)}.` : `You set the ${nameOf(p.sprite)} down.`);
   return true;
 }

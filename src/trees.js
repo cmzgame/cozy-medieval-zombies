@@ -206,7 +206,7 @@ verbs.define("sticks", {
     const prop = map.propById(target.prop);
     if (!isStandingTree(prop)) return "There is no tree there.";
     if (!hasSticks(prop)) return NONE_TODAY;
-    { const why = reachProblem(player, prop.tiles, W.pickReach); if (why) return why; } // a sealed room is a cell (#147)
+    { const why = reachProblem(player, prop.tiles, W.pickReach, prop.layer || 0); if (why) return why; } // a sealed room is a cell (#147)
     return true;
   },
   perform(world, player, target) {
@@ -217,7 +217,7 @@ verbs.define("sticks", {
     const n = lo + rng.int(hi - lo + 1);
     const bag = inventory.bagOf(player);
     const placed = bag ? Math.min(n, inventory.addItem(bag, S.item, n)) : 0;
-    if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(S.item, n - placed));
+    if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(S.item, n - placed), player.layer || 0);
     prop.sticksAt = nextDay(clock.getElapsed());
     map.touchProp(prop); // the chunk to a guest, and the save's copy dropped
     const what = items.countName(S.item, n);

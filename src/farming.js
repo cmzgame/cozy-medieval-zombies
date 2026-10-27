@@ -250,7 +250,7 @@ verbs.define("harvest", {
     let fell = 0;
     for (const [id, count] of [[def.harvest.item, n], [def.seed, def.seeds]]) {
       const placed = Math.min(count, inventory.addItem(inventory.bagOf(player), id, count));
-      if (placed < count) { map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(id, count - placed)); fell += count - placed; }
+      if (placed < count) { map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(id, count - placed), player.layer || 0); fell += count - placed; }
       parts.push(`${items.getItem(id).name.toLowerCase()} x${count}`);
     }
     map.removeProp(prop); // the tile stays soil
@@ -292,7 +292,7 @@ export function scytheSwing(player) {
     // Hay (docs/45 section 3; Farming 5, open to all until the skills; Primary's default): a swing over open grass with no crop in it cuts
     // one, feed for a trough. The grass stays: hay costs the swing's stamina, not the meadow.
     const placed = inventory.addItem(inventory.bagOf(player), HAY, 1);
-    if (!placed) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(HAY, 1));
+    if (!placed) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(HAY, 1), player.layer || 0);
     showMessage(placed ? "You cut some hay." : "You cut some hay; it falls at your feet.");
     return 1;
   }
