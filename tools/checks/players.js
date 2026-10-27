@@ -30,14 +30,26 @@ export async function run(game) {
     G.rules.set({ zombieAggro: true });
     G.clock.setHour(12);
     // 1. A second player, eight tiles away on open ground, in the world's lists, with their own id and sheet.
-    const at = G.map.nearestWalkable(Math.round(me.gx) + 8, Math.round(me.gy), (x, y) => G.map.roomAt(x, y) !== 0) || [me.gx + 8, me.gy];
+    // Open ground, read from the map: the nearest 9 by 9 of walkable outdoor tiles with nothing on them and no wall on an edge (eight tiles
+    // east of the spawn once stood clear; since the cottage grew, #514, it was the cottage's east wall, and the place three west of it was round
+    // the corner, out of sight).
+    let field = null;
+    for (let r = 0; r < 40 && !field; r++) for (let dy = -r; dy <= r && !field; dy++) for (let dx = -r; dx <= r && !field; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const x = Math.round(me.gx) + dx, y = Math.round(me.gy) + dy;
+      let ok = true;
+      for (let j = -4; j <= 4 && ok; j++) for (let i = -4; i <= 4 && ok; i++) { G.map.growTile(x + i, y + j); const t = G.map.tileAt(x + i, y + j); if (!G.map.isWalkableTile(x + i, y + j) || G.map.roomAt(x + i, y + j) !== 0 || t.prop || t.n || t.w) ok = false; }
+      if (ok) field = [x, y];
+    }
+    if (!field) throw new Error("no open ground within 40 tiles of the player");
+    const at = [field[0] + 2, field[1]];
     other = G.addPlayer(at[0], at[1]);
     step(2);
     row("a second player stands in the world with their own id and sheet", S.players.length === 2 && other.id !== me.id && other.sprite !== me.sprite && S.others.includes(other), `${me.id} as ${me.sprite}, ${other.id} as ${other.sprite}`);
     // 2. Seen on open ground beside me; not seen from outdoors once they stand in my room (the spawn
     // is indoors), as any character: another player is never drawn through a wall (docs/31/03).
     const key = (x, y) => (Math.round(x) + 32768) * 65536 + (Math.round(y) + 32768);
-    const near = G.map.nearestWalkable(at[0] - 3, at[1], (x, y) => G.map.roomAt(x, y) !== 0) || [at[0] - 3, at[1]];
+    const near = [field[0] - 1, field[1]];
     G.teleport(near[0], near[1]);
     step(3);
     const seenOpen = G.visible.has(key(other.gx, other.gy));
@@ -88,8 +100,22 @@ export async function run(game) {
       G.clock.setHour(1);
       const torch = G.items.makeEntry("torch", 1, { lit: true });
       other.hands.main = torch;
-      z.gx = other.gx + 9;
-      z.gy = other.gy + 1;
+      step(1); // the night's lights listed
+      // Where it stands, read from the map: about nine tiles off with a clear line to the torch, outdoors, and every other flame it could
+      // see farther off than the torch (the dead go to the nearest flame they see: the fire pit by the cottage, #527, took one set nine tiles
+      // east of the open ground beside it).
+      const { lineOfSight } = await import("/src/visibility.js");
+      const flames = G.light.allSources().filter((s) => !s.carried);
+      let zAt = null;
+      for (const d of [9, 8, 10, 7, 11]) for (let k = 0; k < 16 && !zAt; k++) {
+        const x = Math.round(other.gx + d * Math.cos((k * Math.PI) / 8));
+        const y = Math.round(other.gy + d * Math.sin((k * Math.PI) / 8));
+        const toTorch = Math.hypot(other.gx - x, other.gy - y);
+        if (G.map.isWalkableTile(x, y) && G.map.roomAt(x, y) === 0 && lineOfSight(x, y, other.gx, other.gy) && flames.every((s) => Math.hypot(s.gx - x, s.gy - y) > toTorch + 2 || !lineOfSight(x, y, s.gx, s.gy))) zAt = [x, y];
+      }
+      if (!zAt) zAt = [Math.round(other.gx) + 9, Math.round(other.gy) + 1];
+      z.gx = zAt[0];
+      z.gy = zAt[1];
       z.aggro = false;
       z.target = null;
       z.lastSeen = null;
@@ -99,7 +125,7 @@ export async function run(game) {
       z.path = [];
       step(30);
       const luredTo = z.lastSeen;
-      row("the other player's torch at night lures a zombie to where they stand", !!luredTo && Math.hypot(luredTo[0] - other.gx, luredTo[1] - other.gy) < 1.5, luredTo ? `last seen ${luredTo[0].toFixed(1)},${luredTo[1].toFixed(1)}; they stand ${other.gx.toFixed(1)},${other.gy.toFixed(1)}` : "not lured");
+      row("the other player's torch at night lures a zombie to where they stand", !!luredTo && Math.hypot(luredTo[0] - other.gx, luredTo[1] - other.gy) < 1.5, luredTo ? `last seen ${luredTo[0].toFixed(1)},${luredTo[1].toFixed(1)}; they stand ${other.gx.toFixed(1)},${other.gy.toFixed(1)}; it stood ${zAt}` : `not lured from ${zAt}`);
       other.hands.main = null;
     } else row("a zombie to test with", false, "no zombie alive");
     // 6. The carried lights: one per player with a torch, by owner.

@@ -34,7 +34,18 @@ export async function run(game) {
     row("the smithy's own chest holds the first iron and a sack of charcoal, so the forge works on day one", loot.includes("smithy_chest") && G.items.rollLoot("smithy_chest").some((e) => e.id === "iron_bar") && G.items.rollLoot("smithy_chest").some((e) => e.id === "charcoal"), "smithy_chest");
 
     // A clamp of the check's own, with a chest of logs beside it, and a tinderbox and a log on the player.
-    const home = map.nearestWalkable(Math.round(p.gx), Math.round(p.gy), (x, y) => [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [2, 1], [-1, 0]].some(([ax, ay]) => !!map.tileAt(x + ax, y + ay).prop || !map.isWalkableTile(x + ax, y + ay)));
+    // Open ground for it, read from the map: the clamp's 2 by 2, the chest east of it, and the player's place south of it, with a tile round
+    // them, all walkable outdoor tiles with nothing on them and no wall on an edge (the spawn is indoors: a clamp set there with the player
+    // put outside the cottage's south wall, #514, was refused with "There is a wall in the way.").
+    let home = null;
+    for (let r = 0; r < 40 && !home; r++) for (let dy = -r; dy <= r && !home; dy++) for (let dx = -r; dx <= r && !home; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const x = Math.round(p.gx) + dx, y = Math.round(p.gy) + dy;
+      let ok = true;
+      for (let j = -1; j <= 3 && ok; j++) for (let i = -1; i <= 3 && ok; i++) { map.growTile(x + i, y + j); const t = map.tileAt(x + i, y + j); if (!map.isWalkableTile(x + i, y + j) || map.roomAt(x + i, y + j) !== 0 || t.prop || t.n || t.w) ok = false; }
+      if (ok) home = [x, y];
+    }
+    if (!home) throw new Error("no open ground for a clamp within 40 tiles of the player");
     const clamp = map.createProp({ sprite: "charcoal_clamp", tile: home, footprint: [2, 2] });
     map.placeProp(clamp, home[0], home[1]);
     made.push(clamp);
