@@ -133,6 +133,17 @@
     "seconds": 8,
     "note": "the Fireplace (Michael, 2026-10-26, the fire rulings under Round rooms: a spec; it replaced the generated hearth): the drawn fireplace, two tiles along a flat wall indoors, its facing from the wall it backs onto (src/setdown.js fitFor); a switch (docs/43 section 3), out when built; cooks; never moved; taken apart out for half its stone; no tool (the builder's default, as the hearth's was)"
   },
+  "fire_pit": {
+    "label": "Fire pit",
+    "kind": "prop",
+    "sprite": "fire_pit",
+    "stand": "ground",
+    "cost": {
+      "stone": 8
+    },
+    "seconds": 10,
+    "note": "the fire pit (Michael, 2026-10-26, the fire rulings): 2 by 2 on open ground, indoors or out, never on water (roads are fine), clear of a door's two tiles; a switch, out when built; cooks; never moved; taken apart out for half its stone; the cost and the seconds Primary's and the builder's defaults; no tool, as the Fireplace"
+  },
   "feed_trough": {
     "label": "Feeding trough",
     "kind": "prop",
