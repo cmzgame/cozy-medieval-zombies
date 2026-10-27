@@ -184,6 +184,18 @@ function emitGrid(tiles) {
   }
 }
 
+// Whether layer L holds a chunk at tile (x, y), asked once a chunk per frame.
+let grownKey = -1;
+let grownHas = false;
+function grownOn(x, y, L) {
+  const k = map.chunkKey(Math.floor(x / map.CHUNK), Math.floor(y / map.CHUNK), L);
+  if (k !== grownKey) {
+    grownKey = k;
+    grownHas = !!map.getChunk(Math.floor(x / map.CHUNK), Math.floor(y / map.CHUNK), false, L);
+  }
+  return grownHas;
+}
+
 export function renderScene(args) {
   const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null } = probe.override ? { ...args, ...probe.override } : args;
   ensureArea(w, h);
@@ -218,7 +230,9 @@ export function renderScene(args) {
   for (const L of layers) {
     gl.setExtraFlags(L === 0 ? 0 : L === upperL ? gl.FLAG_UPPER : gl.FLAG_SKY);
     withLift(L * map.STOREY, () => map.withDrawLayer(L, () => {
-      const tilesL = L ? tilesOf(tiles, L).filter(([x, y]) => !hidden(x, y, L)) : tiles.filter(([x, y]) => !hidden(x, y, 0));
+      // A storey's tiles in view: only those whose chunk that layer holds (most of the view is no storey's), less what the hiding rule
+      // hides; the ground's whole (nothing below the viewer is hidden).
+      const tilesL = L ? tilesOf(tiles, L).filter(([x, y]) => grownOn(x, y, L) && !hidden(x, y, L)) : tiles;
       if (L) {
         // An upper floor's ground (or a cellar's), a quad a chunk with its depth written, and what lies flat on it just over it.
         gl.setPass(gl.PASS_STAND);
@@ -233,13 +247,11 @@ export function renderScene(args) {
       floorItemDrawables(tilesL, visible, drawables);
       stairDrawables(tilesL, L, DEPTH_BIAS.prop, drawables); // the stairs on this layer, dev art (docs/49 section 11)
       // The bodies on this layer, each a further `rise` up when it is on a stair, its picture made and drawn at that height.
+      entityDrawables(entities.filter((e) => (e.layer || 0) === L && !e.rise), visible, drawables, drawAll, player);
       for (const e of entities) {
         if ((e.layer || 0) !== L) continue;
         const r = e.rise || 0;
-        if (!r) {
-          entityDrawables([e], visible, drawables, drawAll, player);
-          continue;
-        }
+        if (!r) continue;
         const n0 = drawables.length;
         withLift(r, () => entityDrawables([e], visible, drawables, drawAll, player));
         for (let i = n0; i < drawables.length; i++) {
