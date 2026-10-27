@@ -91,6 +91,34 @@ export function shape(x0, y0, n) {
   return out;
 }
 
+// Where the stepped floor ends, round the ring (the inside skirt's reach, render/rings.js; Michael, 2026-10-27: "add the inside stone skirt so
+// the zigzag where the floor meets the grass is hidden"): for SKIRT_SAMPLES angles from +x toward +y, how far from the centre the floor runs
+// before the ray leaves the stepped tiles, the least of it within half a tile along the curve either side (so a skirt drawn from there to the
+// wall covers every step's corner with a smooth edge, not a staircase). Kept per size.
+export const SKIRT_SAMPLES = 192;
+const floorEnds = new Map(); // n -> Float64Array of SKIRT_SAMPLES radii
+export function floorEnd(n) {
+  let out = floorEnds.get(n);
+  if (out) return out;
+  const s = base(n);
+  const raw = new Float64Array(SKIRT_SAMPLES);
+  for (let j = 0; j < SKIRT_SAMPLES; j++) {
+    const a = (j / SKIRT_SAMPLES) * 2 * Math.PI;
+    let r = 0;
+    while (r < s.R + 1 && s.inside(Math.floor(s.k + r * Math.cos(a) + 0.5), Math.floor(s.k + r * Math.sin(a) + 0.5))) r += 0.005;
+    raw[j] = r;
+  }
+  out = new Float64Array(SKIRT_SAMPLES);
+  const w = Math.ceil((0.5 / (s.R - 0.7)) / ((2 * Math.PI) / SKIRT_SAMPLES)); // half a tile along the curve where the steps stand furthest in, in samples
+  for (let j = 0; j < SKIRT_SAMPLES; j++) {
+    let m = Infinity;
+    for (let d = -w; d <= w; d++) m = Math.min(m, raw[(j + d + SKIRT_SAMPLES) % SKIRT_SAMPLES]);
+    out[j] = m;
+  }
+  floorEnds.set(n, out);
+  return out;
+}
+
 export function validSize(n) {
   return SIZES.includes(n);
 }
