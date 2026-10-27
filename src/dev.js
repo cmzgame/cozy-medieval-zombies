@@ -126,7 +126,7 @@ export function createDevApi(ctx) {
     get timing() { return ctx.timing; }, // the step's, sight's, and render's milliseconds (tools/profile.js)
     sound: ctx.sound, // the sounds (docs/40): __game.sound.update(dt) after an advance, reset(), log, audio
     get drawn() { return ctx.drawn; },
-    teleport: host("teleport", (gx, gy) => { const p = P(); p.gx = gx; p.gy = gy; p.auto = null; camera.snapTo(gx, gy); }),
+    teleport: host("teleport", (gx, gy) => { const p = P(); p.gx = gx; p.gy = gy; p.auto = null; camera.snapTo(gx, gy, p); }),
     walkTo: host("walkTo", (gx, gy) => autoWalk(P(), [gx, gy])),
     setPaused: ctx.setPaused,
     get handlers() { return ctx.handlers; },

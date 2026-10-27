@@ -269,7 +269,7 @@ function afterWorldSet() {
   figureKey = "";
   figureQuick = "";
   refreshFigure(true);
-  camera.snapTo(client.me.gx, client.me.gy);
+  camera.snapTo(client.me.gx, client.me.gy, client.me);
   camera.applyOrigin(V.w, V.h);
   tiles = camera.viewportTiles(V.w, V.h);
   visKey = null;
@@ -440,12 +440,12 @@ async function playWorldBehindScreen(worldId) {
   const myBody = !mine ? S.corpses.find((c) => c.id === mineId && c.kind === "player") || null : null;
   if (myBody) {
     setMe(myBody);
-    camera.snapTo(myBody.gx, myBody.gy);
+    camera.snapTo(myBody.gx, myBody.gy, myBody);
   }
   mine = mine || (myBody ? null : S.players[0]);
   if (mine) {
     game.pickPlayer(mine);
-    camera.snapTo(mine.gx, mine.gy);
+    camera.snapTo(mine.gx, mine.gy, mine);
   }
   setInWorld(true);
   started = true;
@@ -486,7 +486,7 @@ function respawn(identity) {
   const p = game.addPlayer(at[0], at[1], { look: lookOf(identity), name: identity.name || null, handed: handedOf(identity.handed) });
   game.pickPlayer(p);
   refreshFigureOf(p, true);
-  camera.snapTo(p.gx, p.gy);
+  camera.snapTo(p.gx, p.gy, p);
   ownersStore().owners[myHash()] = p.id;
   screens.hide();
   return saveWorld();
@@ -1294,7 +1294,7 @@ async function restoreWorld(snap) {
   // A world may come back with nobody standing in it (a server world brought home: every character dormant until its
   // player returns, item 5); the camera and the first sight start at the spawn, and playWorld puts my character back.
   const at = client.me || { gx: S.info && S.info.spawn ? S.info.spawn[0] : 0, gy: S.info && S.info.spawn ? S.info.spawn[1] : 0 };
-  camera.snapTo(at.gx, at.gy);
+  camera.snapTo(at.gx, at.gy, at);
   camera.applyOrigin(V.w, V.h);
   tiles = camera.viewportTiles(V.w, V.h);
   visKey = null;
@@ -1616,7 +1616,7 @@ async function boot() {
           rules: testRules(),
         });
         refreshFigure();
-        camera.snapTo(client.me.gx, client.me.gy);
+        camera.snapTo(client.me.gx, client.me.gy, client.me);
         camera.applyOrigin(V.w, V.h);
         tiles = camera.viewportTiles(V.w, V.h);
         light.update();
@@ -1935,7 +1935,7 @@ async function boot() {
       await restoreWorld(snap);
       refind(S.players, playerId); // the world's restore picked its first player; mine is the one my welcome named
       refreshFigure(true);
-      camera.snapTo(client.me.gx, client.me.gy);
+      camera.snapTo(client.me.gx, client.me.gy, client.me);
       setInWorld(true);
       currentWorld = null; // the host's world, never saved here
       joinedWorld = world || null; // its name and its host's, for the pause menu (the wiki census's bugs, 2026-10-15)

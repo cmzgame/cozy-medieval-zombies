@@ -168,8 +168,12 @@ function floorSheet(c) {
 // Forget the pictures (a new world, a restored one): the chunks are new under the old keys.
 export function forgetFloors() {
   bakes.clear();
+  hiddenBakes.clear();
 }
-map.onEvict((key) => bakes.delete(key));
+map.onEvict((key) => {
+  bakes.delete(key);
+  hiddenBakes.delete(key); // the review of #534: kept for every chunk ever hidden, never dropped
+});
 
 // The floors of layer L under the view, each chunk's one quad at its height: depth written and tested on the floor's own horizontal plane
 // (depth = X + Y + the storey, rising two units a screen pixel down), `bias` over the caps of the walls below it, which it meets at their
