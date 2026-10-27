@@ -73,6 +73,7 @@ let depthStepSize = 0.25; // the emit-order step in depth units: two steps of th
 let pass = PASS_FLAT;
 let sA = 0; // the surface: depth = sA * sx - sy + sC (a plane), or, with sX a number, the ridge
 let sC = 0; //   sC - sy - 1.5 |sx - sX| (two planes meeting at the column sX)
+let sB = -1; // a plane's coefficient of sy: -1 for every vertical plane, +2 for a lifted floor (docs/49 section 6)
 let sX = NaN;
 let sFloorN = 0; // a surface's floor planes (render/depth.js againstWalls), its depth the most of its own and theirs: how many,
 const sFloorA = new Float64Array(2); //   and each one's A and C (depth = A * sx - sy + C)
@@ -697,7 +698,19 @@ export function setPlane(s) {
     sA = 0;
     sX = s.xF;
   }
+  sB = s.B === undefined ? -1 : s.B; // a vertical plane's depth falls a unit a pixel up the screen; a lifted floor's rises two a pixel down (render/depth.js floorPlane)
   sC = s.C;
+}
+
+// A storey's lift (docs/49 section 6): every standing vertex that follows sits `px` deeper, a storey's height above the ground (STOREY a
+// layer, and a body's rise up a stair), while render/storeys.js has the screen origin lifted as much, so a lifted thing sorts per pixel
+// against everything by its true X + Y + Z. 0 on the ground; the scene puts it back after each storey.
+let liftD = 0;
+export function setLift(px) {
+  liftD = px || 0;
+}
+export function getLift() {
+  return liftD;
 }
 
 // An outline's copies (Object Highlight, the swing outline, an item's halo): on the surface, a step behind the quad they outline (the
@@ -825,12 +838,12 @@ function vertex(x, y, u, v, page, wx, wy, h, c, flags, d) {
 // clipped). Each corner's depth is worked out once (`fanDepth`), and the triangles written from the corners, with no array made per
 // vertex: the frame emits thousands of these.
 const fanDepth = new Float64Array(16);
-function fan(P, n, pg, c, flags, A, C, bias) {
+function fan(P, n, pg, c, flags, A, C, bias, B = -1) {
   if (n < 3) return;
   grow(STRIDE * 3 * (n - 2));
-  const k = C === null ? 0 : C + bias - center;
+  const k = C === null ? 0 : C + bias - center + liftD;
   const D = n <= fanDepth.length ? fanDepth : new Float64Array(n);
-  for (let j = 0; j < n; j++) D[j] = C === null ? 0 : A * P[j][0] - P[j][1] + k;
+  for (let j = 0; j < n; j++) D[j] = C === null ? 0 : A * P[j][0] + B * P[j][1] + k;
   const p0 = P[0];
   for (let i = 1; i < n - 1; i++) {
     const p1 = P[i];
@@ -905,7 +918,7 @@ function emitPoly(P, n, pg, c, flags, soft) {
     }
   }
   if (sFloorN) emitEnvelope(P, n, pg, c, flags, bias, lo, hi);
-  else if (Number.isNaN(sX)) fan(P, n, pg, c, flags, sA, sC, bias);
+  else if (Number.isNaN(sX)) fan(P, n, pg, c, flags, sA, sC, bias, sB);
   else {
     const cl = sC - 1.5 * sX; // the left face: depth = 1.5 sx - sy + cl
     const cr = sC + 1.5 * sX; // the right: -1.5 sx - sy + cr

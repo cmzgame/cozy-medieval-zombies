@@ -207,6 +207,23 @@ def build():
     # woods crowded it).
     pit = g.place("a fire pit by your cottage", [107, 231, 2, 2], padding=4)  # just outside the south gate, on open grass (moved from the woods east of the fence, which crowded it)
     pit.prop("fire_pit", (0, 0), footprint=[2, 2], lit=True, fuel=3, note="the fire pit by the home (the fire rulings, 2026-10-26), lit so it is seen at once")
+    # A two-storey house east of your cottage, between its fence and the river (docs/49 step 7's first piece, brought forward for Michael's
+    # showing, 2026-10-27: "a working second floor with stairs"): the ground floor with its door on the south, a stair along its middle row
+    # climbing east to the first floor, which covers it whole, with windows on three sides and a lantern.
+    tall = g.place("the tall house", [121, 214, 10, 9], padding=1)
+    tall_b = tall.building(
+        [1, 1, 8, 6], "wall_wood", "floor_wood",
+        openings=[door("s", 2), window("w", 4), window("n", 6)],
+        props=[along_x("table", 4, 4), chair(4, 3, "s"), one("chest", 7, 0)],
+        brackets=[{"side": "w", "at": 1, "facing": "in", "lantern": True}],
+    )
+    tall.storey(
+        tall_b, 1, wall="wall_wood",
+        openings=[window("n", 2), window("n", 5), window("e", 3), window("s", 5), window("w", 1)],
+        props=[along_x("bed", 0, 5), one("chest", 7, 5)],
+        brackets=[{"side": "n", "at": 1, "facing": "in", "lantern": True}],
+    )
+    tall.stair(tall_b, [2, 2], "e", layer=0)
 
     # ================= step 1: the village (29/04) =================
     # ---- the square: the well, the cross, the stalls, the trough, the board, the stocks, lamps ----

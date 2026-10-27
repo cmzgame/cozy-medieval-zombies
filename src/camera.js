@@ -36,8 +36,11 @@ export function kick(x, y, seconds) {
 export function follow(target, dt) {
   jolt.ttl = Math.max(0, jolt.ttl - dt);
   const k = Math.min(1, feel.cameraFollow * dt); // data/tuning.json feel.cameraFollow
-  cam.gx += (target.gx - cam.gx) * k;
-  cam.gy += (target.gy - cam.gy) * k;
+  // Centred on the body lifted by its storey and its rise up a stair (docs/49 section 6): a lift of 32 px is one tile back along both
+  // axes on screen, so the camera aims that far back.
+  const up = (((target.layer || 0) * 96) + (target.rise || 0)) / (2 * iso.HH);
+  cam.gx += (target.gx - up - cam.gx) * k;
+  cam.gy += (target.gy - up - cam.gy) * k;
 }
 
 // Put the camera position at the canvas centre. Rounded so pixels stay crisp.

@@ -5,7 +5,7 @@
 // villagers share.
 
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, canStepOn, tileAt, roomAt, floorSpeedAt, addr } from "../map.js";
+import { moveCircle, isWalkableTile, canStepOn, tileAt, roomAt, floorSpeedAt, addr, stairStep, layerOf, stairsOn } from "../map.js";
 import { findPath } from "../pathfind.js";
 import * as rng from "../rng.js";
 import { zombie as T } from "../tuning.js";
@@ -38,9 +38,39 @@ export function canReach(e, tile) {
 
 export function repath(e, goalTile) {
   const L = e.layer || 0;
+  if (layerOf(goalTile) !== L) return repathByStair(e, goalTile);
   const path = findPath(tileOf(e), goalTile, canStepOn(L));
   e.path = path ? (L ? path.map(([x, y]) => addr(x, y, L)) : path) : []; // a path's tiles name their layer off the ground (docs/49 section 12)
   e.pathFailed = path === null;
+  e.lastGoal = goalTile;
+  e.repathTimer = e.pathFailed ? T.repathFailBackoff : T.repath;
+}
+
+// The stair-first rule (docs/49 section 9): a goal on another layer is walked to by the nearest stair this layer has toward it, never
+// straight at its (x, y) (which would park the body under it). Up: a path to the stair's top step, then over its top edge to the landing,
+// where the body is a storey up (map.stairStep) and its next path is found on that layer. Down: a path to a landing on this layer, then
+// back over the top edge and down the three steps to the tile before the bottom. One storey a leg; with no stair to be had the path fails,
+// and the body stays and looks where it is.
+function repathByStair(e, goalTile) {
+  const L = e.layer || 0;
+  const up = layerOf(goalTile) > L;
+  const from = tileOf(e);
+  let best = null;
+  for (const { s, well } of stairsOn(L)) {
+    if (up === well) continue; // up by a stair on this layer; down by one whose stairwell (and landing) is on this layer
+    const end = up ? s.tiles[2] : s.landing;
+    const p = findPath(from, end, canStepOn(L));
+    if (!p) continue;
+    const cost = p.length + Math.hypot(goalTile[0] - (up ? s.landing[0] : s.before[0]), goalTile[1] - (up ? s.landing[1] : s.before[1]));
+    if (!best || cost < best.cost) best = { s, p, cost };
+  }
+  if (best) {
+    const { s, p } = best;
+    const onL = (L ? p.map(([x, y]) => addr(x, y, L)) : p);
+    const tail = up ? [addr(s.landing[0], s.landing[1], L + 1)] : [s.tiles[2], s.tiles[1], s.tiles[0], s.before].map(([x, y]) => addr(x, y, s.layer));
+    e.path = [...onL, ...tail];
+  } else e.path = [];
+  e.pathFailed = !best;
   e.lastGoal = goalTile;
   e.repathTimer = e.pathFailed ? T.repathFailBackoff : T.repath;
 }
@@ -62,6 +92,7 @@ export function followPath(e, dt, others) {
   const moved = moveCircle(e.gx, e.gy, e.radius, (dx / d) * step, (dy / d) * step, e.layer || 0);
   e.gx = moved.gx;
   e.gy = moved.gy;
+  stairStep(e); // up or down a stair (docs/49 step 3)
   separate(e, dt, others);
   // No progress for a while (a trunk, another body in a gap): drop the path
   // rather than bounce on the spot (Michael, 2026-10-10). Progress is measured
@@ -103,6 +134,7 @@ export function separate(e, dt, others) {
     const moved = moveCircle(e.gx, e.gy, e.radius, px * dt * 2, py * dt * 2, L);
     e.gx = moved.gx;
     e.gy = moved.gy;
+    stairStep(e);
   }
 }
 
