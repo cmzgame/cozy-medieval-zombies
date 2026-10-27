@@ -2207,13 +2207,13 @@ function stairBlocks(gx, gy, r2, layer, sOn) {
 }
 // The stair a body at (gx, gy) on `layer` is on (its centre over its three tiles, or just past its top edge, where it is crossing to the
 // landing this step), or null.
-function stairUnder(gx, gy, layer) {
+function stairUnder(gx, gy, layer, tMax = 3.35) {
   const list = stairsOnLayer.get(layer);
   if (!list) return null;
   for (const { s, well } of list) {
     if (well) continue;
     const { t, off } = stairAlong(s, gx, gy);
-    if (t >= 0 && t <= 3.35 && Math.abs(off) <= 0.5) return s;
+    if (t >= 0 && t <= tMax && Math.abs(off) <= 0.5) return s;
   }
   return null;
 }
@@ -2272,7 +2272,7 @@ function pointSegDist2(px, py, ax, ay, bx, by) {
 
 // Circle at float (gx, gy) with radius r against solid props and wall segments, on one layer (an empty tile, void or
 // earth or a hole, blocks as water does: no body stands on one).
-export function circleBlocked(gx, gy, r, layer = 0) {
+export function circleBlocked(gx, gy, r, layer = 0, sFrom = undefined) {
   const r2 = r * r;
   const minX = Math.floor(gx - r + 0.5);
   const maxX = Math.floor(gx + r + 0.5);
@@ -2280,7 +2280,8 @@ export function circleBlocked(gx, gy, r, layer = 0) {
   const maxY = Math.floor(gy + r + 0.5);
   // On a stair (docs/49 section 4): its sides hold the body, and past its top edge nothing of its own layer is in the way (the landing is a
   // storey up, and the layer changes as the body crosses); a stairwell's void is not solid to a body on the layer above (its edges are).
-  const sOn = stairIndex.size ? stairUnder(gx, gy, layer) : null;
+  // Whether the body is on a stair is the moving body's own, from where it stands before the move (`sFrom`, moveCircle's), never from where it would be: a body under a landing on the stair's own layer is not on the stair and its top edge holds it (the review of #534).
+  const sOn = sFrom !== undefined ? sFrom : stairIndex.size ? stairUnder(gx, gy, layer) : null;
   if (stairIndex.size && stairBlocks(gx, gy, r2, layer, sOn)) return true;
   for (let ty = minY; ty <= maxY + 1; ty++) {
     for (let tx = minX; tx <= maxX + 1; tx++) {
@@ -2397,13 +2398,14 @@ function roundBlockerAt(gx, gy, r, layer = 0) {
 }
 
 export function moveCircle(gx, gy, r, dx, dy, layer = 0) {
-  if (circleBlocked(gx, gy, r, layer)) return { gx: gx + dx, gy: gy + dy };
+  const sFrom = stairIndex.size ? stairUnder(gx, gy, layer, 3) : null; // on a stair only if its centre is over its three tiles now
+  if (circleBlocked(gx, gy, r, layer, sFrom)) return { gx: gx + dx, gy: gy + dy };
   // Round things deflect: a step that would hit a trunk slides along its
   // tangent instead of stopping, so two trunks a tile apart funnel you into
   // the gap between them rather than catching you at the edge.
   const tx = gx + dx;
   const ty0 = gy + dy;
-  if ((dx !== 0 || dy !== 0) && circleBlocked(tx, ty0, r, layer)) {
+  if ((dx !== 0 || dy !== 0) && circleBlocked(tx, ty0, r, layer, sFrom)) {
     const c = roundBlockerAt(tx, ty0, r, layer);
     if (c) {
       const vx = gx - c[0];
@@ -2414,28 +2416,28 @@ export function moveCircle(gx, gy, r, dx, dy, layer = 0) {
       const s = dx * tangX + dy * tangY;
       const sx = gx + tangX * s;
       const sy = gy + tangY * s;
-      if (s !== 0 && !circleBlocked(sx, sy, r, layer)) return { gx: sx, gy: sy };
+      if (s !== 0 && !circleBlocked(sx, sy, r, layer, sFrom)) return { gx: sx, gy: sy };
     }
   }
   let nx = gx + dx;
   let ny = gy;
-  if (dx !== 0 && circleBlocked(nx, gy, r, layer)) {
+  if (dx !== 0 && circleBlocked(nx, gy, r, layer, sFrom)) {
     nx = gx;
     // Blocked crossing a west edge: the column of edges is at the tile we are entering.
     const col = dx > 0 ? Math.round(gx) + 1 : Math.round(gx);
     const door = doorOnColumn(col, Math.round(gy), layer);
     if (door !== null && Math.abs(door - gy) <= 1) {
       const slide = Math.sign(door - gy) * Math.min(Math.abs(door - gy), Math.abs(dx));
-      if (slide !== 0 && !circleBlocked(nx, gy + slide, r, layer)) ny = gy + slide;
+      if (slide !== 0 && !circleBlocked(nx, gy + slide, r, layer, sFrom)) ny = gy + slide;
     }
   }
   const ty = ny + dy;
-  if (dy !== 0 && circleBlocked(nx, ty, r, layer)) {
+  if (dy !== 0 && circleBlocked(nx, ty, r, layer, sFrom)) {
     const row = dy > 0 ? Math.round(ny) + 1 : Math.round(ny);
     const door = doorOnRow(Math.round(nx), row, layer);
     if (door !== null && Math.abs(door - nx) <= 1) {
       const slide = Math.sign(door - nx) * Math.min(Math.abs(door - nx), Math.abs(dy));
-      if (slide !== 0 && !circleBlocked(nx + slide, ny, r, layer)) nx += slide;
+      if (slide !== 0 && !circleBlocked(nx + slide, ny, r, layer, sFrom)) nx += slide;
     }
   } else {
     ny = ty;

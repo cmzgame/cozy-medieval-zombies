@@ -5434,6 +5434,24 @@ check("upper floors, step 3: a body walks up the tower house's stair (rise 32 a 
   assert(up && up.map((t) => t.join(",")).join(" ") === "4,25 5,25 6,25" && !mapMod.canStep(5, 24, 5, 25, 0) && !mapMod.canStep(6, 25, 7, 25, 0), `the path up ${JSON.stringify(up)}`);
   return "up 32 a tile, onto the first floor past the top edge, back down; the sides closed on both layers";
 });
+check("upper floors, step 3 (the review of #534): from under a landing, walking any way never climbs onto the stair over its top edge", () => {
+  towerHouse();
+  const out = [];
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+    const b = { gx: 7.2, gy: 25, layer: 0, rise: 0 };
+    let rose = 0;
+    for (let i = 0; i < 80; i++) {
+      const m = mapMod.moveCircle(b.gx, b.gy, 0.3, dx * 0.05, dy * 0.05, b.layer);
+      b.gx = m.gx;
+      b.gy = m.gy;
+      mapMod.stairStep(b);
+      rose = Math.max(rose, b.rise || 0, b.layer ? 99 : 0);
+    }
+    out.push(`${dx},${dy}: ${b.gx.toFixed(2)},${b.gy.toFixed(2)} L${b.layer}`);
+    assert(!rose, `walking ${dx},${dy} from under the landing it rose (${out[out.length - 1]})`);
+  }
+  return out.join("; ");
+});
 check("upper floors, step 3: one of the dead that sees a player go up follows by the stair (the stair-first rule), and bites and blows stay on one layer", () => {
   const json = read("data/maps/square.json");
   gameMod.create({ json, rules: { zombieAggro: true } });

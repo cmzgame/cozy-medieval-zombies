@@ -247,9 +247,9 @@ export function renderScene(args) {
       floorItemDrawables(tilesL, visible, drawables);
       stairDrawables(tilesL, L, DEPTH_BIAS.prop, drawables); // the stairs on this layer, dev art (docs/49 section 11)
       // The bodies on this layer, each a further `rise` up when it is on a stair, its picture made and drawn at that height.
-      entityDrawables(entities.filter((e) => (e.layer || 0) === L && !e.rise), visible, drawables, drawAll, player);
+      entityDrawables(entities.filter((e) => (e.layer || 0) === L && !e.rise && !hidden(Math.round(e.gx), Math.round(e.gy), L)), visible, drawables, drawAll, player);
       for (const e of entities) {
-        if ((e.layer || 0) !== L) continue;
+        if ((e.layer || 0) !== L || hidden(Math.round(e.gx), Math.round(e.gy), L)) continue; // a body on a hidden storey is not drawn (the review of #534)
         const r = e.rise || 0;
         if (!r) continue;
         const n0 = drawables.length;

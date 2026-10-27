@@ -4,7 +4,7 @@
 // view.toUi like ui/prompt.js, never drawn into it (CLAUDE.md).
 
 import * as iso from "../iso.js";
-import { liftOf } from "../render/storeys.js"; // a body drawn at its storey and its rise (docs/49 section 6)
+import { hiderFor, liftOf, shownTo } from "../render/storeys.js"; // a body drawn at its storey and its rise (docs/49 section 6)
 import * as view from "../view.js";
 import { tileKey } from "../visibility.js";
 import * as sight from "../sight.js";
@@ -54,8 +54,10 @@ function barFor(id) {
 // the player's fog-of-war set (main.js), so a bar never floats through a wall.
 export function updateZombieBars(zombies, visible, player) {
   const seen = new Set();
+  const hide = player ? hiderFor(player) : null;
   for (const z of zombies) {
     if (z.dead || z.hp >= z.maxHp) continue;
+    if (player && !shownTo(player, z, hide)) continue; // on a storey hidden from me, or under the ground (docs/49 section 6)
     if (client.behind.has(z.id) && Math.hypot(z.gx - player.gx, z.gy - player.gy) > NEAR) continue;
     if (!visible.has(tileKey(Math.round(z.gx), Math.round(z.gy)))) continue;
     if (!sight.seen(player, z)) continue; // a dead one lost in the dark has no bar floating where it stands (#88)

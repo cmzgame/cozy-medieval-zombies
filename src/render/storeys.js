@@ -56,6 +56,16 @@ export function hiderFor(viewer) {
   return hide;
 }
 
+// Whether `viewer` sees `body` at all by the hiding rule (its bars, bubbles, and name with it): a body on a storey hidden over the viewer's
+// building is not drawn, a cellar's body is seen only from that cellar, and from a cellar only its own bodies.
+export function shownTo(viewer, body, hide = hiderFor(viewer)) {
+  const VL = (viewer && viewer.layer) || 0;
+  const L = (body && body.layer) || 0;
+  if (VL < 0) return L === VL;
+  if (L < 0) return false;
+  return !hide(Math.round(body.gx), Math.round(body.gy), L);
+}
+
 // The tiles of layer L that a view of the ground's `tiles` shows: a tile L storeys up stands where the ground tile 3 L back along both
 // axes is drawn (96 px of lift is three tiles' worth of screen rows).
 export function tilesOf(tiles, L) {
