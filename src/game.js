@@ -513,7 +513,7 @@ export function syncParts() {
 // hands, worn things with the bags and belts in them, pockets, a body's grid, a carried prop), as the frames carry them to a guest.
 // An entry is an object whose `id` is an item's and that has no `sprite` (a prop's). What stands or hangs as an item without being an
 // entry counts one unit of that item with no uid, held by "placed": a laid rug (`rugItem`), a painting on a wall (`hangings`' `item`),
-// a bracket a player hung (`made`: a wall bracket) and the torch in any bracket, a prop whose definition names its `item` (a torch post,
+// the torch in any bracket (a torch a player put on a wall among them: its bracket is no item, #523), a prop whose definition names its `item` (a torch post,
 // a snare, a decorative pumpkin, a planted sapling until it grows into its tree, docs/46 step 3), the torch in a post (`fire.has`), and a
 // campfire (the Campfire item it is picked up as).
 // Not counted: what is lodged in one of the dead or in an animal (`lodged`, `lodgedItems`), which is not on the wire and stays the
@@ -590,7 +590,6 @@ export function itemCensus(chunks = null) {
       walk(w, `the ${edge} wall of ${c.cx * map.CHUNK + lx},${c.cy * map.CHUNK + ly}`, groups.map);
       for (const h of (w && w.hangings) || []) if (h && h.item) placed(h.item, groups.placed);
       const br = w && w.bracket;
-      if (br && br.made) placed("wall_bracket", groups.placed);
       if (br && br.torch && !br.lantern) placed("torch", groups.placed);
     }
     for (const [lx, ly, list] of c.items || []) walk(list, `the floor at ${c.cx * map.CHUNK + lx},${c.cy * map.CHUNK + ly}`, groups.map);

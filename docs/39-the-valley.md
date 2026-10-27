@@ -111,7 +111,7 @@
 - **The feast's table:** any table, the feast laid on it (Cooking 10) [to build].
 - **A campfire** (ruled 2026-10-25, `43` section 3) [built]: made at the workbench from three stone and two logs (2026-10-27: the build menu holds only what cannot be carried), the Campfire item 3 by 3, set down outdoors with Place, cold and empty; six logs of three hours; picked up only out and empty.
 - **A fireplace and a fire pit** (ruled 2026-10-26, the fire rulings, `43` section 3) [built]: built from the palette, the Fireplace six stone along a flat wall indoors, the fire pit eight stone, 2 by 2, indoors or out; switches that cook and light their room; never moved; taken apart only out.
-- **Wall brackets** (ruled 2026-10-25, `43` section 4) [built]: made at the anvil (an iron bar, Blacksmithing 1), hung like a painting; the valley's four start holding an unlit torch.
+- ~~**Wall brackets** (ruled 2026-10-25, `43` section 4) [built]: made at the anvil (an iron bar, Blacksmithing 1), hung like a painting~~ (retired by Michael, 2026-10-27, `02`, A torch goes on a wall with its bracket); **a torch goes on a wall with its bracket** [built, #523]: Place torch on a torch's own menu puts it on a wall's face as a painting is hung, on a bracket drawn with it, and Pick up takes both (`43` section 4); the valley's four brackets, fixtures, start holding an unlit torch.
 - **The Bloodbark Shrine** (Bloodbark from the Crimson Abbey, Woodcutting 10): a name only.
 
 ### Props, and what each does
@@ -134,7 +134,7 @@
 - **Campfire** [built]: a fire (logs) that cooks; made at the workbench and set down from the bag (2026-10-27) [change: placed at the woodcutters' camp when it is built (`43` section 3)].
 - **Oven, forge, anvil, loom, workbench, millstones, charcoal clamp, dye vat:** stations, section 3.
 - **Lantern post** [built]: lights a held torch [change: put out and lit again, a switch (2026-10-25, overturning never out)].
-- **Torch post and wall bracket** [built]: hold a torch; the post made at the workbench (Crafting 1) and set down outdoors, five by the square and along the high street holding unlit torches; the bracket as above (`43` section 4).
+- **Torch post and a torch on a wall** [built]: hold a torch; the post made at the workbench (Crafting 1) and set down outdoors, five by the square and along the high street holding unlit torches; a torch on a wall with its own bracket as above (`43` section 4).
 - **Jack-o'-lantern** [built]: carved from a pumpkin with a dirk at the workbench (Crafting 1), a small light that is a switch as the home lights are; a pumpkin may be placed as decoration, one way, and the square map's plain pumpkin props are that decoration (`43` section 4).
 - **Stump** [built]: left by a felled tree; a hatchet chops it for a log and clears the tile [change: uprooting with a shovel at Woodcutting 4].
 - **Ore rock, rock, apple tree, trees, crops, mushrooms:** section 4.
@@ -432,7 +432,7 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 - **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), each a point of light of 3.4 tiles like a lantern post (`src/light.js`), light a torch held to them, and cannot be taken; put out and lit again (2026-10-25, `43`).
 - **A carried lantern** [to build]: more light than a torch on the belt; its fuel fish oil (Fishing 5); made at Blacksmithing 4 (ruled 2026-10-23).
 - **Fireplaces and fire pits** [built]: light their room; switches, on with a flame and off with nothing, no fuel (2026-10-25, `43`); the room's light dips a little with the fire's flicker, a lever (2026-10-27, `42`).
-- **Campfire, torch post, wall bracket, jack-o'-lantern** [built in the data]: section 2 (ruled 2026-10-25, `43`).
+- **Campfire, torch post, ~~wall bracket~~ (retired, #523: a torch goes on a wall with its own), jack-o'-lantern** [built in the data]: section 2 (ruled 2026-10-25, `43`).
 - **The charcoal clamp** [built]: a tiny light.
 - **Candles** [to build]: from wax (Beastlore 5).
 - **Lamps** on fish oil [to build]: Fishing 5.
@@ -684,7 +684,7 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 10. The feast.
 
 ### Blacksmithing (production; weapons and metal armour at the forge and anvil)
-1. Smelting iron; the dirk, smith's hammer, hatchet, pickaxe (as now); wall brackets (`43`).
+1. Smelting iron; the dirk, smith's hammer, hatchet, pickaxe (as now); ~~wall brackets (`43`)~~ (retired, #523).
 2. Less charcoal a bar [change]; sharpening at a grindstone, to 60, 40, then 20% (`43`).
 3. The iron weapons: the sword, mace, spear, scythe [change]; the strongbox (`43`).
 4. Repairing at the anvil, a stop-gap: each repair gives back less, to 100, 80, then 60% on the count the grindstone shares (`43`); made weapons and tools only.
@@ -878,7 +878,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Open and close doors and shutters (E) [built].
 - Search or open a container or a body; Take All [built].
 - Light a fire (a flame carried), feed it, read how long it has [built].
-- Take a torch (T takes one from the bag), light it, put it out (T), mount it on a post or in a bracket, take it down [built].
+- Take a torch (T takes one from the bag), light it, put it out (T), mount it on a post or in a bracket, put it on a wall with Place torch (its bracket comes with it, #523), take it down [built].
 - Sleep in a bed [built].
 - Talk to a villager (E or the menu); poke one [built].
 - Sit on a chair or a bench [to build] (`docs/32`).

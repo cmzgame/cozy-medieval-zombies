@@ -192,5 +192,6 @@ export function generateSheet() {
   stick(1, [[0, 3, DARK], [1, 2, LIGHT], [2, 1, LIGHT], [3, 0, LIGHT]]);
   stick(2, [[0, 2, DARK], [1, 2, LIGHT], [2, 2, LIGHT], [3, 2, LIGHT]]);
   stick(3, [[0, 0, LIGHT], [1, 1, LIGHT], [2, 2, LIGHT], [3, 3, DARK]]);
-  return { image: canvas, frames, frameAnchors: anchors, anchor: [0, 0], animations: { idle: { fps: 0, loop: false, frames: 1 } }, facings: [], mirror: {} };
+  // `soft`: the smoke's puffs are half-clear, so every quad of this sheet is drawn in the translucent pass (docs/51 section 4).
+  return { image: canvas, frames, frameAnchors: anchors, anchor: [0, 0], animations: { idle: { fps: 0, loop: false, frames: 1 } }, facings: [], mirror: {}, soft: true };
 }

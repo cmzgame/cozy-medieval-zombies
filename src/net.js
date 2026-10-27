@@ -148,13 +148,16 @@ export function makeCode() {
 // 21 (2026-10-26, the playtest's features, #506): the `opened` message may name a container item inside another container (`within`, the outer
 // container's address, with the item's `entryUid`), and a belt's slots open as a container (inventory.slotsView); an older guest found no grid
 // for either and opened nothing. A guest's snapshot may carry the key event `wake` (any key or click while asleep), which an older host drops.
-// 22 (2026-10-27, docs/49 step 1, the map in layers): every sent tile address names its layer, left out on the ground: the frame's touched
+// 22 (2026-10-27, a torch goes on a wall with its bracket, #523): the `place` command's `torch` kind (a carried torch's uid and the face's tx,
+// ty, edge) replaces `bracket` (a Wall bracket item's uid), which is gone with the item; a wall's bracket may carry its torch's `uid`. An older
+// guest's Place on a bracket item finds none here, and an older host drops a `torch` command.
+// 23 (2026-10-27, docs/49 step 1, the map in layers): every sent tile address names its layer, left out on the ground: the frame's touched
 // chunks (`chunks`, each record with its `layer` as it always had) and `evicted` ([cx, cy] or [cx, cy, layer]); a guest's `act`, `place`,
 // and `use` commands (`layer`, the acting player's, only off the ground), which the host refuses on another layer than its player's; a
 // guest's aim point (`aimAt`, [gx, gy] or [gx, gy, layer]); the dead's and villagers' slim records (`layer` and `rise` when not 0); and a
 // player's `layer` moves from the heavy part to the light record (with `rise` when not 0), so a stair's crossing resends no bag. An older
 // guest would drop an upper chunk onto the ground and keep a body on the layer it last saw it on.
-export const PROTOCOL = 22;
+export const PROTOCOL = 23;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).

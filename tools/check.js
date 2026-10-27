@@ -321,7 +321,7 @@ check("sync: the item census counts every item once, keeps a move, and catches a
   const moved = gameMod.itemCensus();
   assert(all(moved) === all(unsearched) && moved.dups.length === 0, `a garment taken from a body changed the census: ${moved.summary}`);
   assert(moved.text !== unsearched.text && moved.livingText !== unsearched.livingText, "a garment from the living into a bag moved neither the held count nor the living's");
-  // What stands or hangs as an item: a rug laid, a painting hung, a bracket hung and a torch in it, a torch post, a snare, and a campfire
+  // What stands or hangs as an item: a rug laid, a painting hung, a torch put on a wall with its bracket (#523), a torch post, a snare, and a campfire
   // set down, each by its own verb from a's bag, keep every count (each one unit of its item, held by "placed"); picked up again, the same.
   a.worn.back = itemsMod.makeEntry("dev_bag", 1); // room for a 5 by 5 campfire beside the rest
   mapMod.ensureAround(a.gx, a.gy, 3);
@@ -338,7 +338,7 @@ check("sync: the item census counts every item once, keeps a move, and catches a
   for (let i = 0; i < 10; i++) mapMod.buildWall(x + i, y, "n", "wall");
   const stow = (id) => { const en = itemsMod.makeEntry(id, 1); assert(inventoryMod.stow(a, en), `${id} did not fit the bag`); return en; };
   const standAt = (gx, gy) => { a.gx = gx; a.gy = gy; };
-  const ids = ["rug_bearskin", "painting_small_oak", "wall_bracket", "torch", "torch_post", "snare", "campfire"];
+  const ids = ["rug_bearskin", "painting_small_oak", "torch", "torch_post", "snare", "campfire"];
   const ents = Object.fromEntries(ids.map((id) => [id, stow(id)]));
   const count = (c, id) => (c.totals.get(id) || 0);
   const held0 = gameMod.itemCensus();
@@ -352,12 +352,10 @@ check("sync: the item census counts every item once, keeps a move, and catches a
   assert(paintingsMod.hang(a, ents.painting_small_oak.uid, x + 1, y, "n") === true, "the painting was not hung");
   check0("a painting hung");
   standAt(x + 5, y + 1);
-  assert(setdownMod.hang(a, ents.wall_bracket.uid, x + 5, y, "n") === true, "the bracket was not hung");
-  check0("a bracket hung");
+  assert(setdownMod.mountTorch(a, ents.torch.uid, x + 5, y, "n") === true, "the torch was not put on the wall");
+  check0("a torch put on a wall with its bracket (#523)");
   const br = mapMod.peekTile(x + 5, y).n.bracket;
-  inventoryMod.bagOf(a).items.splice(inventoryMod.bagOf(a).items.indexOf(ents.torch), 1);
-  br.torch = true; // a torch put in it, as the bracket holds one
-  check0("a torch in a bracket");
+  assert(br && br.made && br.torch && br.uid === ents.torch.uid && !inventoryMod.carriedEntry(a, ents.torch.uid), `the torch on the wall did not keep its entry's uid: ${JSON.stringify(br)}`);
   standAt(x + 2, y + 4);
   assert(rugsImport.placeRug(a, ents.rug_bearskin.uid, x + 1, y + 3, "y") === true, "the rug was not laid");
   check0("a rug laid");
@@ -374,8 +372,14 @@ check("sync: the item census counts every item once, keeps a move, and catches a
   standAt(x + 10, y + 4);
   assert(setdownMod.pickUp(a, mapMod.peekTile(x + 10, y + 3).prop) === true, "the snare was not picked up");
   check0("a snare picked up");
+  standAt(x + 5, y + 1);
+  const mounted = [...mapMod.brackets()].find((b) => b.wall === mapMod.peekTile(x + 5, y).n);
+  assert(setdownMod.pickUpTorch(a, mounted) === true, "the torch on the wall was not picked up");
+  check0("the torch on the wall picked up");
+  const back = inventoryMod.carriedEntry(a, ents.torch.uid);
+  assert(back && back.id === "torch" && !back.lit && !mapMod.peekTile(x + 5, y).n.bracket && ![...mapMod.brackets()].some((b) => b.wall === mapMod.peekTile(x + 5, y).n), "the torch did not come back as itself, or its bracket stayed");
   assert(placedCensus.dups.length === 0, "the placed things were held twice");
-  return `${c0.summary.replace(/, 0 too deep, 0 held twice$/, "")}; a move kept, a copy caught at ${c3.dups[0].places.join(" and ")}, one gone moved the part, a two-handed thing and a body counted once, a one-handed uid in both hands caught, seven placed things kept and one picked up`;
+  return `${c0.summary.replace(/, 0 too deep, 0 held twice$/, "")}; a move kept, a copy caught at ${c3.dups[0].places.join(" and ")}, one gone moved the part, a two-handed thing and a body counted once, a one-handed uid in both hands caught, six placed things kept and two picked up (the torch on the wall back with its own uid, its bracket gone)`;
 });
 // The starting kit (#136) against the real grid, not the validator's area count: the default kit fits the sack and the Developer Bag
 // by placement, and asking leaves the id counter where it was (the world's count is part of its hash).
@@ -5284,8 +5288,8 @@ check("upper floors, step 1: the save keeps every layer: a prop, a wall, and an 
   assert(lit.length === 1, `${lit.length} brackets on the first floor`);
   return `a stick on the landing, a wall on the second floor, a stone floor in the cellar, all on their layers after the restore`;
 });
-check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 22)", () => {
-  assert(netMod.PROTOCOL === 22, `PROTOCOL ${netMod.PROTOCOL}`);
+check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 23)", () => {
+  assert(netMod.PROTOCOL === 23, `PROTOCOL ${netMod.PROTOCOL}`);
   const s2 = netMod.cleanSnap({ aimAt: [3.5, 4.5] });
   const s3 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 1] });
   const s0 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 0] });
@@ -5378,6 +5382,147 @@ check("upper floors, step 1: the sync check sees a replica on the wrong storey (
   // The map part orders its chunks by layer, then position.
   const order = gameMod.syncParts().counts;
   return `players, dead, and hashText move with a layer or a rise; ${order}`;
+});
+
+// A torch goes on a wall with its bracket (Michael, 2026-10-27, #523): the Wall bracket item, its anvil row, and its set-down are gone from
+// the data and the loot; nothing in data/ names it.
+check("torch on a wall (#523): no wall_bracket remains anywhere in the data or the loot; the torch says it goes on a wall", () => {
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : e.name.endsWith(".json") ? [path.join(dir, e.name)] : []));
+  const files = walk(path.join(root, "data"));
+  const naming = files.filter((f) => fs.readFileSync(f, "utf8").includes("wall_bracket")).map((f) => path.relative(root, f).replace(/\\/g, "/"));
+  assert(!naming.length, `named in ${naming.join(", ")}`);
+  assert(!itemsMod.hasItemDef("wall_bracket") && !stationsMod.recipe("wall_bracket"), "the item or its recipe is still registered");
+  const withBracket = (Array.isArray(read("data/items.json")) ? read("data/items.json") : read("data/items.json").items).filter((d) => d.bracket);
+  assert(!withBracket.length, `an item still hangs as a bracket: ${withBracket.map((d) => d.id).join(", ")}`);
+  assert(itemsMod.getItem("torch").wallMount === true, "the torch has no wallMount");
+  return `${files.length} data files, none naming it; the torch's wallMount`;
+});
+
+// Place torch (#523): from the bag, the belt, and a hand, by the host's own path and a guest's `torch` command by the face's address; the
+// torch keeps its entry on the wall (uid, wear, lit or not) in a bracket of its own; refused on a fence, a window, a door, a face with a
+// painting or a bracket, and out of reach; a painting refused under it; Put out, Light, and Pick up from its menu by label (a guest's), the
+// torch back put out with its uid and the bracket gone; burnt out, the bracket goes with it; its wall taken down, it falls to the floor;
+// the chunk's record and the sync hash carry it; the census holds every torch once throughout.
+check("torch on a wall (#523): Place torch from the bag, belt, and hand by the host and a guest's command; refusals; Light, Put out, Pick up; burnt out and its wall gone", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  try {
+    mapMod.ensureAround(me.gx, me.gy, 3);
+    let at = null;
+    for (let dy = -36; dy <= 36 && !at; dy++) for (let dx = -36; dx <= 36 && !at; dx++) {
+      const x = Math.round(me.gx) + dx;
+      const y = Math.round(me.gy) + dy;
+      let ok = true;
+      for (let ay = -2; ay < 5 && ok; ay++) for (let ax = -2; ax < 12 && ok; ax++) { const tt = mapMod.peekTile(x + ax, y + ay); ok = !!tt && tt.floor === "floor_grass" && !tt.prop && !tt.rug && !tt.n && !tt.w && !(tt.items && tt.items.length) && mapMod.isWalkableTile(x + ax, y + ay); }
+      if (ok) at = [x, y];
+    }
+    assert(at, "no bare grass for the walls");
+    const [x, y] = at;
+    for (let i = 0; i < 10; i++) mapMod.buildWall(x + i, y, "n", "wall");
+    mapMod.destroyWall(x + 6, y, "n");
+    mapMod.buildWall(x + 6, y, "n", "wall", "wall_fence"); // a fence
+    mapMod.buildWall(x + 7, y, "n", "window");
+    mapMod.buildWall(x + 8, y, "n", "door");
+    const wallAt = (i) => mapMod.peekTile(x + i, y).n;
+    const bracketAt = (i) => [...mapMod.brackets()].find((b) => b.wall === wallAt(i)) || null;
+    me.hands.main = null;
+    me.hands.off = null;
+    me.worn.back = itemsMod.makeEntry("small_sack", 1);
+    me.worn.waist = itemsMod.makeEntry("belt", 1);
+    const belt = inventoryMod.ensureSlots(me.worn.waist);
+    belt.fill(null);
+    const bag = inventoryMod.bagOf(me);
+    bag.items.length = 0;
+    const census = () => { const c = gameMod.itemCensus(); assert(c.dups.length === 0, `a uid held twice: ${JSON.stringify(c.dups[0])}`); return (c.totals.get("torch") || 0); };
+    const inBag = itemsMod.makeEntry("torch", 1, { wear: 0.2 });
+    assert(gridMod.insert(bag, inBag), "the bag took no torch");
+    const inHand = itemsMod.makeEntry("torch", 1, { wear: 0.3, lit: true });
+    me.hands.main = inHand;
+    const onBelt = itemsMod.makeEntry("torch", 1);
+    belt[belt.findIndex((e, k) => !e && inventoryMod.roleTakes(inventoryMod.beltRole(k), onBelt))] = onBelt;
+    assert(belt.includes(onBelt), "the belt took no torch");
+    const has = (menu) => menu.map((m) => m.label).includes("Place torch");
+    const beltSlot = `belt:${belt.indexOf(onBelt)}`;
+    assert(has(interactMod.itemMenu(me, inBag, bag, null)) && has(interactMod.slotMenu(me, "hand:main")) && has(interactMod.slotMenu(me, beltSlot)), "Place torch missing from the bag's, the hand's, or the belt's menu");
+    assert(!has(interactMod.itemMenu(me, itemsMod.makeEntry("log", 1), bag, null)), "a log offers Place torch");
+    const card = itemInfoMod.textOf(itemInfoMod.cardFor(inBag));
+    assert(card.some((l) => /^Place torch: on a wall's face/.test(l)), `the torch's card: ${card.join(" | ")}`);
+    assert(placementMod.beginTorch(inBag) && placementMod.state.kind === "torch" && placementMod.cancel() && placementMod.state.kind === null, "Place torch's mode did not begin, or Esc did not end it");
+    const n0 = census();
+    // The host's own path: the lit torch in the hand, on the plain wall at x + 1.
+    me.gx = x + 2;
+    me.gy = y + 1;
+    assert(setdownMod.mountTorch(me, inHand.uid, x + 1, y, "n") === true, `the host's mount: "${said[said.length - 1]}"`);
+    const b1 = wallAt(1).bracket;
+    assert(b1 && b1.made && b1.torch && b1.side === 1 && b1.lit === true && b1.wear === 0.3 && b1.uid === inHand.uid && !me.hands.main && bracketAt(1), `the lit torch on the wall: ${JSON.stringify(b1)}`);
+    assert(census() === n0, "the census moved when the torch went on the wall");
+    // A guest's command, by the face's address: the bag's torch (unlit) at x + 2, the belt's at x + 3.
+    placementMod.performPlacement(me, { kind: "torch", uid: inBag.uid, tx: x + 2, ty: y, edge: "n" });
+    placementMod.performPlacement(me, { kind: "torch", uid: onBelt.uid, tx: x + 3, ty: y, edge: "n" });
+    const b2 = wallAt(2).bracket;
+    const b3 = wallAt(3).bracket;
+    assert(b2 && b2.lit === false && b2.uid === inBag.uid && b2.wear === 0.2 && !bag.items.includes(inBag), `the bag's torch by a guest's command: ${JSON.stringify(b2)}`);
+    assert(b3 && b3.lit === false && b3.uid === onBelt.uid && !belt.includes(onBelt), `the belt's torch by a guest's command: ${JSON.stringify(b3)}`);
+    // The refusals: a second torch on a face that holds one, a fence, a window, a door, a face with a painting, too far; and a painting under a torch.
+    const spare = itemsMod.makeEntry("torch", 1);
+    assert(gridMod.insert(bag, spare), "no room for the spare torch");
+    const pic = itemsMod.makeEntry("painting_small_oak", 1);
+    assert(gridMod.insert(bag, pic) && paintingsMod.hang(me, pic.uid, x + 4, y, "n"), `the painting was not hung: "${said[said.length - 1]}"`);
+    const refused = [];
+    for (const [i, want] of [[1, /bracket is already there/i], [4, /already hangs there/i], [6, /nothing to hang it on/i], [7, /nothing to hang it on/i], [8, /nothing to hang it on/i]]) {
+      me.gx = x + i;
+      me.gy = y + 1;
+      said.length = 0;
+      placementMod.performPlacement(me, { kind: "torch", uid: spare.uid, tx: x + i, ty: y, edge: "n" });
+      const line = said[said.length - 1] || "";
+      if (!want.test(line) || !bag.items.includes(spare) || (i > 1 && wallAt(i).bracket)) refused.push(`${i}: "${line}"`);
+    }
+    assert(!refused.length, `not refused as it should be: ${refused.join("; ")}`);
+    assert(wallAt(6).kind === "wall" && mapMod.wallRule(wallAt(6).sprite).seeThrough === true && wallAt(7).kind === "window" && wallAt(8).kind === "door", "the fence, the window, and the door are not what the check built");
+    me.gx = x + 1;
+    me.gy = y + 8;
+    said.length = 0;
+    assert(setdownMod.mountTorch(me, spare.uid, x + 5, y, "n") === false && /far/i.test(said[said.length - 1] || "") && !wallAt(5).bracket, `out of reach: "${said[said.length - 1]}"`);
+    assert(/bracket is in the way/i.test(paintingsMod.fitProblem("painting_small_deer", x + 1, y, "n")), `a painting under the torch: ${paintingsMod.fitProblem("painting_small_deer", x + 1, y, "n")}`);
+    // The record and the sync hash.
+    const [cx, cy] = mapMod.chunkCoord(x + 1, y);
+    const rec = JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(cx, cy, false)));
+    assert(rec.includes(`"uid":"${inHand.uid}"`) && rec.includes('"made":true'), "the chunk's record does not carry the torch on the wall");
+    // Its menu, by the labels a guest sends: Put out, Light (a tinderbox carried), Pick up; never the map bracket's Take the torch.
+    me.gx = x + 1;
+    me.gy = y + 1;
+    const addr = { kind: "bracket", tx: x + 1, ty: y, edge: "n" };
+    const labels = () => interactMod.actionsForTarget(addr, me).map((q) => q.label);
+    const lit0 = labels();
+    assert(lit0.includes("Put out the torch") && lit0.includes("Pick up torch") && !lit0.includes("Take the torch") && !lit0.some((l) => /bracket/i.test(l)), `its menu, lit: ${lit0.join(", ")}`);
+    const map0 = gameMod.syncParts().map;
+    interactMod.performByLabel(me, addr, "Put out the torch");
+    assert(wallAt(1).bracket.lit === false && gameMod.syncParts().map !== map0, "Put out did not put it out, or the sync hash did not see it");
+    gridMod.insert(bag, itemsMod.makeEntry("tinderbox", 1));
+    interactMod.performByLabel(me, addr, "Light the torch");
+    assert(wallAt(1).bracket.lit === true, `Light the torch did not light it: "${said[said.length - 1]}"`);
+    const wear1 = wallAt(1).bracket.wear;
+    interactMod.performByLabel(me, addr, "Pick up torch");
+    const back = inventoryMod.carriedEntry(me, inHand.uid);
+    assert(back && back.id === "torch" && back.lit === false && back.wear === wear1 && !wallAt(1).bracket && !bracketAt(1), `picked up: ${JSON.stringify(back)}, the wall ${JSON.stringify(wallAt(1).bracket)}`);
+    // Burnt out on the wall: the torch and its bracket both gone.
+    wallAt(3).bracket.lit = true;
+    wallAt(3).bracket.wear = 0.999;
+    mapMod.burnHolders(30);
+    assert(!wallAt(3).bracket && !bracketAt(3), `burnt out, the bracket stayed: ${JSON.stringify(wallAt(3).bracket)}`);
+    // Its wall taken down: the torch falls to the floor on the face's side, itself, put out.
+    mapMod.destroyWall(x + 2, y, "n");
+    const fell = mapMod.itemsAt(x + 2, y).find((e) => e.uid === inBag.uid);
+    assert(fell && fell.id === "torch" && !fell.lit && !bracketAt(2), `the wall taken down: ${JSON.stringify(mapMod.itemsAt(x + 2, y))}`);
+    // The census: every torch once, the spent one gone (the hand's back, the bag's on the floor, the belt's burnt out, the spare still carried).
+    const n1 = census();
+    assert(n1 === n0 + 1 - 1, `the torches counted ${n0} before the spare was made, ${n1} after one burnt out`);
+    return `the hand's lit torch by the host, the bag's and the belt's by a guest's command, each its own uid on the wall; refused on a held face, a painting, a fence, a window, a door, and too far; put out, lit, picked up back with its uid; burnt out and its wall gone`;
+  } finally {
+    promptMod.setMessageSink(null);
+  }
 });
 
 let failed = 0;

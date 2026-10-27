@@ -7,7 +7,8 @@
 //   painting  a painting from the bag, hung on the face of the wall under the cursor (#326; src/paintings.js): the ghost on the wall, a click hangs it;
 //   setdown  an item from the bag set down on the tile under the cursor as its prop (a Campfire item, a torch post, a decoration;
 //            docs/43 sections 3 and 4; src/campfire.js, src/setdown.js), by the prop's rule for where it stands;
-//   bracket  a wall bracket from the bag, hung on the face of the wall under the cursor as a painting is (docs/43 section 4; src/setdown.js);
+//   torch  a torch from the hands, the belt, or the bag (Place torch), put on the face of the wall under the cursor as a painting is, on a bracket
+//          drawn with it (docs/43 section 4, #523; src/setdown.js);
 //   build  a wall, door, or window on the tile edge under the cursor, paid for, or a prop on its tiles (the Fireplace, the fire pit: an entry of `kind` prop),
 //          in logs or planks (data/build.json) unless the Free building
 //          setting is on, and built over a few seconds like boarding.
@@ -34,7 +35,7 @@ import * as paintings from "./paintings.js"; // a painting hung on a wall from t
 import * as woods from "./woods.js"; // a wall in a wood, and a door or window of another wood than its wall (#334)
 import * as stations from "./stations.js"; // a made prop's recipe, for what taking it apart gives back (docs/43, section 2)
 import * as campfire from "./campfire.js"; // a campfire made at the workbench, set down from the bag, picked up again (docs/43, section 3)
-import * as setdown from "./setdown.js"; // an item set down as its prop, a bracket hung on a wall (docs/43, section 4)
+import * as setdown from "./setdown.js"; // an item set down as its prop, a torch put on a wall (docs/43, section 4)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -43,7 +44,7 @@ export const REMOVE_REACH = 2.6; // tiles from the player to the nearest part of
 const EDGE_CLEARANCE = 0.45; // the player may not stand closer than this to an edge being built
 
 // kind is null, "prop", "rug", "painting", "build", or "remove". ghost is what the renderer draws.
-export const state = { active: false, kind: null, prop: null, build: null, rug: null, painting: null, setdown: null, bracket: null, ghost: null, turns: 0 };
+export const state = { active: false, kind: null, prop: null, build: null, rug: null, painting: null, setdown: null, torch: null, ghost: null, turns: 0 };
 // On a guest (docs/31/05 item 10, tier 3): the ghost is the replica's, and the click goes to the host as
 // a command (main.js sets the sender), which performs it for the guest's player with its own reach.
 let sender = null;
@@ -353,20 +354,22 @@ export function beginSetdown(entry) {
   state.prop = null;
   state.build = null;
   state.rug = null;
-  state.bracket = null;
+  state.torch = null;
   state.active = true;
   state.turns = 0;
   return true;
 }
 export const beginCampfire = (entry) => !!entry && entry.id === campfire.ITEM && beginSetdown(entry);
 
-// A wall bracket from the bag (its Place, docs/43 section 4): the ghost on the face of the wall under the cursor, a click hangs it, Esc
-// cancels, as a painting's.
-export function beginBracket(entry) {
-  if (!entry || !items.getItem(entry.id).bracket) return false;
-  state.kind = "bracket";
-  state.bracket = { uid: entry.uid };
+// A torch from the hands, the belt, or the bag (its Place torch, docs/43 section 4, #523): the ghost on the face of the wall under the
+// cursor, a bracket and the torch drawn there, lit or not; a click puts it there, Esc cancels, as a painting's. The torch stays where it is
+// until it is on the wall.
+export function beginTorch(entry) {
+  if (!entry || !setdown.mountsOnWall(items.getItem(entry.id))) return false;
+  state.kind = "torch";
+  state.torch = { uid: entry.uid };
   state.prop = null;
+  state.painting = null;
   state.build = null;
   state.rug = null;
   state.setdown = null;
@@ -396,7 +399,7 @@ export function beginRemove() {
 // Carrying cannot be cancelled: the prop stays in the hands, so prop mode
 // answers false.
 export function cancel() {
-  if (!["build", "remove", "rug", "painting", "setdown", "bracket"].includes(state.kind)) return false; // Esc on a set-down or a bracket too (the campfire's never cancelled before)
+  if (!["build", "remove", "rug", "painting", "setdown", "torch"].includes(state.kind)) return false; // Esc on a set-down or a torch for a wall too (the campfire's never cancelled before)
   end();
   return true;
 }
@@ -408,7 +411,7 @@ function end() {
   state.rug = null;
   state.painting = null;
   state.setdown = null;
-  state.bracket = null;
+  state.torch = null;
   state.active = false;
   state.ghost = null;
   state.turns = 0;
@@ -451,7 +454,7 @@ export function update(player) {
   }
   if (state.kind === "painting" && (player.carrying || !paintings.entryOf(player, state.painting.uid))) end(); // gone from the bag (hung, dropped, moved) or hands full ends the mode
   if (state.kind === "setdown" && (player.carrying || !(state.setdown.campfire ? campfire.entryOf(player, state.setdown.uid) : setdown.entryOf(player, state.setdown.uid)))) end(); // set down, dropped, or moved, or hands full
-  if (state.kind === "bracket" && (player.carrying || !setdown.entryOf(player, state.bracket.uid, true))) end();
+  if (state.kind === "torch" && (player.carrying || !setdown.torchOf(player, state.torch.uid))) end(); // on the wall, dropped, or spent, or hands full
   if (player.carrying) {
     if (state.kind === "build" || state.kind === "remove") end(); // hands full: no building or removing
     if (state.kind !== "prop" || state.prop !== player.carrying) beginProp(player.carrying);
@@ -464,7 +467,7 @@ export function update(player) {
   else if (state.kind === "rug") state.ghost = rugGhost(player);
   else if (state.kind === "painting") state.ghost = paintingGhost(player);
   else if (state.kind === "setdown") state.ghost = setdownGhost(player);
-  else if (state.kind === "bracket") state.ghost = bracketGhost(player);
+  else if (state.kind === "torch") state.ghost = torchGhost(player);
   else if (state.kind === "build") state.ghost = buildGhost(player);
   else if (state.kind === "remove") state.ghost = removeGhost(player);
   else state.ghost = null;
@@ -757,20 +760,22 @@ function setdownGhost(player) {
   return { kind: "prop", prop: { sprite: c.sprite }, tx, ty, footprint: [1, 1], ok: reason === "", reason, setdown: { uid: c.uid }, label };
 }
 
-// A bracket's ghost: the bracket on the face of the wall under the cursor, the frontmost face it may hang on within reach, else the
-// frontmost with its reason (as a painting's targetAt).
-function bracketGhost(player) {
-  const c = state.bracket;
+// A torch's ghost for a wall: the bracket and the torch, lit or not, on the face of the wall under the cursor, the frontmost face it may go
+// on within reach, else the frontmost with its reason (as a painting's targetAt).
+function torchGhost(player) {
+  const c = state.torch;
   if (!c) return null;
   const m = input.getMouse();
   if (!m.inside) return null;
+  const entry = setdown.torchOf(player, c.uid);
+  const torch = { uid: c.uid, lit: !!(entry && entry.lit) };
   let first = null;
   for (const f of paintings.facesAt(m.x, m.y)) {
-    const reason = setdown.bracketProblem(f.tx, f.ty, f.edge) || setdown.bracketReach(player, f.tx, f.ty);
-    if (!reason) return { kind: "bracket", tx: f.tx, ty: f.ty, edge: f.edge, ok: true, reason: "", bracket: { uid: c.uid }, label: "Click to hang the bracket · Esc cancel" };
-    if (!first) first = { kind: "bracket", tx: f.tx, ty: f.ty, edge: f.edge, ok: false, reason, bracket: { uid: c.uid } };
+    const reason = setdown.mountProblem(f.tx, f.ty, f.edge) || setdown.mountReach(player, f.tx, f.ty);
+    if (!reason) return { kind: "torch", tx: f.tx, ty: f.ty, edge: f.edge, ok: true, reason: "", torch, label: "Click to put the torch on the wall · Esc cancel" };
+    if (!first) first = { kind: "torch", tx: f.tx, ty: f.ty, edge: f.edge, ok: false, reason, torch };
   }
-  return first || { kind: "bracket", tx: 0, ty: 0, edge: "n", ok: false, reason: "Aim at a wall", none: true, bracket: { uid: c.uid } };
+  return first || { kind: "torch", tx: 0, ty: 0, edge: "n", ok: false, reason: "Aim at a wall", none: true, torch };
 }
 
 function buildGhost(player) {
@@ -885,7 +890,7 @@ export function tryConfirm(player) {
     end();
     return true;
   }
-  if (state.kind === "bracket") {
+  if (state.kind === "torch") {
     const g = state.ghost;
     if (!g) return false;
     if (!g.ok) {
@@ -893,11 +898,11 @@ export function tryConfirm(player) {
       return true;
     }
     if (sender) {
-      sender({ kind: "bracket", uid: g.bracket.uid, tx: g.tx, ty: g.ty, edge: g.edge });
+      sender({ kind: "torch", uid: g.torch.uid, tx: g.tx, ty: g.ty, edge: g.edge });
       end();
       return true;
     }
-    setdown.hang(player, g.bracket.uid, g.tx, g.ty, g.edge);
+    setdown.mountTorch(player, g.torch.uid, g.tx, g.ty, g.edge);
     end();
     return true;
   }
@@ -980,9 +985,10 @@ export function performPlacement(player, cmd) {
     setdown.place(player, cmd.uid, cmd.tx, cmd.ty);
     return true;
   }
-  if (cmd.kind === "bracket") {
-    // A guest hanging a wall bracket from its bag (docs/43 section 4): the same reach and face rules.
-    setdown.hang(player, cmd.uid, cmd.tx, cmd.ty, cmd.edge);
+  if (cmd.kind === "torch") {
+    // A guest putting a torch it carries on a wall's face (Place torch, #523), by the torch's uid and the face's address: the same reach
+    // and face rules as the host's own click.
+    setdown.mountTorch(player, cmd.uid, cmd.tx, cmd.ty, cmd.edge);
     return true;
   }
   if (cmd.kind === "build" && typeof cmd.what === "string" && isPropBuild(cmd.what)) {
@@ -1122,7 +1128,7 @@ export function prompt() {
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
     return { label: "Click to hang the painting · Esc cancel", mx, my, progress: null, enabled: true };
   }
-  if (g.kind === "bracket") {
+  if (g.kind === "torch") {
     const m = input.getMouse();
     const at = iso.toGrid(m.x, m.y);
     const [mx, my] = g.none ? [at.gx, at.gy] : paintings.floorTile(g.tx, g.ty);

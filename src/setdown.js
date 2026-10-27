@@ -2,8 +2,8 @@
 // (`place`, or `placeAs` for Place as decoration) is set down on a tile as that prop, by its own rule for where it may stand (`stand`:
 // "outdoors", "wall" for indoors against a wall, "ground" for any open floor, "natural" for open grass outdoors, a sapling's, trees.js's rule); the prop's definition names the item Pick up gives back
 // (`item`). A torch post is one (outdoors, picked up only when a player made it and it holds no torch); a decoration is another (a pumpkin
-// placed as decoration comes back a Decorative pumpkin, not food, so a prop that does not rot is never a larder). A wall bracket (an item
-// with `bracket`) is hung on a wall's face as a painting is (paintings.js's rules for a face) and taken down again while empty. The
+// placed as decoration comes back a Decorative pumpkin, not food, so a prop that does not rot is never a larder). A torch goes on a wall's
+// face with a bracket drawn with it (Place torch, #523; paintings.js's rules for a face) and is picked up again with its bracket. The
 // campfire keeps its own module (campfire.js: its fuel and its fire decide when it comes up). Headless, on the authority: the host's own
 // clicks and a guest's `place` commands both come here.
 
@@ -152,11 +152,11 @@ export function placeOf(def) {
   return null;
 }
 
-// The item `uid` in the player's bag that sets down (or hangs, with `bracket`), or null.
-export function entryOf(player, uid, bracket = false) {
+// The item `uid` in the player's bag that sets down, or null.
+export function entryOf(player, uid) {
   const bag = inventory.bagOf(player);
   if (!bag || uid == null) return null;
-  return bag.items.find((e) => e.uid === uid && (bracket ? !!items.getItem(e.id).bracket : !!placeOf(items.getItem(e.id)))) || null;
+  return bag.items.find((e) => e.uid === uid && !!placeOf(items.getItem(e.id))) || null;
 }
 
 const nameOf = (sprite) => {
@@ -231,67 +231,88 @@ export function pickUp(player, prop) {
   return true;
 }
 
-// ---- the wall bracket: hung on a wall's face as a painting is ----
+// ---- a torch put on a wall, with its bracket (Michael, 2026-10-27, #523: no Wall bracket item) ----
+// Place torch, on a torch's own menu in the bag, on the belt, or in a hand: the ghost on the face of the wall under the cursor, as a
+// painting's (placement.js), and a click mounts it there on a bracket drawn with it (map.mountTorch). The torch keeps its entry (its uid,
+// its wear, lit or not); picked up, it comes back put out, as a torch leaving any holder does (#156), and the bracket goes with it. The
+// address is the face's (tx, ty, edge; the layer joins it once docs/49's floors land). The Use mode's Use torch on a wall is left out (one
+// way in, as Michael leaned).
 
 const wallOf = (tx, ty, edge) => {
   const t = map.peekTile(tx, ty);
   return t ? t[edge] : null;
 };
 
-// Why a bracket cannot hang on this face, or "": a painting's rules for a face (a plain drawn wall, nothing hung there), and no bracket
-// on either face of it.
-export function bracketProblem(tx, ty, edge) {
+// Whether an item goes on a wall as a torch does (its definition's `wallMount`: the torch).
+export const mountsOnWall = (def) => !!(def && def.wallMount);
+
+// The torch `uid` the player carries (a hand, the belt, the bag), or null.
+export function torchOf(player, uid) {
+  const e = inventory.carriedEntry(player, uid);
+  return e && mountsOnWall(items.getItem(e.id)) ? e : null;
+}
+
+// Why a torch cannot go on this face, or "": no bracket on either face of it (a lantern's, a torch's), then a painting's rules for a face: a
+// plain drawn wall (never a fence, bars, a window, a door, or a gap) with nothing hung on it. A ring edge of a round room (docs/50, not
+// built) counts as wall for a torch: when rings land, its face is found at its point on the curve (paintings.facesAt) and accepted here.
+export function mountProblem(tx, ty, edge) {
   const wall = wallOf(tx, ty, edge);
   if (wall && wall.bracket) return "A bracket is already there";
   return paintings.segmentProblem(tx, ty, edge);
 }
 
 // Why the player cannot reach that face, or "": the floor tile it looks onto, as a painting's.
-export function bracketReach(player, tx, ty) {
+export function mountReach(player, tx, ty) {
   return reachFor(player, ...paintings.floorTile(tx, ty));
 }
 
-// Hang the bracket item `uid` on (tx, ty, edge): the host's click and a guest's `bracket` command.
-export function hang(player, uid, tx, ty, edge) {
-  const entry = entryOf(player, uid, true);
+// Put the torch `uid` on the face (tx, ty, edge): the host's click and a guest's `torch` command. Says why not and returns false;
+// otherwise the torch leaves the player, lit or not, and stands on the wall in its bracket.
+export function mountTorch(player, uid, tx, ty, edge) {
+  const entry = torchOf(player, uid);
   if (!entry) return false;
   tx = Math.round(Number(tx));
   ty = Math.round(Number(ty));
   if (!Number.isFinite(tx) || !Number.isFinite(ty) || (edge !== "n" && edge !== "w")) return false;
-  const why = bracketReach(player, tx, ty) || bracketProblem(tx, ty, edge);
+  const why = mountReach(player, tx, ty) || mountProblem(tx, ty, edge);
   if (why) {
     showMessage(why);
     return false;
   }
-  grid.remove(inventory.bagOf(player), entry);
-  map.hangBracket(tx, ty, edge);
-  showMessage("You hang the bracket on the wall.");
+  // Mounted first, then taken from the player, so a refusal at either step loses no torch (the review of #532).
+  const b = map.mountTorch(tx, ty, edge, entry, player.layer || 0); // on the player's own layer (docs/49)
+  if (!b) return false;
+  if (!inventory.detach(player, entry)) {
+    map.removeBracket(b);
+    return false;
+  }
+  showMessage(entry.lit ? "You put the torch on the wall, burning." : "You put the torch on the wall.");
   return true;
 }
 
-// Why a bracket cannot be taken down, or "": only a player's own, and only empty.
-export function takeDownProblem(b) {
+// Why a torch on a wall cannot be picked up, or "": only one a player put there (`made`), with its bracket.
+export function pickUpTorchProblem(b) {
   const br = b && b.wall && b.wall.bracket;
-  if (!br) return "There is no bracket there.";
+  if (!br || !br.torch) return "There is no torch there.";
   if (!br.made) return "That is the village's.";
-  if (br.torch || br.lantern) return "Take the torch first.";
   return "";
 }
 
-// Take the bracket down into the bag; true when it came down.
-export function takeDown(player, b) {
-  const why = takeDownProblem(b) || bracketReach(player, b.tx, b.ty);
+// Pick up a torch a player put on a wall: into a free hand, else the belt or the bag (as a torch taken from any holder), put out, its
+// own uid and wear; the bracket goes with it. True when it came up.
+export function pickUpTorch(player, b) {
+  const why = pickUpTorchProblem(b) || reachFor(player, ...map.bracketFloor(b));
   if (why) {
     showMessage(why);
     return false;
   }
-  const bag = inventory.bagOf(player);
-  const entry = items.makeEntry("wall_bracket", 1);
-  if (!bag || !grid.insert(bag, entry)) {
-    showMessage(bag ? "No room in your bag." : "You have no bag.");
+  const entry = map.torchEntryOf(b.wall.bracket);
+  const inHand = items.canHold(player.hands, entry.id) && items.hold(player.hands, entry);
+  if (!inHand && !inventory.stow(player, entry)) {
+    showMessage(inventory.bagOf(player) ? "No room in your bag." : "You have no bag.");
     return false;
   }
   map.removeBracket(b);
-  showMessage("You take the bracket down.");
+  showMessage("You pick up the torch.");
   return true;
 }
