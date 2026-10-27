@@ -1,6 +1,10 @@
 // The scene (docs/08): the night's tunables, the fog's and the near walls' numbers, the ground's quads, the
-// occlusion holes, the build grid, and renderScene, which gathers every drawable in sort order and draws.
+// occlusion holes, the build grid, the depth biases, and renderScene, which gathers every drawable in sort order and draws.
 // Cut from src/render.js on 2026-10-12 (docs/23a, D5): a move, no rule changed; the frame check proves the pixels.
+// The depth buffer (docs/51, 2026-10-27): the frame sorts per pixel. The ground and what lies flat on it draw first and write no
+// depth; every standing drawable sets its depth surface from true geometry (render/depth.js) and its quads go to the opaque pass
+// or the translucent one (gl.js); the ghosts, the hit shapes, and the marker draw on top. The key order still orders the
+// translucent pass and every tie.
 
 import * as iso from "../iso.js";
 import * as clock from "../clock.js";
@@ -27,7 +31,7 @@ export const night = {
   alpha: 0.96,
   pool: 190,
   poolStrength: 0.42,
-  climb: 70, // px a pool climbs a wall face or a trunk; 0 for the flat face (56 on the old 64 px walls)
+  climb: 84, // px a pool climbs a wall face or a trunk; 0 for the flat face: seven eighths of the 96 px wall (docs/52; 56 on the 64 px walls, 70 on the 80); one setting, so trees and tall props climb by it too
   linear: true,
   standingFloor: 0, // a floor on the light of props and characters, for legibility
   softLight: false, // true: ambient and standing light combine without a hard cap (no knee where a pool's climb runs out on a bright wall)
@@ -38,6 +42,34 @@ const FOG_ALPHA = 0.36;
 const CLEAR = [0x16 / 255, 0x12 / 255, 0x1c / 255];
 
 export const NEAR_WALL_ALPHA = 0.42;
+
+// The depth biases between kinds, in depth units (docs/51 section 3, defaults): what a kind sits nearer than its true geometry. Floor
+// items over the ground; props and figures over the ground; a burning body's flames and smoke over the body; a lifted floor over the
+// caps of the walls below it (docs/49, when it is built). A post sits a little behind the wall faces it is flush with (render/walls.js):
+// where a post's face and a wall's lie in one plane (a run's joint, a T where a partition meets it, the corner where a run begins) the
+// wall's picture is drawn over it, as the sort drew the later segment over the post; at an outer corner its front stands clear of both
+// walls' faces and it shows; the joints are the walls' own (a segment's end on its end's plane, render/depth.js wallSurface). The spec's
+// default was half a unit over the walls, to cover the seam; with the walls' ends on their own planes there is no seam to cover, and over
+// them the post's half showed down the middle of every T and at the start of every run, which the sort never drew. Everything else, the
+// walls, their caps, the arrows, is its true geometry. Each quad a drawable emits after its first sits gl.depthStep() nearer again.
+export const DEPTH_BIAS = { floorItem: 0.5, post: -0.5, prop: 1, figure: 2, particle: 1, liftedFloor: 1 };
+
+// How far over its bias a kind's own quads may climb by the emit order (gl.surface's `room`): the gap to the next kind that can share
+// its plane, so a drawable's last layer stays under it at any buffer depth (at 16 bits a step is a quarter of a unit; the review of
+// #530: a wall's sixth quad passed a prop's +1, a hanging or a bracket over a cupboard held on the wall's face). A post's room is the
+// walls' faces it is flush with; a wall's, the props held on its face; a floor item's, the props over it; a prop's, the figures; a
+// figure's, its own fire. Each lays out its layers to fit (render/walls.js's four, a floor item's block by block).
+export const DEPTH_ROOM = { post: 0.5, wall: 1, floorItem: 0.5, prop: 1, figure: 1 };
+
+// For check("depth"): a drawable `skip` returns true for is gathered, sorted, and counted as ever but not drawn, so a check can tell a
+// thing's own pixels from what is behind them; `override` replaces fields of the frame's scene (a ghost, the marker, a flight, the tile
+// mark, the highlight, the fog), so a check can stage what the client's own modules would; `mark` ({ is, color }) draws the drawables `is`
+// returns true for in one flat colour (gl.setMark), in their own passes and depths, so a check finds a thing's own pixels by drawing it
+// in two colours, whatever the colours behind it. All null in play.
+export const probe = { skip: null, override: null, mark: null };
+
+// The last frame's drawables by pass (check("depth"), its cost row): how many there were, and how many drew in the translucent pass.
+export const lastStats = { drawables: 0, translucent: 0 };
 
 
 // Only trees open a see-through hole for the player (Michael, 2026-10-11:
@@ -151,7 +183,8 @@ function emitGrid(tiles) {
   }
 }
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null }) {
+export function renderScene(args) {
+  const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null } = probe.override ? { ...args, ...probe.override } : args;
   ensureArea(w, h);
   hl.set(highlight); // the object under the cursor, outlined by the drawables below (#301)
   if (lastLinear !== night.linear) {
@@ -161,7 +194,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   const cam = camera || player || { gx: 0, gy: 0 };
   const areaOrigin = buildArea(tiles, visible, drawAll || !fog, cam.gx, cam.gy);
 
-  gl.begin();
+  gl.begin((cam.gx + cam.gy) * 32); // the depth range follows the camera (docs/51 section 5)
   emitGround(tiles);
   if (grid) emitGrid(tiles);
   emitRugs(tiles); // after the ground, before every standing drawable: the rugs lie under what stands on them (#327)
@@ -179,7 +212,25 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   computeOcclusion(drawables, player);
   const holes = [];
   for (const d of drawables) if (d.occluded && d.rect) holes.push([d.rect.x + d.rect.w / 2, d.rect.y + d.rect.h * 0.45]);
-  for (const d of drawables) d.emit();
+  // Every standing drawable sets its own depth surface as it emits; a flat one (an arrow's shadow) asks for the flat pass itself.
+  let translucent = 0;
+  for (const d of drawables) {
+    if (probe.skip && probe.skip(d)) continue;
+    gl.setPass(gl.PASS_STAND);
+    const before = gl.passVertices(gl.PASS_TRANS);
+    const marked = probe.mark && probe.mark.is(d);
+    if (marked) gl.setMark(probe.mark.color);
+    try {
+      d.emit();
+    } finally {
+      if (marked) gl.setMark(null);
+    }
+    if (gl.passVertices(gl.PASS_TRANS) > before) translucent++;
+  }
+  lastStats.drawables = drawables.length;
+  lastStats.translucent = translucent;
+  // On top, with no depth test (docs/51 section 4; Primary's recommendation, a default: a ghost hidden behind a wall is useless).
+  gl.setPass(gl.PASS_TOP);
   if (ghost) emitGhost(ghost);
   if (hitShapes) emitHitShapes(hitShapes);
   if (marker) emitMarker(marker);

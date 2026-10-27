@@ -9,7 +9,9 @@ import { tileKey } from "../visibility.js";
 import { getItem } from "../items.js";
 import * as gl from "../gl.js";
 import { projectileSheet } from "./entities.js";
-import { OCCLUDER_MIN_HEIGHT, frameQuad } from "./scene.js";
+import { OCCLUDER_MIN_HEIGHT, DEPTH_BIAS, DEPTH_ROOM, frameQuad } from "./scene.js";
+import * as depth from "./depth.js"; // a slice's two front faces, or a canopy's billboard (docs/51)
+import { WALL_T } from "../placeholders.js";
 import { makeWall } from "./walls.js";
 import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim milliseconds (docs/23a, C2)
 import * as hl from "./highlight.js"; // Object Highlight (#301)
@@ -89,11 +91,12 @@ export function emitGhost(ghost) {
     paintingArt.emitGhost(ghost, tint, GHOST_FLAGS());
     return;
   }
-  if (ghost.kind === "bracket") {
-    // A wall bracket (docs/43 section 4): its wall drawn again, washed, with an empty bracket on the face it would hang on.
+  if (ghost.kind === "torch") {
+    // A torch for a wall (Place torch, docs/43 section 4, #523): its wall drawn again, washed, with the bracket and the torch, lit or not, on
+    // the face it would go on.
     const t = map.peekTile(ghost.tx, ghost.ty);
     const wall = t && t[ghost.edge];
-    if (wall && !ghost.none) makeWall({ ...wall, bracket: { side: 1, torch: false } }, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
+    if (wall && !ghost.none) makeWall({ ...wall, bracket: { side: 1, torch: true, lit: !!(ghost.torch && ghost.torch.lit) } }, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
     return;
   }
   if (ghost.kind === "prop" || ghost.kind === "rug") {
@@ -138,6 +141,7 @@ function risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, k, shake = 0) {
   const puff = 1 - fade * fade * fade; // fast at the start, slowing: one puff
   const soil = gl.rgb("#4a3a28", fade);
   const dust = gl.rgb("#9a8a6a", 0.7 * fade);
+  gl.holdOrder(true); // the soil and the dust are one layer over the rock (docs/51: the emit order)
   for (const [dx, dy] of SOIL) {
     const sx = x + Math.round(dx * (0.6 + 0.4 * k));
     const sy = y + dy;
@@ -146,6 +150,7 @@ function risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, k, shake = 0) {
     const py = sy - 2 - Math.round(puff * 6);
     gl.poly([[px - 1, py - 1], [px + 1, py - 1], [px + 1, py + 1], [px - 1, py + 1]], dust, { world: [tx, ty], flags: gl.FLAG_STANDING });
   }
+  gl.holdOrder(false);
 }
 
 // The frame of a playing click animation (the well's bucket), or null when it
@@ -160,6 +165,24 @@ function clickFrame(prop) {
     t -= anim.ms[k];
   }
   return null;
+}
+
+// The thickness of a wall on a tile's north or west edge, 0 where it has none.
+function wallThick(w) {
+  if (!w) return 0;
+  try {
+    return getSheet(w.sprite).thickness || WALL_T;
+  } catch {
+    return WALL_T;
+  }
+}
+
+// A surface held off the walls on tile (tx, ty)'s north and west edges (render/depth.js againstWalls), each by its own thickness; a
+// canopy's billboard is left as it is.
+function backWalls(surf, tx, ty, canopy = false) {
+  if (canopy) return surf;
+  const t = map.tileAt(tx, ty);
+  return depth.againstWalls(surf, tx, ty, wallThick(t && t.n), wallThick(t && t.w));
 }
 
 export function propDrawables(tiles, visible, out) {
@@ -197,6 +220,14 @@ export function propDrawables(tiles, visible, out) {
       : null;
     // A hive in sight has its bees by day (#441): the far ones before it, the near ones after.
     const swarm = f && vis && i === 0 && getDef(prop.sprite).hive ? bees.beesFor(prop, f, x, y, an) : null;
+    // Its depth (docs/51 section 3): the slice's own footprint tile's two front faces, split at its front corner; a tree's or any canopy's
+    // a billboard through that corner; a thing walked through (a crop, a mushroom, an herb) a billboard through its own ground point, its
+    // tile's centre moved by its offset's screen rows (the review of f9d0fcc5: a forage mushroom stands off its centre). Its
+    // flames, its bees, and its outline on the same surface.
+    const walked = prop.solid === false;
+    const canopy = !walked && !!getDef(prop.sprite).canopy;
+    const surf = depth.propSlice(tx, ty, canopy, walked, off[1]);
+    const held = backWalls(surf, tx, ty, canopy); // held off the walls on its tile's back edges, which it stands against
     const d = {
       key: (tx + ty) * 1000 + 1,
       kind: "prop",
@@ -206,7 +237,11 @@ export function propDrawables(tiles, visible, out) {
       occluder: false,
       bees: swarm, // what `check("bees")` reads of the frame
       sheet, // and the sheet it draws from (`check("apples")`: a picked tree drawn bare)
+      prop, // and the prop, by which check("depth") finds its drawable
+      tile: [tx, ty],
+      surf: held,
       emit() {
+        gl.surface(held, DEPTH_BIAS.prop, DEPTH_ROOM.prop);
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         if (swarm) bees.emit(swarm, true, [tx, ty]);
         if (sink > 0) risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, (loop.simTime() - prop.risenAt) / RES.riseSeconds, shudderOf(prop));
@@ -216,7 +251,7 @@ export function propDrawables(tiles, visible, out) {
         if (furnFlame) frameQuad(sheet, furnFlame, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
     };
-    if (hl.isProp(prop.id) && !sink) lit.push({ d, sheet, name, f, x, y, tx, ty, prop }); // a rising rock is outlined once it is up
+    if (hl.isProp(prop.id) && !sink) lit.push({ d, sheet, name, f, x, y, tx, ty, prop, surf: held }); // a rising rock is outlined once it is up
     out.push(d);
   }
   if (lit.length) highlightProp(lit, out);
@@ -238,8 +273,21 @@ function highlightProp(lit, out) {
     get outlined() {
       return lit.filter((s) => !s.d.occluder);
     },
+    highlightOf: lit[0].prop, // check("depth") finds the outline's drawable
+    // Every slice's copies on the farthest slice's depth surface, a step behind it (docs/51 section 3), as the sort drew the outline before
+    // every slice: each slice's own surface is in front of the farthest one's in its columns, so no copy is drawn over a slice's own pixels
+    // (the review of #530: on each slice's own surface the nearer slice's copies, a pixel into the farther slice's columns, beat its
+    // pixels there, a light line down the seam of a bed, a table, the fireplace, the coop), and a slice in front of a wall keeps its whole
+    // outline while one behind a wall loses the part the wall covers.
     emit() {
-      for (const s of this.outlined) hl.outline(s.sheet, s.name, s.x, s.y, { world: [s.tx, s.ty], heights: s.f ? [s.f[3], s.f[3], 0, 0] : 0 }, false, 0, s.f ? swayOf(s.prop, s.f[3]) : 0);
+      const slices = this.outlined;
+      if (!slices.length) return;
+      let far = slices[0];
+      for (const s of slices) if (s.tx + s.ty < far.tx + far.ty) far = s;
+      gl.surface(far.surf, DEPTH_BIAS.prop, DEPTH_ROOM.prop);
+      for (const s of slices) {
+        hl.outline(s.sheet, s.name, s.x, s.y, { world: [s.tx, s.ty], heights: s.f ? [s.f[3], s.f[3], 0, 0] : 0 }, false, 0, s.f ? swayOf(s.prop, s.f[3]) : 0);
+      }
     },
   });
 }
@@ -254,6 +302,18 @@ export function floorItemDrawables(tiles, visible, out) {
     const x = Math.round(p.x);
     const y = Math.round(p.y);
     const vis = visible.has(tileKey(tx, ty));
+    // Its depth (docs/51 section 3): each block or picture a billboard through its own front foot, a little over the ground, held off the
+    // walls on the tile's back edges, so a figure standing on the pile's tile at its centre is drawn over the blocks behind its feet and
+    // one behind the pile is covered by the blocks before it (the review of #530: on the tile's two front faces, whose corner is half a
+    // tile before its centre, the pile covered a figure standing on it). Each block's layers start again on its own surface, so a pile of
+    // any size climbs no further than one block (at 16 bits a dozen items climbed 12 units). What lies flat (a landed arrow, a thrown
+    // knife) is drawn in the flat pass, in the pile's place.
+    const t = map.tileAt(tx, ty);
+    const Tn = wallThick(t && t.n);
+    const Tw = wallThick(t && t.w);
+    const footAt = (dy) => {
+      gl.surface(depth.againstWalls(depth.billboardBelow(tx, ty, dy + y - p.y), tx, ty, Tn, Tw), DEPTH_BIAS.floorItem, DEPTH_ROOM.floorItem);
+    };
     out.push({
       key: (tx + ty) * 1000 + 0.8,
       kind: "prop",
@@ -261,6 +321,8 @@ export function floorItemDrawables(tiles, visible, out) {
       rect: { x: x - 16, y: y - 14, w: 32, h: 18 },
       canOcclude: false,
       occluder: false,
+      tile: [tx, ty], // check("depth") finds its drawable
+      items,
       emit() {
         items.forEach((e, i) => {
           const lit = hl.isItem(e.uid); // Object Highlight (#301)
@@ -269,8 +331,10 @@ export function floorItemDrawables(tiles, visible, out) {
           if (e.at && (e.id === "arrow" || e.id === "spear" || projectileSheet(e.id)?.frames[`${e.id}_${e.angle || 0}`])) {
             const sp = iso.toScreen(e.at[0], e.at[1]);
             const sheet = projectileSheet(e.id);
-            if (sheet && lit) hl.outline(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0 });
-            if (sheet) frameQuad(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
+            gl.withPass(gl.PASS_FLAT, () => {
+              if (sheet && lit) hl.outline(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0 });
+              if (sheet) frameQuad(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
+            });
             return;
           }
           const def = getItem(e.id);
@@ -283,15 +347,24 @@ export function floorItemDrawables(tiles, visible, out) {
           // 2026-10-26); every other item keeps the block in its colour until it has drawn art.
           const pic = def.icon && def.icon.placeholder ? projectileSheet(`icon_${e.id}`) : projectileSheet(`floor_${e.id}`);
           if (pic) {
+            // The picture's foot: its frame's bottom row, drawn by its anchor.
+            const pf = pic.frames.idle_0;
+            const pa = (pic.frameAnchors && pic.frameAnchors.idle_0) || pic.anchor;
+            footAt(pf ? oy + 2 - pa[1] + pf[3] - y : oy + 2 - y);
             if (lit) hl.outline(pic, "idle_0", ox, oy + 2, { world: [tx, ty], heights: 0 });
             frameQuad(pic, "idle_0", ox, oy + 2, { world: [tx, ty], heights: 0, flags });
             return;
           }
+          // A block: its foot the bottom of its front faces; the halo behind its dark rim, the rim, then its three faces in one layer
+          // (they meet at their edges and never overlap).
+          footAt(oy + 6 - y);
           if (lit) hl.itemHalo(ox, oy, [tx, ty]);
           gl.poly([[ox - 7, oy], [ox, oy - 4], [ox + 7, oy], [ox, oy + 4]], gl.rgb("#1a1410"), { world: [tx, ty], flags });
+          gl.holdOrder(true);
           gl.poly([[ox - 6, oy], [ox, oy - 3], [ox + 6, oy], [ox, oy + 3]], c, { world: [tx, ty], flags });
           gl.poly([[ox - 6, oy], [ox, oy + 3], [ox, oy + 6], [ox - 6, oy + 3]], [c[0] * 0.6, c[1] * 0.6, c[2] * 0.6, 1], { world: [tx, ty], flags });
           gl.poly([[ox, oy + 3], [ox + 6, oy], [ox + 6, oy + 3], [ox, oy + 6]], [c[0] * 0.75, c[1] * 0.75, c[2] * 0.75, 1], { world: [tx, ty], flags });
+          gl.holdOrder(false);
         });
       },
     });

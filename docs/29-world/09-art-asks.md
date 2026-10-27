@@ -9,7 +9,7 @@ Everything this plan wants drawn, grouped by what it is for and ranked by when t
 ## The shared preamble (goes at the top of every request)
 
 ```
-The game: a cosy, slightly spooky medieval village overrun by the dead, in 2:1 isometric pixel art. Ground tiles are 64x32 diamonds drawn one pixel per pixel, never scaled. The player is about 55 px tall and 26 wide (frame 48x72, feet at (24, 66)). Walls are 80 px tall on one tile edge (32 px along the edge, 16 up the screen): stone 16 px thick, wood 14, log 18, centred on the edge line; a north-edge wall runs top-left to bottom-right (\), a west-edge wall bottom-left to top-right (/), both drawn, never mirrored. Light from the top left; three or four flat shades per material; hard pixels only (every pixel fully opaque or fully transparent); no baked ground shadow, glow, or flame light (the engine lights everything per pixel and draws flames as separate unlit frames). Anything the player uses or gathers has a 1 px #2b2522 outline all the way round; decoration has none. Anchors: for things on a tile, the pixel where the tile's top vertex sits at ground level; for posts, their own centre at ground. One transparent PNG per piece, tightly cropped; anchors in a JSON; previews at 1x and 3x with the 55 px character for scale. Muted autumn colours, never neon; wood #5e4028 to #8a5e36, stone #7b7670, metal #2b2a32.
+The game: a cosy, slightly spooky medieval village overrun by the dead, in 2:1 isometric pixel art. Ground tiles are 64x32 diamonds drawn one pixel per pixel, never scaled. The player is about 55 px tall and 26 wide (frame 48x72, feet at (24, 66)). Walls are 96 px tall (80 when this was written; `52`) on one tile edge (32 px along the edge, 16 up the screen): stone 16 px thick, wood 14, log 18, centred on the edge line; a north-edge wall runs top-left to bottom-right (\), a west-edge wall bottom-left to top-right (/), both drawn, never mirrored. Light from the top left; three or four flat shades per material; hard pixels only (every pixel fully opaque or fully transparent); no baked ground shadow, glow, or flame light (the engine lights everything per pixel and draws flames as separate unlit frames). Anything the player uses or gathers has a 1 px #2b2522 outline all the way round; decoration has none. Anchors: for things on a tile, the pixel where the tile's top vertex sits at ground level; for posts, their own centre at ground. One transparent PNG per piece, tightly cropped; anchors in a JSON; previews at 1x and 3x with the 55 px character for scale. Muted autumn colours, never neon; wood #5e4028 to #8a5e36, stone #7b7670, metal #2b2a32.
 ```
 
 ## Tier 1: the village and the home
@@ -25,7 +25,7 @@ Please draw five more wall materials in the same conventions as the wood, stone,
 2. wall_fence_low: the same fence at 24 px, one rail: stall partitions, pens, the edge of a byre. Plain only, plus its post.
 3. wall_stone_low: a dry-stone wall, 32 px tall, 14 thick, mossed on the north side, with a gate_shut and gate_open (a small wooden gate) and post_stone_low (a taller capstone). Graveyards, sheepfolds, garden walls. Sight passes over it.
 4. wall_hedge: a clipped hedge, 64 px tall, 18 thick, dense dark green with a few autumn leaves caught in it, no openings at all (a gap is simply no hedge). A rounded top rather than a cap. Opaque. And wall_hedge_low at 24 px (a knot garden, a field edge), also opaque to bodies but sight passes over it. Posts: none; a hedge's corner is just the hedge turning, so please draw a corner piece for each height and orientation pair instead of a post.
-5. wall_bars: iron bars in a stone sill and lintel, 80 px tall, 8 thick: prison cells and the crypt. Sight passes. Variants: plain, door_shut (a barred door with a lock plate), door_open (the barred door as a swung leaf). Plus post_bars (a stone pier).
+5. wall_bars: iron bars in a stone sill and lintel, ~~80 px tall~~ 96 px tall (every wall, `52`), 8 thick: prison cells and the crypt. Sight passes. Variants: plain, door_shut (a barred door with a lock plate), door_open (the barred door as a swung leaf). Plus post_bars (a stone pier).
 
 Deliver as wall_<name>_<north|west>_<variant>.png, post_<name>.png, the open leaves as door_open_<name>_<north|west>.png, and the hedge corners as hedge_corner_<...>.png. A preview: a fenced field with a gate, a walled graveyard, a hedged garden, and a cell block, at 1x and 3x.
 ```
@@ -146,7 +146,7 @@ Please draw a castle wall set in the conventions of the stone wall you made, tal
 4. Banner: a wall-hung cloth banner on a pole, 48 px long, hanging on a wall's face (anchored like the torch bracket, 60 px up), in crimson with a gold device, and in two more colours. Decoration. Both orientations.
 5. Brazier: 1x1, an iron basket on three legs full of charcoal, 40 px; three flame frames, unlit.
 
-A preview: a corner of the castle with a tower, a stretch of wall with a slit, the gatehouse arch shut and open with the chains and a banner either side, at 1x and 3x, with the 80 px house wall beside for scale.
+A preview: a corner of the castle with a tower, a stretch of wall with a slit, the gatehouse arch shut and open with the chains and a banner either side, at 1x and 3x, with the ~~80 px~~ 96 px house wall beside for scale (`52`).
 ```
 
 ### Request 2.2: the castle's rooms

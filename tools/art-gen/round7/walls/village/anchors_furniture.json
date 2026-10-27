@@ -1,0 +1,73 @@
+{
+ "well": {
+  "anchor_px": [
+   37.0,
+   77.0
+  ],
+  "size": [
+   74,
+   104
+  ]
+ },
+ "bed": {
+  "anchor_px": [
+   64.0,
+   27.0
+  ],
+  "size": [
+   97,
+   75
+  ]
+ },
+ "table": {
+  "anchor_px": [
+   61.0,
+   21.0
+  ],
+  "size": [
+   91,
+   64
+  ]
+ },
+ "chair_front": {
+  "anchor_px": [
+   19.0,
+   25.0
+  ],
+  "size": [
+   39,
+   51
+  ]
+ },
+ "chair_back": {
+  "anchor_px": [
+   19.0,
+   18.0
+  ],
+  "size": [
+   39,
+   44
+  ]
+ },
+ "fireplace": {
+  "anchor_px": [
+   63.0,
+   50.0
+  ],
+  "size": [
+   83,
+   91
+  ],
+  "fire_base_px": [
+   42.0,
+   67.5
+  ]
+ },
+ "fire_n": {
+  "size": [
+   18,
+   16
+  ],
+  "note": "place so pixel (9, 15) (bottom centre of the logs) sits on fireplace.fire_base_px"
+ }
+}

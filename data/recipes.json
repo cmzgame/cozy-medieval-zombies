@@ -1072,22 +1072,6 @@
    "tool": "hammer"
   },
   {
-   "id": "wall_bracket",
-   "station": "anvil",
-   "out": {
-    "id": "wall_bracket",
-    "count": 1
-   },
-   "in": [
-    {
-     "id": "iron_bar",
-     "count": 1
-    }
-   ],
-   "seconds": 6,
-   "tool": "hammer"
-  },
-  {
    "id": "roast_potato",
    "station": "cooking",
    "out": {

@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "box", "color": "#8a6038", "height": 32, "inset": 0, "label": "Crate", "outline": true}, "note": "the dev crate (docs/52 section 6): a one-tile cube 32 px tall, the measuring stick of the 96 px walls (three stack to the cap, two to the door's top); placed by check(\"build\") alone, never on a map"}
