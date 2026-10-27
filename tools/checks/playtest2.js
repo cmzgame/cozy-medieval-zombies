@@ -282,9 +282,9 @@ export async function run(game, opts = {}) {
       const none = hl.forUse({ kind: "tile", x: at[0] + 1, y: at[1] + 1, floor: "floor_grass" }, me, null);
       row("in the Use mode the plot under the pointer is outlined: the crop by its pixels and by its soil, bare grass not", !!byPixels && byPixels.id === crop(0).id && !!bySoil && bySoil.id === crop(0).id && !none && hl.current() === null, `${JSON.stringify(byPixels)}, ${JSON.stringify(bySoil)}, ${JSON.stringify(none)}`);
       use.cancel();
-      const lines0 = log.lines().length;
+      const lines0 = log.count();
       G.use.applyWith(bucket, { kind: "prop", prop: crop(0) }, me);
-      const said = log.lines().slice(lines0).join(" / ");
+      const said = log.since(lines0).join(" / ");
       row("the bucket's Use on a crop the map grew (wet until first looked at) waters it, as the menu's Water does: the bucket empty, the line said, not \"Nothing there needs water.\"", bucket.fill === 0 && farming.isWet(crop(0)) && crop(0).crop.at !== undefined && /You water \d+ plants?\./.test(said) && !/Nothing there needs water/.test(said), `fill ${bucket.fill}; "${said}"`);
       bucket.fill = cap;
       for (let i = 1; i < 4; i++) crop(i).crop.wetUntil = G.clock.getElapsed() - 1;
@@ -386,11 +386,11 @@ export async function run(game, opts = {}) {
       const red = getComputedStyle(document.documentElement).getPropertyValue("--red").trim();
       row("the tainted skin's card leads with its warning: \"Tainted water:\" bold in the warning red, the rest red, on a red-ruled ground", !!lead && lead.textContent === "Tainted water:" && Number(ls.fontWeight) >= 700 && ls.color === "rgb(208, 80, 80)" && /drinking it may make you Sick\./.test(first.textContent) && fs.borderLeftStyle === "solid" && fs.backgroundColor !== "rgba(0, 0, 0, 0)", first ? `"${first.textContent}"; ${ls ? `${ls.color} ${ls.fontWeight}` : "-"}; ground ${fs.backgroundColor}, rule ${fs.borderLeftStyle}; --red ${red}` : "no line");
       panel.setBagOpen(bagOpen0);
-      const lines0 = log.lines().length;
+      const lines0 = log.count();
       me.taintNoted = 0;
       me.thirst = 30;
       for (let n = 0; n < 4; n++) G.loop.advance(1 / 60);
-      const got = log.lines().slice(lines0);
+      const got = log.since(lines0);
       row("Thirsty with only tainted water carried: \"Your waterskins hold only tainted water: boil it at a lit fire.\" in the log, once", got.filter((l) => l.includes("Your waterskins hold only tainted water: boil it at a lit fire.")).length === 1 && tainted.fill === 80, got.join(" / ") || "nothing");
       me.thirst = needs0.thirst;
       me.taintNoted = needs0.taintNoted;

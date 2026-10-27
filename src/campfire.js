@@ -10,17 +10,22 @@ import * as inventory from "./inventory.js";
 import * as items from "./items.js";
 import * as grid from "./grid.js";
 import { reachProblem, TOO_FAR } from "./reach.js";
+import { bodyOnTiles } from "./stations.js"; // no campfire set down on a body, as no build goes up over one
 import { showMessage } from "./ui/prompt.js";
 
 export const SPRITE = "campfire";
 export const ITEM = "campfire"; // the item a picked-up campfire is (data/items.json `place`)
 export const REACH = 2.6; // tiles from the player to the tile it is set down on, as a carried prop's
 
-// Why a campfire cannot stand on (tx, ty), or "": open ground outdoors, nothing standing there.
+// Why a campfire cannot stand on (tx, ty), or "": open ground outdoors, nothing standing there, not in water (a ford is walkable), and
+// no body on it (the wiki's sync, 2026-10-27: the fire pit refused both and the campfire neither).
 export function standProblem(tx, ty) {
   const t = map.peekTile(tx, ty); // a read never grows a chunk (src/CLAUDE.md): a tile not grown is no room
   if (!t || !map.isWalkableTile(tx, ty) || t.prop || t.rug) return "No room";
   if (t.room > 0) return "Outdoors only";
+  const r = map.floorRule(t.floor);
+  if (r.drink || r.walk !== 1) return "Not on water";
+  if (bodyOnTiles([[tx, ty]])) return "Someone is in the way";
   return "";
 }
 

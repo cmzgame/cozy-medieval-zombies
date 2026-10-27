@@ -4934,7 +4934,7 @@ check("the fires: the fire pit built by a guest's command indoors and out, refus
     }
     clock.setHour(0);
     lightMod.update();
-    const src = lightMod.sources().find((s) => s.gx === pOut.tile[0] && s.gy === pOut.tile[1]);
+    const src = lightMod.sources().find((s) => s.gx === pOut.tile[0] + 0.5 && s.gy === pOut.tile[1] + 0.5);
     assert(src && src.radius === 5 && src.kind === "fire_pit" && src.flicker && src.flicker.amp === 0.24, `the outdoor source: ${JSON.stringify(src)}`);
     const roomId = mapMod.peekTile(inside[0], inside[1]).room;
     assert(lightMod.roomAmbient(roomId) === 1, `its room's light: ${lightMod.roomAmbient(roomId)}`);
