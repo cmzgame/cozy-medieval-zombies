@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A torch is placed on a wall from its own menu with a bracket drawn with it; the Wall bracket item goes; rugs and paintings are found and collected, never built or crafted, marked collectible (2026-10-27, A torch goes on a wall with its bracket)
 - Round rooms are a spec (`50`): circles, not slanted walls; odd sizes ~~3,~~ 5 and 7 across (the 3 struck by Michael's ruling on Primary's scan, 2026-10-26: "5 by 5 the smallest"); the world's logic on the stepped tile edges, bodies stopped by the drawn curve too, the ring counting as wall for torches' brackets (a fireplace needs a flat wall: a round room's fire is the 2 by 2 floor fire or none), no furniture on the eight tiles the curve crosses, the ring as thick and tall as its material's straight wall; doors at the four points where the circle touches its square; built by players and placed on the map, the map first; rounded corners too; the cost scales with the size (2026-10-26, Round rooms: a spec)
 - The build menu holds only what cannot be picked up and carried; the campfire is made at the workbench, 1 by 1 on the ground and 3 by 3 in the bag; a lit room flickers down a little, a lever (2026-10-27, The build menu holds only what cannot be carried)
 - Fires are two built things (2026-10-26, Round rooms: a spec, the fire rulings; their spec is Primary's): the Fireplace against a flat wall and the 2 by 2 floor fire, indoors or out, one cooking interface, built not crafted, never moved, taken apart, both flickering more than today; the carried 1 by 1 campfire stays
@@ -318,6 +319,11 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-27 — A torch goes on a wall with its bracket; rugs and paintings are found, never made (Michael)
+
+- **No separate wall bracket:** "I never intended for torch brackets to be a separate for walls. I would prefer that Use Torch -> Wall places it there with a bracket automatically, and so does Right Click -> Place Torch. Maybe nix the Use because that would be hard on the round versions? But in any case, the wall torch fixture has been a long time annoyance and now is the time to kill it since we are on walls." The Wall bracket item and its workbench row go; a torch is placed on a wall's face from its own menu (Place torch) and hangs on a bracket drawn with it; picked up, the torch comes back and the bracket goes with it. *Primary's reading*: the Use mode's Use torch on a wall left out, as he leaned (one way in); a torch on a round wall mounts at its point on the curve. Spec and build: the issue filed today.
+- **Rugs and paintings are found, never made:** "all of those rugs and paintings are things I built to be found, brought back, and collected. So none of them need to be buildable OR craftable." They are marked as collectibles in the data, so nothing reports them as a dead end for having no recipe; they still need places to be found in the valley (they are in the dev chest alone today). Michael wants more of the kind: "It feels staged if every item in the world is strictly gameplay" (the decor issue filed today).
 
 ### 2026-10-27 — The build menu holds only what cannot be carried; the campfire is crafted; the fires' flicker a lever (Michael)
 
