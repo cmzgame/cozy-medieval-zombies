@@ -2,10 +2,11 @@
 // (docs/testing.md; the proving ground, `?map=square`, or the valley: it builds what it reads on open ground of its own):
 //   await __game.check("depth")
 // It reads the canvas straight after each draw, as check("frame") does. A thing's own pixels are told from what is behind them by
-// drawing the frame twice, once with it and once without it (render/scene.js `probe.skip`: the drawable gathered and counted as ever,
-// the holes and the order unchanged, but not drawn): where the two differ, it shows. Its silhouette is the same with nothing else drawn.
-// So a figure half behind a wall shows exactly where its silhouette is not under the wall's; a prop against a wall shows wherever its
-// silhouette is. What the client's own modules would stage (the ghost, the marker, an arrow in flight, the tile mark, tracks, Object
+// drawing the frame twice with the thing in two flat colours (render/scene.js `probe.mark`: its quads in one colour, unlit and unfogged,
+// in their own passes and at their own depths): where the two frames differ, it shows, whatever the colours of what is behind it (a dark
+// chest on a dark wall included). Its silhouette is the same with nothing else drawn (`probe.skip`: the other drawables gathered and
+// counted as ever, the holes and the order unchanged, but not drawn). So a figure half behind a wall shows exactly where its silhouette
+// is not under the wall's; a prop against a wall shows wherever its silhouette is. What the client's own modules would stage (the ghost, the marker, an arrow in flight, the tile mark, tracks, Object
 // Highlight, the fog) it gives the frame through `probe.override`. Flames, flicker, and sways are frozen on the wall clock for the paired
 // draws, and the draw between steps is off (data/tuning.json feel.blend) so a body is drawn where it is put.
 // It builds a house of oak walls (5 by 4, a door in its south wall), a lone west wall, and the props and bodies each row needs, one row at a
@@ -70,14 +71,16 @@ export async function run(game, opts = {}) {
   // client would stage of its own (the highlight under the real mouse, a ghost, the aim guide, an Inspect's mark, prints) is none unless
   // the row gives it.
   const QUIET = { highlight: null, ghost: null, marker: null, hitShapes: null, tileMark: null, tracks: [], grid: false };
-  const shot = (skip = null, override = null) => {
+  const shot = (skip = null, override = null, mark = null) => {
     scene.probe.skip = skip;
     scene.probe.override = { ...QUIET, ...(override || {}) };
+    scene.probe.mark = mark;
     try {
       G.loop.advance(0);
     } finally {
       scene.probe.skip = null;
       scene.probe.override = null;
+      scene.probe.mark = null;
     }
     const px = new Uint8Array(W() * H() * 4);
     ctx.readPixels(0, 0, W(), H(), ctx.RGBA, ctx.UNSIGNED_BYTE, px);
@@ -110,14 +113,11 @@ export async function run(game, opts = {}) {
     return (H() - 1 - by) * W() + bx;
   };
   const colOf = (i) => (i % W()) / k(); // a buffer index's world column
-  // What a thing shows, and what it would show alone: `is` picks its drawables.
-  const visibleOf = (is, full = shot()) => diff(full, shot(is));
-  let empty = null; // the frame with nothing standing drawn, per staged scene
-  const silhouetteOf = (is) => {
-    if (!empty) empty = shot(() => true);
-    return diff(shot((d) => !is(d)), empty);
-  };
-  const restage = () => { empty = null; };
+  // What a thing shows, and what it would show alone: `is` picks its drawables, drawn in two flat colours.
+  const MARK_A = [1, 0, 1];
+  const MARK_B = [0, 1, 0];
+  const visibleOf = (is, override = null) => diff(shot(null, override, { is, color: MARK_A }), shot(null, override, { is, color: MARK_B }));
+  const silhouetteOf = (is, override = null) => diff(shot((d) => !is(d), override, { is, color: MARK_A }), shot((d) => !is(d), override, { is, color: MARK_B }));
   const pct = (x) => `${(100 * x).toFixed(1)}%`;
 
   // ---- what the drawables are ----
@@ -160,7 +160,6 @@ export async function run(game, opts = {}) {
     me.gx = gx;
     me.gy = gy;
     if (facing) me.facing = facing;
-    restage();
   };
   const screen = (gx, gy) => G.iso.toScreen(gx, gy);
 
@@ -230,9 +229,10 @@ export async function run(game, opts = {}) {
     standAt(X + 12, Y + 14);
     freeze(true);
 
-    // 1. A figure half behind a wall: on the far side of the lone west wall (x < X+15.5), its middle on the wall's near end.
+    // 1. A figure half behind a wall: on the far side of the lone west wall (x < X+15.5), most of a tile behind it, its middle on the
+    // column of the post at the wall's near (south) end, so the post and the wall cover its right half and its left half is clear of both.
     {
-      standAt(X + 15.19, Y + 4.2);
+      standAt(X + 14.7, Y + 4.2);
       const sil = silhouetteOf(isPlayer);
       const vis = and(visibleOf(isPlayer), sil);
       const wall = silhouetteOf(isWall(lone));
@@ -258,10 +258,8 @@ export async function run(game, opts = {}) {
       const chest = await place("chest", X + 5, Y + 4);
       standAt(X + 8, Y + 5.5);
       const hl = { highlight: { kind: "prop", id: chest.id } };
-      const full = shot(null, hl);
-      const vis = diff(full, shot(isProp(chest), hl));
-      const sil = diff(shot((d) => !isProp(chest)(d), hl), shot(() => true, hl));
-      const shown = and(vis, sil);
+      const sil = silhouetteOf(isProp(chest), hl);
+      const shown = and(visibleOf(isProp(chest), hl), sil);
       const cols = columnsLost(sil, shown);
       const nw = silhouetteOf(isWall(north));
       row("3. a prop against a wall shows whole with its whole outline (no column of it the wall's)", share(shown, sil) >= 0.98 && cols.length === 0, `${pct(share(shown, sil))} of ${sil.count} (the chest and its outline) shown, ${and(sil, nw).count} of them over the wall${cols.length ? `; columns short: ${cols.slice(0, 6).join(", ")}` : ""}`);
@@ -281,7 +279,6 @@ export async function run(game, opts = {}) {
       row("4a. a two-tile table against a wall: both slices whole", res.every((r) => r.sil > 0 && r.share >= 0.98 && r.cols === 0), res.map((r, i) => `slice ${i}: ${pct(r.share)} of ${r.sil}${r.cols ? `, ${r.cols} columns short` : ""}`).join("; "));
       unplace(table);
       const cup = await place("cupboard", X + 4, Y + 6);
-      restage();
       const sil = silhouetteOf(isProp(cup));
       const shown = and(visibleOf(isProp(cup)), sil);
       const bottom = bottomRows(sil, 3);
@@ -356,8 +353,9 @@ export async function run(game, opts = {}) {
       unplace(clear.oak);
     }
 
-    // 6. A figure through a door: in front of it and in the doorway the player is whole; one of the dead just inside it is hidden by the
-    // wall above and beside the opening, and seen through it.
+    // 6. A figure through a door: in front of it and in the doorway the player is whole; one of the dead just inside it, on the column of
+    // the opening (the door is at the house's east end, its right jamb the corner post), is hidden by the wall above and beside the opening
+    // and its posts, and seen through it.
     {
       const door = G.map.peekTile(X + 8, Y + 8).n;
       const was = door.open;
@@ -373,20 +371,19 @@ export async function run(game, opts = {}) {
       shown = and(visibleOf(isPlayer), sil);
       const doorway = share(shown, sil);
       standAt(X + 9, Y + 11.5);
-      const z = createZombie(X + 8, Y + 7, { hp: 1000 });
+      const z = createZombie(X + 7.5, Y + 7.2, { hp: 1000 });
       S.zombies.push(z);
       step(2);
-      z.gx = X + 8;
-      z.gy = Y + 7;
+      z.gx = X + 7.5;
+      z.gy = Y + 7.2;
       z.facing = "s";
-      restage();
-      const seen = G.visible.has(tileKey(X + 8, Y + 7));
+      const seen = G.visible.has(tileKey(X + 8, Y + 7)) || G.visible.has(tileKey(X + 7, Y + 7));
       const zs = silhouetteOf(isEntity(z));
       const zv = and(visibleOf(isEntity(z)), zs);
       const hidden = minus(zs, zv);
-      const doorWall = silhouetteOf(isWall([[X + 8, Y + 8, "n"]]));
+      const doorWall = silhouetteOf(isWall([[X + 8, Y + 8, "n"], [X + 8, Y + 8, "posts"], [X + 9, Y + 8, "posts"]]));
       const under = share(and(hidden, doorWall), hidden);
-      row("6. a figure through a door: whole in front and in the doorway; one just inside hidden by the wall about the opening, seen through it", front >= 0.98 && doorway >= 0.9 && zs.count > 0 && hidden.count > 0 && zv.count > 0 && under >= 0.95, `in front ${pct(front)}, in the doorway ${pct(doorway)}; inside${seen ? "" : " (its tile not in sight)"}: ${pct(share(zv, zs))} of ${zs.count} seen, ${pct(under)} of the hidden under the door's wall`);
+      row("6. a figure through a door: whole in front and in the doorway; one just inside hidden by the wall and posts about the opening, seen through it", front >= 0.98 && doorway >= 0.9 && zs.count > 0 && hidden.count > 0 && zv.count > 0 && under >= 0.95, `in front ${pct(front)}, in the doorway ${pct(doorway)}; inside${seen ? "" : " (its tile not in sight)"}: ${pct(share(zv, zs))} of ${zs.count} seen, ${pct(under)} of the hidden under the door's wall`);
       S.zombies.splice(S.zombies.indexOf(z), 1);
       pokes.pop()();
     }
@@ -395,7 +392,7 @@ export async function run(game, opts = {}) {
     {
       // A lit wall cap at night shows lit over its own face (the 2026-10-12 cap bug): the cap's middle the same with the room's fire lit
       // and put out, where the face below it changes.
-      const fire = await place("fireplace", X + 8, Y + 5, { footprint: [1, 2], facing: "y" });
+      let fire = await place("fireplace", X + 8, Y + 5, { footprint: [1, 2], facing: "y" });
       if (fire.fire) { fire.fire.fuel = 4; G.map.setFireLit(fire, true); }
       G.clock.setHour(0);
       standAt(X + 5, Y + 6.5);
@@ -413,12 +410,14 @@ export async function run(game, opts = {}) {
       const capSame = patchSame(lit, dark, capAt, 3);
       const faceMoved = !patchSame(lit, dark, faceAt, 3);
       row("7a. a lit wall cap at night shows lit over its own face: the cap's middle the sky's whatever the room's light, the face below it the room's", capSame && faceMoved, `the cap at ${capAt.map(Math.round)} ${capSame ? "the same" : "moved"} with the fire lit and out; the face ${faceMoved ? "moved" : "did not move"}`);
-      // A hearth's flame over the hearth: every whole pixel of the drawn flame frame shows in its own colour (it is unlit, in sight).
-      G.map.setFireLit(fire, true);
+      // A fireplace's flame over the fireplace (the hearth went with the fires, #527): every whole pixel of the drawn flame frame shows in
+      // its own colour (it is unlit, in sight). The fireplace stands against the north wall, its firebox clear of the faded near walls on
+      // screen (a faded wall drawn over a flame changes its colour, as it should), the player beside it.
+      unplace(fire);
+      fire = await place("fireplace", X + 5, Y + 4, { footprint: [2, 1], facing: "x" });
+      if (fire.fire) { fire.fire.fuel = 4; G.map.setFireLit(fire, true); }
       G.light.update();
-      step();
-      me.gx = X + 5;
-      me.gy = Y + 6.5;
+      standAt(X + 5.5, Y + 6.5);
       const sheet = G.assets.getSheet("fireplace", 2);
       const fl = sheet.flames && sheet.flames[fire.facing];
       let flame = { n: 0, ok: 0 };
@@ -429,7 +428,7 @@ export async function run(game, opts = {}) {
         const off = fire.offset || [0, 0];
         flame = framePixels(shot(), sheet, `flame_${fire.facing}_${kf}`, Math.round(p.x) + off[0], Math.round(p.y) + off[1]);
       }
-      row("7b. a hearth's flame shows over the hearth", flame.n > 0 && flame.ok / flame.n >= 0.9, fl ? `${flame.ok} of ${flame.n} of the flame's whole pixels in their own colour` : "the fireplace has no flames");
+      row("7b. a fireplace's flame shows over the fireplace", flame.n > 0 && flame.ok / flame.n >= 0.9, fl ? `${flame.ok} of ${flame.n} of the flame's whole pixels in their own colour` : "the fireplace has no flames");
       unplace(fire);
       // A torch's flame over its bracket: a lit torch in a bracket on the north wall's face, seen from inside.
       const seg = G.map.peekTile(X + 6, Y + 4).n;
@@ -454,11 +453,9 @@ export async function run(game, opts = {}) {
       standAt(X + 14, Y + 18);
       z.gx = X + 16;
       z.gy = Y + 16;
-      restage();
       const body = silhouetteOf(isEntity(z));
       G.client.targets.add(z.id);
       targets.push(z.id);
-      restage();
       const withRing = silhouetteOf(isEntity(z));
       const ring = minus(withRing, body);
       const frame = shot();
@@ -468,7 +465,7 @@ export async function run(game, opts = {}) {
         const j = i * 4;
         if (Math.abs(frame[j] - 97) <= 8 && frame[j + 1] >= 245 && Math.abs(frame[j + 2] - 97) <= 8) green++;
       }
-      const bodyShown = share(and(diff(frame, shot(isEntity(z))), body), body);
+      const bodyShown = share(and(visibleOf(isEntity(z)), body), body);
       row("7d. the swing outline green round a targeted dead one, its body whole inside it", ring.count > 0 && green / ring.count >= 0.9 && bodyShown >= 0.98, `${green} of the ring's ${ring.count} px green, ${pct(bodyShown)} of the body shown`);
       G.client.targets.delete(z.id);
       S.zombies.splice(S.zombies.indexOf(z), 1);
@@ -490,27 +487,33 @@ export async function run(game, opts = {}) {
     // 8. The faded near wall and its cuts fade at 0.42 over the room; the canopy hole round the player behind a tree.
     {
       const southWall = isWall(south);
-      // Inside, from one place: the walls drawn as if from outdoors (the scene's room given as none) are the crisp wall, the frame as it is
-      // the faded one, and the frame without the wall what is behind it.
+      // Inside, the south wall and its posts drawn in two flat colours over the room: where a pixel is the wall's at alpha a, the two frames
+      // differ by a times the colours' difference, so each pixel's alpha is read straight off them (the wall's own picture differs inside
+      // and out, so it is not compared with the crisp one). A post that joins a far wall stays solid (docs/17) and is left out; a pixel where
+      // two faded quads overlap (a post over its wall, a leaf over the opening) reads 1 - (1 - a)^2 there, as it always has.
       standAt(X + 5, Y + 5);
-      const crisp = shot(null, { playerRoom: 0 });
-      const crispSil = diff(shot((d) => !southWall(d), { playerRoom: 0 }), shot(() => true, { playerRoom: 0 }));
-      const faded = shot();
-      const behind = shot(southWall);
-      const fadedSil = silhouetteOf(southWall);
+      const fa = shot(null, null, { is: southWall, color: MARK_A });
+      const fb = shot(null, null, { is: southWall, color: MARK_B });
       const inPlayer = silhouetteOf(isPlayer);
-      // The pixels the fade changed (a post that joins a far wall stays solid, docs/17) inside both silhouettes, the player's left out.
-      const area = and(minus(and(crispSil, fadedSil), inPlayer), diff(crisp, faded, 6));
       const A = scene.NEAR_WALL_ALPHA;
       let good = 0;
-      for (let i = 0; i < area.length; i++) {
-        if (!area[i]) continue;
+      let solid = 0;
+      let over = 0;
+      let n = 0;
+      for (let i = 0; i < fa.length / 4; i++) {
+        if (inPlayer[i]) continue;
         const j = i * 4;
-        let ok = true;
-        for (let c = 0; c < 3; c++) if (Math.abs(faded[j + c] - (A * crisp[j + c] + (1 - A) * behind[j + c])) > 6) ok = false;
-        if (ok) good++;
+        const a = (fa[j] - fb[j] + (fb[j + 1] - fa[j + 1])) / 510;
+        if (a < 0.02) continue;
+        if (a >= 0.97) {
+          solid++;
+          continue;
+        }
+        n++;
+        if (Math.abs(a - A) <= 0.03) good++;
+        else if (Math.abs(a - (1 - (1 - A) * (1 - A))) <= 0.03) over++;
       }
-      row(`8a. the faded near wall and its cut pieces fade at ${A} over the room`, area.count > 0 && good / area.count >= 0.95, `${good} of ${area.count} px of the south wall the blend of its own colour at ${A} over what is behind it`);
+      row(`8a. the faded near wall and its cut pieces fade at ${A} over the room`, n > 0 && (good + over) / n >= 0.98 && good / n >= 0.9, `${good} of ${n} faded px of the south wall at ${A}, ${over} where two faded quads overlap, ${n - good - over} at another alpha; ${solid} solid (a post joining a far wall)`);
       const oak = await place("tree_oak_l", X + 18, Y + 18);
       standAt(X + 17, Y + 17);
       const sheet = G.assets.getSheet(me.sprite);
@@ -520,7 +523,7 @@ export async function run(game, opts = {}) {
       const f = sheet.frames[name];
       const p = screen(me.gx, me.gy);
       const hole = [Math.round(p.x) - sheet.anchor[0] + f[2] / 2, Math.round(p.y) - sheet.anchor[1] + f[3] * 0.45];
-      const sil = silhouetteOf(isProp(oak));
+      const sil = silhouetteOf(isProp(oak), { player: null }); // its whole silhouette: with no player, no hole
       const shown = and(visibleOf(isProp(oak)), sil);
       let inHole = 0;
       let seenInHole = 0;
@@ -552,8 +555,7 @@ export async function run(game, opts = {}) {
         const [tx, ty] = p.tile;
         const fi = anim && anim.fps > 0 ? Math.floor((performance.now() / 1000) * anim.fps + Math.abs(tx * 7 + ty * 3)) % anim.frames : 0;
         const at = screen(tx, ty);
-        const full = shot();
-        const vis = diff(full, shot(isProp(p)));
+        const vis = visibleOf(isProp(p));
         const out = { n: 0, shown: 0 };
         for (const kind of ["idle", "flame"]) {
           const name = G.assets.idleFrame(sheet, p, fi, kind);
@@ -582,15 +584,15 @@ export async function run(game, opts = {}) {
       drop(X + 12, Y + 12, G.items.makeEntry("apple", 1));
       const lying = { ...G.items.makeEntry("arrow", 1), at: [X + 12.1, Y + 14.2], angle: 3 };
       drop(X + 12, Y + 14, lying);
-      restage();
       const res = [[X + 12, Y + 12, "a floor item"], [X + 12, Y + 14, "a lying arrow"]].map(([tx, ty, what]) => {
         const sil = silhouetteOf(isFloor(tx, ty));
         const shown = and(visibleOf(isFloor(tx, ty)), sil);
         return { what, sil: sil.count, share: share(shown, sil) };
       });
       const flight = [{ gx: X + 13, gy: Y + 17, z: 40, projectile: "arrow", frame: 0 }];
-      const fsil = diff(shot((d) => d.kind !== "arrowShadow", { arrows: flight }), shot(() => true, { arrows: flight }));
-      const fshown = and(diff(shot(null, { arrows: flight }), shot((d) => d.kind === "arrowShadow", { arrows: flight })), fsil);
+      const isShadow = (d) => d.kind === "arrowShadow";
+      const fsil = silhouetteOf(isShadow, { arrows: flight });
+      const fshown = and(visibleOf(isShadow, { arrows: flight }), fsil);
       const mark = diff(shot(null, { tileMark: { tiles: [[X + 15, Y + 13]], alpha: 1 } }), shot(null, { tileMark: null }));
       const prints = diff(shot(null, { tracks: [{ gx: X + 15, gy: Y + 16, dx: 1, dy: 0, species: "deer", fade: 1 }] }), shot(null, { tracks: [] }));
       const ok = res.every((r) => r.sil > 0 && r.share >= 0.98) && fsil.count > 0 && share(fshown, fsil) >= 0.98 && mark.count >= 100 && prints.count >= 6;
@@ -602,7 +604,7 @@ export async function run(game, opts = {}) {
     // draw on top.
     {
       standAt(X + 1, Y + 12);
-      const unseen = screen(X + 6, Y + 5.5); // the floor inside the shut house
+      const unseen = screen(X + 5, Y + 4.2); // the floor inside the shut house, by its north wall: above the south wall's top on screen
       const seen = screen(X + 2, Y + 14);
       const fogged = shot(null, { fog: true, drawAll: false });
       const clear = shot(null, { fog: false, drawAll: false });
@@ -672,7 +674,6 @@ export async function run(game, opts = {}) {
       if (bare(rx, ry) && bare(rx + 1, ry)) {
         build(rx + 1, ry, "w");
         const oak = await place("tree_oak_old", rx, ry);
-        restage();
         const ov = visibleOf(isProp(oak)).count;
         const wv = visibleOf(isWall([[rx + 1, ry, "w"]])).count;
         topsOk = ov > 0 && wv > 0;

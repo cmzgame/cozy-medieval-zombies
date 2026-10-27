@@ -51,8 +51,10 @@ export const DEPTH_BIAS = { floorItem: 0.5, post: 0.5, prop: 1, figure: 2, parti
 
 // For check("depth"): a drawable `skip` returns true for is gathered, sorted, and counted as ever but not drawn, so a check can tell a
 // thing's own pixels from what is behind them; `override` replaces fields of the frame's scene (a ghost, the marker, a flight, the tile
-// mark, the highlight, the fog), so a check can stage what the client's own modules would. Both null in play.
-export const probe = { skip: null, override: null };
+// mark, the highlight, the fog), so a check can stage what the client's own modules would; `mark` ({ is, color }) draws the drawables `is`
+// returns true for in one flat colour (gl.setMark), in their own passes and depths, so a check finds a thing's own pixels by drawing it
+// in two colours, whatever the colours behind it. All null in play.
+export const probe = { skip: null, override: null, mark: null };
 
 // The last frame's drawables by pass (check("depth"), its cost row): how many there were, and how many drew in the translucent pass.
 export const lastStats = { drawables: 0, translucent: 0 };
@@ -204,7 +206,13 @@ export function renderScene(args) {
     if (probe.skip && probe.skip(d)) continue;
     gl.setPass(gl.PASS_STAND);
     const before = gl.passVertices(gl.PASS_TRANS);
-    d.emit();
+    const marked = probe.mark && probe.mark.is(d);
+    if (marked) gl.setMark(probe.mark.color);
+    try {
+      d.emit();
+    } finally {
+      if (marked) gl.setMark(null);
+    }
     if (gl.passVertices(gl.PASS_TRANS) > before) translucent++;
   }
   lastStats.drawables = drawables.length;

@@ -73,12 +73,14 @@ let forceTrans = false;
 let sA = 0; // the surface: depth = sA * sx - sy + sC (a plane), or, with sX a number, the ridge
 let sC = 0; //   sC - sy - 1.5 |sx - sX| (two planes meeting at the column sX)
 let sX = NaN;
+let sFloors = null; // a ridge's floor planes (render/depth.js againstWalls): [[A, C], ...], its depth the most of the ridge and them
 let sBias = 0; // the drawable's kind bias (scene.js DEPTH_BIAS)
 let order = 0; // quads emitted on the surface so far: each sits `depthStepSize` nearer than the last
 let behind = false; // an outline's copies: a step behind the surface's base, not counted
 let held = 0; // > 0: quads share one step (bees: a figure of many pixels is one layer), stepped once when released
 let heldUsed = false;
 let center = 0; // the camera's depth this frame: vertices store depth less it
+let mark = null; // check("depth")'s probe: [r, g, b] every quad is drawn in, flat, unlit, and unfogged, its alpha and its pass kept
 let whiteUV = null;
 let emptyUV = null; // a transparent patch: what a sprite that could not be placed draws as (a last resort now: a sheet larger than a page, or a page the GPU refused)
 let atlasWarned = 0; // 0: nothing yet, 2: a sheet was refused (larger than a page, or the GPU gave no more pages)
@@ -652,14 +654,7 @@ export function setTranslucent(on) {
 // point (sx, sy); `{ C, xF }` a ridge, depth = C - sy - 1.5 |sx - xF|, its quads cut at the column xF. `bias` is its kind's (scene.js
 // DEPTH_BIAS). The emit order starts again: its first quad at the bias, each after a step nearer.
 export function surface(s, bias = 0) {
-  if (s.xF === undefined || Number.isNaN(s.xF)) {
-    sA = s.A;
-    sX = NaN;
-  } else {
-    sA = 0;
-    sX = s.xF;
-  }
-  sC = s.C;
+  setPlane(s);
   sBias = bias;
   order = 0;
   behind = false;
@@ -670,12 +665,14 @@ export function surface(s, bias = 0) {
 // Another plane for the quads that follow, the drawable's bias and emit order kept (a door's leaf, square to its wall, between the
 // wall's own quads).
 export function setPlane(s) {
+  sFloors = null;
   if (s.xF === undefined || Number.isNaN(s.xF)) {
     sA = s.A;
     sX = NaN;
   } else {
     sA = 0;
     sX = s.xF;
+    if (s.floorL || s.floorR) sFloors = [s.floorL, s.floorR].filter(Boolean).map((f) => [f.A, f.C]);
   }
   sC = s.C;
 }
@@ -713,11 +710,16 @@ export function passVertices(p) {
 
 function useBucket(b) {
   if (b === cur) return;
-  buckets[cur].verts = verts;
-  buckets[cur].count = count;
+  keepBucket();
   cur = b;
   verts = buckets[b].verts;
   count = buckets[b].count;
+}
+
+// The store being written keeps what has been written to it (its array, which grow() may have replaced, and its count).
+function keepBucket() {
+  buckets[cur].verts = verts;
+  buckets[cur].count = count;
 }
 
 // The pass a quad goes to: the flat and top passes as asked; a standing quad to the translucent pass when it is forced there, its
@@ -727,6 +729,12 @@ function useBucket(b) {
 function route(alpha, flags, soft) {
   if (pass === PASS_FLAT || pass === PASS_TOP) return pass;
   return forceTrans || alpha < 1 || flags & FLAG_OCCLUDER || soft ? PASS_TRANS : PASS_STAND;
+}
+
+// The probe's mark (scene.js `probe.mark`, check("depth")): while set, every quad that follows is drawn in this one colour, flat (its
+// sprite's shape and alpha kept), unlit, and unfogged, in the pass and at the depth it would have had; null in play.
+export function setMark(rgb) {
+  mark = rgb;
 }
 
 function biasNow() {
@@ -807,6 +815,10 @@ function clipAt(P, X) {
 // section 3: a prop's left half on its footprint's south-west face, its right on the south-east).
 function emitPoly(P, pg, c, flags, soft) {
   const b = route(c[3], flags, soft);
+  if (mark) {
+    c = [mark[0], mark[1], mark[2], c[3]];
+    flags |= FLAG_UNLIT | FLAG_NOFOG | FLAG_SOLID;
+  }
   useBucket(b);
   if (b === PASS_FLAT || b === PASS_TOP) {
     fan(P, pg, c, flags, 0, null, 0);
@@ -823,7 +835,8 @@ function emitPoly(P, pg, c, flags, soft) {
     }
     const left = [1.5, sC - 1.5 * sX];
     const right = [-1.5, sC + 1.5 * sX];
-    if (hi <= sX) fan(P, pg, c, flags, left[0], left[1], bias);
+    if (sFloors) emitEnvelope(P, pg, c, flags, bias, lo, hi, left, right);
+    else if (hi <= sX) fan(P, pg, c, flags, left[0], left[1], bias);
     else if (lo >= sX) fan(P, pg, c, flags, right[0], right[1], bias);
     else {
       const [L, R] = clipAt(P, sX);
@@ -834,12 +847,43 @@ function emitPoly(P, pg, c, flags, soft) {
   stepOrder();
 }
 
+// A ridge with floor planes (render/depth.js againstWalls): the depth at each column the most of the ridge's side there and the floors,
+// a piecewise plane, so the polygon is cut at every column where the topmost line changes and each piece fanned on its own line.
+function emitEnvelope(P, pg, c, flags, bias, lo, hi, left, right) {
+  const lines = [left, right, ...sFloors];
+  const top = (x) => {
+    let best = x <= sX ? left : right;
+    for (const f of sFloors) if (f[0] * x + f[1] > best[0] * x + best[1]) best = f;
+    return best;
+  };
+  const cuts = [sX];
+  for (let i = 0; i < lines.length; i++) {
+    for (let j = i + 1; j < lines.length; j++) {
+      const dA = lines[i][0] - lines[j][0];
+      if (Math.abs(dA) > 1e-9) cuts.push((lines[j][1] - lines[i][1]) / dA);
+    }
+  }
+  const xs = [lo, ...cuts.filter((x) => x > lo && x < hi).sort((a, b) => a - b), hi];
+  for (let i = 0; i < xs.length - 1; i++) {
+    const a = xs[i];
+    const b = xs[i + 1];
+    if (b - a < 1e-6) continue;
+    let piece = P;
+    if (a > lo) piece = clipAt(piece, a)[1];
+    if (b < hi) piece = clipAt(piece, b)[0];
+    const line = top((a + b) / 2);
+    fan(piece, pg, c, flags, line[0], line[1], bias);
+  }
+}
+
 // The depth a standing quad's point would take on the current surface, the bias included, in the world's units (not less the camera's):
 // for check("depth").
 export function depthAt(sx, sy) {
   const bias = biasNow();
   if (Number.isNaN(sX)) return sA * sx - sy + sC + bias;
-  return sC - sy - 1.5 * Math.abs(sx - sX) + bias;
+  let d = sC - 1.5 * Math.abs(sx - sX);
+  if (sFloors) for (const f of sFloors) d = Math.max(d, f[0] * sx + f[1]);
+  return d - sy + bias;
 }
 
 const WHITE = [1, 1, 1, 1];
@@ -962,7 +1006,7 @@ function uploadAtlas() {
 
 // Draw everything pushed since begin() with these uniforms.
 export function end(u) {
-  useBucket(PASS_FLAT); // the store being written keeps its count
+  keepBucket(); // the store being written keeps its count, whichever it is: a frame whose last quad lies flat (nothing standing in it) included
   for (let b = 0; b < 4; b++) lastPassCounts[b] = buckets[b].count / STRIDE;
   if (lost) return; // nothing to draw to; the batch is dropped
   uploadAtlas();

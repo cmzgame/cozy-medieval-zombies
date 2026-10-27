@@ -11,6 +11,7 @@ import * as gl from "../gl.js";
 import { projectileSheet } from "./entities.js";
 import { OCCLUDER_MIN_HEIGHT, DEPTH_BIAS, frameQuad } from "./scene.js";
 import * as depth from "./depth.js"; // a slice's two front faces, or a canopy's billboard (docs/51)
+import { WALL_T } from "../placeholders.js";
 import { makeWall } from "./walls.js";
 import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim milliseconds (docs/23a, C2)
 import * as hl from "./highlight.js"; // Object Highlight (#301)
@@ -165,6 +166,22 @@ function clickFrame(prop) {
   return null;
 }
 
+// A ridge surface held off the walls on tile (tx, ty)'s north and west edges (render/depth.js againstWalls), each by its own thickness;
+// a billboard (a canopy) is left as it is.
+function backWalls(surf, tx, ty) {
+  if (surf.xF === undefined) return surf;
+  const t = map.tileAt(tx, ty);
+  const thick = (w) => {
+    if (!w) return 0;
+    try {
+      return getSheet(w.sprite).thickness || WALL_T;
+    } catch {
+      return WALL_T;
+    }
+  };
+  return depth.againstWalls(surf, tx, ty, thick(t && t.n), thick(t && t.w));
+}
+
 export function propDrawables(tiles, visible, out) {
   const lit = []; // the slices of the prop under the cursor (Object Highlight, #301)
   for (const [tx, ty] of tiles) {
@@ -203,6 +220,7 @@ export function propDrawables(tiles, visible, out) {
     // Its depth (docs/51 section 3): the slice's own footprint tile's two front faces, split at its front corner; a tree's or any canopy's
     // a billboard through that corner. Its flames, its bees, and its outline on the same surface.
     const surf = depth.propSlice(tx, ty, !!getDef(prop.sprite).canopy);
+    const held = backWalls(surf, tx, ty); // held off the walls on its tile's back edges, which it stands against
     const d = {
       key: (tx + ty) * 1000 + 1,
       kind: "prop",
@@ -214,9 +232,9 @@ export function propDrawables(tiles, visible, out) {
       sheet, // and the sheet it draws from (`check("apples")`: a picked tree drawn bare)
       prop, // and the prop, by which check("depth") finds its drawable
       tile: [tx, ty],
-      surf,
+      surf: held,
       emit() {
-        gl.surface(surf, DEPTH_BIAS.prop);
+        gl.surface(held, DEPTH_BIAS.prop);
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         if (swarm) bees.emit(swarm, true, [tx, ty]);
         if (sink > 0) risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, (loop.simTime() - prop.risenAt) / RES.riseSeconds, shudderOf(prop));
@@ -226,7 +244,7 @@ export function propDrawables(tiles, visible, out) {
         if (furnFlame) frameQuad(sheet, furnFlame, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
     };
-    if (hl.isProp(prop.id) && !sink) lit.push({ d, sheet, name, f, x, y, tx, ty, prop, surf }); // a rising rock is outlined once it is up
+    if (hl.isProp(prop.id) && !sink) lit.push({ d, sheet, name, f, x, y, tx, ty, prop, surf: held }); // a rising rock is outlined once it is up
     out.push(d);
   }
   if (lit.length) highlightProp(lit, out);
@@ -272,7 +290,7 @@ export function floorItemDrawables(tiles, visible, out) {
     const vis = visible.has(tileKey(tx, ty));
     // Its depth (docs/51 section 3): the tile's two front faces, split at its front corner, a little over the ground; what lies flat (a
     // landed arrow, a thrown knife) is drawn in the flat pass, in the pile's place.
-    const surf = depth.ridge(tx + 0.5, ty + 0.5);
+    const surf = backWalls(depth.ridge(tx + 0.5, ty + 0.5), tx, ty);
     out.push({
       key: (tx + ty) * 1000 + 0.8,
       kind: "prop",
