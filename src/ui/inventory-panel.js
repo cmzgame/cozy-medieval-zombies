@@ -8,7 +8,6 @@
 // docs/23 step 4). Both are 38 px a cell (view.panelCell); a character slot is
 // one cell in a cutout and shows the item's portrait.
 
-import { url as assetUrl } from "../assets.js"; // icons carry the manifest stamp (docs/23)
 import { getItem, canMerge } from "../items.js";
 import * as grid from "../grid.js";
 import * as menu from "./context-menu.js";
@@ -21,6 +20,7 @@ import { beltIconURL, roleIconKey } from "./belt-icons.js"; // the faint hand or
 import { holdsWater, isTainted } from "../water.js"; // the brown drop on a tainted skin or bucket (docs/44)
 import { parseSlot, HIDEABLE, beltRole, beltPositions, BELT_ROLES } from "../inventory.js";
 import { handLabel, handSideOf } from "../handed.js"; // the hand slots named by side, "Main hand (right)" (Michael, 2026-10-25)
+import * as dyedArt from "./dyed-art.js"; // a dyed item's drawn icon and portrait in its colours (Michael, 2026-10-26)
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
 const HOT_CELL = view.BASE_CELL; // the belt is HUD and keeps the base size
@@ -266,7 +266,7 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
     const fh = rot ? iw : ih;
     const s = Math.max(1, Math.floor(Math.min((w * cell) / fw, (h * cell) / fh)));
     cls.push("has-icon");
-    inner += `<img class="inv-icon" src="${assetUrl(pic.src)}" alt="" draggable="false" style="width:${iw * s}px;height:${ih * s}px${rot ? ";transform:rotate(90deg)" : ""}">`;
+    inner += `<img class="inv-icon" src="${dyedArt.dyedSrc(def, entry, pic)}" alt="" draggable="false" style="width:${iw * s}px;height:${ih * s}px${rot ? ";transform:rotate(90deg)" : ""}">`;
   } else {
     inner += `<span class="inv-label">${def.short || def.name}</span>`;
   }
@@ -362,7 +362,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
   bags = { inv: inv || null, container: container || null };
   shown.player = player;
   // The hotbar is always shown while a belt is worn.
-  const beltSig = JSON.stringify([belt, settings.get("beltOrder"), player && player.handed], shownAs);
+  const beltSig = JSON.stringify([belt, settings.get("beltOrder"), player && player.handed, dyedArt.version()], shownAs); // a dyed picture made since redraws
   if (!belt) hotbar.hidden = true;
   else {
     hotbar.hidden = false;
@@ -375,7 +375,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
   if (!open && !character) return;
   if (drag && drag.from.kind === "bag" && drag.from.bag !== inv && drag.from.bag !== container) cancelDrag();
   CELL = view.panelCell();
-  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands, player.hidden, player.handed], shownAs);
+  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands, player.hidden, player.handed, dyedArt.version()], shownAs);
   if (sig === lastSignature) return;
   const hadContainer = lastSignature !== "" && /"container"/.test(lastSignature);
   lastSignature = sig;
@@ -613,7 +613,7 @@ function startDrag() {
   if (def.icon) {
     // An item with art is carried as the art alone, nothing behind it (Michael, 2026-10-12).
     g.classList.add("art");
-    g.innerHTML = `<img src="${assetUrl(iconOf(def, drag.entry).src)}" alt="" draggable="false">`;
+    g.innerHTML = `<img src="${dyedArt.dyedSrc(def, drag.entry, iconOf(def, drag.entry))}" alt="" draggable="false">`;
   } else {
     g.style.setProperty("--item", tintOf(drag.entry, def));
     g.textContent = def.short || def.name;

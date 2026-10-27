@@ -168,6 +168,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
+- A dyed thing's drawn icon and portrait show its dye, each region's tones moved at their own lightness; the outline and the fittings kept (2026-10-26, A dyed thing's pictures show its dye)
 - A character is right-handed or left-handed, never ambidextrous, right by default, chosen once with its identity; it is visual and a label alone: the hand slots' names on the character screen, the belt's hand icons, and the arm the main hand's thing is drawn in; everything mechanical stays main and off (2026-10-25, Right- or left-handed)
 - Cheery at home, spooky beyond: the valley start-as-Stardew, Tirisfal the outer regions' register, region by region, not a gradient (2026-10-25, Cheery at home, spooky beyond)
 - Habbo is no longer the visual reference; its techniques (flat side shading, stepped shadows) stay as how pixels are drawn (2026-10-25, Cheery at home, spooky beyond)
@@ -324,6 +325,13 @@ From the research in #511 (what multilevel would take, Zomboid style; Michael's 
 Later the same night, after `51` and `52` were ruled, Michael asked for "a careful full spec for multiple stories, including a -1 level root cellar under existing houses. Spec out stairs, much like zomboid, 3ish tiles, goes up one floor, magically transitions you to the next layer of the world when you cross the boundary." The spec was rewritten to that: **a stair is three tiles, each rising one crate, and the layer changes as the body crosses the stair's top edge; root cellars sit under existing houses.**
 
 Then ladders, after an outside consult Michael brought in (an E-driven climb between layers, a hole or a hatch above the ladder, the hatch part of the ladder): "No ladder removal, same as stairs for now ... I would probably not make these player buildable yet either. Not until you can remove them. Stairs I think it's fine to allow to build." "For the foreseeable future, if we have an 'empty' tile in the game for any reason, it is never walkable, and you can never 'fall' to a lower level." "Ladders can never be raised, like pulled up and out of the hole. It's a built object like the wall." "I do not think the dead should be able to climb up as well ... this is not strictly a survival game, it's a medieval dark fantasy RPG, no one is going to spend the whole thing hiding ... If you climb up a ladder, are safe from zombies, and never leave, you starve to death or die of dehydration ... They just ignore ladders." **Ruled:** ladders and hatches are placed by the map only, never removed or pulled up, climbed by E, and ignored by the dead; an empty tile is never walkable and nothing ever falls; stairs stay buildable. The spec's default, his to overrule: a built stair brings its own landing floor, Zomboid's way.
+
+### 2026-10-26 — A dyed thing's pictures show its dye (Michael)
+
+The wiki sync after art round 5 (#519) found a dyed linen satchel drawn in its colours on the back but undyed in the bag and its slot: the builder's reading in `43` section 8 kept a drawn icon "as painted". Michael: "Yes: a dyed satchel's bag icon and slot portrait should show its dye colours, as the figure does."
+
+- Every dyeable item with drawn art (the tunic, the breeches, the boots, the linen satchel today) shows its dye in the bag's icon, the slots' portrait, the belt, and the drag: each region of the item's `dye` names the picture's `tones` it owns and its `base`, the picture's main tone there (`data/items.json`): the base becomes the entry's colour for that region, and every other tone keeps its place on the ramp, darker or lighter as it was; the outline and what no region names (a buckle, a toggle, hobnails, a drawstring) keep their paint (`src/ui/dyed-art.js`, client-only; *Primary's reading* of "as the figure does": the figure swaps two key tones, a drawn picture shades a whole ramp, so the ramp moves).
+- The picture on the floor stays the painted one for now (one picture per item there).
 
 ### 2026-10-26 — The demo pass: the dev chest for trying everything, a roomier cottage, mana twice as fast and between health and stamina, real art for the first fifteen minutes (Michael)
 
