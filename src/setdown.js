@@ -279,8 +279,13 @@ export function mountTorch(player, uid, tx, ty, edge) {
     showMessage(why);
     return false;
   }
-  if (!inventory.detach(player, entry)) return false;
-  map.mountTorch(tx, ty, edge, entry);
+  // Mounted first, then taken from the player, so a refusal at either step loses no torch (the review of #532).
+  const b = map.mountTorch(tx, ty, edge, entry);
+  if (!b) return false;
+  if (!inventory.detach(player, entry)) {
+    map.removeBracket(b);
+    return false;
+  }
   showMessage(entry.lit ? "You put the torch on the wall, burning." : "You put the torch on the wall.");
   return true;
 }

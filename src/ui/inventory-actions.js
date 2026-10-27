@@ -92,9 +92,9 @@ function beltRefusal(entry, slotId) {
 // On the belt it is the key's path alone: the plain Equip (the slot's draw) or Eat; the menu's Equip into a hand for a thing the key does not
 // draw ("Equip (both hands)" in the utility slot, as from the bag) is never a double-click's, so the double-click says why as the key does.
 // The menu entries that only begin a mode on this screen (the Use mode, a rug's or a painting's ghost, a torch's for a wall: Place torch,
-// #523): a guest runs them on its own replica and never sends them; the command that follows is the mode's own, and the host never runs them
+// #523; Place as decoration, the review of #532): a guest runs them on its own replica and never sends them; the command that follows is the mode's own, and the host never runs them
 // for a guest. "Place torch" is interact.PLACE_TORCH, written out: the two modules import each other, so neither reads the other at load.
-const LOCAL = new Set(["Use", "Place", "Place torch"]);
+const LOCAL = new Set(["Use", "Place", "Place as decoration (it will not be food again)", "Place torch"]);
 
 function slotUse(menu, slotId) {
   const belt = inventory.parseSlot(slotId).kind === "belt";

@@ -499,7 +499,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
         } else if (br.torch) {
           gl.poly([[bx - 1, by - 14], [bx + 2, by - 14], [bx + 2, by - 1], [bx - 1, by - 1]], gl.rgb(WOOD, alpha), opts);
           gl.poly([[bx - 2, by - 17], [bx + 3, by - 17], [bx + 3, by - 12], [bx - 2, by - 12]], gl.rgb("#3a2a22", alpha), opts);
-          if (vis && br.lit !== false) frameQuad(getSheet("flame"), `flame_${flameFrame(tx + ty)}`, bx, by - 15, { world: [tx, ty], flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+          if (vis && br.lit !== false) frameQuad(getSheet("flame"), `flame_${flameFrame(tx + ty)}`, bx, by - 15, { world: [tx, ty], flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG, ...(ghostTint ? { tint: ghostTint } : {}) }); // a refused ghost's flame takes its tint
         }
       }
     },
