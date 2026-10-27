@@ -5563,21 +5563,23 @@ check("the storeys' playtest: a body pressed against each side of the stair stay
   }
   return res.join("; ");
 });
-check("the storeys' playtest: twelve treads of 8 px, and the feet on the tread under them (the rise within 8 px under its top, on it past a third of its depth)", () => {
+check("the storeys' playtest: twelve treads of 8 px as the drawn stairs lay them, and the feet on the top of the tread under them", () => {
   assert(mapMod.STAIR_TREADS === 12, `${mapMod.STAIR_TREADS} treads`);
-  let worst = 0;
-  for (let i = 0; i <= 300; i++) {
-    const t = (i / 300) * 3;
-    const k = Math.min(11, Math.floor(t * 4));
-    const top = (k + 1) * 8;
+  // The drawn stairs (art round 8): tread k (1 to 12) is 8k px tall over u = (8k - 4) / 32 to (8k + 4) / 32 tiles, bare floor before the first.
+  const treadAt = (t) => {
+    for (let k = 1; k <= 12; k++) if (t >= (8 * k - 4) / 32 - 1e-9 && t <= (8 * k + 4) / 32 + 1e-9) return k * 8;
+    return 0;
+  };
+  for (let i = 0; i <= 600; i++) {
+    const t = (i / 600) * 3;
     const r = mapMod.stairRise(t);
-    const f = t * 4 - k;
-    assert(r <= top + 1e-9 && r >= top - 8 - 1e-9, `at ${t.toFixed(2)}: rise ${r}, tread ${top}`);
-    if (f >= 0.35) assert(Math.abs(r - top) < 1e-9, `past a third of tread ${k}: rise ${r}, tread ${top}`);
-    worst = Math.max(worst, top - r);
+    const top = treadAt(t);
+    const edge = Math.abs(t * 4 - Math.round(t * 4) - 0.5) < 1e-6 || Math.abs(t * 4 - Math.round(t * 4) + 0.5) < 1e-6; // on a riser itself, either tread
+    assert(r === top || (edge && Math.abs(r - top) === 8), `at ${t.toFixed(3)}: rise ${r}, the tread there ${top}`);
   }
-  assert(mapMod.stairRise(0) === 0 && mapMod.stairRise(3) === 96 && Math.abs(mapMod.stairRise(1) - 32) < 1e-9, "the ends and a tile up");
-  return `the feet at most ${worst.toFixed(1)} px under the tread's top, on it past a third of its depth`;
+  const art = read("data/sprites/stair_wood.json");
+  assert(mapMod.stairRise(0) === 0 && mapMod.stairRise(3) === 96 && mapMod.stairRise(1) === 32 && ["n", "w", "s", "e"].every((d) => art.drawings[d] && art.drawings[d].image), "the ends, a tile up, and the drawn stair's four facings");
+  return "the rise is the tread under the feet at every point of the run";
 });
 check("the storeys' playtest: the landing is walked onto from its three open sides on the first floor and then down the stair; the stairwell's sides still stop a body", () => {
   const s = tallHouse();
