@@ -82,6 +82,20 @@ export function wallFace(edge, tx, ty, T) {
   return edge === "n" ? planeY(ty - 0.5 + T / 2 / UNIT) : planeX(tx - 0.5 + T / 2 / UNIT);
 }
 
+// A wall segment's surface: its near face, and from a column short of its camera-side end the end's own face (the wall's thickness
+// seen end on), a ridge on the near face. A segment's picture reaches past its end (its thickness, its cap's end), and on the near
+// face's plane those pixels tied with the next segment's face, which the float rounding of two triangles broke either way: the joints
+// of a run of wall showed the end of the segment behind through the one in front. On the end's plane they lie behind the next segment,
+// as they are, and in front of what is beyond a free end. A north wall's camera-side end is its east end, on screen right (the face
+// along x left of the ridge, the end along y right of it); a west wall's is its south end, on screen left. `shift` (grid units) moves
+// the ridge that far back along the face from the end: the drawn post at a segment's camera-side end is wider than the wall
+// (render/walls.js), and its face, flush with the walls' and a little behind them (scene.js DEPTH_BIAS), shows over the last of the
+// segment as the sort drew it, while the segment that begins at the post covers it.
+export function wallSurface(edge, tx, ty, T, shift = 0) {
+  const t = T / 2 / UNIT;
+  return edge === "n" ? ridge(tx + 0.5 - shift, ty - 0.5 + t) : ridge(tx - 0.5 + t, ty + 0.5 - shift);
+}
+
 // An open door's leaf stands square to its wall through the hinge (grid point hx, hy): along y for a north wall's door, along x for a
 // west wall's.
 export function leaf(edge, hx, hy) {

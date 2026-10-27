@@ -243,7 +243,11 @@ export function postAt(tx, ty, playerRoom) {
   // as a pale column).
   const near = [[nE, tx, ty, "n"], [nW, tx - 1, ty, "n"], [wS, tx, ty, "w"], [wN, tx, ty - 1, "w"]]
     .every(([w, x, y, e]) => !w || isNearWall(x, y, e, playerRoom));
-  return { sheet, near };
+  // The thinnest wall it joins: its depth is taken flush with that wall's faces (makePost), so a post of a thicker material (stone
+  // between timber) stands no further forward than the timber it meets.
+  let thin = Infinity;
+  for (const w of walls) thin = Math.min(thin, getSheet(w.sprite).thickness || WALL_T);
+  return { sheet, near, thin };
 }
 
 // Corner posts.
@@ -252,7 +256,7 @@ export function postDrawables(tiles, visible, playerRoom, out) {
     const post = postAt(tx, ty, playerRoom);
     if (!post) continue;
     const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
-    out.push(makePost(tx, ty, post.sheet, vis, post.near));
+    out.push(makePost(tx, ty, post.sheet, vis, post.near, post.thin));
   }
 }
 
@@ -349,7 +353,7 @@ function emitCutWall(sheet, name, edge, x, y, h, T, o, cuts) {
   if (xR > xL) piece([[xL, Tp], [xR, Tp], [xR, B], [xL, B]]);
 }
 
-function makePost(tx, ty, sheet, vis, near) {
+function makePost(tx, ty, sheet, vis, near, thin = null) {
   const p = iso.toScreen(tx - 0.5, ty - 0.5);
   const x = Math.round(p.x);
   const y = Math.round(p.y);
@@ -365,10 +369,13 @@ function makePost(tx, ty, sheet, vis, near) {
   const hidden = false;
   const alpha = faded ? NEAR_WALL_ALPHA : 1;
   const flags = vis ? gl.FLAG_NOFOG : 0;
-  // Its depth (docs/51 section 3): the two faces of its square, split at its near corner's column, a little over the walls meeting at it.
-  // A drawn post is centred on the vertex, a pixel proud of the wall (its cap below); the generated one's square has the vertex for its
-  // near corner.
-  const hs = sheet.wall && sheet.wall.post ? (T / 2 + 1) / depth.UNIT : 0;
+  // Its depth (docs/51 section 3): the two faces of its square, split at its near corner's column. A drawn post is centred on the vertex,
+  // a pixel proud of the wall in its picture (its cap below), but its depth is taken flush with the faces of the thinnest wall it joins,
+  // a little behind them (scene.js DEPTH_BIAS): proud, its corner stood a unit into a room's far corner and drew a light line down it,
+  // and a stone post between timber walls stood over the timber that begins at it, neither of which the sort ever showed. The walls'
+  // own surfaces give way to it at their camera-side ends (depth.wallSurface). The generated one's square has the vertex for its near
+  // corner.
+  const hs = sheet.wall && sheet.wall.post ? (thin || T) / 2 / depth.UNIT : 0;
   const surf = depth.ridge(tx - 0.5 + hs, ty - 0.5 + hs);
   return {
     key: (tx + ty - 1) * 1000 + 0.5,
@@ -470,9 +477,15 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
   const b = edge === "n" ? [x + iso.HW, y] : [x, y - iso.HH];
   const wa = edge === "n" ? [tx - 0.4, ty - 0.2] : [tx - 0.2, ty - 0.4];
   const wb = edge === "n" ? [tx + 0.4, ty - 0.2] : [tx - 0.2, ty + 0.4];
-  // Its depth (docs/51 section 3): the wall's true near face, a plane; its cap redrawn on the sky, its boards, leaves, shutters, hangings,
-  // bracket, and flame on it, each a step nearer than the one before.
-  const face = depth.wallFace(edge, tx, ty, T);
+  // Its depth (docs/51 section 3): the wall's true near face, a plane, and past its camera-side end the end's own face (depth.wallSurface);
+  // its cap redrawn on the sky, its boards, leaves, shutters, hangings, bracket, and flame on it, each a step nearer than the one before.
+  // Where a drawn post stands at its camera-side end (the vertex east of a north wall, south of a west one), centred on the vertex
+  // (Tp / 2 + 1) units each way, its face reaches 2 (Tp / 2 + 1) - T / 2 back along the wall from the face's end, and the ridge moves
+  // back with it, a unit further (the post's last column clear of the tie at the ridge); at a plain joint it moves back two units, under the next segment's first column (its outline, which the sort drew
+  // over this one's last), and no further, so what stands just inside the wall there stays behind it.
+  const endPost = edge === "n" ? postAt(tx + 1, ty, null) : postAt(tx, ty + 1, null);
+  const postSheet = endPost && endPost.sheet.wall && endPost.sheet.wall.post ? endPost.sheet : null;
+  const face = depth.wallSurface(edge, tx, ty, T, (postSheet ? (postSheet.thickness || WALL_T) + 3 - T / 2 : 2) / depth.UNIT);
   const br = wall.bracket && wall.bracket.side > 0 ? wall.bracket : null;
   let bx = 0;
   let by = 0;

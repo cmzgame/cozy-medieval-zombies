@@ -40,6 +40,7 @@ export const PASS_TOP = 3;
 // ((cam.gx + cam.gy) * 32), and the clip z is 1 - 2 (depth - base) / 8192 with base the camera's depth less 4096,
 // which is -relative / 4096: the whole of clip space over +-4096 units round the camera, nearer the smaller z.
 export const DEPTH_HALF_RANGE = 4096;
+const DEPTH_CENTRE_STEP = 256; // the depth range's centre moves in these steps (begin)
 const ALPHA_TEST = 0.5; // the opaque pass discards a fragment whose alpha is under this
 const ALPHA_FLOOR = 0.004; // every other pass discards only what is all but clear, as before
 
@@ -614,7 +615,11 @@ export function begin(cameraDepth = 0) {
   count = 0;
   groundFloats = 0;
   groundRanges.length = 0;
-  center = cameraDepth;
+  // The centre moves in whole steps of 256 units, never with the camera's fraction of a tile: every depth on a wall, a post, or a
+  // prop's slice is then a multiple of 1/32 of a unit less a multiple of 256, which a float holds exactly, so two quads on one plane
+  // come out the same wherever the camera stands, and walking flips nothing (Michael's playtest, 2026-10-27: the walls flickered as he
+  // walked). The range keeps 4096 - 128 either side of the camera, past what a 4K window shows (docs/51 section 5).
+  center = Math.round(cameraDepth / DEPTH_CENTRE_STEP) * DEPTH_CENTRE_STEP;
   pass = PASS_FLAT;
   forceTrans = false;
   surface({ A: 0, C: cameraDepth }, 0);
@@ -777,16 +782,23 @@ function vertex(x, y, u, v, page, wx, wy, h, c, flags, d) {
 
 // A convex polygon of vertices [x, y, u, v, wx, wy, h], fanned from its first, its depth from the plane (A, C) and the bias, stored less
 // the camera's; `C` null for a pass that has no depth (flat, top: a constant inside the range, so nothing is clipped).
+// Each corner's depth is worked out once (`fanDepth`), and the triangles written from the corners, with no array made per vertex: the
+// frame emits thousands of these.
+const fanDepth = new Float64Array(16);
 function fan(P, pg, c, flags, A, C, bias) {
   const n = P.length;
   if (n < 3) return;
   grow(STRIDE * 3 * (n - 2));
   const k = C === null ? 0 : C + bias - center;
+  const D = n <= fanDepth.length ? fanDepth : new Float64Array(n);
+  for (let j = 0; j < n; j++) D[j] = C === null ? 0 : A * P[j][0] - P[j][1] + k;
+  const p0 = P[0];
   for (let i = 1; i < n - 1; i++) {
-    for (const j of [0, i, i + 1]) {
-      const p = P[j];
-      vertex(p[0], p[1], p[2], p[3], pg, p[4], p[5], p[6], c, flags, C === null ? 0 : A * p[0] - p[1] + k);
-    }
+    const p1 = P[i];
+    const p2 = P[i + 1];
+    vertex(p0[0], p0[1], p0[2], p0[3], pg, p0[4], p0[5], p0[6], c, flags, D[0]);
+    vertex(p1[0], p1[1], p1[2], p1[3], pg, p1[4], p1[5], p1[6], c, flags, D[i]);
+    vertex(p2[0], p2[1], p2[2], p2[3], pg, p2[4], p2[5], p2[6], c, flags, D[i + 1]);
   }
 }
 
@@ -802,8 +814,7 @@ function clipAt(P, X) {
     if (a[0] >= X) R.push(a);
     if ((a[0] < X && b[0] > X) || (a[0] > X && b[0] < X)) {
       const t = (X - a[0]) / (b[0] - a[0]);
-      const m = a.map((v, k) => v + (b[k] - v) * t);
-      m[0] = X;
+      const m = [X, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t, a[4] + (b[4] - a[4]) * t, a[5] + (b[5] - a[5]) * t, a[6] + (b[6] - a[6]) * t];
       L.push(m);
       R.push(m);
     }
@@ -829,19 +840,20 @@ function emitPoly(P, pg, c, flags, soft) {
   else {
     let lo = Infinity;
     let hi = -Infinity;
-    for (const p of P) {
-      if (p[0] < lo) lo = p[0];
-      if (p[0] > hi) hi = p[0];
+    for (let j = 0; j < P.length; j++) {
+      const x = P[j][0];
+      if (x < lo) lo = x;
+      if (x > hi) hi = x;
     }
-    const left = [1.5, sC - 1.5 * sX];
-    const right = [-1.5, sC + 1.5 * sX];
-    if (sFloors) emitEnvelope(P, pg, c, flags, bias, lo, hi, left, right);
-    else if (hi <= sX) fan(P, pg, c, flags, left[0], left[1], bias);
-    else if (lo >= sX) fan(P, pg, c, flags, right[0], right[1], bias);
+    const cl = sC - 1.5 * sX; // the left face: depth = 1.5 sx - sy + cl
+    const cr = sC + 1.5 * sX; // the right: -1.5 sx - sy + cr
+    if (sFloors) emitEnvelope(P, pg, c, flags, bias, lo, hi, [1.5, cl], [-1.5, cr]);
+    else if (hi <= sX) fan(P, pg, c, flags, 1.5, cl, bias);
+    else if (lo >= sX) fan(P, pg, c, flags, -1.5, cr, bias);
     else {
       const [L, R] = clipAt(P, sX);
-      fan(L, pg, c, flags, left[0], left[1], bias);
-      fan(R, pg, c, flags, right[0], right[1], bias);
+      fan(L, pg, c, flags, 1.5, cl, bias);
+      fan(R, pg, c, flags, -1.5, cr, bias);
     }
   }
   stepOrder();
@@ -894,22 +906,32 @@ const WHITE = [1, 1, 1, 1];
 // `skew` leans the quad: its top edge moves that many pixels sideways while the
 // bottom stays put (a clicked thing's sway; docs/02, question 27).
 // `uv`'s sixth is 1 for a soft sheet's frame (frameUV): such a quad goes to the translucent pass.
+// The corners of the quad being emitted, kept between calls (emitPoly is done with them before quad is called again).
+const QUAD = [new Array(7), new Array(7), new Array(7), new Array(7)];
+function corner(q, x, y, u, v, w, h) {
+  q[0] = x;
+  q[1] = y;
+  q[2] = u;
+  q[3] = v;
+  q[4] = w[0];
+  q[5] = w[1];
+  q[6] = h;
+}
 export function quad(x, y, w, h, uv, { world, heights = 0, color = WHITE, flags = 0, flip = false, skew = 0 } = {}) {
   const u0 = flip ? uv[2] : uv[0];
   const u1 = flip ? uv[0] : uv[2];
   const v0 = uv[1];
   const v1 = uv[3];
   const pg = uv[4] || 0; // the atlas page the rect is on
-  const W = typeof world[0] === "number" ? [world, world, world, world] : world;
-  const H = typeof heights === "number" ? [heights, heights, heights, heights] : heights;
+  const one = typeof world[0] === "number";
+  const flat = typeof heights === "number";
   const x1 = x + w;
   const y1 = y + h;
-  emitPoly([
-    [x + skew, y, u0, v0, W[0][0], W[0][1], H[0]],
-    [x1 + skew, y, u1, v0, W[1][0], W[1][1], H[1]],
-    [x1, y1, u1, v1, W[2][0], W[2][1], H[2]],
-    [x, y1, u0, v1, W[3][0], W[3][1], H[3]],
-  ], pg, color, flags, uv[5] === 1);
+  corner(QUAD[0], x + skew, y, u0, v0, one ? world : world[0], flat ? heights : heights[0]);
+  corner(QUAD[1], x1 + skew, y, u1, v0, one ? world : world[1], flat ? heights : heights[1]);
+  corner(QUAD[2], x1, y1, u1, v1, one ? world : world[2], flat ? heights : heights[2]);
+  corner(QUAD[3], x, y1, u0, v1, one ? world : world[3], flat ? heights : heights[3]);
+  emitPoly(QUAD, pg, color, flags, uv[5] === 1);
 }
 
 // A textured convex quad with any four screen corners and their own atlas

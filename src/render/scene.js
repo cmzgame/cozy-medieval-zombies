@@ -44,10 +44,15 @@ const CLEAR = [0x16 / 255, 0x12 / 255, 0x1c / 255];
 export const NEAR_WALL_ALPHA = 0.42;
 
 // The depth biases between kinds, in depth units (docs/51 section 3, defaults): what a kind sits nearer than its true geometry. Floor
-// items over the ground; posts over the walls meeting at them (they cover the seam); props and figures over the ground; a burning body's
-// flames and smoke over the body; a lifted floor over the caps of the walls below it (docs/49, when it is built). Everything else, the
+// items over the ground; props and figures over the ground; a burning body's flames and smoke over the body; a lifted floor over the
+// caps of the walls below it (docs/49, when it is built). A post sits a little behind the wall faces it is flush with (render/walls.js):
+// where a post's face and a wall's lie in one plane (a run's joint, a T where a partition meets it, the corner where a run begins) the
+// wall's picture is drawn over it, as the sort drew the later segment over the post; at an outer corner its front stands clear of both
+// walls' faces and it shows; the joints are the walls' own (a segment's end on its end's plane, render/depth.js wallSurface). The spec's
+// default was half a unit over the walls, to cover the seam; with the walls' ends on their own planes there is no seam to cover, and over
+// them the post's half showed down the middle of every T and at the start of every run, which the sort never drew. Everything else, the
 // walls, their caps, the arrows, is its true geometry. Each quad a drawable emits after its first sits gl.depthStep() nearer again.
-export const DEPTH_BIAS = { floorItem: 0.5, post: 0.5, prop: 1, figure: 2, particle: 1, liftedFloor: 1 };
+export const DEPTH_BIAS = { floorItem: 0.5, post: -0.5, prop: 1, figure: 2, particle: 1, liftedFloor: 1 };
 
 // For check("depth"): a drawable `skip` returns true for is gathered, sorted, and counted as ever but not drawn, so a check can tell a
 // thing's own pixels from what is behind them; `override` replaces fields of the frame's scene (a ghost, the marker, a flight, the tile

@@ -13,9 +13,9 @@
 // time, on bare ground near the player; the world's dead, villagers, and animals are held out meanwhile. Everything it made, moved, or
 // set is put back in its finally: the walls and props, the floor items, the player's place, facing, and hands, the hour, the rules, the
 // generator, the legibility floor, the blend, the swing's targets, and the wall clock.
-// Rows 1 to 4 are the gate for removing render/entities.js's `besideWalls` (docs/51 section 6). Row 12's range is read at the tab's own
+// Rows 1 to 4 were the gate for removing render/entities.js's `besideWalls` (docs/51 section 6), gone since. Row 12's range is read at the tab's own
 // size; the spec asks it at 3840 by 2160 at zoom 1.1 (the pane's resize_window), and the row says which it had. Row 13 measures the
-// frame's time on the busy view: the "before" is the same loop on main's renderer, passed as `{ before: ms }`.
+// frame's time on the busy view: the "before" is the mean of the same loop on main's renderer, passed as `{ before: ms }`.
 
 export async function run(game, opts = {}) {
   const G = game;
@@ -313,6 +313,82 @@ export async function run(game, opts = {}) {
       const cols = columnsLost(sil, shown);
       row("15. a figure before a chest's flank is whole", share(shown, sil) >= 0.98 && cols.length === 0, `${pct(share(shown, sil))} of ${sil.count}${cols.length ? `; columns short: ${cols.slice(0, 6).join(", ")}` : ""}`);
       unplace(chest);
+    }
+
+    // 16. The joints of a run of wall (Michael's playtest, 2026-10-27: wall faces showed through the wall beside them): of two
+    // neighbouring segments, no pixel of the one the sort drew first shows where the one it drew after has a pixel of its own (a north
+    // wall's next segment to the east, a west wall's to the south), on the house's south wall and its east wall from the yard.
+    {
+      standAt(X + 12, Y + 13);
+      const pairs = [];
+      for (let x = X + 4; x <= X + 6; x++) pairs.push([[x, Y + 8, "n"], [x + 1, Y + 8, "n"]]);
+      for (let y = Y + 4; y <= Y + 6; y++) pairs.push([[X + 9, y, "w"], [X + 9, y + 1, "w"]]);
+      let over = 0;
+      let later = 0;
+      const bad = [];
+      for (const [a, b] of pairs) {
+        const bSil = silhouetteOf(isWall([b]));
+        const through = and(visibleOf(isWall([a])), bSil).count;
+        later += bSil.count;
+        over += through;
+        if (through) bad.push(`${a[0] - X},${a[1] - Y} ${a[2]} through ${b[0] - X},${b[1] - Y}: ${through} px`);
+      }
+      row("16. a run of wall's joints: no pixel of a segment shows through the segment drawn after it", later > 0 && over === 0, `${over} px of ${pairs.length} pairs' earlier segment over the later one's ${later}${bad.length ? `; ${bad.slice(0, 4).join("; ")}` : ""}`);
+    }
+
+    // 17. A corner post is the post's own (Michael's playtest, 2026-10-27: a dark bar up every corner post): the house's south-east
+    // corner from the yard, its post in front of both walls it joins, every pixel of its silhouette shown in the colours it has drawn
+    // alone (the same frame with everything else left out).
+    {
+      standAt(X + 12, Y + 13);
+      const isPost = isWall([[X + 9, Y + 8, "posts"]]);
+      const sil = silhouetteOf(isPost);
+      const full = shot();
+      const alone = shot((d) => !isPost(d));
+      let own = 0;
+      for (let i = 0; i < sil.length; i++) {
+        if (!sil[i]) continue;
+        const j = i * 4;
+        if (Math.abs(full[j] - alone[j]) <= 2 && Math.abs(full[j + 1] - alone[j + 1]) <= 2 && Math.abs(full[j + 2] - alone[j + 2]) <= 2) own++;
+      }
+      row("17. a corner post shows whole in its own colours, nothing of the walls it joins over it", sil.count > 0 && own === sil.count, `${own} of the post's ${sil.count} px its own`);
+    }
+
+    // 18. Walking flips nothing (Michael's playtest, 2026-10-27: the side walls flickered as he walked): the house from places a
+    // fraction of a tile apart, the camera moved by whole tens of the world's pixels (eleven of the canvas's at zoom 1.1, so the picture
+    // moves by whole pixels and samples the art the same), the fog off and the player left out. Over the walls and posts nothing changes
+    // surface: no pixel differs by more than the light's own rounding (the light's textures move with the camera; a twelfth of the range
+    // per channel), which a tie between two surfaces flipping would exceed.
+    {
+      const houseWalls = isWall([...north, ...south, ...[Y + 4, Y + 5, Y + 6, Y + 7].flatMap((y) => [[X + 4, y, "w"], [X + 9, y, "w"]])]);
+      const look = () => ({ px: shot(isPlayer, { fog: false }), sil: silhouetteOf(houseWalls, { fog: false }), at: screen(X + 6, Y + 6) });
+      standAt(X + 12, Y + 13);
+      const a = look();
+      const results = [];
+      for (const [mx, my] of [[0.625, 0.625], [0.15625, -0.15625], [-0.46875, -0.15625]]) {
+        standAt(X + 12 + mx, Y + 13 + my);
+        const b = look();
+        const dx = Math.round(b.at.x - a.at.x);
+        const dy = Math.round(b.at.y - a.at.y);
+        let n = 0;
+        let flips = 0;
+        let light = 0;
+        for (let wy = 0; wy < V.h; wy++) {
+          for (let wx = 0; wx < V.w; wx++) {
+            const i = idx(wx, wy);
+            const k2 = idx(wx + dx, wy + dy);
+            if (i < 0 || k2 < 0 || !a.sil[i] || !b.sil[k2]) continue;
+            n++;
+            const j = i * 4;
+            const m = k2 * 4;
+            const d = Math.max(Math.abs(a.px[j] - b.px[m]), Math.abs(a.px[j + 1] - b.px[m + 1]), Math.abs(a.px[j + 2] - b.px[m + 2]));
+            if (d > 12) flips++;
+            else if (d) light++;
+          }
+        }
+        results.push({ dx, dy, whole: dx % 10 === 0 && dy % 10 === 0, n, flips, light });
+      }
+      row("18. the walls the same from places a fraction of a tile apart (no tie between surfaces flips as the camera moves)", results.every((r) => r.whole && r.n > 0 && r.flips === 0), results.map((r) => `moved ${r.dx},${r.dy} px: ${r.flips} of ${r.n} wall px another surface's, ${r.light} by the light's rounding${r.whole ? "" : " (not a whole ten: the camera did not move as asked)"}`).join("; "));
     }
 
     // 5. A tree in front of a house: a large oak on the tile against its south wall, and one a tile clear of it; the canopy over the wall's
@@ -704,17 +780,21 @@ export async function run(game, opts = {}) {
         dead.push(z);
       }
       step(2);
+      // The mean over 600 draws, after 30 to warm: the browser's clock is coarse (a tenth of a millisecond in the pane), and a frame
+      // takes about half a millisecond, so a median of sixty moves by a fifth with the clock's grain alone.
+      for (let i = 0; i < 30; i++) G.loop.advance(0);
       const times = [];
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 600; i++) {
         G.loop.advance(0);
         times.push(G.timing.render || 0);
       }
+      const mean = times.reduce((a, b) => a + b, 0) / times.length;
       times.sort((p, q) => p - q);
-      const median = times[30];
+      const median = times[300];
       const stats = { ...scene.lastStats };
       const before = Number(opts.before);
-      const within = Number.isFinite(before) && before > 0 ? median <= before * 1.1 : null;
-      row("13. the cost on the busy view: the frame's time, and the drawables in pass 2", within, `median ${median.toFixed(2)} ms over 60 draws (render's time, main.js)${Number.isFinite(before) && before > 0 ? ` against ${before} ms before: ${(100 * (median / before - 1)).toFixed(1)}%` : "; pass { before: ms } from the same loop on main to compare (within 10%)"}; ${stats.drawables} drawables, ${stats.translucent} in pass 2; ${JSON.stringify(glm.depthInfo().passes)} vertices by pass`);
+      const within = Number.isFinite(before) && before > 0 ? mean <= before * 1.1 : null;
+      row("13. the cost on the busy view: the frame's time, and the drawables in pass 2", within, `mean ${mean.toFixed(3)} ms, median ${median.toFixed(2)}, over 600 draws (render's time, main.js)${Number.isFinite(before) && before > 0 ? ` against ${before} ms before: ${(100 * (mean / before - 1)).toFixed(1)}%` : "; pass { before: ms }, the mean of the same loop on main, to compare (within 10%)"}; ${stats.drawables} drawables, ${stats.translucent} in pass 2; ${JSON.stringify(glm.depthInfo().passes)} vertices by pass`);
       for (const z of dead) S.zombies.splice(S.zombies.indexOf(z), 1);
       me.hands.main = saved.main;
       G.clock.setHour(12);

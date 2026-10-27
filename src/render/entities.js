@@ -12,7 +12,6 @@ import { getItem } from "../items.js";
 import * as gl from "../gl.js";
 import { DEPTH_BIAS, flameFrame, frameQuad } from "./scene.js";
 import * as depth from "./depth.js"; // a figure's billboard through its front, an arrow's through its ground point (docs/51)
-import { postAt } from "./walls.js";
 import { seenAlpha } from "../sight.js";
 import { sight as sightTuning } from "../tuning.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
@@ -110,47 +109,6 @@ export function emitMarker(m) {
 const SWING_OUTLINE = [0.38, 1, 0.38, 1];
 const SWING_OUTLINE_OFFSETS = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
 
-// A figure's sort sum, kept on the right side of the walls and posts beside
-// it (Michael, 2026-10-12: standing against a wall's outer face near the top
-// end of a segment, or just round a corner, the wall or the post drew over
-// him). A wall sorts by its midpoint, a post by its vertex, a figure by where
-// it stands, and near a segment's end those disagree with what is in front.
-// Each wall segment and post is a box on the ground (the thickness either side
-// of its line); a figure past the box's near side on either axis stands in
-// front of it and sorts just after it, one past its far side on either axis
-// stands behind it and sorts just before, and one that is both (beyond a
-// segment's end, round a corner) or neither leaves it out.
-const WALL_HALF = 0.28; // tiles: half the thickest wall (18 px), a little over
-function besideWalls(gx, gy) {
-  const s = gx + gy;
-  let lo = -Infinity;
-  let hi = Infinity;
-  const side = (x0, x1, y0, y1, k) => {
-    if (gx < x0 - 1 || gx > x1 + 1 || gy < y0 - 1 || gy > y1 + 1) return; // too far to overlap on screen
-    const front = gx >= x1 || gy >= y1;
-    const behind = gx <= x0 || gy <= y0;
-    if (front && !behind) lo = Math.max(lo, k);
-    else if (behind && !front) hi = Math.min(hi, k);
-  };
-  const x0 = Math.round(gx);
-  const y0 = Math.round(gy);
-  for (let ty = y0 - 1; ty <= y0 + 2; ty++) {
-    for (let tx = x0 - 1; tx <= x0 + 2; tx++) {
-      const t = map.tileAt(tx, ty);
-      // A west wall lies on x = tx - 0.5 over y in [ty - 0.5, ty + 0.5], a north
-      // wall on y = ty - 0.5 over x in [tx - 0.5, tx + 0.5]; both sort at
-      // tx + ty - 0.5. The post at the tile's top vertex sorts at tx + ty - 1.
-      if (t.w) side(tx - 0.5 - WALL_HALF, tx - 0.5 + WALL_HALF, ty - 0.5, ty + 0.5, tx + ty - 0.5);
-      if (t.n) side(tx - 0.5, tx + 0.5, ty - 0.5 - WALL_HALF, ty - 0.5 + WALL_HALF, tx + ty - 0.5);
-      if (postAt(tx, ty, 0)) side(tx - 0.5 - WALL_HALF, tx - 0.5 + WALL_HALF, ty - 0.5 - WALL_HALF, ty - 0.5 + WALL_HALF, tx + ty - 1 + 0.0005);
-    }
-  }
-  if (lo > hi) return s; // between things that disagree: where it stands
-  if (s <= lo) return lo + 0.01;
-  if (s >= hi) return hi - 0.01;
-  return s;
-}
-
 // A burning figure's flames, embers, and smoke (fire.js): each a small sprite at
 // a height above a world point, unlit (fire is its own light) and unfogged,
 // sorted just after the figure. The flames ride the figure; the rest stay put.
@@ -181,7 +139,7 @@ export function fireDrawables(particles, visible, out) {
     const world = [gx, gy];
     const surf = depth.figure(gx, gy); // the burning body's own surface, a little nearer than the body (docs/51 section 3)
     out.push({
-      key: besideWalls(gx, gy) * 1000 + 2.5,
+      key: (gx + gy) * 1000 + 2.5, // the depth buffer orders it against the walls (docs/51); the key orders the translucent pass
       kind: "fire",
       emit() {
         gl.surface(surf, DEPTH_BIAS.figure + DEPTH_BIAS.particle);
@@ -277,7 +235,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
     // held things, its torch's flame, and what it carries on the same surface, each a step nearer in the order drawn.
     const surf = depth.figure(e.gx, e.gy);
     out.push({
-      key: besideWalls(e.gx, e.gy) * 1000 + (e.dead ? 0 : 2),
+      key: (e.gx + e.gy) * 1000 + (e.dead ? 0 : 2), // where it stands: the depth buffer orders it against the walls and posts (docs/51)
       kind: "entity",
       entity: e,
       rect,
