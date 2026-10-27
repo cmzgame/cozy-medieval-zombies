@@ -2054,10 +2054,10 @@
      "stairs": [
       {
        "at": [
-        2,
+        5,
         2
        ],
-       "dir": "e",
+       "dir": "w",
        "layer": 0,
        "material": "wood"
       }

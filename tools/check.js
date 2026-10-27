@@ -5555,7 +5555,7 @@ check("the storeys' playtest: a body pressed against each side of the stair stay
     res.push(`on, ${side < 0 ? "left" : "right"}: ${off.toFixed(3)} rise ${p.rise.toFixed(0)}`);
     assert(Math.abs(off) <= 0.5 - mapMod.STAIR_FEET + 1e-6 && Math.abs(off) > 0.3 && p.layer === 0 && p.rise > 40, res.join("; "));
     // Beside it on the floor, walking into its side: its whole body held off the side line.
-    const q = { gx: s.low[0] + dx * 1.5 - dy * side * 1.2, gy: s.low[1] + dy * 1.5 + dx * side * 1.2, layer: 0, rise: 0 };
+    const q = { gx: s.low[0] + dx * 2.5 - dy * side * 1.1, gy: s.low[1] + dy * 2.5 + dx * side * 1.1, layer: 0, rise: 0 }; // by the top step, clear of the chair beside the valley's stair (a body that starts overlapping a solid walks out freely)
     stepBody(q, dy * side * 0.05, -dx * side * 0.05, 40);
     const o2 = mapMod.stairAlong(s, q.gx, q.gy).off;
     res.push(`beside, ${side < 0 ? "left" : "right"}: ${o2.toFixed(3)}`);

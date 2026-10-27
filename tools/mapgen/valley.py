@@ -223,7 +223,9 @@ def build():
         props=[along_x("bed", 0, 5), one("chest", 7, 5)],
         brackets=[{"side": "n", "at": 1, "facing": "in", "lantern": True}],
     )
-    tall.stair(tall_b, [2, 2], "e", layer=0)
+    # The stair climbs west, away from the camera (Michael, 2026-10-27), from beside the east wall (the world's 128, 217) up over 127 to
+    # 125, its landing at 124 upstairs; the way from the door to its foot runs east of the table.
+    tall.stair(tall_b, [5, 2], "w", layer=0)
 
     # ================= step 1: the village (29/04) =================
     # ---- the square: the well, the cross, the stalls, the trough, the board, the stocks, lamps ----
