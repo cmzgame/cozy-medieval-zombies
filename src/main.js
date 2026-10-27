@@ -866,6 +866,9 @@ function openActionsMenu(m) {
 
 // What is under the cursor for Use mode (use.js): a character, else a prop by its pixels, else the tile.
 function useTargetAt(sx, sy) {
+  return interact.onFloorOf(client.me, () => useTargetHere(sx, sy)); // the cursor on the player's own floor (docs/49 section 6)
+}
+function useTargetHere(sx, sy) {
   const ch = interact.characterAt(sx, sy, client.me);
   if (ch) return { kind: "character", ch };
   const prop = interact.interactableAt(sx, sy, () => true);

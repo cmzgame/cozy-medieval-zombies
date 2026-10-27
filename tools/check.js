@@ -5407,6 +5407,34 @@ check("upper floors, step 1 (the review of #533): reach is on one layer, a put-d
   assert(why.length === 1 && /stands over a step/.test(why[0]) && mapMod.tileAt(4, 27, 0).prop && mapMod.tileAt(4, 27, 0).prop.sprite === "chest" && mapMod.tileAt(4, 27, 0).floor !== mapMod.HOLE, `the stair under the chest: ${why.join("; ") || "laid"}`);
   return `reach refused across a floor; the table put down upstairs; refused: ${why[0]}`;
 });
+check("upper floors, step 3 (the review of #534): E, the menu, and the cursor read the player's own floor: an apple upstairs is taken, the table below has no actions", () => {
+  towerHouse();
+  const p = gameMod.state.player;
+  const table = mapMod.allProps().find((q) => q.sprite === "table" && (q.layer || 0) === 0 && q.tile[0] === 7 && q.tile[1] === 27);
+  assert(table, "no table on the ground");
+  const o = isoMod.getOrigin();
+  p.gx = 5; p.gy = 24; p.layer = 1;
+  try {
+    const below = mapMod.dropItem(5, 24, { id: "apple", count: 1 }, 0);
+    const above = mapMod.dropItem(5, 24, { id: "apple", count: 1 }, 1);
+    const e = interactImport.nearestSimpleAction(p);
+    assert(e && e.target.kind === "item" && e.target.uid === above.uid, `E upstairs: ${e ? JSON.stringify(e.target) : "nothing"}`);
+    assert(interactImport.actionsForTarget({ kind: "prop", id: table.id }, p).length === 0, "the table on the ground has actions for a player upstairs");
+    // The cursor: the point where the first floor's tile (5, 24) is drawn, a storey up the screen, names the apple up there and not the one below.
+    isoMod.setOrigin(0, 0);
+    const s = isoMod.toScreen(5, 24);
+    const at = interactImport.actionsAt(s.x, s.y - mapMod.STOREY, p).filter((a) => a.target && a.target.kind === "item").map((a) => a.target.uid);
+    assert(at.includes(above.uid) && !at.includes(below.uid), `the cursor upstairs: ${at.join(", ") || "no item"}`);
+    assert(isoMod.getOrigin().y === 0, "the pick left the origin lifted");
+    p.layer = 0;
+    const atGround = interactImport.actionsAt(s.x, s.y, p).filter((a) => a.target && a.target.kind === "item").map((a) => a.target.uid);
+    assert(atGround.includes(below.uid) && !atGround.includes(above.uid), `the cursor on the ground: ${atGround.join(", ") || "no item"}`);
+  } finally {
+    p.layer = 0;
+    isoMod.setOrigin(o.x, o.y);
+  }
+  return "E upstairs takes the upstairs apple; the ground's table offers nothing; the cursor reads each floor at its own height";
+});
 // ---- upper floors (docs/49), step 3: stairs and walking ----
 check("upper floors, step 3: a body walks up the tower house's stair (rise 32 a tile), crosses its top edge onto the first floor, and back down; nothing steps on from the side", () => {
   towerHouse();
