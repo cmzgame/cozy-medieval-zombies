@@ -20,6 +20,7 @@ let rightAt = { x: 0, y: 0 }; // where the right button went down: a tap opens i
 let middleDown = false;
 let middleJustPressed = false;
 let wheelDelta = 0;
+let clickedAny = false; // a pointer down anywhere on the page since the last step
 
 let canvas = null;
 let scale = 1;
@@ -34,6 +35,8 @@ export function init(targetCanvas) {
     if (!keys.has(e.code)) justPressed.add(e.code);
     keys.add(e.code);
   });
+  // Any click anywhere on the page, a panel's too: a sleeper's way to wake early (Michael, 2026-10-26; anyPressed).
+  window.addEventListener("pointerdown", () => { clickedAny = true; }, true);
   window.addEventListener("keyup", (e) => {
     keys.delete(e.code);
   });
@@ -179,7 +182,13 @@ export function moveAxis() {
 }
 
 // Call once at the end of each logic step.
+// Whether any key went down or anything was clicked since the last step: a sleeper wakes on it (main.js, the `wake` key event).
+export function anyPressed() {
+  return justPressed.size > 0 || clickedAny || leftJustPressed || rightJustPressed || middleJustPressed;
+}
+
 export function endStep() {
+  clickedAny = false;
   justPressed.clear();
   leftJustPressed = false;
   rightJustPressed = false;

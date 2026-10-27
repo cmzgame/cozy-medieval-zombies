@@ -114,6 +114,14 @@ function heldWhole(def, entry) {
   return entry.count <= (def.stack || 1);
 }
 
+// A stack poured onto a matching one (items.canMerge): as many as fit under the stack limit, the rest staying where it came from, the emptied
+// entry gone from there. One way for the host's drag and a guest's slot and grid commands alike. Says so when the stack was already full.
+export const STACK_FULL = "That stack is full.";
+function pourStack(player, entry, from, onto) {
+  if (items.mergeInto(onto, entry) <= 0) { showMessage(STACK_FULL); return; }
+  if (entry.count <= 0) detachFrom(player, entry, from);
+}
+
 function restoreTo(player, entry, from) {
   if (from.kind === "bag") {
     if (!grid.insert(from.bag, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
@@ -157,6 +165,9 @@ export function createInventoryActions(getPlayer) {
       const { kind, key } = inventory.parseSlot(slotId);
       const occupant = slotGet(player, slotId);
       if (occupant === entry) return;
+      // A stack dropped on a matching stack fills it (Michael's playtest, 2026-10-26): as many as the stack limit takes, the rest staying
+      // where it came from; an entry with a state of its own never merges, and swaps as any other thing does.
+      if (occupant && items.canMerge(occupant, entry)) return pourStack(player, entry, from, occupant);
       // One hand dragged onto the other swaps the two (Michael, 2026-10-12), instead of sending the
       // one in the way to the bag, when each is allowed in the other's hand.
       // (A drag's `from` is { kind: "slot", id }; the hand is the slot id's kind. Until 2026-10-13 this
@@ -214,6 +225,9 @@ export function createInventoryActions(getPlayer) {
     placeInGrid(entry, from, bag, x, y, rot) {
       const player = getPlayer();
       if (!inventory.canStoreIn(entry)) return showMessage("Empty it first, or equip it.");
+      // Onto a matching stack in the grid: it fills that stack, the rest staying in the slot it came from (Michael's playtest, 2026-10-26).
+      const under = bag.items && !bag.takeOnly ? grid.entryAt(bag, x, y) : null;
+      if (under && items.canMerge(under, entry)) return pourStack(player, entry, from, under);
       detachFrom(player, entry, from);
       // Taking the bag off the back while dropping into its own grid cannot work.
       if (!bag.items && !bag.cols) return restoreTo(player, entry, from);

@@ -21,6 +21,30 @@ export function makeEntry(id, count = 1, props = {}) {
   return { id, count, ...props, uid: nextId("e") };
 }
 
+// An entry that carries its own state (Michael's playtest, 2026-10-26, "The playtest's rulings": a stack dropped on a matching stack fills
+// it, but "entries that carry their own state never merge"): wear, colours, a fill, clean water, a poison's coat, repairs, a lit flame, the
+// tree a sapling grows, or a container's contents. Such an entry is never topped up nor poured into another (grid.js, inventory-actions.js).
+export function hasOwnState(e) {
+  if (!e) return false;
+  return e.wear > 0 || !!e.colours || !!e.colour || e.fill != null || !!e.clean || !!e.poison || !!e.repairs || !!e.lit || !!e.tree ||
+    !!(e.bag && e.bag.items && e.bag.items.length) || !!(e.slots && e.slots.some(Boolean));
+}
+
+// Whether `from` may be poured onto `into`: two entries of one stacking item, neither with a state of its own.
+export function canMerge(into, from) {
+  if (!into || !from || into === from || into.id !== from.id) return false;
+  const def = items.get(into.id);
+  return !!(def && def.stack > 1) && !hasOwnState(into) && !hasOwnState(from);
+}
+
+// Pour as much of `from` onto `into` as the stack limit lets (canMerge first): returns how many moved; the rest stays on `from`.
+export function mergeInto(into, from) {
+  const take = Math.max(0, Math.min(from.count, items.get(into.id).stack - into.count));
+  into.count += take;
+  from.count -= take;
+  return take;
+}
+
 // Durability is kills (docs/30, law 5 and 5.2): a weapon's `kills` is the
 // design number; the wear a landed hit costs is one over kills times the hits
 // a kill takes against the standard zombie. A bow wears by its `shots`.

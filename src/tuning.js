@@ -82,7 +82,7 @@ export const player = {
   tiredMax: 100,
   tiredDrainSeconds: 900,
   sleepRestoreSeconds: 240,
-  sleepTimeScale: 60,
+  sleepTimeScale: 20, // the world's speed while everyone sleeps: eight game hours in about twelve real seconds (Michael, 2026-10-26; was 60, four seconds)
   wakeHour: 6,
   healthRegenPerMinute: 1,
   sleepRegenPerMinute: 4,
@@ -176,6 +176,7 @@ export const feel = {
   netDelaySteps: 4, // on a guest: remote bodies are drawn this many steps behind the newest host frame, interpolated between the frames either side (netsmooth.js, #248); 3 stalls on a late frame, more only adds delay
   netSlew: 0.1, // the fraction of the gap the guest's draw clock closes toward the frames' per frame that arrives
   netJump: 1.5, // tiles: a remote body that moved farther than this between two frames is put where it landed, not walked there
+  sleepFadeSeconds: 1, // the screen's fade to black as this client's player sleeps, and back as it wakes (Michael, 2026-10-26; "about a second", Primary's default)
 };
 
 // Floating numbers over heads (#294; docs/39 section 12; ui/floaters.js): how they rise and fade, how they look, and which verbs are a gather of which skill. A number rises about
@@ -225,9 +226,10 @@ export const work = {
   anvil: { ceilings: [1, 0.8, 0.6], seconds: 6, uses: "smith" },
   saw: { item: "log", seconds: 5 },
   honey: { item: "honey", count: [1, 1], days: 3, seconds: 3 },
-  // Burn corpse (docs/43 section 7): on a body of the dead, with a `flame` carried (the item) and one `fuel` spent; it burns `hours` game hours,
-  // giving light, then it and everything in it are gone. `seconds` is the bar's. Primary's defaults but the hour (Michael's "about a game hour").
-  burnCorpse: { flame: "tinderbox", fuel: "log", hours: 1, seconds: 2 },
+  // Burn corpse (docs/43 section 7): on a body of the dead, with a `flame` carried (the item), nothing spent (Michael, 2026-10-26: "no cost but a
+  // tinderbox"; a lit torch Used on the body burns it too); it burns `hours` game hours, giving light, then it and everything in it are gone.
+  // `seconds` is the bar's. Primary's defaults but the hour (Michael's "about a game hour").
+  burnCorpse: { flame: "tinderbox", hours: 1, seconds: 2 },
 };
 
 // Water (docs/44; src/water.js, src/sick.js): no fixed source is clean (`clean` lists the sprites of any that are; none), a skin is boiled clean at a lit
@@ -236,6 +238,7 @@ export const work = {
 export const water = {
   clean: [],
   boilSeconds: 30,
+  bucketBoilSeconds: 60, // a bucket's bar (Michael, 2026-10-26, The playtest's rulings; the 60 Primary's default)
   boilReach: 2.6, // the click's reach (interact.CLICK_REACH), a station's (stations.REACH)
   sickChance: 0.2,
   sickDays: 0.5,

@@ -6,9 +6,10 @@
 // campfire, the oven), by the fire's prop id and the skin's uid, three ways in that cannot disagree: Use a tainted skin then click the fire
 // (data/interactions.json's row, `args.timed`), the skin's menu in the bag or on the belt (Boil water, greyed with why when no lit fire is in reach), and
 // the fire's menu (Boil water for the fullest tainted skin carried, greyed with why when none is). Each starts the same timed bar (`boilAction`,
-// `boilSeconds`), whose end runs the verb again, which checks everything afresh and sets `clean`, the fill kept. Skins only for now (Primary's default):
-// a bucket cannot be drunk from and nothing moves water between vessels yet, so its boil waits for the boiling pot's fluid transfer (docs/44 section 7).
-// The fire must be lit; boiling burns no extra fuel. Run on the host; a guest's Use and menus reach it as the host's player's do.
+// `boilSeconds`), whose end runs the verb again, which checks everything afresh and sets `clean`, the fill kept. A bucket of tainted water boils the
+// same way (Michael, 2026-10-26, The playtest's rulings), its bar longer (`bucketBoilSeconds`): Use the bucket on the fire, its own menu in the bag,
+// on the belt, or in a hand, and the fire's menu's "Boil water in the bucket" (BOIL_BUCKET); its water is then poured into skins (bucket.js
+// `pourskin`). The fire must be lit; boiling burns no extra fuel. Run on the host; a guest's Use and menus reach it as the host's player's do.
 
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
@@ -50,18 +51,42 @@ export const holdsWater = (entry) => {
   return !!def && !!(def.capacity || def.vessel) && (entry.fill ?? 0) > 0;
 };
 
-// A skin that can be boiled: a waterskin with tainted water in it.
-export const boilable = (entry) => !!entry && !!getItem(entry.id).capacity && (entry.fill ?? 0) > 0 && isTainted(entry);
+// A vessel that can be boiled: a waterskin or a bucket with tainted water in it.
+export const boilable = (entry) => {
+  const def = entry && getItem(entry.id);
+  return !!def && !!(def.capacity || def.vessel) && (entry.fill ?? 0) > 0 && isTainted(entry);
+};
+const isBucket = (entry) => !!entry && !!getItem(entry.id).vessel;
+
+// The fire's menu's entry for a bucket, beside the skin's "Boil water" (each vessel its own entry, as the crop's Water is).
+export const BOIL_BUCKET = "Boil water in the bucket";
+// Pouring tainted water from a bucket into a skin holding clean water (Michael, 2026-10-26).
+export const WOULD_TAINT = "That would taint the clean water.";
+
+// The bar's seconds for this vessel: a skin's `boilSeconds`, a bucket's `bucketBoilSeconds`.
+export const boilSecondsOf = (entry) => (isBucket(entry) ? W.bucketBoilSeconds : W.boilSeconds);
 
 // Every waterskin carried with tainted water in it, the fullest first (the fire's menu boils that one, docs/44's default): the bag's, then the belt's,
 // in that order among equals.
 export function taintedSkins(player) {
   const out = [];
   const bag = bagOf(player);
-  if (bag) for (const e of bag.items) if (boilable(e)) out.push(e);
-  for (const e of beltOf(player) || []) if (boilable(e)) out.push(e);
+  const skin = (e) => boilable(e) && !isBucket(e);
+  if (bag) for (const e of bag.items) if (skin(e)) out.push(e);
+  for (const e of beltOf(player) || []) if (skin(e)) out.push(e);
   return out.sort((a, b) => (b.fill ?? 0) - (a.fill ?? 0)); // stable: the bag's before the belt's at one fill
 }
+
+// Every bucket carried (the hands, the belt, the bag), and the first of them holding tainted water, the fullest first: the fire's menu's.
+export function bucketsCarried(player) {
+  const out = [];
+  for (const k of ["main", "off"]) { const e = player.hands && player.hands[k]; if (isBucket(e) && !out.includes(e)) out.push(e); }
+  for (const e of beltOf(player) || []) if (isBucket(e)) out.push(e);
+  const bag = bagOf(player);
+  if (bag) for (const e of bag.items) if (isBucket(e)) out.push(e);
+  return out;
+}
+export const taintedBucket = (player) => bucketsCarried(player).filter(boilable).sort((a, b) => (b.fill ?? 0) - (a.fill ?? 0))[0] || null;
 
 // Why a prop will not boil water for this player now, or "".
 export function fireProblem(player, prop) {
@@ -98,22 +123,24 @@ const skinFor = (player, uid) => (uid != null ? carriedEntry(player, uid) : tain
 
 function skinProblem(entry) {
   const def = getItem(entry.id);
-  if (!def.capacity) return def.vessel ? "A bucket cannot be boiled yet." : "There is no water in that to boil.";
-  if (!((entry.fill ?? 0) > 0)) return "The waterskin is empty.";
+  if (!def.capacity && !def.vessel) return "There is no water in that to boil.";
+  if (!((entry.fill ?? 0) > 0)) return `The ${def.name.toLowerCase()} is empty.`;
   if (!isTainted(entry)) return "That water is already clean.";
   return "";
 }
 
-// The timed bar, the same for the three ways in: the fire's tiles, `boilReach`, `boilSeconds`; its end runs the verb, which checks everything again.
-export function boilAction(player, uid, prop) {
+// The timed bar, the same for the three ways in: the fire's tiles, `boilReach`, the vessel's seconds (boilSecondsOf); its end runs the verb, which
+// checks everything again. `label` is the fire's menu's for a bucket (BOIL_BUCKET), else "Boil water".
+export function boilAction(player, uid, prop, label = "Boil water") {
+  const e = carriedEntry(player, uid);
   return {
     kind: "boil",
-    label: "Boil water",
+    label,
     tiles: prop.tiles,
     mx: prop.tile[0],
     my: prop.tile[1] - 0.6,
     range: W.boilReach,
-    duration: W.boilSeconds,
+    duration: e ? boilSecondsOf(e) : W.boilSeconds,
     enabled: true,
     simple: false,
     perform() {

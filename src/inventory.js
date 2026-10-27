@@ -3,7 +3,7 @@
 // worn on the back, the hotbar is the belt worn at the waist, and an entry is
 // in exactly one place. Placement rules live in grid.js.
 
-import { getItem, toolFor, aName, release, canHold, hold, handFor, dualWord } from "./items.js";
+import { getItem, allItems, toolFor, aName, release, canHold, hold, handFor, dualWord } from "./items.js";
 import * as grid from "./grid.js";
 
 export const WORN_SLOTS = ["head", "chest", "hands", "legs", "feet", "waist", "back"];
@@ -38,6 +38,92 @@ export function ensureSlots(entry) {
   if (!entry.slots) entry.slots = new Array(def.beltSlots).fill(null);
   while (entry.slots.length < def.beltSlots) entry.slots.push(null); // an old world's rope belt of two grows to three (2026-10-25, the belt's roles)
   return entry.slots;
+}
+
+// ---- a container item opened where it lies (Michael, 2026-10-26, The playtest's rulings: "any item that holds things ... has Open on the
+// ground and in a chest, with Take All, as a body has") ----
+// A bag's grid is its own (`entry.bag`). A belt's slots are no grid, so they are opened as a view: a bag of one row whose items ARE the slots'
+// entries, laid side by side by their size, that takes nothing in (`takeOnly`, grid.js) and whose items' removal clears the slot it came from
+// (SlotItems.splice: every grid removal is a splice), so a Take, a drag out, Take All, and a guest's command by the view's address all empty the
+// belt itself, nothing copied and nothing doubled. Kept per belt entry (a WeakMap, never saved or sent) while its slots hold what it shows.
+class SlotItems extends Array {
+  static get [Symbol.species]() { return Array; } // a filter or a map of it is a plain list
+  splice(...args) {
+    const out = super.splice(...args);
+    for (const e of out) {
+      const k = this.slots ? this.slots.indexOf(e) : -1;
+      if (k >= 0) this.slots[k] = null;
+    }
+    return out;
+  }
+}
+const slotViews = new WeakMap(); // belt entry -> its view
+// A slot's column in the view: every slot as wide as the widest thing a belt slot can hold (a hand item, a food, a skin, a thing that rides the
+// belt), so an entry's place is its slot index alone and a view laid out afresh (a guest's replica, from a chunk the host sent) puts every
+// entry where the host's put it (the review of #508: packed by what was left, a partial take moved the rest on a replica and split the map).
+function slotColumn() {
+  let w = 1;
+  for (const d of allItems()) if (d.hands || d.kind === "food" || d.capacity || d.belt === true) w = Math.max(w, (d.size || [1, 1])[0]);
+  return w;
+}
+export function slotsView(entry) {
+  const slots = ensureSlots(entry);
+  if (!slots) return null;
+  const live = slots.filter(Boolean);
+  const had = slotViews.get(entry);
+  if (had && had.items.length === live.length && live.every((e) => had.items.includes(e))) return had;
+  const items = new SlotItems();
+  Object.defineProperty(items, "slots", { value: slots, enumerable: false });
+  const col = slotColumn();
+  let rows = 1;
+  slots.forEach((e, i) => {
+    if (!e) return;
+    e.x = i * col;
+    e.y = 0;
+    e.rot = false;
+    rows = Math.max(rows, (getItem(e.id).size || [1, 1])[1]);
+    items.push(e);
+  });
+  const view = { cols: slots.length * col, rows, items, container: getItem(entry.id).name.toLowerCase(), takeOnly: true };
+  slotViews.set(entry, view);
+  return view;
+}
+
+// A bag inside another container (a satchel in a chest, a rucksack on the floor, a body) opens take-only (Primary's reading on the review of
+// #508, Michael's to overrule: "Open ... with Take All, as a body has"): a view sharing the bag's own list of items, so what is taken leaves the
+// bag itself, and nothing goes in, so no full bag is ever carried inside a worn one. Kept per entry while its grid is the same object.
+const bagViews = new WeakMap(); // bag entry -> { of: its grid, view }
+export function takeOnlyView(entry) {
+  const bag = ensureBag(entry);
+  if (!bag) return null;
+  const had = bagViews.get(entry);
+  if (had && had.of === bag) return had.view;
+  const view = { cols: bag.cols, rows: bag.rows, items: bag.items, container: bag.container, takeOnly: true };
+  bagViews.set(entry, { of: bag, view });
+  return view;
+}
+
+// The grid a container item opens as, wherever it lies: a bag's own (take-only when it lies in another container, `nested`), a belt's view of
+// its slots; null for anything else.
+export function containerBagOf(entry, nested = false) {
+  const def = entry && getItem(entry.id);
+  if (!def) return null;
+  if (def.bag) return nested ? takeOnlyView(entry) : ensureBag(entry);
+  if (def.beltSlots) return slotsView(entry);
+  return null;
+}
+
+// The view or grid an entry already has, made by nothing (a hit test: which container is this bag?).
+export function openedBagOf(entry) {
+  if (!entry) return null;
+  const v = bagViews.get(entry);
+  return (v && v.of === entry.bag ? v.view : null) || entry.bag || slotViews.get(entry) || null;
+}
+// Whether a grid is this entry's, its own or a view of it.
+export function isBagOf(entry, bag) {
+  if (!entry || !bag) return false;
+  const v = bagViews.get(entry);
+  return bag === entry.bag || (!!v && v.view === bag) || slotViews.get(entry) === bag;
 }
 
 // The grid of the bag on the player's back, or null.

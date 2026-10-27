@@ -4,7 +4,8 @@
 // which waters every crop in the 3 by 3 round the target tile (farming.soak, as a waterskin does one) and empties it: one pour a fill.
 // Both are verbs by the target tile and the entry's uid, run on the host. (A waterskin is not a bucket: `vessel` is not `capacity`, so
 // "Fill waterskins" and the drink menu leave it alone; water and thirst are an open question, #209.) Its water is tainted from every fixed source
-// (docs/44), and nothing boils a bucket yet: that waits for the boiling pot's fluid transfer.
+// (docs/44); it is boiled clean at a lit cooking fire as a skin is (water.js, its bar `bucketBoilSeconds`), and poured into a skin by Use
+// (`pourskin`, Michael 2026-10-26, The playtest's rulings): clean into clean, tainted into tainted or into an empty skin; tainted into clean refused.
 
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
@@ -106,6 +107,34 @@ verbs.define("pour", {
     for (const c of crops) farming.soak(c);
     b.fill = 0; // one pour a fill
     return { message: `You water ${crops.length} plant${crops.length > 1 ? "s" : ""}.`, watered: crops.length };
+  },
+});
+
+// Use a bucket on a waterskin (data/interactions.json's row; Michael, 2026-10-26: "boil a bucket of water and distribute it to waterskins"):
+// target { entry: the bucket's uid, onEntry: the skin's uid }, both carried (the hands, the belt, the bag). As much as the skin takes moves from the
+// bucket; the skin's water is the mix's (water.mixInto: clean into an empty or a clean skin stays clean, anything into a tainted skin is tainted),
+// and tainted water into a skin holding clean water is refused, WOULD_TAINT. Run on the host; a guest's Use reaches it by the two uids.
+verbs.define("pourskin", {
+  validate(world, player, target) {
+    const b = inventory.carriedEntry(player, target.entry);
+    if (!b || !vesselOf(b)) return "Take the bucket out first.";
+    const s = target.onEntry != null ? inventory.carriedEntry(player, target.onEntry) : null;
+    if (!s) return "Take the waterskin out first."; // a skin in an open chest: only what you carry is filled
+    const cap = items.getItem(s.id).capacity;
+    if (!cap) return "That holds no water.";
+    if (!(levelOf(b) > 0)) return "The bucket is empty.";
+    if (levelOf(s) >= cap) return "The waterskin is full.";
+    if (water.isTainted(b) && levelOf(s) > 0 && !water.isTainted(s)) return water.WOULD_TAINT;
+    return true;
+  },
+  perform(world, player, target) {
+    const b = inventory.carriedEntry(player, target.entry);
+    const s = inventory.carriedEntry(player, target.onEntry);
+    const n = Math.min(levelOf(b), items.getItem(s.id).capacity - levelOf(s));
+    water.mixInto(s, !water.isTainted(b)); // before the fill changes, as a source's fill
+    s.fill = levelOf(s) + n;
+    b.fill = levelOf(b) - n;
+    return { message: `You fill the waterskin from the bucket${b.fill > 0 ? "" : "; the bucket is empty"}.` };
   },
 });
 

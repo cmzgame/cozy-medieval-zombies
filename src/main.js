@@ -70,6 +70,7 @@ import * as dye from "./dye.js";
 import * as talkPanel from "./ui/talk-panel.js"; // a villager's conversation, on the kit (docs/34, #202)
 import * as inspectMark from "./inspect-mark.js"; // the tile an Inspect marks (interact.js)
 import * as inspectCard from "./ui/inspect-card.js"; // an Inspect's card above its patch, with a close button
+import * as sleepFade from "./ui/sleep-fade.js"; // the fade to black while my player sleeps (Michael, 2026-10-26)
 import * as navRow from "./ui/nav-row.js"; // the buttons bottom right, one per panel (#295)
 import * as interact from "./interact.js";
 import * as items from "./items.js";
@@ -1195,7 +1196,8 @@ function stepGame(dt) {
   // any panel or menu open (Michael, 2026-10-15: only the pause menu stops the game), as the belt keys always have.
   const keyEv = interact.keyEvents(dt);
   const beltEv = interact.beltEvents(client.me, settings.get("beltOrder")); // the number turned into the slot's role here, by my own key order
-  const keys = keyEv || beltEv || drawCancelled ? { ...(keyEv || {}), ...(beltEv || {}), ...(drawCancelled ? { drawCancel: true } : {}) } : null;
+  const wakeEv = interact.wakeEvents(client.me); // asleep, any key or click wakes me early (Michael, 2026-10-26), here or on the host
+  const keys = keyEv || beltEv || drawCancelled || wakeEv ? { ...(keyEv || {}), ...(beltEv || {}), ...(drawCancelled ? { drawCancel: true } : {}), ...(wakeEv || {}) } : null;
   drawCancelled = false;
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
   // never the input module), the dead, the villagers, the light (game.js).
@@ -1274,6 +1276,7 @@ function renderUi() {
   if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals], visible, client.me); // the numbers over heads, from the same blended positions
   mapPanel.update({ player: client.me, players: S.players, places: (S.info && S.info.places) || [] });
   inspectCard.update(client.me); // an Inspect's card above its patch (Michael's playtest, 2026-10-26)
+  sleepFade.update(client.me); // this screen alone fades while my player sleeps (Michael, 2026-10-26)
   updateMessage(dt);
 }
 
@@ -1646,6 +1649,7 @@ async function boot() {
       initZombieBars();
       initSwingTimer();
       initSpeech();
+      sleepFade.init();
       menu.initContextMenu();
       // A guest's panel sends commands (docs/31/05, item 9); the open container is found by its address each frame.
       // Which handlers the panel uses is decided at each call, by whether this client is a guest right now, not
@@ -1851,11 +1855,13 @@ async function boot() {
       events.on("containerGone", ({ bags }) => {
         if (openBag && bags.includes(openBag.bag)) openBag = null; // its panel closes with it (placement.js destroy)
       });
-      events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist }) => {
+      events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist, address }) => {
         // Opened by a guest's player (the acting player, game.js): the host tells the guest (host.js), not this screen.
         const by = game.state.acting;
         if (by && by !== client.me) return;
-        openBag = { bag, tiles: where, name, corpse: corpse || null, closeDist: closeDist || 0 };
+        // A container item where it lies (a bag or a belt on the floor, one in a chest or on a body; Michael, 2026-10-26) is found again by its
+        // address each step, as a guest's is, so its panel closes when someone takes it away.
+        openBag = { bag, tiles: where, name, corpse: corpse || null, closeDist: closeDist || 0, address: address || undefined };
         panel.setBagOpen(true);
       });
       // The host's answers to the world's events, and the routing of a message or a log line said while a guest's

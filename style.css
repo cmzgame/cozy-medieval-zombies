@@ -772,6 +772,21 @@ html, body {
    from 2px inside the padding box down across the whole border strip, then a
    triangle, so the box's border cannot show between the box and the tail, at
    any scale. The transform lifts the tip (11px below the box) onto the anchor. */
+/* ---- the fade to black while my player sleeps (ui/sleep-fade.js; Michael, 2026-10-26): over the world, under the rest of #ui ---- */
+#ui > #sleep-fade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: ease-in-out;
+  pointer-events: none;
+}
+#ui > #sleep-fade.on { opacity: 1; }
+
+/* A sleeper's "Zz" seen by the others (ui/speech.js): a bubble with no words to log, a little smaller and softer. */
+.speech.speech-zz { padding: 6px 12px; font-style: italic; color: #3a3a5a; }
+
 .speech {
   position: absolute;
   box-sizing: border-box;

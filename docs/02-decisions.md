@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Any key or click wakes a sleeper early, the screen fading back in; the menu's Burn corpse works with a lit torch in hand as well as a tinderbox (2026-10-26, Waking early, and Burn corpse by a lit torch)
 - Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills (2026-10-26, Fill waterskins skips clean water)
 - From the playtest: a bucket boiled and poured into skins; Burn corpse for a tinderbox alone, or Use a lit torch on a body; sleep fades to black and runs slower; container items open where they lie; a stack dropped on a matching stack fills it (2026-10-26, The playtest's rulings)
 - Honey goes into a clay jar made like a vial; eating it leaves the jar; a couple of jars at the cottage to start (2026-10-26, Honey goes into a clay jar)
@@ -309,6 +310,13 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-26 — Waking early, and Burn corpse by a lit torch (Michael)
+
+Asked on #508's review whether a sleeper with a friend awake (the world at 1, so a night is about four real minutes of a black screen with no way out; a sleeper otherwise gets up only rested and in the morning) should be able to wake, and whether "or Use a lit torch on a corpse" covers the menu's Burn corpse too, Michael: "Yes: any key or click wakes you early, with the fade back in; and the menu's Burn corpse works with a lit torch in hand too."
+
+- **Waking early:** while asleep, any key or click on your own client wakes you (a key event in your snapshot, `wake`, performed by the world's step on the host, so a guest wakes the same way); the screen fades back in, and the world's speed follows who is still asleep, as it always has. The press that put you to bed never wakes you (*the builder's reading*: a press counts only once your client has seen you asleep a step).
+- **Burn corpse from the menu** is offered and works with a lit torch in a hand as well as a tinderbox carried, greyed only with neither ("Burn corpse (need a tinderbox or a lit torch)"); nothing is spent either way. `docs/43` section 7.
 
 ### 2026-10-26 — No browser dialog: every question is the game's own, on the page (Michael)
 

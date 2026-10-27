@@ -31,6 +31,7 @@ const BORDER = 3; // the outline's width: the tail is placed from the padding bo
 
 let root = null;
 let uiEl = null;
+export const ZZ = { text: "Zz", left: Infinity }; // a sleeping friend's bubble (no words: never in the log)
 const pool = new Map(); // character id -> { el, text, w }
 
 export function initSpeech() {
@@ -61,7 +62,9 @@ export function updateSpeech(characters, visible, player, dt) {
   const withLine = new Set();
   const uiW = uiEl.clientWidth;
   for (const ch of characters) {
-    const line = ch.line;
+    // A friend asleep (Michael, 2026-10-26, The playtest's rulings): a "Zz" over them, drawn by every other client from the record's
+    // `sleeping`, never the sleeper's own (its screen is black, ui/sleep-fade.js); a line said meanwhile shows instead.
+    const line = ch.line || (ch.kind === "player" && ch !== player && ch.sleeping && !ch.dead ? ZZ : null);
     if (!line) continue;
     if (ch.dead) continue; // cleared by the world's step on the authority (game.js ageSpeech, #154); a guest's replica gets the end in the record
     const shown =
@@ -90,11 +93,12 @@ export function updateSpeech(characters, visible, player, dt) {
     const entry = bubbleFor(ch.id);
     if (entry.text !== line.text) {
       entry.el.textContent = line.text;
+      entry.el.classList.toggle("speech-zz", line === ZZ);
       entry.text = line.text;
       entry.w = entry.el.offsetWidth; // the box's width for this text, whatever its length
       // A line said within sight goes to the log as "Name: line" (Michael, 2026-10-12); the dead's groans do not.
-      // A bubble with no words (the cowering's "!", docs/43 section 7) is a visual twin, not a line: it stays out of the log.
-      if (ch.kind !== "zombie" && /[\p{L}\p{N}]/u.test(line.text)) log.push(line.text, "say", ch === player ? "You" : ch.name || (ch.kind === "player" ? "Someone" : "Villager"));
+      // A bubble with no words (the cowering's "!", docs/43 section 7) is a visual twin, not a line: it stays out of the log; so is a sleeper's "Zz".
+      if (ch.kind !== "zombie" && line !== ZZ && /[\p{L}\p{N}]/u.test(line.text)) log.push(line.text, "say", ch === player ? "You" : ch.name || (ch.kind === "player" ? "Someone" : "Villager"));
     }
     const s = iso.toScreen(ch.gx, ch.gy);
     const p = view.toUi(s.x, s.y - HEAD_TOP);
