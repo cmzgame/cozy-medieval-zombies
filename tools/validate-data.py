@@ -444,6 +444,15 @@ for verb, spec in fl.get("gathers", {}).items():
         fail(f"tuning.floaters.gathers: no verb {verb!r}")
     if not (isinstance(spec, list) and len(spec) == 2 and spec[0] in skill_ids and isinstance(spec[1], str)):
         fail(f"tuning.floaters.gathers.{verb}: [one of the skills, the verb result's field]")
+# Collectibles (Michael, 2026-10-27, docs/02 "rugs and paintings are found, never made"): an item marked `collectible` is found and kept,
+# never built or crafted, so no recipe and no build palette entry makes it, and the tools that report dead ends skip it.
+_made_ids = {(r.get("out") or {}).get("id") for r in load("data/recipes.json")["rows"]} | {(r.get("out") or {}).get("prop") for r in load("data/recipes.json")["rows"]}
+for it in items:
+    if it.get("collectible") is not None:
+        if it["collectible"] is not True:
+            fail(f"item {it['id']}: collectible is true or absent")
+        if it["id"] in _made_ids:
+            fail(f"item {it['id']}: a collectible is found, never made, but a recipe makes it")
 # Rugs (#327): an item with a `rug` names a sprite that is a rug with the bed's facings (2 by 3 along y, 3 by 2 along x), a 1 by 4 decor item with an icon, and a drawn picture.
 for it in items:
     if "rug" in it:
