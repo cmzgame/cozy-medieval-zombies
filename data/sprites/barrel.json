@@ -1,1 +1,18 @@
-{"placeholder": {"kind": "post", "color": "#6a4d33", "height": 30, "width": 26}, "collide": {"radius": 0.26}, "container": {"loot": "barrel"}, "carry": true}
+{
+ "anchorVertex": "top",
+ "images": {
+  "idle_0": "data/art/village/barrel.png"
+ },
+ "anchor": [
+  14,
+  18
+ ],
+ "collide": {
+  "radius": 0.26
+ },
+ "container": {
+  "loot": "barrel"
+ },
+ "carry": true,
+ "note": "the drawn barrel (art round 4): a cooper's oak barrel standing on its end, four iron hoops, a sunk head inside the chime, a bung on the lit side; round, so one drawing and no facings"
+}
