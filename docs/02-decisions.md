@@ -9,7 +9,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### The world and the map
 
 - Walls are 96 px tall, three crates: the door's top at 64, the window's top at 64 and its sill low and big on purpose (24, a default), every wall material the same (a fence stays 36) and the castle taller by storeys, never by walls (2026-10-26, Walls 96 px tall)
-- The renderer gets a depth buffer: opaque art with an alpha test in one pass, the translucent few sorted in a second, so the frame sorts per pixel and nothing clips a wall (2026-10-26, A depth buffer)
+- The renderer gets a depth buffer: the flat things first without writing depth, opaque art with an alpha test in one pass, the translucent few in a tested pass after, the ghost and the marker on top, so the frame sorts per pixel and nothing clips a wall (2026-10-26, A depth buffer)
 - The demo pass: the dev chest holds every weapon and tool, the basic materials, the potions, seeds, the bearskin rug and one wide painting; your cottage 11 by 7 inside; mana regenerates 0.667 a second and its bar sits between health and stamina (2026-10-26, The demo pass)
 - Any key or click wakes a sleeper early, the screen fading back in; the menu's Burn corpse works with a lit torch in hand as well as a tinderbox (2026-10-26, Waking early, and Burn corpse by a lit torch)
 - Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills (2026-10-26, Fill waterskins skips clean water)
@@ -327,7 +327,7 @@ Michael, on the 80 px walls: "I just really like the predictability of height in
 
 Michael asked why props against walls show two thirds of their outline and clip into walls, and whether a depth buffer was an option. The frame is one list sorted by a number per tile; a picture that spills past its tile is covered by the next tile's wall, and only figures get a correction. A depth buffer sorts per pixel instead: each vertex gets a depth from its thing's true geometry (the style bible's `X + Y + Z`, a plane per face), the flat things draw first without writing depth, opaque art draws in one pass with an alpha test, and the translucent few in a tested pass after. **Ruled:** build it, as its own step ahead of upper floors ("Write the full depth buffer spec"). The spec is `docs/51`.
 
-- **A depth buffer,** opaque art in one pass with an alpha test at half, the translucent things (the faded near walls, ghosts, canopies with holes, shadows, markers) sorted in a second pass.
+- **A depth buffer,** the flat things first without writing depth, opaque art in one pass with an alpha test at half, the translucent things (the faded near walls, canopies with holes, the dark-dimmed dead, the soft sheets) in a tested pass after, the ghosts and the marker on top.
 
 ### 2026-10-26 — A dyed thing's pictures show its dye (Michael)
 
