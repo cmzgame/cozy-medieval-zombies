@@ -15,7 +15,7 @@ import { getSheet } from "../assets.js";
 import { shade } from "../render-util.js";
 import { tileKey } from "../visibility.js";
 import { WALL_T, BRACKET_UP, DOOR_TOP, WINDOW_SILL, WINDOW_TOP, WOOD, METAL } from "../placeholders.js";
-import { NEAR_WALL_ALPHA, DEPTH_ROOM } from "./scene.js";
+import { NEAR_WALL_ALPHA, DEPTH_ROOM, DEPTH_BIAS } from "./scene.js";
 import * as depth from "./depth.js";
 import { emitBracket } from "./walls.js";
 import { ghostColor } from "./props.js";
@@ -149,6 +149,7 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
     emit() {
       const uvF = sheet.wall ? gl.frameUV(sheet, FACE) : null;
       const an = sheet.wall ? (sheet.frameAnchors && sheet.frameAnchors[FACE]) || sheet.anchor : null;
+      if (!near && !ghostTint) emitSkirt(r, s, color, t, visible); // the inside skirt, all the way round, with the far half (drawn first: it lies under everything)
       let first = true;
       for (const [a0, a1, o] of segs) {
         const g0 = ground(a0, Rf);
@@ -229,6 +230,53 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
       gl.layer(null);
     },
   };
+}
+
+// The inside skirt (Michael, 2026-10-27: "add the inside stone skirt so the zigzag where the floor meets the grass is hidden"): a band of the
+// wall's stone on the floor, from where the stepped floor ends round the curve (round.floorEnd, smoothed over half a tile) out to just under
+// the inner face, so the steps' corners and the pockets' grass inside the curve are covered; never past the wall's line, so nothing of it
+// shows outside. It runs on under a door point as a threshold (the floor reaches the curve there, so it is at its narrowest). On the floor
+// plane: the flat pass on the ground, so bodies, furniture, and items stand over it; on a storey the lifted floor's own plane, a step over
+// it. Lit by the room (its light read inside the floor's end, never on a pocket's grass), and outlined on its inner edge in the stone's dark.
+const SKIRT_MIN = 0.08; // the least width inside the inner face, in tiles: a threshold at a door point
+const SKIRT_TUCK = 0.04; // how far under the inner face it reaches
+function emitSkirt(r, s, color, t, visible) {
+  const ends = round.floorEnd(r.n);
+  const K = round.SKIRT_SAMPLES;
+  const inner = s.R - t;
+  const at = (j, rad) => {
+    const a = (j / K) * 2 * Math.PI;
+    return [s.cx + Math.cos(a) * rad, s.cy + Math.sin(a) * rad];
+  };
+  const rIn = (j) => Math.min(ends[j % K] - 0.04, inner - SKIRT_MIN); // a hair inside where the floor ends, over its edge
+  const light = (j) => at(j, Math.min(rIn(j), inner) - 0.6); // inside the floor's end: the room's light, not a pocket's
+  const scr = ([gx, gy]) => {
+    const p = iso.toScreen(gx, gy);
+    return [p.x, p.y];
+  };
+  const flags = !visible || visible.has(tileKey(Math.round(s.cx), Math.round(s.cy))) ? gl.FLAG_NOFOG : 0;
+  const lifted = !!r.layer;
+  const draw = () => {
+    if (lifted) gl.layer(0);
+    for (let j = 0; j < K; j++) {
+      const w = [light(j), light(j + 1), light(j + 1), light(j)];
+      gl.poly([at(j, rIn(j)), at(j + 1, rIn(j + 1)), at(j + 1, inner + SKIRT_TUCK), at(j, inner + SKIRT_TUCK)].map(scr), gl.rgb(shade(color, 0.86), 1), { world: w, flags });
+    }
+    if (lifted) gl.layer(1);
+    for (let j = 0; j < K; j++) {
+      const w = [light(j), light(j + 1), light(j + 1), light(j)];
+      gl.poly([at(j, rIn(j)), at(j + 1, rIn(j + 1)), at(j + 1, rIn(j + 1) + 0.03), at(j, rIn(j) + 0.03)].map(scr), gl.rgb(shade(color, 0.48), 1), { world: w, flags }); // the outline along its inner edge
+    }
+    if (lifted) gl.layer(null);
+  };
+  if (!lifted) {
+    gl.withPass(gl.PASS_FLAT, draw);
+    return;
+  }
+  // A storey: on the lifted floor's horizontal plane (render/storeys.js emitFloors), its two layers a step and two over the floor's picture.
+  const o = iso.getOrigin();
+  gl.surface({ A: 0, B: 2, C: -2 * o.y }, DEPTH_BIAS.liftedFloor + 0.25, 0.5);
+  draw();
 }
 
 // The hole an opening at a door point makes in the curve's face, as [from, to] heights, or null: a door the door's height from the floor, a
