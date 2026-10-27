@@ -75,8 +75,10 @@ export function tilesOf(tiles, L) {
 }
 
 // ---- the stairs (docs/49 section 4), dev art until the asks of section 11 are drawn ----
-// Three blocks climbing a crate each, in the stair's material: each step its top at its height (32 px a step) and its two faces toward the
-// camera, flat shades lit from the top left (art/01), every face on its own plane in the depth buffer.
+// One staircase (Michael's playtest, 2026-10-27: the three crates did not read as a stair): twelve treads, four a tile, each 8 px over
+// the one before as the body's rise climbs (map.stairRise), each a block with its top and its two faces toward the camera (a riser where
+// it faces the camera) on their own planes in the depth buffer, and a closed stringer along each side, a board from the floor to a hand
+// over the treads' line, in the stair's material: flat shades lit from the top left (art/01).
 const STAIR_SHADES = {
   wood: { top: [0.62, 0.47, 0.29, 1], left: [0.47, 0.35, 0.21, 1], right: [0.37, 0.27, 0.16, 1], edge: [0.28, 0.2, 0.12, 1] },
   stone: { top: [0.62, 0.61, 0.58, 1], left: [0.48, 0.47, 0.45, 1], right: [0.39, 0.38, 0.36, 1], edge: [0.3, 0.29, 0.28, 1] },
@@ -89,24 +91,51 @@ function planeX(c) {
   const p = iso.toScreen(c, 0);
   return { A: -1.5, C: c * 32 + 1.5 * p.x + p.y };
 }
-function emitStep(tx, ty, h, shade, bias) {
-  // The block's corners on the ground, and at its top `h` px up: north (top), east (right), south (bottom), west (left) of its diamond.
-  const at = (x, y, up = 0) => { const p = iso.toScreen(x, y); return [p.x, p.y - up]; };
-  const N = [tx - 0.5, ty - 0.5];
-  const E = [tx + 0.5, ty - 0.5];
-  const S = [tx + 0.5, ty + 0.5];
-  const Wp = [tx - 0.5, ty + 0.5];
-  const world = [tx, ty];
-  // The south-west face (along x at y = ty + 0.5), then the south-east (along y at x = tx + 0.5), then the top.
-  gl.surface(planeY(ty + 0.5), bias, 1);
-  gl.poly([at(...Wp, h), at(...S, h), at(...S), at(...Wp)], shade.left, { world, heights: [h, h, 0, 0] });
-  gl.surface(planeX(tx + 0.5), bias, 1);
-  gl.poly([at(...S, h), at(...E, h), at(...E), at(...S)], shade.right, { world, heights: [h, h, 0, 0] });
+const at = (x, y, up = 0) => { const p = iso.toScreen(x, y); return [p.x, p.y - up]; };
+// A block over the grid rectangle [x0, x1] by [y0, y1], `h` px tall: its south-west face (along x at y1), its south-east face (along y at
+// x1), and its top, each on its own plane.
+function emitBox(x0, y0, x1, y1, h, shade, bias, world) {
+  gl.surface(planeY(y1), bias, 1);
+  gl.poly([at(x0, y1, h), at(x1, y1, h), at(x1, y1), at(x0, y1)], shade.left, { world, heights: [h, h, 0, 0] });
+  gl.surface(planeX(x1), bias, 1);
+  gl.poly([at(x1, y1, h), at(x1, y0, h), at(x1, y0), at(x1, y1)], shade.right, { world, heights: [h, h, 0, 0] });
   withLift(h, () => {
     const o = iso.getOrigin();
     gl.surface({ A: 0, B: 2, C: -2 * o.y }, bias + 0.5, 1);
-    gl.poly([at(...N), at(...E), at(...S), at(...Wp)], shade.top, { world, heights: 0 });
+    gl.poly([at(x0, y0), at(x1, y0), at(x1, y1), at(x0, y1)], shade.top, { world, heights: 0 });
   });
+}
+const STRINGER_UP = 6; // px a stringer's top stands over the treads' line
+const STRINGER_DOWN = 14; // and its foot under it
+const STRINGER_UNDER = 2; // the near one's top under the nosings
+// The `i`th tile of stair `s` (0 to 2): its four treads, and its length of the two stringers.
+function emitStairTile(s, i, shade, bias) {
+  const [dx, dy] = s.d;
+  const px = -dy;
+  const py = dx;
+  const P = (t, o) => [s.low[0] + dx * t + px * o, s.low[1] + dy * t + py * o];
+  const world = s.tiles[i];
+  const n = map.STAIR_TREADS / 3;
+  for (let j = 0; j < n; j++) {
+    const k = i * n + j;
+    const a = P(k / n, -0.5);
+    const b = P((k + 1) / n, 0.5);
+    emitBox(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1]), (k + 1) * (96 / map.STAIR_TREADS), shade, bias, world);
+  }
+  // The stringers, a board on the plane of each side climbing from the floor to the landing: the far one (seen from the camera over the
+  // treads) a hand over the line the treads' nosings climb along, the near one just under it, so the treads show stepping over it. The
+  // camera's ray climbs 32 px a tile, as a stair does: a near board over the nosings would hide every tread behind it.
+  const line = (t) => t * 32;
+  for (const o of [-0.5, 0.5]) {
+    const A = P(i, o);
+    const B = P(i + 1, o);
+    const other = P(i, -o);
+    const near = dx !== 0 ? A[1] > other[1] : A[0] > other[0];
+    const top = (t) => line(t) + (near ? -STRINGER_UNDER : STRINGER_UP);
+    const bottom = (t) => Math.max(0, line(t) - STRINGER_DOWN);
+    gl.surface(dx !== 0 ? planeY(A[1]) : planeX(A[0]), bias + 0.6, 1);
+    gl.poly([at(A[0], A[1], top(i)), at(B[0], B[1], top(i + 1)), at(B[0], B[1], bottom(i + 1)), at(A[0], A[1], bottom(i))], shade.edge, { world, heights: [top(i), top(i + 1), bottom(i + 1), bottom(i)] });
+  }
 }
 // The stairs of layer L whose steps are among `tilesL`, as drawables.
 export function stairDrawables(tilesL, L, bias, out) {
@@ -115,10 +144,10 @@ export function stairDrawables(tilesL, L, bias, out) {
   const inView = new Set(tilesL.map(([x, y]) => `${x},${y}`));
   for (const { s, well } of list) {
     if (well) continue;
-    s.tiles.forEach(([tx, ty], k) => {
+    s.tiles.forEach(([tx, ty], i) => {
       if (!inView.has(`${tx},${ty}`)) return;
       const shade = STAIR_SHADES[s.material] || STAIR_SHADES.wood;
-      out.push({ key: (tx + ty) * 1000 + 0.9, kind: "stair", vis: true, rect: null, canOcclude: false, occluder: false, emit: () => emitStep(tx, ty, (k + 1) * 32, shade, bias) });
+      out.push({ key: (tx + ty) * 1000 + 0.9, kind: "stair", vis: true, rect: null, canOcclude: false, occluder: false, emit: () => emitStairTile(s, i, shade, bias) });
     });
   }
 }
