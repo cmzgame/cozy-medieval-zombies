@@ -8,7 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
-- Upper floors are a spec (`49`): stairs are built by players and placed on the map, and cannot be destroyed for now; third floors and root cellars are designed in, a second floor alone is enough; nothing waits on roofs; round rooms next, roofs a distant third (2026-10-26, Upper floors: a spec)
+- Upper floors are a spec (`49`): stairs are built by players and placed on the map, three tiles long, climbing one floor, the layer changing as you cross their top, and cannot be destroyed for now; third floors and root cellars under existing houses are designed in, a second floor alone is enough; nothing waits on roofs; round rooms next, roofs a distant third (2026-10-26, Upper floors: a spec)
 - The demo pass: the dev chest holds every weapon and tool, the basic materials, the potions, seeds, the bearskin rug and one wide painting; your cottage 11 by 7 inside; mana regenerates 0.667 a second and its bar sits between health and stamina (2026-10-26, The demo pass)
 - Any key or click wakes a sleeper early, the screen fading back in; the menu's Burn corpse works with a lit torch in hand as well as a tinderbox (2026-10-26, Waking early, and Burn corpse by a lit torch)
 - Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills (2026-10-26, Fill waterskins skips clean water)
@@ -320,6 +320,8 @@ From the research in #511 (what multilevel would take, Zomboid style; Michael's 
 - **Stairs are built by players and placed on the map,** and **cannot be destroyed for now**, so no upper floor is ever cut off. Destroyable stairs are a later nice-to-have.
 - **Third floors and root cellars are designed in;** a second floor alone is enough.
 - **The order:** upper floors, then round rooms, then roofs; none waits on roofs.
+
+Later the same night, after `51` and `52` were ruled, Michael asked for "a careful full spec for multiple stories, including a -1 level root cellar under existing houses. Spec out stairs, much like zomboid, 3ish tiles, goes up one floor, magically transitions you to the next layer of the world when you cross the boundary." The spec was rewritten to that: **a stair is three tiles, each rising one crate, and the layer changes as the body crosses the stair's top edge; root cellars sit under existing houses.**
 
 ### 2026-10-26 — The demo pass: the dev chest for trying everything, a roomier cottage, mana twice as fast and between health and stamina, real art for the first fifteen minutes (Michael)
 
