@@ -349,7 +349,7 @@ export function cardFor(entry, opts = {}) {
   // What it builds: the walls of every wood are one entry ("wood wall"), a region's wood never appears (it is offered only with Free building on), and a door, a window, a fence, a gate each their own.
   const builds = [];
   for (const k of buildKinds()) {
-    if (!k.cost || !k.cost[def.id] || k.region) continue;
+    if (!k.cost || !k.cost[def.id] || k.region || k.dev) continue; // nor what is not in the game yet (the round stone wall)
     const name = isWoodWall(k.sprite) && k.kind === "wall" ? "wood wall" : (k.label || k.id).toLowerCase();
     const text = `${name} (${k.cost[def.id]})`;
     if (!builds.includes(text)) builds.push(text);

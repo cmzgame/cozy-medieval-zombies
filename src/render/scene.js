@@ -20,6 +20,7 @@ import { emitRugs } from "./rugs.js"; // laid rugs, flat on the ground under eve
 import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/45 section 2)
 import { postDrawables, wallDrawables } from "./walls.js";
+import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
 
 // The night, as before: tunables Michael picks by eye, live on
@@ -202,6 +203,7 @@ export function renderScene(args) {
   if (tracks && tracks.length) emitTracks(tracks, drawAll ? null : visible); // game's prints, on the ground and in sight
   const drawables = [];
   wallDrawables(tiles, visible, playerRoom, drawables);
+  ringDrawables(tiles, visible, playerRoom, drawables);
   postDrawables(tiles, visible, playerRoom, drawables);
   propDrawables(tiles, visible, drawables);
   floorItemDrawables(tiles, visible, drawables);

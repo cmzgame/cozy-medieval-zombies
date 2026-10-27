@@ -269,10 +269,11 @@ function postBase(tx, ty, nE, nW, wS, wN) {
 // `sheet` is the heavier material's (stone over log over wood); `near` is
 // whether it is translucent with a near wall.
 export function postAt(tx, ty, playerRoom) {
-  const nE = map.tileAt(tx, ty).n;
-  const nW = map.tileAt(tx - 1, ty).n;
-  const wS = map.tileAt(tx, ty).w;
-  const wN = map.tileAt(tx, ty - 1).w;
+  const straight = (w) => (w && !map.isRingWall(w) ? w : null); // a ring's edges take no post at their step corners (docs/50 section 4); a door point's door keeps its frame
+  const nE = straight(map.tileAt(tx, ty).n);
+  const nW = straight(map.tileAt(tx - 1, ty).n);
+  const wS = straight(map.tileAt(tx, ty).w);
+  const wN = straight(map.tileAt(tx, ty - 1).w);
   if (!nE && !nW && !wS && !wN) return null;
   const base = postBase(tx, ty, nE, nW, wS, wN);
   if (!base) return null;
@@ -456,13 +457,14 @@ function makePost(tx, ty, sheet, vis, near, thin = null) {
 export function wallDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
     const t = map.tileAt(tx, ty);
-    if (t.n) {
+    // A ring's edges are drawn by its own drawables, as the curve (render/rings.js, docs/50 section 4); a door or a window at a door point is drawn here.
+    if (t.n && !map.isRingWall(t.n)) {
       const far = map.tileAt(tx, ty - 1);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
       const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
       out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub ? wallCuts("n", tx, ty, playerRoom) : null));
     }
-    if (t.w) {
+    if (t.w && !map.isRingWall(t.w)) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
       const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
@@ -570,30 +572,34 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
       }
       gl.layer(L_OVER);
       if (wall.hangings && !ghostTint) emitHangings(wall, edge, tx, ty, { tint, flags }); // paintings, right after their segment, before its bracket (their outline a layer under them, over the face)
-      if (br) {
-        const opts = { world: [tx, ty], flags };
-        gl.layer(L_ON); // the bracket's iron, and a lantern's cage and pane, side by side
-        gl.poly([[bx - 2, by - 3], [bx + 2, by - 3], [bx + 2, by + 4], [bx - 2, by + 4]], gl.rgb(METAL, alpha), opts);
-        gl.poly([[bx - 4, by - 1], [bx + 4, by - 1], [bx + 4, by + 1], [bx - 4, by + 1]], gl.rgb(METAL, alpha), opts);
-        if (br.lantern) {
-          // The lantern (#156): an iron cage with a lit pane hanging at the bracket, steady and unlit-drawn like a flame.
-          gl.poly([[bx - 4, by - 17], [bx + 4, by - 17], [bx + 4, by - 15], [bx - 4, by - 15]], gl.rgb(METAL, alpha), opts);
-          gl.poly([[bx - 4, by - 15], [bx - 3, by - 15], [bx - 3, by - 4], [bx - 4, by - 4]], gl.rgb(METAL, alpha), opts);
-          gl.poly([[bx + 3, by - 15], [bx + 4, by - 15], [bx + 4, by - 4], [bx + 3, by - 4]], gl.rgb(METAL, alpha), opts);
-          // Lit, the pane glows unlit-drawn; put out (docs/43, section 3), it is dark glass, lit by the scene like the iron.
-          if (br.lit !== false) gl.poly([[bx - 3, by - 15], [bx + 3, by - 15], [bx + 3, by - 4], [bx - 3, by - 4]], gl.rgb("#e6b45a", alpha), { world: [tx, ty], flags: flags | gl.FLAG_UNLIT });
-          else gl.poly([[bx - 3, by - 15], [bx + 3, by - 15], [bx + 3, by - 4], [bx - 3, by - 4]], gl.rgb("#3c3a3e", alpha), opts);
-        } else if (br.torch) {
-          // The torch over the iron: its stick from under its head (the head covered the stick's top two rows, the same pixels), then the
-          // head, side by side; its flame over the head.
-          gl.layer(L_OVER);
-          gl.poly([[bx - 1, by - 12], [bx + 2, by - 12], [bx + 2, by - 1], [bx - 1, by - 1]], gl.rgb(WOOD, alpha), opts);
-          gl.poly([[bx - 2, by - 17], [bx + 3, by - 17], [bx + 3, by - 12], [bx - 2, by - 12]], gl.rgb("#3a2a22", alpha), opts);
-          gl.layer(L_FLAME);
-          if (vis && br.lit !== false) frameQuad(getSheet("flame"), `flame_${flameFrame(tx + ty)}`, bx, by - 15, { world: [tx, ty], flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG, ...(ghostTint ? { color: ghostTint } : {}) }); // a refused ghost's flame takes its tint
-        }
-      }
+      if (br) emitBracket(br, bx, by, [tx, ty], alpha, flags, vis, ghostTint, tx + ty);
       gl.layer(null);
     },
   };
+}
+
+// A bracket at screen (bx, by) on the current surface: its iron, and a lantern's cage and pane or a torch and its flame, lit from the world
+// point `world` (a wall's tile; a ring's point on the curve, render/rings.js). Its layers are the wall's: L_ON, L_OVER, L_FLAME.
+export function emitBracket(br, bx, by, world, alpha, flags, vis, ghostTint = null, seed = 0) {
+  const opts = { world, flags };
+  gl.layer(L_ON); // the bracket's iron, and a lantern's cage and pane, side by side
+  gl.poly([[bx - 2, by - 3], [bx + 2, by - 3], [bx + 2, by + 4], [bx - 2, by + 4]], gl.rgb(METAL, alpha), opts);
+  gl.poly([[bx - 4, by - 1], [bx + 4, by - 1], [bx + 4, by + 1], [bx - 4, by + 1]], gl.rgb(METAL, alpha), opts);
+  if (br.lantern) {
+    // The lantern (#156): an iron cage with a lit pane hanging at the bracket, steady and unlit-drawn like a flame.
+    gl.poly([[bx - 4, by - 17], [bx + 4, by - 17], [bx + 4, by - 15], [bx - 4, by - 15]], gl.rgb(METAL, alpha), opts);
+    gl.poly([[bx - 4, by - 15], [bx - 3, by - 15], [bx - 3, by - 4], [bx - 4, by - 4]], gl.rgb(METAL, alpha), opts);
+    gl.poly([[bx + 3, by - 15], [bx + 4, by - 15], [bx + 4, by - 4], [bx + 3, by - 4]], gl.rgb(METAL, alpha), opts);
+    // Lit, the pane glows unlit-drawn; put out (docs/43, section 3), it is dark glass, lit by the scene like the iron.
+    if (br.lit !== false) gl.poly([[bx - 3, by - 15], [bx + 3, by - 15], [bx + 3, by - 4], [bx - 3, by - 4]], gl.rgb("#e6b45a", alpha), { world, flags: flags | gl.FLAG_UNLIT });
+    else gl.poly([[bx - 3, by - 15], [bx + 3, by - 15], [bx + 3, by - 4], [bx - 3, by - 4]], gl.rgb("#3c3a3e", alpha), opts);
+  } else if (br.torch) {
+    // The torch over the iron: its stick from under its head (the head covered the stick's top two rows, the same pixels), then the
+    // head, side by side; its flame over the head.
+    gl.layer(L_OVER);
+    gl.poly([[bx - 1, by - 12], [bx + 2, by - 12], [bx + 2, by - 1], [bx - 1, by - 1]], gl.rgb(WOOD, alpha), opts);
+    gl.poly([[bx - 2, by - 17], [bx + 3, by - 17], [bx + 3, by - 12], [bx - 2, by - 12]], gl.rgb("#3a2a22", alpha), opts);
+    gl.layer(L_FLAME);
+    if (vis && br.lit !== false) frameQuad(getSheet("flame"), `flame_${flameFrame(seed)}`, bx, by - 15, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG, ...(ghostTint ? { color: ghostTint } : {}) }); // a refused ghost's flame takes its tint
+  }
 }

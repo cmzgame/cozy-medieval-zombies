@@ -28,6 +28,17 @@ export function planeX(c) {
   return { A: -1.5, C: p.d + 1.5 * p.sx + p.sy };
 }
 
+// The vertical plane through the ground points (ax, ay) and (bx, by), at any angle (a ring's segment, docs/50 section 4): depth is linear
+// in sx along it, A its slope. Seen edge on (the two a column apart or less), the billboard through their middle.
+export function planeThrough(ax, ay, bx, by) {
+  const a = at(ax, ay);
+  const b = at(bx, by);
+  const dsx = b.sx - a.sx;
+  if (Math.abs(dsx) < 0.5) return billboard((ax + bx) / 2, (ay + by) / 2);
+  const A = (b.d + b.sy - (a.d + a.sy)) / dsx;
+  return { A, C: a.d + a.sy - A * a.sx };
+}
+
 // A billboard through the ground point (gx, gy): the same depth across every column, its height above that point's own row on screen.
 export function billboard(gx, gy) {
   const p = at(gx, gy);

@@ -5180,7 +5180,7 @@ check("upper floors, step 0: the rooms: a room walled on layer 1 is its own and 
   gameMod.create({ json: read("data/maps/square.json"), rules: { zombieAggro: false } });
   mapMod.rebuildRooms();
   const before = groundRooms();
-  const cottage = (() => { for (const c of mapMod.loadedChunks()) for (let i = 0; i < c.tiles.length; i++) if (c.layer === 0 && c.tiles[i].room > 0) return [c.cx * mapMod.CHUNK + (i % mapMod.CHUNK), c.cy * mapMod.CHUNK + Math.floor(i / mapMod.CHUNK)]; return null; })();
+  const cottage = (() => { for (const c of mapMod.loadedChunks()) for (let i = 0; i < c.tiles.length; i++) if (c.layer === 0 && c.cx === 0 && c.cy === 0 && c.tiles[i].room > 0) return [c.cx * mapMod.CHUNK + (i % mapMod.CHUNK), c.cy * mapMod.CHUNK + Math.floor(i / mapMod.CHUNK)]; return null; })();
   assert(cottage, "no room on the square's ground");
   // A 3 by 3 room on layer 1 over the ground's room and over open ground beside it: its walls must bound nothing on the ground.
   const [x, y] = cottage;
@@ -5292,18 +5292,18 @@ check("upper floors, step 1: growth and eviction: another layer grows only its a
   towerHouse();
   const upper = () => [...mapMod.loadedChunks()].filter((c) => c.layer !== 0).map((c) => `${c.cx},${c.cy},${c.layer}`).sort();
   const at0 = upper();
-  assert(at0.join(" ") === "0,1,-1 0,1,1 0,1,2", `the upper and lower chunks at the start: ${at0.join(" ")}`);
+  assert(at0.join(" ") === "0,1,-1 0,1,1 0,1,2 1,0,1", `the upper and lower chunks at the start: ${at0.join(" ")}`);
   // Far off, a read and the ring grow nothing on another layer; a floor laid there grows its one chunk, named with its layer.
   mapMod.ensureAround(200, 200, 2);
-  assert(mapMod.tileAt(200, 200, 1).floor === mapMod.VOID && upper().length === 3, "the ring or a read grew a chunk on another layer");
+  assert(mapMod.tileAt(200, 200, 1).floor === mapMod.VOID && upper().length === at0.length, "the ring or a read grew a chunk on another layer");
   mapMod.takeTouched();
   mapMod.setFloor(200, 200, "floor_wood", 1);
   const touched = mapMod.takeTouched();
-  assert(upper().length === 4 && touched.some((t) => t[0] === 12 && t[1] === 12 && t[2] === 1) && !touched.some((t) => t[0] === 12 && t[1] === 12 && !t[2]), `the built floor's chunk: ${JSON.stringify(touched)}`);
+  assert(upper().length === at0.length + 1 && touched.some((t) => t[0] === 12 && t[1] === 12 && t[2] === 1) && !touched.some((t) => t[0] === 12 && t[1] === 12 && !t[2]), `the built floor's chunk: ${JSON.stringify(touched)}`);
   // Eviction from far away: the wild goes, every other layer's chunk stays (none is wild), the evicted list on the ground's layer.
   const dropped = mapMod.evictFar(-4000, -4000, 2);
   const ev = mapMod.takeEvicted();
-  assert(dropped.length > 0 && dropped.every((d) => d[3] === 0) && upper().length === 4 && ev.every((e) => e.length === 2), `the eviction dropped ${dropped.length}, upper ${upper().length}, evicted ${JSON.stringify(ev.slice(0, 3))}`);
+  assert(dropped.length > 0 && dropped.every((d) => d[3] === 0) && upper().length === at0.length + 1 && ev.every((e) => e.length === 2), `the eviction dropped ${dropped.length}, upper ${upper().length}, evicted ${JSON.stringify(ev.slice(0, 3))}`);
   // A dropped chunk of another layer (a guest told so) leaves the registry with its props, and is grown again from the file.
   const bed = mapMod.allProps().find((p) => p.sprite === "bed" && p.layer === 1);
   assert(bed, "no bed on the first floor");
@@ -5334,8 +5334,8 @@ check("upper floors, step 1: the save keeps every layer: a prop, a wall, and an 
   assert(lit.length === 1, `${lit.length} brackets on the first floor`);
   return `a stick on the landing, a wall on the second floor, a stone floor in the cellar, all on their layers after the restore`;
 });
-check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 23)", () => {
-  assert(netMod.PROTOCOL === 23, `PROTOCOL ${netMod.PROTOCOL}`);
+check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 23 and on)", () => {
+  assert(netMod.PROTOCOL >= 23, `PROTOCOL ${netMod.PROTOCOL}`);
   const s2 = netMod.cleanSnap({ aimAt: [3.5, 4.5] });
   const s3 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 1] });
   const s0 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 0] });
@@ -5567,6 +5567,301 @@ check("torch on a wall (#523): Place torch from the bag, belt, and hand by the h
     assert(n1 === n0 + 1 - 1, `the torches counted ${n0} before the spare was made, ${n1} after one burnt out`);
     return `the hand's lit torch by the host, the bag's and the belt's by a guest's command, each its own uid on the wall; refused on a held face, a painting, a fence, a window, a door, and too far; put out, lit, picked up back with its uid; burnt out and its wall gone`;
   } finally {
+    promptMod.setMessageSink(null);
+  }
+});
+
+// ---- round rooms (docs/50; option A, Michael 2026-10-26: the world's logic on the stepped edges, bodies stopped by the curve too) ----
+// The proving ground's rings (tools/mapgen/proving.py): a 7 by 7 room with its square's corner at (21, 0), a door south and a window west,
+// and a 5 by 5 tower at (27, 7) on layers 0 and 1. The rows that build their own clear the square's north-west (x 0 to 9, y 0 to 9) and
+// stand a 5 by 5 at (2, 2), its centre (4, 4).
+const roundMod = await import("../src/round.js");
+const roundSquare = () => {
+  gameMod.create({ json: read("data/maps/square.json"), rules: { zombieAggro: false } });
+  mapMod.ensureAround(24, 5, 2);
+  mapMod.ensureAround(4, 4, 2);
+  mapMod.rebuildRooms();
+};
+const clearPatch = (x0, y0, w, h, layer = 0) => {
+  for (let y = y0; y < y0 + h; y++) {
+    for (let x = x0; x < x0 + w; x++) {
+      const t = mapMod.growTile(x, y, layer);
+      if (t.prop) mapMod.removeProp(t.prop);
+      t.items = null;
+    }
+  }
+};
+const ownRing = (opts = { built: true }) => {
+  clearPatch(0, 0, 10, 10);
+  const why = mapMod.ringProblem(2, 2, 5, 0);
+  const r = mapMod.buildRing(2, 2, 5, "wall_stone", 0, opts);
+  assert(r, `the ring at 2,2 was refused: ${why}`);
+  mapMod.rebuildRooms();
+  return r;
+};
+const pressFrom = (from, dir, layer = 0) => {
+  let p = { gx: from[0], gy: from[1] };
+  const len = Math.hypot(dir[0], dir[1]) || 1;
+  for (let i = 0; i < 400; i++) p = mapMod.moveCircle(p.gx, p.gy, 0.3, (dir[0] / len) * 0.02, (dir[1] / len) * 0.02, layer);
+  return p;
+};
+check("round rooms, step 1: the proving ground's rings load: rooms of 37 and 21 tiles (the tower's on each of its layers), pockets outdoors, every outline edge a stone wall of the ring, the openings at door points, the building index on the stepped tiles", () => {
+  roundSquare();
+  const ids = mapMod.allRings().map((r) => r.id).sort();
+  assert(JSON.stringify(ids) === '["round_0_21_0","round_0_26_7","round_1_26_7"]', `the rings: ${JSON.stringify(ids)}`);
+  const sizes = [];
+  for (const [x, y, layer, size] of [[24, 3, 0, 37], [28, 9, 0, 21], [28, 9, 1, 21]]) {
+    const room = mapMod.getRoom(mapMod.roomAt(x, y, layer));
+    assert(room && room.size === size && (room.layer || 0) === layer, `layer ${layer} at ${x},${y}: ${room ? `${room.size} tiles on layer ${room.layer}` : "no room"} (wanted ${size})`);
+    sizes.push(room.size);
+  }
+  assert(mapMod.roomAt(21, 0) === 0 && mapMod.roomAt(26, 7) === 0 && mapMod.roomAt(26, 11) === 0, "a corner pocket is not outdoors");
+  for (const r of mapMod.allRings()) {
+    const s = mapMod.ringShape(r);
+    let opens = 0;
+    for (const [tx, ty, e] of s.outline) {
+      const w = mapMod.tileAt(tx, ty, r.layer)[e];
+      assert(w, `${r.id}: no wall on ${tx},${ty},${e}`);
+      if (w.kind === "wall") assert(mapMod.isRingWall(w) && w.sprite === "wall_stone" && mapMod.ringOfWall(w) === r, `${r.id}: ${tx},${ty},${e} is not the ring's`);
+      else {
+        assert(w.underRound && roundMod.isDoorPoint(r.x0, r.y0, r.n, tx, ty, e), `${r.id}: a ${w.kind} off a door point at ${tx},${ty},${e}`);
+        opens++;
+      }
+    }
+    assert(s.outline.length === (r.n === 7 ? 28 : 20) && opens === (r.id === "round_0_21_0" ? 2 : 1), `${r.id}: ${s.outline.length} edges, ${opens} openings`);
+  }
+  const b = mapMod.buildingAt(28, 9, 1);
+  assert(b && b.round && JSON.stringify(b.layers) === "[0,1]" && mapMod.buildingAt(26, 7, 0) === null && mapMod.buildingAt(24, 3, 0) && mapMod.buildingAt(24, 3, 0).round, "the building index does not hold the rings' stepped tiles (and not their pockets)");
+  const s7 = roundMod.shape(21, 0, 7);
+  assert(s7.unreachable.length === 8 && s7.unreachable.every(([x, y]) => !mapMod.isWalkableTile(x, y) && mapMod.unreachableAt(x, y)) && roundMod.shape(26, 7, 5).unreachable.length === 0, "the 7's eight held-off pocket tiles are walkable, or the 5 has some");
+  assert(s7.crossed.length === 8 && s7.crossed.every(([x, y]) => mapMod.curveCrossed(x, y)) && roundMod.shape(26, 7, 5).crossed.every(([x, y]) => mapMod.curveCrossed(x, y) && mapMod.curveCrossed(x, y, 1)), "the curve-crossed tiles are not marked");
+  return `rooms ${sizes.join(", ")}; the 7's unreachable ${s7.unreachable.map((t) => t.join(",")).join(" ")}`;
+});
+check("round rooms, step 1: a sealed round room is a room and is safe: no sight, reach, path, or bite through the ring, the scan's case at the diagonal (#518)", () => {
+  roundSquare();
+  ownRing();
+  const room = mapMod.getRoom(mapMod.roomAt(4, 4));
+  assert(room && room.size === 21 && mapMod.roomSealed(room), `the ring's room: ${room && room.size} tiles, sealed ${room && mapMod.roomSealed(room)}`);
+  // The scan's case: one inside pressed into the north-east diagonal, one outside pressed into the north-east pocket, within a bite's reach.
+  const inn = pressFrom([4, 4], [1, -1]);
+  const out = pressFrom([6, 2], [-1, 1]);
+  const gap = Math.hypot(inn.gx - out.gx, inn.gy - out.gy);
+  assert(gap < 1.2, `the two at the diagonal are ${gap.toFixed(2)} apart: not the scan's case`); // under option A the curve holds both off, past a bite's contact (0.9) as well
+  assert(!lineOfSight(inn.gx, inn.gy, out.gx, out.gy) && !lineOfSight(out.gx, out.gy, inn.gx, inn.gy), "a line of sight through the ring at the diagonal");
+  assert(reachImport.reachProblem({ gx: inn.gx, gy: inn.gy, layer: 0 }, [[Math.round(out.gx), Math.round(out.gy)]], 2.6), "reach through the ring");
+  assert(pathfind.findPath([6, 2], [4, 4], mapMod.canStep) === null && pathfind.findPath([4, 8], [4, 4], mapMod.canStep) === null, "a path into the sealed ring");
+  // The dead hunt; one stands in the pocket against the curve, the player inside against it: ten seconds, and no bite.
+  const me = gameMod.state.player;
+  const z = gameMod.state.zombies[0];
+  rulesImport.set({ zombieAggro: true });
+  try {
+    me.gx = inn.gx;
+    me.gy = inn.gy;
+    z.gx = out.gx;
+    z.gy = out.gy;
+    const hp0 = me.hp;
+    let t = loopMod.simTime();
+    for (let i = 0; i < 600; i++) {
+      t += 1 / 60;
+      loopMod.setSimTime(t);
+      gameMod.begin(1 / 60);
+      gameMod.step(1 / 60, gameMod.idleSnapshot());
+    }
+    assert(me.hp === hp0 && Math.hypot(me.gx - 4, me.gy - 4) < 2.5 && Math.hypot(z.gx - 4, z.gy - 4) > 2.5, `hp ${hp0} to ${me.hp}; the player ${Math.hypot(me.gx - 4, me.gy - 4).toFixed(2)} from the centre, the dead one ${Math.hypot(z.gx - 4, z.gy - 4).toFixed(2)}`);
+    return `the two ${gap.toFixed(2)} apart across the diagonal, no sight, reach, or path; ten seconds hunting, health ${hp0} to ${me.hp}`;
+  } finally {
+    rulesImport.set({ zombieAggro: false });
+  }
+});
+check("round rooms, step 1: bodies are stopped by the curve and by the steps, inside and out, and never stand in the drawn wall", () => {
+  roundSquare();
+  ownRing();
+  let far = 0;
+  let near = Infinity;
+  for (let k = 0; k < 24; k++) {
+    const a = ((k * 15 + 7.5) * Math.PI) / 180;
+    const p = pressFrom([4, 4], [Math.cos(a), Math.sin(a)]);
+    assert(!mapMod.circleBlocked(p.gx, p.gy, 0.3), `a body walking out at ${k * 15 + 7.5} degrees ended inside a wall`);
+    far = Math.max(far, Math.hypot(p.gx - 4, p.gy - 4));
+    const q = pressFrom([4 + 4 * Math.cos(a), 4 + 4 * Math.sin(a)], [-Math.cos(a), -Math.sin(a)]);
+    near = Math.min(near, Math.hypot(q.gx - 4, q.gy - 4));
+  }
+  assert(far <= 2.5 - 0.3 + 0.06, // the chords sag 0.02 inside the circle and end at a door edge 0.05 outside it
+    `a body inside came ${far.toFixed(3)} from the centre: into the curve (radius 2.5)`);
+  assert(near >= 2.5 + 0.3 - 0.03, `a body outside came ${near.toFixed(3)} from the centre: into the curve`);
+  // At a door point with the door open, a body walks straight through: the curve leaves the doorway to the edge.
+  mapMod.buildWall(4, 2, "n", "door", "wall_stone");
+  mapMod.tileAt(4, 2).n.open = true;
+  const through = pressFrom([4, 4], [0, -1]);
+  assert(through.gy < 1, `a body walking north through the open door stopped at ${through.gy.toFixed(2)}`);
+  return `inside never past ${far.toFixed(3)}, outside never nearer than ${near.toFixed(3)} (the curve at 2.5); through the open door to ${through.gy.toFixed(2)}`;
+});
+check("round rooms, step 1: a ray is stopped by the ring and passes an open door; the dead path in by a door and nowhere else (an open window passes sight, never a body)", () => {
+  roundSquare();
+  const door = mapMod.tileAt(24, 7).n;
+  const win = mapMod.tileAt(21, 3).w;
+  assert(door && door.kind === "door" && door.underRound && win && win.kind === "window" && win.underRound, "the 7's door and window are not at their door points");
+  assert(!lineOfSight(24, 4, 24, 9) && !lineOfSight(22, 1, 20, -1) && !lineOfSight(26, 5, 28, 7), "a ray through the shut door or the ring");
+  assert(pathfind.findPath([24, 9], [24, 3], mapMod.canStep) === null, "a path in through the shut door");
+  win.shutter = "open";
+  assert(lineOfSight(22, 3, 19, 3) && pathfind.findPath([19, 3], [24, 3], mapMod.canStep) === null, "the open window does not pass sight, or passes a body");
+  door.open = true;
+  assert(lineOfSight(24, 4, 24, 9), "a ray does not pass the open door");
+  const path = pathfind.findPath([24, 10], [24, 3], mapMod.canStep);
+  assert(path && path.length, "no path in through the open door");
+  const inRoom = (x, y) => mapMod.roomAt(x, y) === mapMod.roomAt(24, 3);
+  const crossings = [];
+  for (let i = 1; i < path.length; i++) if (inRoom(...path[i]) !== inRoom(...path[i - 1])) crossings.push(`${path[i - 1].join(",")}>${path[i].join(",")}`);
+  assert(crossings.length === 1 && crossings[0] === "24,7>24,6", `the path crossed the ring at ${crossings.join(" ")}`);
+  return `the shut door and the ring stop a ray, the open door passes it; one path in, by the door (${path.length} steps)`;
+});
+check("round rooms, step 1: no path ends on an unreachable tile, and no furniture stands on a curve-crossed tile (Michael: \"furniture can't be placed on those 8 tiles\"), the fire pit inside, never a fireplace against the curve", () => {
+  roundSquare();
+  const s7 = roundMod.shape(21, 0, 7);
+  for (const [x, y] of s7.unreachable) assert(pathfind.findPath([24, 9], [x, y], mapMod.canStep) === null, `a path ends on the unreachable ${x},${y}`);
+  for (const [x, y] of s7.crossed) {
+    const why = setdownMod.standProblem("ground", x, y);
+    assert(why === "Not against the curve", `a set-down on the crossed ${x},${y}: "${why}"`);
+  }
+  assert(setdownMod.fitProblem("ground", "fire_pit", 21, 2) === "Not against the curve", `a fire pit over a crossed tile: ${setdownMod.fitProblem("ground", "fire_pit", 21, 2)}`);
+  assert(setdownMod.fitProblem("ground", "fire_pit", 23, 2) === "", `the fire pit in the middle of the 7: ${setdownMod.fitProblem("ground", "fire_pit", 23, 2)}`);
+  const fireplaceFits = [];
+  for (const [x, y] of s7.stepped) {
+    const f = setdownMod.fitFor("wall", "fireplace", x, y);
+    if (!f.problem) fireplaceFits.push(`${f.tx},${f.ty} ${f.facing}`);
+  }
+  assert(!fireplaceFits.length, `a fireplace fits against the ring at ${fireplaceFits.join("; ")}`);
+  // The ring's eight crossed tiles of the 5 by 5 refuse a carried prop too, and a made one never lands there (stations.js fits).
+  const me = gameMod.state.player;
+  me.carrying = { footprint: [1, 1] };
+  me.gx = 28;
+  me.gy = 9;
+  const refused = roundMod.shape(26, 7, 5).crossed.filter(([x, y]) => !placementImport.canPutDown(me, x, y)).length;
+  me.carrying = null;
+  assert(refused === 8, `a carried prop goes down on ${8 - refused} of the 5's crossed tiles`);
+  return `${s7.unreachable.length} unreachable tiles no path reaches; ${s7.crossed.length} crossed tiles refuse a set-down; the fire pit fits at 23,2; no fireplace anywhere in the 7`;
+});
+check("round rooms, step 1: a door point takes a door and a window, and a door taken away leaves a ring wall; no door off a door point, no wall inside a ring", () => {
+  roundSquare();
+  ownRing();
+  assert(mapMod.ringWallProblem(3, 2, "n", "door") === "Only at a door point of the curve" && !mapMod.canBuildWall(3, 2, "n", "door"), "a door off a door point is not refused");
+  assert(mapMod.ringWallProblem(4, 4, "n", "wall") === "Not inside a round room" && !mapMod.canBuildWall(4, 4, "n", "wall"), "a wall inside the ring is not refused");
+  assert(mapMod.canBuildWall(4, 2, "n", "door") && mapMod.buildWall(4, 2, "n", "door", "wall_stone"), "no door at the north door point");
+  const d = mapMod.tileAt(4, 2).n;
+  assert(d.kind === "door" && d.sprite === "wall_stone" && d.underRound && d.underBuilt && !mapMod.isRingWall(d), `the door: ${JSON.stringify(d)}`);
+  assert(mapMod.buildWall(2, 4, "w", "window", "wall_stone") && mapMod.tileAt(2, 4).w.kind === "window", "no window at the west door point");
+  mapMod.destroyWall(4, 2, "n", true);
+  const w = mapMod.tileAt(4, 2).n;
+  assert(w && w.kind === "wall" && mapMod.isRingWall(w) && mapMod.ringOfWall(w) && w.built, `taken away, the door left ${JSON.stringify(w)}`);
+  mapMod.rebuildRooms();
+  assert(mapMod.roomSealed(mapMod.getRoom(mapMod.roomAt(4, 4))), "the ring is not sealed again with its door gone");
+  return "a door and a window at door points, the ring wall back under the door; refused off a door point and inside";
+});
+check("round rooms, step 1: a torch mounts on a ring edge at its point on the curve, on a face the camera sees; a painting never hangs there", () => {
+  roundSquare();
+  ownRing();
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  try {
+    const me = gameMod.state.player;
+    me.gx = 4;
+    me.gy = 3.2;
+    me.layer = 0;
+    assert(setdownMod.mountProblem(4, 2, "n") === "" && setdownMod.mountProblem(3, 2, "n") === "", `the far half's inner face: "${setdownMod.mountProblem(4, 2, "n")}"`);
+    assert(setdownMod.mountProblem(6, 2, "w") === "Not on that side of the curve", `a face looking away: "${setdownMod.mountProblem(6, 2, "w")}"`);
+    const torch = itemsMod.makeEntry("torch", 1);
+    gridMod.insert(inventoryMod.bagOf(me), torch);
+    assert(setdownMod.mountTorch(me, torch.uid, 4, 2, "n"), `not mounted: "${said[said.length - 1]}"`);
+    const b = mapMod.bracketAt(4, 2, "n");
+    const [bx, by] = mapMod.bracketPos(b);
+    assert(b && mapMod.roomAt(Math.round(bx), Math.round(by)) === mapMod.roomAt(4, 4) && Math.abs(Math.hypot(bx - 4, by - 4) - 2.2) < 0.06, `the bracket's torch at ${bx.toFixed(2)},${by.toFixed(2)}`);
+    const why = paintingsMod.fitProblem("painting_small_deer", 5, 2, "n");
+    assert(/curve/.test(why), `a painting on the ring: "${why}"`);
+    return `on the inner face at ${bx.toFixed(2)},${by.toFixed(2)}; a face looking away and a painting refused`;
+  } finally {
+    promptMod.setMessageSink(null);
+  }
+});
+check("round rooms, step 1: the ring is per layer (docs/49): one on the first floor is a room there, blocks bodies there, and nothing on the ground under it", () => {
+  roundSquare();
+  clearPatch(0, 0, 10, 10);
+  for (let y = 1; y < 8; y++) for (let x = 1; x < 8; x++) mapMod.setFloor(x, y, "floor_wood", 1);
+  const r = mapMod.buildRing(2, 2, 5, "wall_stone", 1, { built: true });
+  assert(r && r.layer === 1 && r.id === "round_1_2_2", `the first-floor ring: ${mapMod.ringProblem(2, 2, 5, 1)}`);
+  mapMod.rebuildRooms();
+  const room = mapMod.getRoom(mapMod.roomAt(4, 4, 1));
+  assert(room && room.size === 21 && room.layer === 1 && mapMod.roomAt(4, 4, 0) === 0, "the first floor's ring is no room there, or one on the ground");
+  assert(mapMod.ringAt(4, 4, 1) === r && !mapMod.ringAt(4, 4, 0) && mapMod.curveCrossed(3, 2, 1) && !mapMod.curveCrossed(3, 2, 0), "the ring's marks are not its layer's alone");
+  const up = pressFrom([4, 4], [1, -1], 1);
+  const ground = pressFrom([4, 4], [1, -1], 0);
+  assert(Math.hypot(up.gx - 4, up.gy - 4) < 2.25 && Math.hypot(ground.gx - 4, ground.gy - 4) > 3, `the walks north-east ended ${Math.hypot(up.gx - 4, up.gy - 4).toFixed(2)} out on the first floor, ${Math.hypot(ground.gx - 4, ground.gy - 4).toFixed(2)} on the ground`);
+  const rec = JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(0, 0, false, 1)));
+  assert(rec.includes('"round":[2,2,5]') && rec.includes('"layer":1'), "the first floor's chunk record does not carry the ring");
+  return `a room of ${room.size} on layer 1, the ground open under it`;
+});
+check("round rooms, step 1: the save and the wire carry a ring in its walls: restored whole, a replica gets it from its chunks alone and drops it when they come without it (PROTOCOL 24)", () => {
+  roundSquare();
+  const r = ownRing({ built: true, free: true });
+  mapMod.buildWall(4, 2, "n", "door", "wall_stone");
+  const keys = new Set();
+  for (const [tx, ty] of roundMod.shape(2, 2, 5).outline) keys.add(mapMod.chunkCoord(tx, ty).join(","));
+  const recsOf = () => [...keys].map((k) => JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(...k.split(",").map(Number), false)))));
+  const withRing = recsOf();
+  const parts0 = gameMod.syncParts();
+  const saved = JSON.parse(JSON.stringify(gameMod.serialize()));
+  gameMod.restore(saved, read("data/maps/square.json"));
+  mapMod.rebuildRooms();
+  const back = mapMod.ringById(r.id);
+  assert(back && back.built && back.free && mapMod.tileAt(4, 2).n.underRound && mapMod.getRoom(mapMod.roomAt(4, 4)).size === 21, "the ring did not come back whole from the save");
+  assert(mapMod.circleBlocked(5.6, 2.4, 0.3), "the curve does not block after the restore");
+  const parts1 = gameMod.syncParts();
+  assert(parts1.rings === parts0.rings && parts1.map === parts0.map, `the sync parts moved over the save: rings ${parts0.rings} to ${parts1.rings}`);
+  mapMod.removeRing(r.id);
+  const without = recsOf();
+  // A replica: a fresh world from the file, the ring's chunks installed as a frame installs them.
+  gameMod.create({ json: read("data/maps/square.json"), rules: { zombieAggro: false } });
+  for (const d of withRing) mapMod.installChunk(d);
+  assert(mapMod.ringById(r.id) && mapMod.curveCrossed(3, 2), "a replica did not get the ring from its chunks");
+  for (const d of without) mapMod.installChunk(d);
+  assert(!mapMod.ringById(r.id) && !mapMod.curveCrossed(3, 2) && !mapMod.allRings(0).some((q) => q.x0 === 2 && q.y0 === 2), "a replica kept the ring its chunks came without");
+  assert(netMod.PROTOCOL === 24, `PROTOCOL ${netMod.PROTOCOL}`);
+  return `restored with its door and its record; a replica's ring from ${withRing.length} chunk record(s), and gone with them`;
+});
+check("round rooms, step 6: the round stone wall is in the palette only with Free building (Michael, 2026-10-27), built by a guest's command on its square's corner and size, and taken apart whole; an authored one never", () => {
+  roundSquare();
+  clearPatch(0, 0, 10, 10);
+  const was = rulesImport.rules.freeBuilding;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  try {
+    const me = gameMod.state.player;
+    me.gx = 4;
+    me.gy = 8;
+    me.layer = 0;
+    me.action = null;
+    rulesImport.set({ freeBuilding: false });
+    assert(!placementImport.paletteKinds().some((k) => k.id === "round_stone"), "the palette offers the round wall without Free building");
+    placementImport.performPlacement(me, { kind: "build", what: "round_stone", tx: 2, ty: 2, size: 5 });
+    assert(!mapMod.ringAt(4, 4) && /not in the game yet/.test(said[said.length - 1] || ""), `without Free building: "${said[said.length - 1]}"`);
+    rulesImport.set({ freeBuilding: true });
+    assert(placementImport.paletteKinds().some((k) => k.id === "round_stone") && placementImport.costText("round_stone") === "free", "the palette does not offer it free with Free building");
+    assert(placementImport.performPlacement(me, { kind: "build", what: "round_stone", tx: 2, ty: 2, size: 6 }) === false, "a size of 6 was taken");
+    placementImport.performPlacement(me, { kind: "build", what: "round_stone", tx: 2, ty: 2, size: 5 });
+    me.action = null;
+    const r = mapMod.ringAt(4, 4);
+    assert(r && r.built && r.free && r.sprite === "wall_stone", `the guest's ring: ${JSON.stringify(r)} "${said[said.length - 1]}"`);
+    rulesImport.set({ freeBuilding: false });
+    assert(JSON.stringify(placementImport.partsOf({ type: "round", ring: { ...r, free: false } }).back) === '[{"id":"stone","count":20}]', `a paid 5 by 5 gives back ${JSON.stringify(placementImport.partsOf({ type: "round", ring: { ...r, free: false } }).back)}`);
+    rulesImport.set({ freeBuilding: true });
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "round", id: r.id } });
+    assert(!mapMod.ringById(r.id) && !mapMod.tileAt(3, 2).n && !mapMod.curveCrossed(3, 2), `taken apart: "${said[said.length - 1]}"`);
+    me.gx = 24;
+    me.gy = 9;
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "round", id: "round_0_21_0" } });
+    assert(mapMod.ringById("round_0_21_0") && /village/.test(said[said.length - 1] || ""), `the map's ring: "${said[said.length - 1]}"`);
+    return "hidden and refused without Free building; built by a guest's command, taken apart whole; the map's refused";
+  } finally {
+    rulesImport.set({ freeBuilding: was });
     promptMod.setMessageSink(null);
   }
 });

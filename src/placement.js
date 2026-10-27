@@ -36,6 +36,7 @@ import * as woods from "./woods.js"; // a wall in a wood, and a door or window o
 import * as stations from "./stations.js"; // a made prop's recipe, for what taking it apart gives back (docs/43, section 2)
 import * as campfire from "./campfire.js"; // a campfire made at the workbench, set down from the bag, picked up again (docs/43, section 3)
 import * as setdown from "./setdown.js"; // an item set down as its prop, a torch put on a wall (docs/43, section 4)
+import * as round from "./round.js"; // a round room's geometry (docs/50)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -79,7 +80,132 @@ export function buildKinds() {
 
 // What the palette offers now: a region's wood (`region` in its entry: Winter Pine and Bloodbark, #334) only while Free building is on.
 export function paletteKinds() {
-  return buildKinds().filter((k) => !k.region || rules.freeBuilding);
+  return buildKinds().filter((k) => !(k.region || k.dev) || rules.freeBuilding); // and what is not in the game yet (`dev`: the round stone wall, Michael 2026-10-27)
+}
+
+// ---- round rooms (docs/50 section 5; Michael, 2026-10-27: "A few on the map, buildable by dev settings, otherwise not in the game yet
+// until we settle on cost, etc.") ----
+// A palette entry of `kind` round builds a ring of its sprite (stone only), 5 or 7 across: the ghost's square starts at the tile where the
+// press began and grows to 7 as the drag goes out; the release builds it. Its cost is its entry's `cost` for each edge of the outline (20 at
+// 5, 28 at 7), never charged while Free building is on, the only time it is offered.
+export const isRoundBuild = (what) => !!(buildData[what] && buildData[what].kind === "round");
+
+function roundCost(what, n) {
+  const per = costOf(what);
+  const edges = round.shape(0, 0, n).outline.length;
+  return Object.fromEntries(Object.entries(per).map(([id, k]) => [id, k * edges]));
+}
+
+function roundShortfall(player, what, n) {
+  const tool = buildData[what] && buildData[what].tool;
+  const noTool = tool ? toolProblem(player, tool) : null;
+  if (noTool) return noTool;
+  for (const [id, k] of Object.entries(roundCost(what, n))) if (inventory.countAll(player, id) < k) return `Need ${k} ${noun(id, k)}`;
+  return "";
+}
+
+// The ring's square for a drag from `from` to `to` (tiles): 7 once the drag covers seven tiles either way, else 5; the square on the drag's side.
+export function roundSquare(from, to) {
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const n = Math.max(Math.abs(dx), Math.abs(dy)) + 1 >= 7 ? 7 : 5;
+  return { x0: dx < 0 ? from[0] - n + 1 : from[0], y0: dy < 0 ? from[1] - n + 1 : from[1], n };
+}
+
+// The ring's walls and its curve as ground segments: what no body may stand across when it goes up.
+function ringSegments(x0, y0, n) {
+  const s = round.shape(x0, y0, n);
+  const segs = s.outline.map(([tx, ty, e]) => (e === "n" ? [tx - 0.5, ty - 0.5, tx + 0.5, ty - 0.5] : [tx - 0.5, ty - 0.5, tx - 0.5, ty + 0.5]));
+  return segs.concat(s.chords);
+}
+
+function roundBlock(player, what, x0, y0, n) {
+  const d = buildData[what];
+  if (d.dev && !rules.freeBuilding) return "Round walls are not in the game yet";
+  const why = map.ringProblem(x0, y0, n, player.layer || 0);
+  if (why) return why;
+  const segs = ringSegments(x0, y0, n);
+  if (stations.bodyNearSegments(segs.map((q) => q), 0.45)) {
+    const me = segs.some(([ax, ay, bx, by]) => distToSeg(player.gx, player.gy, ax, ay, bx, by) < 0.45);
+    return me ? "Step back" : "Someone is in the way";
+  }
+  return roundShortfall(player, what, n);
+}
+
+function distToSeg(px, py, ax, ay, bx, by) {
+  const vx = bx - ax;
+  const vy = by - ay;
+  const t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy || 1)));
+  return Math.hypot(px - ax - vx * t, py - ay - vy * t);
+}
+
+// The nearest edge of the ring's outline to the player, and how far its middle is.
+function nearestOutline(player, x0, y0, n) {
+  let best = null;
+  for (const [tx, ty, e] of round.shape(x0, y0, n).outline) {
+    const [mx, my] = map.edgeMid(tx, ty, e);
+    const dd = Math.hypot(player.gx - mx, player.gy - my);
+    if (!best || dd < best.d) best = { tx, ty, edge: e, mx, my, d: dd };
+  }
+  return best;
+}
+
+function roundReason(player, what, x0, y0, n) {
+  if (nearestOutline(player, x0, y0, n).d > BUILD_REACH) return "Too far";
+  return roundBlock(player, what, x0, y0, n);
+}
+
+function roundGhost(player, what) {
+  const m = input.getMouse();
+  if (!m.inside) return null;
+  const g = iso.toGrid(m.x, m.y);
+  const cur = [Math.round(g.gx), Math.round(g.gy)];
+  const { x0, y0, n } = roundSquare(state.build.from || cur, cur);
+  const reason = roundReason(player, what, x0, y0, n);
+  return { kind: "round", wallKind: what, x0, y0, n, sprite: buildData[what].sprite, ok: reason === "", reason, dragging: !!state.build.from };
+}
+
+// The ring built, timed as a wall is: nothing spent until the bar completes, everything checked again then.
+function startRoundBuild(player, what, x0, y0, n) {
+  const d = buildData[what];
+  const near = nearestOutline(player, x0, y0, n);
+  const action = {
+    kind: "build",
+    label: `Building ${d.label.toLowerCase()}`,
+    tiles: map.edgeTiles(near.tx, near.ty, near.edge),
+    mx: near.mx,
+    my: near.my,
+    range: BUILD_REACH + 0.6,
+    duration: (d.seconds || 0) * (n === 7 ? 1.4 : 1),
+    enabled: true,
+    simple: false,
+    perform() {
+      const why = roundBlock(player, what, x0, y0, n);
+      if (why) {
+        showMessage(why);
+        return false;
+      }
+      for (const [id, k] of Object.entries(roundCost(what, n))) inventory.takeAll(player, id, k);
+      return !!map.buildRing(x0, y0, n, d.sprite, player.layer || 0, { built: true, free: !!rules.freeBuilding });
+    },
+  };
+  if (startAction) startAction(player, action);
+  else action.perform();
+}
+
+// What a ring gives back taken apart: half its edges' cost (none if it was free), and its doors' and windows' as they would give alone.
+function ringParts(ring) {
+  const what = Object.keys(buildData).find((k) => isRoundBuild(k) && buildData[k].sprite === ring.sprite);
+  const per = what ? buildData[what].cost || {} : {};
+  const s = round.shape(ring.x0, ring.y0, ring.n);
+  const total = {};
+  if (!ring.free) for (const [id, k] of Object.entries(per)) total[id] = (total[id] || 0) + Math.floor((k * s.outline.length) / 2);
+  for (const [tx, ty, e] of s.doors) {
+    const w = map.tileAt(tx, ty, ring.layer)[e];
+    if (!w || w.kind === "wall" || !w.built) continue;
+    for (const b of partsOf({ type: "wall", tx, ty, edge: e, wall: w }).back) total[b.id] = (total[b.id] || 0) + b.count;
+  }
+  return { back: Object.entries(total).filter(([, k]) => k > 0).map(([id, count]) => ({ id, count })), tool: (what && buildData[what].tool) || tuning.world.boardTool };
 }
 
 // A door or a window may be of another wood than the wall it goes into (#334): the entries of kind door or window that are not a fence's gate.
@@ -149,6 +275,7 @@ export function canPutDown(player, tx, ty) {
       const t = map.tileAt(x, y);
       if (t.prop || !map.isWalkableTile(x, y)) return false;
       if (map.besideDoor(x, y)) return false; // a door's two tiles stay clear: the dead go for it and need to stand there (#134)
+      if (map.curveCrossed(x, y)) return false; // no furniture where a ring's curve crosses (Michael, 2026-10-26, docs/50)
       if (Math.hypot(player.gx - x, player.gy - y) < 0.7) return false;
       if (dx > 0 && map.wallBetween(x - 1, y, x, y)) return false;
       if (dy > 0 && map.wallBetween(x, y - 1, x, y)) return false;
@@ -178,6 +305,7 @@ function noun(id, n) {
 // "1 log", "3 planks", or "free".
 export function costText(what) {
   const cost = costOf(what);
+  if (isRoundBuild(what) && Object.keys(cost).length) return Object.entries(cost).map(([id, k]) => `${k * 20} or ${k * 28} ${noun(id, 2)}`).join(", "); // 5 or 7 across: an edge each
   const parts = Object.entries(cost).map(([id, n]) => `${n} ${noun(id, n)}`);
   return parts.length ? parts.join(", ") : "free";
 }
@@ -190,6 +318,7 @@ export function toolProblem(player, verb) {
 
 // The first thing the player lacks for a build, as "You need a smith's hammer." or "Need 3 planks", or "".
 export function shortfall(player, what) {
+  if (isRoundBuild(what)) return roundShortfall(player, what, 5); // the palette's row: what the smaller one needs
   const tool = buildData[what] && buildData[what].tool;
   const noTool = tool ? toolProblem(player, tool) : null;
   if (noTool) return noTool;
@@ -284,6 +413,8 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
   if (existing && over && existing.sprite !== over) return "Only in a fence";
   if (existing && !map.canStampOver(existing, kind)) return "Already a wall";
+  const ringWhy = map.ringWallProblem(tx, ty, edge, kind); // a door or a window only at a ring's door points, no wall inside one (docs/50)
+  if (ringWhy) return ringWhy;
   if (!map.canBuildWall(tx, ty, edge, kind)) return "No room";
   if (leaf) {
     // The wood of its leaves (#334): only for a door or a window, in a wall of a wood (its own sprite when it is stamped over one).
@@ -468,7 +599,10 @@ export function update(player) {
   else if (state.kind === "painting") state.ghost = paintingGhost(player);
   else if (state.kind === "setdown") state.ghost = setdownGhost(player);
   else if (state.kind === "torch") state.ghost = torchGhost(player);
-  else if (state.kind === "build") state.ghost = buildGhost(player);
+  else if (state.kind === "build") {
+    state.ghost = buildGhost(player);
+    if (state.build && state.build.from && !input.mouseLeftDown()) finishRound(player); // a ring's drag released: build it (docs/50 section 5)
+  }
   else if (state.kind === "remove") state.ghost = removeGhost(player);
   else state.ghost = null;
 }
@@ -554,10 +688,16 @@ export function removalTarget(sx, sy) {
   const e = pickEdge(g0.gx, g0.gy);
   const ew = map.tileAt(e.tx, e.ty)[e.edge];
   if (ew && ew.built && !walls.has(ew)) consider({ type: "wall", tx: e.tx, ty: e.ty, edge: e.edge, wall: ew }, e.tx + e.ty - 0.75);
+  // A ring's edge is the whole ring (docs/50 section 5: taken apart at once; a single edge never alone).
+  if (best && best.type === "wall" && map.isRingWall(best.wall)) {
+    const ring = map.ringOfWall(best.wall);
+    return ring ? { type: "round", ring, tx: best.tx, ty: best.ty, edge: best.edge, depth: best.depth } : null;
+  }
   return best;
 }
 
 function targetReach(player, t) {
+  if (t.type === "round") return nearestOutline(player, t.ring.x0, t.ring.y0, t.ring.n).d;
   if (t.type === "wall") {
     const [mx, my] = map.edgeMid(t.tx, t.ty, t.edge);
     return Math.hypot(player.gx - mx, player.gy - my);
@@ -568,7 +708,7 @@ function targetReach(player, t) {
 // Why a removal is out of reach, or "": a wall you built by distance alone (Michael, 2026-10-18: removing a wall is fine from either side of it);
 // a made prop by distance and a clear line, so a chest or a station cannot be taken down through a wall (#227).
 function removeReachProblem(player, t) {
-  if (t.type === "wall") return targetReach(player, t) > REMOVE_REACH ? "Too far" : "";
+  if (t.type === "wall" || t.type === "round") return targetReach(player, t) > REMOVE_REACH ? "Too far" : "";
   const why = reachProblem(player, t.prop.tiles, REMOVE_REACH, t.prop.layer || 0);
   return why === TOO_FAR ? "Too far" : why || "";
 }
@@ -597,6 +737,10 @@ function buildEntryOf(wall) {
 
 function targetName(t) {
   if (t.type === "prop") return propName(t.prop.sprite);
+  if (t.type === "round") {
+    const what = Object.keys(buildData).find((k) => isRoundBuild(k) && buildData[k].sprite === t.ring.sprite);
+    return what ? buildData[what].label.toLowerCase() : "round wall";
+  }
   if (!t.wall) return "nothing";
   const d = buildEntryOf(t.wall);
   return (d && d.label ? d.label : t.wall.kind).toLowerCase();
@@ -612,6 +756,7 @@ function targetName(t) {
 // What taking it apart gives back and the tool it needs: { back: [{ id, count }], tool }. A recipe's ingredient named by a tag (the bed's
 // cloth) gives nothing back: which item it was is not kept.
 export function partsOf(t) {
+  if (t.type === "round") return ringParts(t.ring);
   if (t.type === "prop") {
     // A prop set down from an item is taken apart by the item's recipe: the item its definition names (a torch post: docs/43, section 4), or
     // the item whose Place sets it down (the campfire, made at the workbench since 2026-10-27).
@@ -652,6 +797,13 @@ export function holdsProblem(prop) {
 
 // Why this player may not take it apart now, or "": what it holds, the tool, the reach.
 export function takeApartProblem(player, t) {
+  if (t && t.type === "round") {
+    // A ring the player built, whole (never the map's: players remove no authored wall, docs/50 section 5).
+    if (!t.ring || map.ringById(t.ring.id) !== t.ring) return "There is nothing there.";
+    if (!t.ring.built || t.ring.authored) return "That is the village's.";
+    const tool = partsOf(t).tool;
+    return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);
+  }
   if (!t || (t.type === "prop" ? !t.prop || !map.propById(t.prop.id) : !t.wall)) return "There is nothing there."; // a stale target, never a throw (#432)
   if (t.type === "prop") {
     const held = holdsProblem(t.prop);
@@ -687,6 +839,10 @@ export function takeApart(player, t) {
 
 // Destroy it. A container spills what it held onto the floor; a wall takes its boards with it.
 function destroy(t) {
+  if (t.type === "round") {
+    map.removeRing(t.ring.id); // its doors first, then every edge (docs/50 section 5)
+    return;
+  }
   if (t.type === "prop") {
     const prop = t.prop;
     // What it held falls where it stood: a container's bag and a station's output.
@@ -784,6 +940,7 @@ function buildGhost(player) {
   if (!m.inside) return null;
   const g = iso.toGrid(m.x, m.y);
   const what = state.build.what;
+  if (isRoundBuild(what)) return roundGhost(player, what);
   if (isPropBuild(what)) {
     // A prop on the tiles under the cursor (the Fireplace along the wall it backs onto, its facing from that wall; the fire pit centred on the
     // cursor), drawn as the carried prop's ghost is, with its own line.
@@ -911,6 +1068,15 @@ export function tryConfirm(player) {
     const g = state.ghost;
     if (!g) return false;
     if (player.action) return true; // one build at a time
+    if (g.kind === "round") {
+      // A ring: the press starts the drag at the tile under the cursor; the release builds what the ghost shows then (update).
+      if (!state.build.from) {
+        const m = input.getMouse();
+        const at = iso.toGrid(m.x, m.y);
+        state.build.from = [Math.round(at.gx), Math.round(at.gy)];
+      }
+      return true;
+    }
     if (!g.ok) {
       showMessage(g.reason);
       return true;
@@ -931,8 +1097,23 @@ export function tryConfirm(player) {
   return false;
 }
 
+// A ring's drag released: the ghost as it stands is built (a guest's a `build` command naming its square's corner and size), or refused
+// with why; either way the drag is over and the mode stays, for the next.
+function finishRound(player) {
+  const g = state.ghost;
+  state.build.from = null;
+  if (!g || g.kind !== "round") return;
+  if (!g.ok) {
+    showMessage(g.reason);
+    return;
+  }
+  if (sender) sender({ kind: "build", what: g.wallKind, tx: g.x0, ty: g.y0, size: g.n });
+  else startRoundBuild(player, g.wallKind, g.x0, g.y0, g.n);
+}
+
 // A removal target as an address: a prop by id, a wall by its edge.
 function addressOf(t) {
+  if (t.type === "round") return { type: "round", id: t.ring.id };
   return t.type === "prop" ? { type: "prop", id: t.prop.id } : { type: "wall", tx: t.tx, ty: t.ty, edge: t.edge };
 }
 
@@ -992,6 +1173,21 @@ export function performPlacement(player, cmd) {
     setdown.mountTorch(player, cmd.uid, cmd.tx, cmd.ty, cmd.edge);
     return true;
   }
+  if (cmd.kind === "build" && typeof cmd.what === "string" && isRoundBuild(cmd.what)) {
+    // A ring (docs/50 section 6): its square's corner and size, on the player's layer, by the rules the host's own release meets.
+    const tx = Math.round(Number(cmd.tx));
+    const ty = Math.round(Number(cmd.ty));
+    const n = Math.round(Number(cmd.size));
+    if (!Number.isFinite(tx) || !Number.isFinite(ty) || !round.validSize(n)) return false;
+    if (player.action) return true;
+    const why = roundReason(player, cmd.what, tx, ty, n);
+    if (why) {
+      showMessage(why);
+      return true;
+    }
+    startRoundBuild(player, cmd.what, tx, ty, n);
+    return true;
+  }
   if (cmd.kind === "build" && typeof cmd.what === "string" && isPropBuild(cmd.what)) {
     const tx = Math.round(Number(cmd.tx));
     const ty = Math.round(Number(cmd.ty));
@@ -1025,7 +1221,10 @@ export function performPlacement(player, cmd) {
     const a = cmd.target;
     if (!a) return false;
     let t = null;
-    if (a.type === "prop") {
+    if (a.type === "round") {
+      const ring = typeof a.id === "string" ? map.ringById(a.id) : null;
+      if (ring && (ring.layer || 0) === (player.layer || 0)) t = { type: "round", ring };
+    } else if (a.type === "prop") {
       const prop = typeof a.id === "string" ? map.propById(a.id) : null;
       if (prop && prop.made && map.tileAt(prop.tile[0], prop.tile[1]).prop === prop) t = { type: "prop", prop };
     } else if (a.type === "wall" && (a.edge === "n" || a.edge === "w")) {
@@ -1138,13 +1337,18 @@ export function prompt() {
   }
   if (g.kind === "remove") {
     const t = g.target;
-    const [mx, my] = t.type === "wall" ? map.edgeMid(t.tx, t.ty, t.edge) : t.prop.tile;
+    const [mx, my] = t.type === "wall" || t.type === "round" ? map.edgeMid(t.tx, t.ty, t.edge) : t.prop.tile;
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
     const { back } = partsOf(t);
     return { label: `Click to take apart ${targetName(t)}${back.length ? ` (${partsText(back)} back)` : ""} · Esc cancel`, mx, my, progress: null, enabled: true };
   }
+  if (g.kind === "round") {
+    const [mx, my] = [g.x0 + (g.n - 1) / 2, g.y0 + (g.n - 1) / 2];
+    if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
+    return { label: g.dragging ? `Release to build ${g.n} across (${costText(g.wallKind)}) · Esc cancel` : "Press and drag out for 7 across · Esc cancel", mx, my, progress: null, enabled: true };
+  }
   const [mx, my] = map.edgeMid(g.tx, g.ty, g.edge);
   if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
-  const wood = takesLeaf(g.wallKind) ? ` · ${leafHint(g.chosenLeaf, g.carriedLeaf)}` : "";
+  const wood =takesLeaf(g.wallKind) ? ` · ${leafHint(g.chosenLeaf, g.carriedLeaf)}` : "";
   return { label: `Click to build (${costText(g.wallKind)})${wood} · Esc cancel`, mx, my, progress: null, enabled: true };
 }

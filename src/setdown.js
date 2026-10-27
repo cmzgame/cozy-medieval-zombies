@@ -36,6 +36,8 @@ export function standProblem(rule, tx, ty) {
   if (rule === "natural") return trees.standProblem(tx, ty); // a sapling: open grass outdoors, no wall beside it (docs/46 step 3)
   const t = map.peekTile(tx, ty);
   if (!t || !map.isWalkableTile(tx, ty) || t.prop || t.rug) return "No room";
+  const curve = map.ringFurnitureProblem(tx, ty); // a tile a ring's curve crosses holds no furniture (Michael, 2026-10-26, docs/50)
+  if (curve) return curve;
   if (rule === "outdoors" && t.room > 0) return "Outdoors only";
   if (rule === "wall" && !(t.room > 0)) return "Indoors only";
   if (rule === "wall" && !wallBeside(tx, ty)) return "Against a wall";
@@ -57,7 +59,7 @@ const firstFacing = (sprite) => (getDef(sprite).facings || [])[0] || null;
 
 // Whether an edge is a plain solid wall a fire can back onto: a wall (not a door, a window, or a gap), unbroken, not a fence or bars.
 function flatWall(w) {
-  return !!w && w.kind === "wall" && !w.broken && !map.wallRule(w.sprite).seeThrough;
+  return !!w && w.kind === "wall" && !w.broken && !map.wallRule(w.sprite).seeThrough && !map.isRingWall(w); // never a ring: a fireplace is a straight piece (docs/50 section 3)
 }
 
 // Whether a tile's floor is water (the river, the pond, a shallow ford): drunk from, or walked slower.
@@ -82,6 +84,8 @@ export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite)) {
       const y = ty + dy;
       const t = map.peekTile(x, y);
       if (!t || !map.isWalkableTile(x, y) || t.prop || t.rug) return "No room";
+      const curve = map.ringFurnitureProblem(x, y);
+      if (curve) return curve;
       if (onWater(t)) return "Not on water";
       if (map.besideDoor(x, y)) return "Not beside a door";
       if ((dx > 0 && map.wallBetween(x - 1, y, x, y)) || (dy > 0 && map.wallBetween(x, y - 1, x, y))) return "No room";
@@ -258,6 +262,9 @@ export function torchOf(player, uid) {
 export function mountProblem(tx, ty, edge) {
   const wall = wallOf(tx, ty, edge);
   if (wall && wall.bracket) return "A bracket is already there";
+  // A ring's edge counts as wall for a torch (Michael, 2026-10-26: "the ring counts as wall for hearths and torches"): the bracket hangs at
+  // its point on the curve, on a face the camera sees (map.ringFace), where a painting never hangs.
+  if (map.isRingWall(wall)) return map.ringFace(tx, ty, edge, 1) ? "" : "Not on that side of the curve";
   return paintings.segmentProblem(tx, ty, edge);
 }
 

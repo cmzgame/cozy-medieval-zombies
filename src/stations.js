@@ -242,6 +242,16 @@ export function setBodies(fn) {
   bodies = fn;
 }
 
+// Whether a body stands within `d` of any of these ground segments ([ax, ay, bx, by]): a ring never goes up through one (placement.js, docs/50).
+export function bodyNearSegments(segs, d = 0.45) {
+  return bodies().some((c) => c && segs.some(([ax, ay, bx, by]) => {
+    const vx = bx - ax;
+    const vy = by - ay;
+    const t = Math.max(0, Math.min(1, ((c.gx - ax) * vx + (c.gy - ay) * vy) / (vx * vx + vy * vy || 1)));
+    return Math.hypot(c.gx - ax - vx * t, c.gy - ay - vy * t) < d;
+  }));
+}
+
 // Whether a body (a player, a villager, one of the dead, an animal, a body lying) stands on any of these tiles: a built prop never goes up
 // over one (the review of #527: a 2 by 2 fire pit built within reach covered its builder, and could cover one of the dead).
 export function bodyOnTiles(tiles) {
@@ -257,7 +267,7 @@ function fits(x, y, [w, h], near) {
     const tx = x + dx;
     const ty = y + dy;
     const t = map.tileAt(tx, ty);
-    if (t.prop || t.items || !map.isWalkableTile(tx, ty) || map.besideDoor(tx, ty)) return false;
+    if (t.prop || t.items || !map.isWalkableTile(tx, ty) || map.besideDoor(tx, ty) || map.curveCrossed(tx, ty)) return false; // never on a tile a ring's curve crosses (docs/50)
     if (dx > 0 && map.wallBetween(tx - 1, ty, tx, ty)) return false;
     if (dy > 0 && map.wallBetween(tx, ty - 1, tx, ty)) return false;
     if (near.some((c) => Math.hypot(c.gx - tx, c.gy - ty) < 0.7)) return false;

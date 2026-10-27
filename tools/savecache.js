@@ -88,6 +88,17 @@ if (map.canBuildWall(px + 7, py + 5, "n")) {
   map.buildWall(px + 7, py + 5, "n", "window", "wall_mahogany", "wall_spruce"); did("a window of another wood built");
   map.destroyWall(px + 7, py + 5, "n"); did("a window of another wood taken down");
 }
+// A round room (docs/50): its edges walls carrying its id on every chunk it stands on, a door stamped at a door point keeping the ring
+// under it, and the whole taken down; the record is made from the walls, so the walls' marks are the save's.
+{
+  let spot = null;
+  for (let dy = -24; dy <= 24 && !spot; dy++) for (let dx = -24; dx <= 24 && !spot; dx++) if (quiet(px + dx, py + dy) && !map.ringProblem(px + dx, py + dy, 5)) spot = [px + dx, py + dy];
+  if (!spot) fail("no open ground for a round room near the player");
+  const r = map.buildRing(spot[0], spot[1], 5, "wall_stone"); did("a round room built");
+  map.buildWall(spot[0] + 2, spot[1], "n", "door", "wall_stone"); did("a door stamped at a round room's door point");
+  map.destroyWall(spot[0] + 2, spot[1], "n", true); did("the door taken out of a round room");
+  map.removeRing(r.id); did("a round room taken down");
+}
 const at = [px + 4, py - 3];
 const bench = map.createProp({ sprite: "workbench", tile: at, footprint: [1, 1] });
 map.placeProp(bench, at[0], at[1]); did("a prop placed");

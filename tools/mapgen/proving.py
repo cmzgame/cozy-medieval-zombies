@@ -48,10 +48,28 @@ def build(sq):
     return sq
 
 
+ROUND_NAME = "the round rooms"
+
+
+def build_rounds(sq):
+    """The round rooms (docs/50 step 1): a 7 by 7 room (the world's x 21 to 27, y 0 to 6) with a door south and a window west, and a 5 by 5
+    tower of two storeys (x 26 to 30, y 7 to 11) with a door west on the ground; every check of a ring reads these. Stone, as every round
+    wall is for now (Michael, 2026-10-27)."""
+    sq["sets"] = [s for s in sq["sets"] if s.get("name") != ROUND_NAME]
+    s = {"name": ROUND_NAME, "rect": [21, 0, 11, 12], "padding": 0, "buildings": [], "floorRects": [], "fences": [], "props": []}
+    p = Place(None, s)
+    p.round([0, 0], 7, openings={"s": "door", "w": "window"})
+    p.round([5, 7], 5, openings={"w": "door"})
+    p.round([5, 7], 5, openings={"s": "window"}, layer=1)
+    sq["sets"].append(s)
+    return sq
+
+
 if __name__ == "__main__":
     with open(PATH, encoding="utf-8") as f:
         sq = json.load(f)
     build(sq)
+    build_rounds(sq)
     with open(PATH, "w", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(sq, indent=2) + "\n")
-    print(f"wrote {os.path.normpath(PATH)}: {NAME}")
+    print(f"wrote {os.path.normpath(PATH)}: {NAME}, {ROUND_NAME}")
