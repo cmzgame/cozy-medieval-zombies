@@ -332,7 +332,7 @@ function makePost(tx, ty, sheet, vis, near) {
   const p = iso.toScreen(tx - 0.5, ty - 0.5);
   const x = Math.round(p.x);
   const y = Math.round(p.y);
-  const h = sheet.wallHeight || 72;
+  const h = sheet.wallHeight || 96;
   const T = sheet.thickness || WALL_T;
   const color = sheet.color || "#888";
   const A = [x, y];
@@ -427,7 +427,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
   const p = iso.toScreen(tx, ty);
   const x = Math.round(p.x) + shakeOffset(tx, ty, edge);
   const y = Math.round(p.y);
-  const h = sheet.wallHeight || 72;
+  const h = sheet.wallHeight || 96;
   const T = sheet.thickness || WALL_T;
   // `stub` is a near wall while the player is inside: drawn translucent (the low
   // stub mode retired with the drawn walls, docs/17).

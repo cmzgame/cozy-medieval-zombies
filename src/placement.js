@@ -476,7 +476,7 @@ function wallFace(tx, ty, edge, wall) {
   const p = iso.toScreen(tx, ty);
   const x = Math.round(p.x);
   const y = Math.round(p.y);
-  const h = getSheet(wall.sprite).wallHeight || 72;
+  const h = getSheet(wall.sprite).wallHeight || 96;
   const a = edge === "n" ? [x, y - iso.HH] : [x - iso.HW, y];
   const b = edge === "n" ? [x + iso.HW, y] : [x, y - iso.HH];
   return [a, b, [b[0], b[1] - h], [a[0], a[1] - h]];
@@ -508,9 +508,10 @@ export function removalTarget(sx, sy) {
       consider({ type: "prop", prop }, Math.max(...prop.tiles.map(([x, y]) => x + y)));
     }
   }
-  // Walls: the face under the cursor, looking up from the ground tiles it could stand on.
+  // Walls: the face under the cursor, looking up from the ground tiles it could stand on: down the screen from the cursor as far as
+  // a wall is tall (96, docs/52), each look taking the tiles round it.
   const walls = new Set();
-  for (let k = 0; k <= 72; k += 12) {
+  for (let k = 0; k <= 96; k += 12) {
     const g = iso.toGrid(sx, sy + k);
     const gx = Math.round(g.gx);
     const gy = Math.round(g.gy);

@@ -5,7 +5,9 @@
 // (docs/43, section 2), with Free building off: a paid door gives half its planks back, rounded down, and the wall is back; a log wall asks for
 // its build's tool (a hatchet) and gives nothing back from one log; a door built free gives nothing; a made chest is refused while it holds
 // anything, taken apart empty by its menu's label (a guest's way) for half its planks, which a full bag drops at the feet; the village's own
-// chest is carried, never taken apart.
+// chest is carried, never taken apart. Then the walls 96 px tall (docs/52), read off the pictures: the dev crate a one-tile cube 32 px
+// tall, three of them stacked reaching every drawn wall material's cap, the door's top 16 px over the player's crown and two crates tall
+// with the figure and its hair under it, and an open window passing an arrow between its sill 24 and its top 64 alone.
 // From the console, on a tab
 // with `?nosave`:
 //   await __game.check("build")
@@ -207,6 +209,71 @@ export async function run(game) {
     const village = chestAt(false);
     const vLabels = G.interact.actionsForTarget({ kind: "prop", id: village.id }, me).map((a) => a.label);
     row("the village's own chest is carried (Pick up), never taken apart", vLabels.some((l) => /^Pick up chest/.test(l)) && !vLabels.some((l) => /^Take apart/.test(l)), vLabels.join(", "));
+
+    // ---- Walls 96 px tall (docs/52, Michael 2026-10-26): three crates to the cap, a door two crates tall, a big window. Read off the pictures.
+    const P = await import("/src/placeholders.js");
+    // The topmost and bottommost opaque rows of a frame's column (alpha over half), from a CPU copy of the sheet (as check("sheets") reads one).
+    const alphaOf = (sheet, name) => {
+      const f = sheet.frames[name];
+      const cv = document.createElement("canvas");
+      cv.width = f[2];
+      cv.height = f[3];
+      const cx2 = cv.getContext("2d", { willReadFrequently: true });
+      cx2.drawImage(sheet.image, f[0], f[1], f[2], f[3], 0, 0, f[2], f[3]);
+      const d = cx2.getImageData(0, 0, f[2], f[3]).data;
+      return { at: (x, y) => d[(y * f[2] + x) * 4 + 3] > 127, w: f[2], h: f[3] };
+    };
+    const columnRun = (sheet, name, col) => {
+      const a = alphaOf(sheet, name);
+      let top = -1;
+      let bottom = -1;
+      for (let y = 0; y < a.h; y++) if (a.at(col, y)) { if (top < 0) top = y; bottom = y; }
+      return { top, bottom, w: a.w, h: a.h };
+    };
+    const topRow = (sheet, name) => {
+      const a = alphaOf(sheet, name);
+      for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) if (a.at(x, y)) return y;
+      return Infinity;
+    };
+    // The crate: the dev crate's picture down its front corner (the anchor's column) is the top face's two half-tiles and the box's height.
+    const crate = G.assets.getSheet("crate");
+    const run = columnRun(crate, "idle_0", Math.round(crate.anchor[0]));
+    const crateH = run.bottom - run.top + 1 - 2 * G.iso.HH;
+    const crateDef = G.assets.getDef("crate").placeholder.height; // 32; the picture is held to it within the outline's pixel, so the stack is counted in it
+    row("the dev crate is a one-tile cube 32 px tall, by its picture (data/sprites/crate.json, labelled, outlined)", Math.abs(crateH - 32) <= 1 && run.w === 2 * G.iso.HW && G.assets.getDef("crate").placeholder.label === "Crate", `front corner ${run.top} to ${run.bottom}: ${crateH} px tall, ${run.w} px wide`);
+    // Each drawn wall material's picture rises to its cap: the tightly cropped frame's top above the tile's top vertex at ground, less the cap's
+    // far corner a quarter of the thickness above the wall's top.
+    const tops = [];
+    for (const w of ["wall_wood", "wall_spruce", "wall_mahogany", "wall_winterpine", "wall_bloodbark", "wall_daub", "wall_log", "wall_stone"]) {
+      const s = G.assets.getSheet(w);
+      for (const side of ["north", "west"]) {
+        const name = `${side}_plain`;
+        const a = (s.frameAnchors && s.frameAnchors[name]) || s.anchor;
+        const top = a[1] - G.iso.HH - topRow(s, name) - Math.ceil(s.thickness / 4);
+        tops.push([`${w.slice(5)} ${side}`, top, s.wallHeight]);
+      }
+    }
+    row("three dev crates stacked by picture reach a wall's cap exactly, every material, both sides (96 px: wall.height and the drawn cap)", tops.every(([, t, h]) => t === 3 * crateDef && h === 96), tops.map(([n, t]) => `${n} ${t}`).join(", "));
+    // The door: its top 64, two crates; the player's crown 48 (the rig's head and its half-height), so the lintel is 16 px over it, and the
+    // figure with its hair (read off its sheet, the feet at FEET_Y) passes under.
+    const B = G.figure.BODY;
+    const crown = Math.round(B.head + B.headRy);
+    const ps = me.sprite; // the player's own sheet (its frames the figure's 48 by 72, the feet at FEET_Y 66)
+    const all = ps ? Object.keys(ps.frames) : [];
+    const names = all.some((n) => n.startsWith("idle")) ? all.filter((n) => n.startsWith("idle")) : all; // standing: a swing's raised arm is not the figure's height
+    const withHair = names.length ? Math.max(...names.map((n) => 66 - topRow(ps, n))) : NaN;
+    row("the door's top sits 16 px over the player's crown, two crates tall, and the figure with its hair passes under it", P.DOOR_TOP === 64 && P.DOOR_TOP === 2 * crateDef && P.DOOR_TOP - crown === 16 && withHair < P.DOOR_TOP, `door ${P.DOOR_TOP}, crown ${crown}, with hair ${withHair} (the tallest of ${names.length} frames)`);
+    // The window: its glass from 24 to 64 (the sill a default, docs/52 section 4), and a flight through it open between those heights alone.
+    const winEdge = edgeAt(1);
+    G.map.destroyWall(...winEdge);
+    G.map.buildWall(...winEdge, "window", "wall_wood");
+    const glass = wallAt(winEdge);
+    const shut0 = glass && glass.shutter;
+    if (glass) glass.shutter = "open";
+    const S = (await import("/src/archery.js")).wallStops; // the one test a flight is walked by (the module, as the game imports it)
+    const through = glass ? [23, 24, 40, 63, 64].map((z) => `${z}:${S(glass, z) ? "stopped" : "through"}`) : [];
+    row("the window's glass runs from 24 to 64: an arrow passes an open window between its sill and its top and no other height", P.WINDOW_SILL === 24 && P.WINDOW_TOP === 64 && !!glass && glass.kind === "window" && through.join(" ") === "23:stopped 24:through 40:through 63:through 64:stopped", `${P.WINDOW_SILL} to ${P.WINDOW_TOP}; ${through.join(" ")}`);
+    if (glass) glass.shutter = shut0;
   } finally {
     Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     for (const q of props) if (G.map.propById(q.id)) G.map.removeProp(q);
