@@ -23,7 +23,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-26, evening: the playtest loop is running; the power items sitting is next)
+## Status (2026-10-26, late: the demo pass merged; the playtest loop is running; the power items sitting is next)
 
 **Michael is playtesting from the Playtest Checklist** (his private page, https://claude.ai/artifact/61HoYfV2iwDFboMeAikYws; the wiki's copy is the Playtest checklist page). It holds every tryable change since 2026-10-17, his ticks, a note per item, and a bug-report box. **The loop:**
 - he files reports there;
@@ -31,6 +31,8 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 - every merge with a player-visible change adds a row to the page's `items` and to the wiki's checklist.
 
 Every report filed so far has a status.
+
+**The demo pass** (#514, Michael, 2026-10-26: "make testing easier and more fun", before he shows the game to a friend who makes games; `docs/02`, The demo pass): the dev chest holds every weapon and tool, the basic materials, the potions, six seeds, the bearskin rug and one wide painting; your cottage is 11 by 7 inside, the spawn by its door; mana regenerates 0.667 a second, its bar between health and stamina; **art round 4**, drawn by Primary's own art agents from a brief (`tools/art-gen/round4/`, `docs/art/previews/round4/`, `docs/26`): the weapons, the tools, the first foods and materials, the home's barrel, chest, shelf, and woodpile; an item with drawn art lies on the floor as its picture. Still on dev art in the first minutes: the vials, potions, and herbs (generated designs) and the satchel.
 
 **Merged on 2026-10-26** (each reviewed by a fresh agent and run by Primary in the pane, in order on one page with `check("all", { only })`, and in two tabs; the wiki synced):
 - **The playtest fixes:**
