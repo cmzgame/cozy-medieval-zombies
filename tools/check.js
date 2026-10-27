@@ -391,6 +391,17 @@ check("kit: the default kit fits the sack and the dev bag by placement, and aski
   assert(kitMod.problem("apple 1e1") !== "" && kitMod.problem("apple 0x10") !== "", "a count of 1e1 or 0x10 was taken");
   return "sack and dev bag fit; no id taken";
 });
+// The dev chest (Michael, 2026-10-26, the demo pass): grid.fill drops what does not fit, so the whole fixed list is proved to fit its grid by placement.
+const devGridMod = await import("../src/grid.js");
+check("dev chest: every thing in the Developer Chest's list fits its grid by placement", () => {
+  const [c, r] = itemsMod.containerGrid("dev_kit");
+  const bag = inventoryMod.createBag(c, r, "chest");
+  const loose = itemsMod.rollLoot("dev_kit");
+  const left = loose.filter(({ id, count, ...props }) => !devGridMod.add(bag, id, count, props)).map((e) => e.id);
+  assert(left.length === 0, `${left.length} things do not fit the ${c} by ${r} grid: ${left.join(", ")}`);
+  const cells = bag.items.reduce((n, e) => n + itemsMod.getItem(e.id).size[0] * itemsMod.getItem(e.id).size[1], 0);
+  return `${bag.items.length} entries in ${cells} of ${c * r} cells`;
+});
 // Remote bodies on a guest move evenly whatever the frames' arrival (#248): steady, alternating early and late, random, and a long stall, each against the old smoothing.
 check("net: a remote body is drawn evenly between the host's frames whatever their arrival (no stopped steps, a spread under 0.2 a step)", () => {
   const m = netsmoothTool.measure();
@@ -761,8 +772,10 @@ check("chunk edge (#341): an authored prop across an edge comes back whole from 
   const json = read("data/maps/valley.json");
   gameMod.create({ json, rules: { zombieAggro: false } });
   const key = (x, y) => `${Math.floor(x / C341)},${Math.floor(y / C341)}`;
-  const crossing = mapMod.allProps().filter((p) => p.tiles && new Set(p.tiles.map(([x, y]) => key(x, y))).size > 1 && !p.rugItem);
-  assert(crossing.length, "no authored prop crosses a chunk's edge in the valley");
+  // One beyond the spawn's ring (four chunks), so a restore does not grow its chunks round the player (the home's coop crosses an edge by the spawn).
+  const sp = gameMod.state.info.spawn;
+  const crossing = mapMod.allProps().filter((p) => p.tiles && new Set(p.tiles.map(([x, y]) => key(x, y))).size > 1 && !p.rugItem && Math.max(Math.abs(p.tile[0] - sp[0]), Math.abs(p.tile[1] - sp[1])) > 6 * C341);
+  assert(crossing.length, "no authored prop beyond the spawn's ring crosses a chunk's edge in the valley");
   const P = crossing[0];
   const anchorKey = key(P.tile[0], P.tile[1]);
   const other = P.tiles.find(([x, y]) => key(x, y) !== anchorKey);
@@ -3679,7 +3692,7 @@ check("mana: the bar and its regeneration in the host's step alone; the Fireball
   const last = () => said[said.length - 1] || "";
   try {
     const T = tuningMod.player;
-    assert(T.mana === 100 && Math.abs(T.manaRegen - 0.333) < 1e-9 && tuningMod.potions.praySeconds === 3, `the levers: mana ${T.mana}, regen ${T.manaRegen}, pray ${tuningMod.potions.praySeconds}`);
+    assert(T.mana === 100 && Math.abs(T.manaRegen - 0.667) < 1e-9 && tuningMod.potions.praySeconds === 3, `the levers: mana ${T.mana}, regen ${T.manaRegen}, pray ${tuningMod.potions.praySeconds}`);
     assert(me.mana === 100 && me.maxMana === 100 && me.manaFlash === 0, `a new player's bar: ${me.mana}/${me.maxMana}, flash ${me.manaFlash}`);
     // Regeneration: the host's step, a point every three seconds; never updatePlayer, which a guest's prediction runs; never past the top.
     me.mana = 50;

@@ -153,7 +153,7 @@ def cottage_c(g, x, y, name, trade, wall="wall_wood"):
 
 
 def build():
-    g = MapGen("The valley", SIZE, spawn=(104, 216))
+    g = MapGen("The valley", SIZE, spawn=(102, 218))
     g.zone("harvest", HARVEST, scale=9)
 
     # ================= step 0: the bones =================
@@ -178,25 +178,29 @@ def build():
     g.road([P(10, 40), P(14, 40)], 2, "floor_dirt", group="lane")
     g.road([P(20, 49), P(20, 53)], 2, "floor_dirt", group="lane")
 
-    # The home: the end cottage on the south lane (29/07, option A; ruled in 30).
-    home = g.place("your cottage", [98, 212, 16, 12], padding=1)
+    # The home: the end cottage on the south lane (29/07, option A; ruled in 30). Made roomier for the demo (Michael, 2026-10-26: "make your
+    # starting cabin not tiny"): 11 by 7 inside, from 7 by 5, the living room 7 wide and the bedroom 4, room enough to lay the rug and hang
+    # a painting; the yard and its fence grew with it. The spawn is in the living room by the door, so the guide outside stays within three
+    # tiles of it (tools/checks/talk.js), and the dev chest lands beside it (game.js).
+    home = g.place("your cottage", [98, 212, 22, 15], padding=1)
     home.building(
-        [1, 1, 7, 5], "wall_wood", "floor_wood",
-        openings=[door("s", 1), window("s", 5), window("n", 2), window("e", 2)],
-        partitions=[part_w(4, 0, 5, door_at=3)],
-        props=[hearth_w(0, 1), along_x("table", 1, 2), chair(1, 1, "s"), chair(1, 3, "n"), one("chest", 3, 4, loot="home_chest"),
-               along_x("bed", 5, 0), one("chest", 6, 4), one("shelf", 4, 4)],
-        brackets=[{"side": "w", "at": 0, "facing": "in", "lantern": True}],
+        [1, 1, 11, 7], "wall_wood", "floor_wood",
+        openings=[door("s", 2), window("s", 5), window("s", 9), window("n", 3), window("n", 9), window("e", 3)],
+        partitions=[part_w(7, 0, 7, door_at=3)],
+        props=[hearth_w(0, 2), along_x("table", 2, 3), chair(2, 2, "s"), chair(3, 2, "s"), chair(2, 4, "n"), chair(3, 4, "n"),
+               one("chest", 5, 0, loot="home_chest"),
+               along_x("bed", 8, 0), one("chest", 10, 6), one("shelf", 7, 6)],
+        brackets=[{"side": "w", "at": 5, "facing": "in", "lantern": True}],
     )
-    home.crops([9, 1, 6, 6], ["potato", "cabbage"], stages=(1, 2, 2), seed=3)
-    home.prop("well", (9, 9))
-    home.prop("barrel", (11, 9))
-    home.prop("woodpile", (13, 9))
+    home.crops([13, 1, 7, 6], ["potato", "cabbage"], stages=(1, 2, 2), seed=3)
+    home.prop("well", (13, 11))
+    home.prop("barrel", (15, 11))
+    home.prop("woodpile", (17, 11))
     # The coop and two hives in the yard (#333, art round 3: the beehive and the chicken coop): the coop along y south of the cottage, the skeps in the row under the garden.
-    home.prop("chicken_coop", (6, 8), footprint=[1, 2], note="the home's chicken coop (#333)")
-    home.prop("beehive", (12, 7), note="a hive by the home's garden (#333)")
-    home.prop("beehive", (14, 7))
-    home.fence([0, 0, 16, 12], gates=[{"side": "s", "at": 4}, {"side": "w", "at": 9}])
+    home.prop("chicken_coop", (8, 11), footprint=[1, 2], note="the home's chicken coop (#333)")
+    home.prop("beehive", (16, 8), note="a hive by the home's garden (#333)")
+    home.prop("beehive", (18, 8))
+    home.fence([0, 0, 22, 15], gates=[{"side": "s", "at": 5}, {"side": "w", "at": 11}])
 
     # ================= step 1: the village (29/04) =================
     # ---- the square: the well, the cross, the stalls, the trough, the board, the stocks, lamps ----
@@ -691,7 +695,7 @@ def build():
     # ---- the living (29/08's cast; names are Michael's to give, placeholders until then) ----
     # The guide stands just outside your cottage's door, in view on stepping out and under three tiles from the spawn: the neighbour from the farm
     # lane, who came here when the bell stopped and has not gone home (docs/34; the name is a placeholder for Michael's, and the wardrobe her own).
-    g.guide((102, 218), "Wyn", 6, "Ask me anything, if you are stuck.")
+    g.guide((102, 220), "Wyn", 6, "Ask me anything, if you are stuck.")
     g.villager((inn.x + 6, inn.y + 3), "Innkeeper", 0, "Shut that behind you.", immune=True)  # the steady ones: they will teach, so they cannot die (#180)
     g.villager((inn.x + 3, inn.y + 12), "Guest", 1, "I only stopped for the night.")
     g.villager((inn.x + 4, inn.y + 6), "Child", 5)

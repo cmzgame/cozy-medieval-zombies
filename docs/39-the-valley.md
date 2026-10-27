@@ -19,7 +19,7 @@
 - **The names** of the village, the river, the castle, the farms, the mere, and the villagers [open #92]; role names until then.
 - **How many villagers** [open #92].
 - **The gloom's door:** east, by the old road past the woodcutters, to a waystone at the bounds [open #92].
-- **The spawn:** your cottage's bedroom, 08:00 on day one [built]. A first day free of the dead, with the guide's tutorial [open #123].
+- **The spawn:** your cottage's living room, by the door, 08:00 on day one [built; the bedroom until the cottage grew, 2026-10-26]. A first day free of the dead, with the guide's tutorial [open #123].
 - **Roads** [built]: the high street, the west road, the square, the nobles' street, the south lane, the lane, the drove to the ford, the north lane to the mill, the lane to the mere, the farm yards. Road verges and wear, signs, milestones [to build].
 - **The river** [built]: five tiles wide, unwalkable by everything; a dirt bank.
 - **The stone bridge** on the high street [built]; **the ford** on the drove, shallow and slow for all [built].
@@ -28,7 +28,7 @@
 
 ### The village (west bank) [built]
 
-- **Your cottage:** a living room and a bedroom; a fireplace, a table, two chairs, a bed, a shelf, two chests (one is the home chest: a hatchet, a shovel, a loaf of bread, a bucket); a well, a barrel, a woodpile; a fenced plot of potatoes and cabbages at mixed stages; two gates. Its herb bed, privy, lean-to, and the pumpkin by the door [to build].
+- **Your cottage:** 11 by 7 inside (Michael, 2026-10-26, the demo pass: "make your starting cabin not tiny"; 7 by 5 before), a living room 7 wide and a bedroom 4; a fireplace, a table, four chairs, a bed, a shelf, two chests (one is the home chest: a hatchet, a shovel, a loaf of bread, a bucket); a well, a barrel, a woodpile; a fenced plot of potatoes and cabbages at mixed stages; two gates. Its herb bed, privy, lean-to, and the pumpkin by the door [to build].
 - **The square:** cobble, the well, the market cross, four stalls (containers), a trough, the notice board (the quest board of a later version), the stocks, three lantern posts.
 - **The green:** the duck pond, the maypole, two benches, a woodpile. The willow by the pond [to build].
 - **The inn:** the taproom (a counter, four tables, two fireplaces, barrels, a cupboard, a shelf), three guest rooms with a bed and a chest each, a fenced yard (a well, a woodpile, a privy, a cart, a trough); the Innkeeper, the Guest, the Child.
@@ -892,7 +892,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 ### To build
 - **The hover card** on every item in a grid or slot (#262): its full name, its kind, its direct uses read from the data, **Use** in gold, wear, count, what a level gate needs ("Needs Melee 4"), what a skill changes; on the belt bar too. Beyond grids (the palette, recipe rows, props in the world) [open #262]. A short-name pass [open #262].
 - **The skills tab** on the character screen; a level-up's visual twin.
-- **A mana bar** [built, #480: blue, under stamina, flashing on a cast it cannot pay for].
+- **A mana bar** [built, #480: blue, between health and stamina (Michael, 2026-10-26), flashing on a cast it cannot pay for].
 - **The trinket slot** [open #282].
 - **The belt's slots stamped with their roles**, a hand or a pouch, each with its hover card [built, 2026-10-25].
 - **The station panel lists every recipe of the station** but boss-drop ones, the unlearned greyed with what they need, so a goal is always in view (ruled 2026-10-23) [to build].
@@ -972,7 +972,7 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 
 The numbers are for tuning; this list is what must change before 1.0.
 
-- **The Developer Chest:** on by default at a new world's Sandbox step (`devChest`), every weapon by the spawn; off for a normal world.
+- **The Developer Chest:** on by default at a new world's Sandbox step (`devChest`), beside you at the spawn: every weapon, every tool, the basic materials, the three potions, six seeds, the bearskin rug and one wide painting (Michael, 2026-10-26, the demo pass; `data/loot.json` `dev_kit`); off for a normal world.
 - **The Developer Bag** (12 by 8) and the **Dev bag** rule; **Extra starting items** (`extraKit`): testing only.
 - **The debug corner,** shown by default; **the debug keys:** V (draw all), L (light debug), [ and ] (the clock an hour back or forward).
 - **The Testing tab's defaults:** swing targets, hit shapes (ruled: the tab stays shown).

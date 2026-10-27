@@ -1,4 +1,4 @@
-// The HUD: the portrait, health, stamina, mana, and the hands top-left; the clock top
+// The HUD: the portrait, health, mana, stamina (Michael, 2026-10-26: mana between the two), and the hands top-left; the clock top
 // centre; the moodles down the right edge (ui/moodles.js). Copied from
 // cozy-zombie-game src/ui/hud.js on 2026-10-10 and cut to what this game has;
 // rearranged 2026-10-12 (Michael: the bars up top with a small portrait beside
@@ -38,8 +38,8 @@ export function initHud() {
       <div class="hud-stack">
         <div class="hud-name"></div>
         <div class="hud-health"><div class="hud-health-fill"></div><span class="hud-label">Health</span><span class="hud-health-text"></span></div>
-        <div class="hud-stamina"><div class="hud-stamina-fill"></div><span class="hud-label">Stamina</span><span class="hud-stamina-text"></span></div>
         <div class="hud-mana"><div class="hud-mana-fill"></div><span class="hud-label">Mana</span><span class="hud-mana-text"></span></div>
+        <div class="hud-stamina"><div class="hud-stamina-fill"></div><span class="hud-label">Stamina</span><span class="hud-stamina-text"></span></div>
         <div class="hud-hands"></div>
       </div>
     </div>
@@ -105,7 +105,7 @@ export function updateHud({ player }) {
   els.stamina.classList.toggle("blocked", player.blockFlash > 0 && !player.flashBroken);
   els.stamina.classList.toggle("broken", player.blockFlash > 0 && !!player.flashBroken);
 
-  // Mana (docs/47 section 5), in blue under stamina: the whole points, and the bar's flash when a cast it cannot pay for is refused (`manaFlash`,
+  // Mana (docs/47 section 5), in blue between health and stamina (Michael, 2026-10-26): the whole points, and the bar's flash when a cast it cannot pay for is refused (`manaFlash`,
   // the visual twin of the not-enough-mana sound), read from this player's record, so a guest's comes from the host's step.
   const maxMana = Number.isFinite(player.maxMana) && player.maxMana > 0 ? player.maxMana : PT.mana;
   const mp = Number.isFinite(player.mana) ? Math.max(0, Math.min(maxMana, player.mana)) : maxMana;

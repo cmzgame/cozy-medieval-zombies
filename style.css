@@ -324,7 +324,7 @@ html, body {
   box-shadow: 0 0 6px var(--red);
 }
 
-/* Mana, in blue under stamina (docs/47 section 5); a cast it cannot pay for flashes the bar, the visual twin of the not-enough-mana sound. */
+/* Mana, in blue between health and stamina (docs/47 section 5); a cast it cannot pay for flashes the bar, the visual twin of the not-enough-mana sound. */
 .hud-mana-fill {
   height: 100%;
   width: 100%;

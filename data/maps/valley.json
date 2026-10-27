@@ -1297,8 +1297,8 @@
    "rect": [
     98,
     212,
-    16,
-    12
+    22,
+    15
    ],
    "padding": 1,
    "buildings": [
@@ -1306,15 +1306,15 @@
      "rect": [
       1,
       1,
-      7,
-      5
+      11,
+      7
      ],
      "wall": "wall_wood",
      "floor": "floor_wood",
      "openings": [
       {
        "side": "s",
-       "at": 1,
+       "at": 2,
        "kind": "door"
       },
       {
@@ -1323,13 +1323,23 @@
        "kind": "window"
       },
       {
+       "side": "s",
+       "at": 9,
+       "kind": "window"
+      },
+      {
        "side": "n",
-       "at": 2,
+       "at": 3,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 9,
        "kind": "window"
       },
       {
        "side": "e",
-       "at": 2,
+       "at": 3,
        "kind": "window"
       }
      ],
@@ -1337,10 +1347,10 @@
       {
        "edge": "w",
        "at": [
-        4,
+        7,
         0
        ],
-       "len": 5,
+       "len": 7,
        "openings": [
         {
          "at": 3,
@@ -1354,7 +1364,7 @@
        "sprite": "fireplace",
        "tile": [
         0,
-        1
+        2
        ],
        "footprint": [
         1,
@@ -1364,8 +1374,8 @@
       {
        "sprite": "table",
        "tile": [
-        1,
-        2
+        2,
+        3
        ],
        "footprint": [
         2,
@@ -1375,31 +1385,47 @@
       {
        "sprite": "chair",
        "tile": [
-        1,
-        1
+        2,
+        2
        ],
        "facing": "s"
       },
       {
        "sprite": "chair",
        "tile": [
-        1,
-        3
+        3,
+        2
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        4
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        3,
+        4
        ],
        "facing": "n"
       },
       {
        "sprite": "chest",
        "tile": [
-        3,
-        4
+        5,
+        0
        ],
        "loot": "home_chest"
       },
       {
        "sprite": "bed",
        "tile": [
-        5,
+        8,
         0
        ],
        "footprint": [
@@ -1410,22 +1436,22 @@
       {
        "sprite": "chest",
        "tile": [
-        6,
-        4
+        10,
+        6
        ]
       },
       {
        "sprite": "shelf",
        "tile": [
-        4,
-        4
+        7,
+        6
        ]
       }
      ],
      "brackets": [
       {
        "side": "w",
-       "at": 0,
+       "at": 5,
        "facing": "in",
        "lantern": true
       }
@@ -1435,9 +1461,9 @@
    "floorRects": [
     {
      "rect": [
-      9,
+      13,
       1,
-      6,
+      7,
       6
      ],
      "sprite": "floor_farm"
@@ -1448,18 +1474,18 @@
      "rect": [
       0,
       0,
-      16,
-      12
+      22,
+      15
      ],
      "wall": "wall_fence",
      "gates": [
       {
        "side": "s",
-       "at": 4
+       "at": 5
       },
       {
        "side": "w",
-       "at": 9
+       "at": 11
       }
      ]
     }
@@ -1468,38 +1494,6 @@
     {
      "sprite": "crop_cabbage_1",
      "tile": [
-      9,
-      1
-     ],
-     "solid": false
-    },
-    {
-     "sprite": "crop_potato_1",
-     "tile": [
-      10,
-      1
-     ],
-     "solid": false
-    },
-    {
-     "sprite": "crop_cabbage_1",
-     "tile": [
-      11,
-      1
-     ],
-     "solid": false
-    },
-    {
-     "sprite": "crop_potato_1",
-     "tile": [
-      12,
-      1
-     ],
-     "solid": false
-    },
-    {
-     "sprite": "crop_cabbage_1",
-     "tile": [
       13,
       1
      ],
@@ -1514,34 +1508,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
+     "sprite": "crop_cabbage_1",
      "tile": [
-      9,
-      2
+      15,
+      1
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
+     "sprite": "crop_potato_1",
      "tile": [
-      10,
-      2
+      16,
+      1
      ],
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
+     "sprite": "crop_cabbage_1",
      "tile": [
-      11,
-      2
+      17,
+      1
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
+     "sprite": "crop_potato_1",
      "tile": [
-      12,
-      2
+      18,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      19,
+      1
      ],
      "solid": false
     },
@@ -1562,34 +1564,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
-     "tile": [
-      9,
-      3
-     ],
-     "solid": false
-    },
-    {
      "sprite": "crop_potato_2",
      "tile": [
-      10,
-      3
+      15,
+      2
      ],
      "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
-      11,
-      3
+      16,
+      2
      ],
      "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
-      12,
-      3
+      17,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      18,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      19,
+      2
      ],
      "solid": false
     },
@@ -1610,34 +1620,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_potato_1",
+     "sprite": "crop_cabbage_2",
      "tile": [
-      9,
-      4
+      15,
+      3
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_1",
+     "sprite": "crop_potato_2",
      "tile": [
-      10,
-      4
+      16,
+      3
      ],
      "solid": false
     },
     {
-     "sprite": "crop_potato_1",
+     "sprite": "crop_cabbage_2",
      "tile": [
-      11,
-      4
+      17,
+      3
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_1",
+     "sprite": "crop_potato_2",
      "tile": [
-      12,
-      4
+      18,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      19,
+      3
      ],
      "solid": false
     },
@@ -1658,34 +1676,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
+     "sprite": "crop_potato_1",
      "tile": [
-      9,
-      5
+      15,
+      4
      ],
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
+     "sprite": "crop_cabbage_1",
      "tile": [
-      10,
-      5
+      16,
+      4
      ],
      "solid": false
     },
     {
-     "sprite": "crop_cabbage_2",
+     "sprite": "crop_potato_1",
      "tile": [
-      11,
-      5
+      17,
+      4
      ],
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
+     "sprite": "crop_cabbage_1",
      "tile": [
-      12,
-      5
+      18,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      19,
+      4
      ],
      "solid": false
     },
@@ -1706,34 +1732,42 @@
      "solid": false
     },
     {
-     "sprite": "crop_potato_2",
-     "tile": [
-      9,
-      6
-     ],
-     "solid": false
-    },
-    {
      "sprite": "crop_cabbage_2",
      "tile": [
-      10,
-      6
+      15,
+      5
      ],
      "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
-      11,
-      6
+      16,
+      5
      ],
      "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
-      12,
-      6
+      17,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      18,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      19,
+      5
      ],
      "solid": false
     },
@@ -1749,6 +1783,46 @@
      "sprite": "crop_cabbage_2",
      "tile": [
       14,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      15,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      16,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      17,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      18,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      19,
       6
      ],
      "solid": false
@@ -1756,29 +1830,29 @@
     {
      "sprite": "well",
      "tile": [
-      9,
-      9
+      13,
+      11
      ]
     },
     {
      "sprite": "barrel",
      "tile": [
-      11,
-      9
+      15,
+      11
      ]
     },
     {
      "sprite": "woodpile",
      "tile": [
-      13,
-      9
+      17,
+      11
      ]
     },
     {
      "sprite": "chicken_coop",
      "tile": [
-      6,
-      8
+      8,
+      11
      ],
      "footprint": [
       1,
@@ -1789,16 +1863,16 @@
     {
      "sprite": "beehive",
      "tile": [
-      12,
-      7
+      16,
+      8
      ],
      "note": "a hive by the home's garden (#333)"
     },
     {
      "sprite": "beehive",
      "tile": [
-      14,
-      7
+      18,
+      8
      ]
     }
    ]
@@ -12063,8 +12137,8 @@
   }
  },
  "spawn": [
-  104,
-  216
+  102,
+  218
  ],
  "zombies": [
   [
@@ -12669,7 +12743,7 @@
   {
    "tile": [
     102,
-    218
+    220
    ],
    "name": "Wyn",
    "wardrobe": 6,

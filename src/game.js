@@ -112,9 +112,10 @@ export function create({ json, look = null, name = null, handed = null, devChest
   chart.reset(); // a new world has seen nothing
   const info = S.info;
   map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
-  // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
+  // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0): two tiles east, inside the cottage beside you
+  // (the spawn is by the door since the cottage grew, Michael 2026-10-26, so two south would be out in the yard).
   if (devChest) {
-    const at = map.nearestWalkable(info.spawn[0] + 1, info.spawn[1] + 2, (x, y) => !!map.tileAt(x, y).prop || (x === info.spawn[0] && y === info.spawn[1]));
+    const at = map.nearestWalkable(info.spawn[0] + 2, info.spawn[1], (x, y) => !!map.tileAt(x, y).prop || (x === info.spawn[0] && y === info.spawn[1]));
     if (at) map.placeProp(map.createProp({ sprite: "dev_chest", tile: at }), at[0], at[1]);
   }
   setPlayer(createPlayer(info.spawn[0], info.spawn[1]));
