@@ -1,6 +1,6 @@
 # Art brief: the walls redrawn at 96 px, with two-crate doors and big windows
 
-*A brief, written 2026-10-26 for `docs/52`, corrected 2026-10-27 after a scan against the generators, and not yet run. Michael either reruns the kept generators himself (`tools/art-gen/village/`, `tools/art-gen/woods_rugs_paintings/`) or pastes this whole file into Claude Design. Every size and name in it was read from the game's code and data on that day.*
+*A brief, written 2026-10-26 for `docs/52`, corrected 2026-10-27 after a scan against the generators, and run the same day by rerunning copies of them with these numbers (the generators, their README with the answers to the four questions, and the checks: `tools/art-gen/round7/walls/`; the art is in `data/art/village/`). Michael either reruns the kept generators himself (`tools/art-gen/village/`, `tools/art-gen/woods_rugs_paintings/`) or pastes this whole file into Claude Design. Every size and name in it was read from the game's code and data on that day.*
 
 Hello again. This is a request to redraw the whole wall set you drew before, in exactly your style, at a new height: walls 96 px tall instead of 80, doors 64 px tall instead of 48, windows from 24 to 64 px instead of 22 to 51. Nothing else about the look changes. Michael's reason: a one-tile crate is 32 px tall, and he wants Zomboid's predictability, three crates from floor to ceiling, a door two crates tall, and a window big on purpose, "for fun, not for realism", so the player sees more through it and shoots through it more easily.
 

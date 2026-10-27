@@ -45,7 +45,7 @@ Everything the art agent knows about the game's art, from the first trees to the
 
 ## Conventions in one box
 
-Hard pixels (alpha 0 or 255). Light from the top-left. Three or four flat shades. `#2b2522` outline on anything the player uses, none on decoration. No baked shadow or glow. Drawn at final size. Tiles 64 x 32; walls 80 tall; characters 55 tall. Anchors are always recorded from the PNG's top-left. Items ship as `<name>_world.png` plus `<name>_icon.png`. The full rulebook is `01`.
+Hard pixels (alpha 0 or 255). Light from the top-left. Three or four flat shades. `#2b2522` outline on anything the player uses, none on decoration. No baked shadow or glow. Drawn at final size. Tiles 64 x 32; walls 96 tall (`52`); characters 55 tall. Anchors are always recorded from the PNG's top-left. Items ship as `<name>_world.png` plus `<name>_icon.png`. The full rulebook is `01`.
 
 ## Provenance
 
