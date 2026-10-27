@@ -1027,6 +1027,23 @@ check("woods: a door or a window of another wood than its wall: the leaf rules, 
   }
   return "leaf rules; a Winter Pine door in a mahogany wall and a spruce window in a daub one, in the record and the hash and restored; the wall's own wood stores nothing; refusals";
 });
+// No browser dialog (Michael, 2026-10-26): the game never asks through window.alert, confirm, or prompt. A browser can be told to stop
+// showing them, and the desktop app's pane answers confirm false with no dialog, so a question asked that way can vanish for good; every
+// question is the game's own, asked on the page (ui/screens.js `ask`). The scan reads every script under src/ and the pages at the root.
+check("no browser dialog: no script calls window.alert, confirm, or prompt; every question is asked on the page", () => {
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : e.name.endsWith(".js") ? [path.join(dir, e.name)] : []));
+  const files = walk(path.join(root, "src")).concat(fs.readdirSync(root).filter((f) => f.endsWith(".html")).map((f) => path.join(root, f)));
+  const hits = [];
+  for (const f of files) {
+    const text = fs.readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+    for (const m of text.matchAll(/(?<![\w.$])(?<!function\s+)(?:window\.|globalThis\.|self\.)?(alert|confirm|prompt)\s*\(/g)) hits.push(`${path.relative(root, f).split(path.sep).join("/")}: ${m[0]}`);
+  }
+  assert(hits.length === 0, `browser dialogs: ${hits.join(" | ")}`);
+  const planted = "x.onclick = () => { if (window.confirm('Delete?')) go(); }; alert('hi'); placement.prompt(); export function prompt() {}";
+  const caught = [...planted.matchAll(/(?<![\w.$])(?<!function\s+)(?:window\.|globalThis\.|self\.)?(alert|confirm|prompt)\s*\(/g)].length;
+  assert(caught === 2, `the scan caught ${caught} of the planted two (a method named prompt must not count)`);
+  return `${files.length} files, none calls one; the scan catches a planted confirm and alert and passes a method or a function named prompt`;
+});
 // Small text (#321, #324): text at or under the threshold (ui/small-text.js, 15 UI px) is set in the clear sans-serif (`--font-small`), so a new small rule cannot slip in pixel-only.
 // The scan is tools/small-text-scan.js (its head says what it reads and how): every rule of style.css by its own size and its own family, every place a script under
 // src/ writes a font size, and a failure for any size it cannot classify. Below, it runs on the real files, then on planted snippets, each of which must pass or fail as named.

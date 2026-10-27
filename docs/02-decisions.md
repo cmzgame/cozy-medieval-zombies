@@ -192,6 +192,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- No browser dialog: every question is asked on the page, never through window.alert, confirm, or prompt; tools/check.js scans for them (2026-10-26, No browser dialog)
 - "Put out", never "douse"; a wave emote for the demo; immune villagers cower; the dye vat's picker and per-item colour schemes (2026-10-25, The dead ends ruled)
 - One thing a cell: only arrows, throwing knives and axes, bandages, seeds, and pemmican stack; bags made, never found, the satchel, the rucksack, and the valley's best in tiers (2026-10-24, The loot tables and the bags)
 - The aim guide on by default, off for the challenge; a mute key on F8 with a line as its twin; the player on grass steps as the dead shuffle; sounds step 2 widened to the shove, the bow, the cast, the dead's death and fall, doors and shutters (2026-10-24, The first real melee test)
@@ -316,6 +317,10 @@ Asked on #508's review whether a sleeper with a friend awake (the world at 1, so
 
 - **Waking early:** while asleep, any key or click on your own client wakes you (a key event in your snapshot, `wake`, performed by the world's step on the host, so a guest wakes the same way); the screen fades back in, and the world's speed follows who is still asleep, as it always has. The press that put you to bed never wakes you (*the builder's reading*: a press counts only once your client has seen you asleep a step).
 - **Burn corpse from the menu** is offered and works with a lit torch in a hand as well as a tinderbox carried, greyed only with neither ("Burn corpse (need a tinderbox or a lit torch)"); nothing is spent either way. `docs/43` section 7.
+
+### 2026-10-26 — No browser dialog: every question is the game's own, on the page (Michael)
+
+Michael, on the Worlds screen's Delete that did nothing: "I almost certainly misclicked and had the browser stop showing me those alerts and that is not easy to undo. Can we stop relying on browser alerts and use our own that can't be refused, since they are in game context and you can stop playing at any time or just not do the thing if you don't want the alert." #507 had already replaced the seven `window.confirm` questions with questions asked on the page; this makes it a rule: the game never calls `window.alert`, `confirm`, or `prompt`, and `tools/check.js` fails on one (`src/CLAUDE.md`, Rules the code keeps).
 
 ### 2026-10-26 — Fill waterskins skips clean water (Michael)
 
