@@ -200,35 +200,18 @@ export async function run(game) {
     for (const p of rec.props) map.installProp(p);
     for (const d of reach) map.installProp(d);
     row("after the restore the painting is on its wall", map.peekTile(x + 1, y).n.hangings?.[0]?.item === "painting_small_oak", JSON.stringify(map.peekTile(x + 1, y).n.hangings));
-    // A wall bracket (docs/43 section 4): hung on a face as a painting is, by the guest's command; it holds a torch; empty, a player's own comes down again.
+    // A torch put on a wall's face with its bracket (#523; its own rows are check("torch")'s): a painting is refused on that face, and once
+    // the torch is picked up (its bracket with it) the face takes one again.
     {
       standAt(x + 5, y + 1);
       G.loop.advance(1 / 60);
-      const br = add("wall_bracket");
-      const began = placement.beginBracket(br);
-      const esc = placement.cancel();
-      placement.performPlacement(me, { kind: "bracket", uid: br.uid, tx: x + 5, ty: y, edge: "n" });
-      const w5 = map.peekTile(x + 5, y).n;
-      const listed = [...map.brackets()].some((b) => b.wall === w5);
-      row("a wall bracket's Place begins a mode Esc ends, and hung by the guest's command it is an empty bracket on the face, the player's own", began && esc && !!w5.bracket && w5.bracket.side === 1 && w5.bracket.made === true && !w5.bracket.torch && listed && !bag.items.includes(br), w5.bracket ? JSON.stringify(w5.bracket) : "none");
-      const br2 = add("wall_bracket");
-      placement.performPlacement(me, { kind: "bracket", uid: br2.uid, tx: x + 5, ty: y, edge: "n" });
-      const said = (document.getElementById("message") || {}).textContent || "";
+      const torch = add("torch");
+      placement.performPlacement(me, { kind: "torch", uid: torch.uid, tx: x + 5, ty: y, edge: "n" });
       const pic = add("painting_small_oak");
       const picWhy = P.fitProblem(pic.id, x + 5, y, "n");
-      row("a second bracket there is refused, and so is a painting", /already there/.test(said) && bag.items.includes(br2) && /bracket is in the way/i.test(picWhy), `"${said}"; painting: ${picWhy}`);
-      const addr = { kind: "bracket", tx: x + 5, ty: y, edge: "n" };
-      const labels = () => G.interact.actionsForTarget(addr, me).map((q) => q.label);
-      const empty = labels();
-      const torch = add("torch");
-      G.interact.performByLabel(me, addr, "Mount the torch");
-      const holding = labels();
-      G.interact.performByLabel(me, addr, "Take the torch");
-      const down = G.interact.performByLabel(me, addr, "Take down the bracket");
-      row("empty it offers Mount the torch and Take down the bracket; holding a torch, no Take down; taken down by its label it is the item again", empty.includes("Take down the bracket") && !holding.includes("Take down the bracket") && holding.includes("Take the torch") && down === true && !map.peekTile(x + 5, y).n.bracket && bag.items.filter((e) => e.id === "wall_bracket").length === 2 && ![...map.brackets()].some((b) => b.wall === w5), `${empty.join(", ")} / ${holding.join(", ")}`);
-      const card = info.textOf(info.cardFor(G.items.makeEntry("wall_bracket", 1)));
-      row("the Wall bracket's card says Place on a wall's face and where it is made", card.includes("Place: hang on a wall's face, to hold a torch.") && card.some((l) => /anvil/.test(l)), card.join(" | "));
-      void torch;
+      G.interact.performByLabel(me, { kind: "bracket", tx: x + 5, ty: y, edge: "n" }, "Pick up torch");
+      const after = P.fitProblem(pic.id, x + 5, y, "n");
+      row("a painting is refused on a face holding a torch on a wall, and taken again once the torch (and its bracket) is picked up", /bracket is in the way/i.test(picWhy) && after === "" && !map.peekTile(x + 5, y).n.bracket, `with the torch: ${picWhy}; after: ${after || "fits"}`);
     }
   } catch (e) {
     if (!e.guestDone) rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
