@@ -115,12 +115,15 @@ function emitStairTile(s, i, shade, bias) {
   const py = dx;
   const P = (t, o) => [s.low[0] + dx * t + px * o, s.low[1] + dy * t + py * o];
   const world = s.tiles[i];
-  const n = map.STAIR_TREADS / 3;
-  for (let j = 0; j < n; j++) {
-    const k = i * n + j;
-    const a = P(k / n, -0.5);
-    const b = P((k + 1) / n, 0.5);
-    emitBox(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1]), (k + 1) * (96 / map.STAIR_TREADS), shade, bias, world);
+  // The treads whose fronts are on this tile: tread k (1 to 12) is 8k px tall over u = (8k - 4) / 32 to (8k + 4) / 32 (the drawn stairs'
+  // layout, map.stairRise's), the last one half a tread, flush with the landing.
+  for (let k = 1; k <= map.STAIR_TREADS; k++) {
+    const u0 = Math.max(0, (8 * k - 4) / 32);
+    const u1 = Math.min(3, (8 * k + 4) / 32);
+    if (u0 < i || u0 >= i + 1) continue;
+    const a = P(u0, -0.5);
+    const b = P(u1, 0.5);
+    emitBox(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1]), k * 8, shade, bias, world);
   }
   // The stringers, a board on the plane of each side climbing from the floor to the landing: the far one (seen from the camera over the
   // treads) a hand over the line the treads' nosings climb along, the near one just under it, so the treads show stepping over it. The
@@ -137,13 +140,93 @@ function emitStairTile(s, i, shade, bias) {
     gl.poly([at(A[0], A[1], top(i)), at(B[0], B[1], top(i + 1)), at(B[0], B[1], bottom(i + 1)), at(A[0], A[1], bottom(i))], shade.edge, { world, heights: [top(i), top(i + 1), bottom(i + 1), bottom(i)] });
   }
 }
-// The stairs of layer L whose steps are among `tilesL`, as drawables.
+// ---- the drawn stairs (art round 8, Michael's approval 2026-10-27: data/sprites/stair_wood.json, stair_stone.json) ----
+// One picture a stair, a facing a direction (the engine's `dir`), anchored on the top vertex of its low-end tile at the ground. The picture
+// is laid over the stair's own geometry, each part on its own plane in the depth buffer (the furniture's two face planes mis-sort a stair:
+// the artist's note): first the whole picture on the plane of its far side, the deepest of it, so a body on the stair is drawn over every
+// tread above its own; then each tread's top on its horizontal plane at its height (8k px over u = (8k - 4) / 32 to (8k + 4) / 32 tiles
+// along the run), each riser on its vertical plane, and the near side (its stringer and panel, the newel at the foot and the post at the
+// head) on the plane of that side, so the near stringer covers the feet of a body on the stair as it stands in front of them.
+const SIDE_OVER = 10; // px the near stringer's top stands over the line of the treads' nosings
+const NEWEL_H = 30;
+const HEAD_POST_H = 114;
+function sidePlane(s, o) {
+  const A = [s.low[0] + -s.d[1] * o, s.low[1] + s.d[0] * o];
+  return s.d[0] !== 0 ? planeY(A[1]) : planeX(A[0]);
+}
+function runPlane(s, u) {
+  const P = [s.low[0] + s.d[0] * u, s.low[1] + s.d[1] * u];
+  return s.d[0] !== 0 ? planeX(P[0]) : planeY(P[1]);
+}
+function emitDrawnStair(s, sheet, name, bias) {
+  const f = sheet.frames[name];
+  const uv = gl.frameUV(sheet, name);
+  if (!f || !uv) return false;
+  const anchor = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
+  const [lx, ly] = s.tiles[0];
+  const A = iso.toScreen(lx - 0.5, ly - 0.5); // the low-end tile's top vertex, at the ground
+  const ax = Math.round(A.x);
+  const ay = Math.round(A.y);
+  const uvOf = ([X, Y]) => [uv[0] + anchor[0] + (X - ax), uv[1] + anchor[1] + (Y - ay)];
+  const world = s.tiles[1];
+  const opts = { world, page: uv[4] };
+  const [dx, dy] = s.d;
+  const P = (u, o) => [s.low[0] + dx * u + -dy * o, s.low[1] + dy * u + dx * o];
+  const nearO = (dx !== 0 ? P(0, 0.5)[1] > P(0, -0.5)[1] : P(0, 0.5)[0] > P(0, -0.5)[0]) ? 0.5 : -0.5;
+  // 1. The whole picture on its far side's plane.
+  const left = ax - anchor[0];
+  const top = ay - anchor[1];
+  const rect = [[left, top], [left + f[2], top], [left + f[2], top + f[3]], [left, top + f[3]]];
+  gl.surface(sidePlane(s, -nearO), bias, 1);
+  gl.texQuad(rect, rect.map(uvOf), opts);
+  // 2. The treads' tops, each on the horizontal plane at its height, and the risers under their front edges.
+  for (let k = 1; k <= map.STAIR_TREADS; k++) {
+    const h = k * 8;
+    const u0 = Math.max(0, (8 * k - 4) / 32);
+    const u1 = Math.min(3, (8 * k + 4) / 32);
+    if (dx < 0 || dy < 0) {
+      // A riser faces the low end: the camera sees it on a stair climbing away (n, w); toward the camera it is behind its own tread.
+      const riser = [P(u0, -0.5), P(u0, 0.5)].map(([x, y]) => at(x, y));
+      gl.surface(runPlane(s, u0), bias + 0.25, 1);
+      const rq = [[riser[0][0], riser[0][1] - h], [riser[1][0], riser[1][1] - h], [riser[1][0], riser[1][1] - (h - 8)], [riser[0][0], riser[0][1] - (h - 8)]];
+      gl.texQuad(rq, rq.map(uvOf), { ...opts, heights: [h, h, h - 8, h - 8] });
+    }
+    const corners = [P(u0, -0.5), P(u1, -0.5), P(u1, 0.5), P(u0, 0.5)];
+    const pts = corners.map(([x, y]) => at(x, y, h));
+    withLift(h, () => {
+      const o = iso.getOrigin();
+      gl.surface({ A: 0, B: 2, C: -2 * o.y }, bias + 0.5, 1);
+      gl.texQuad(pts, pts.map(uvOf), opts);
+    });
+  }
+  // 3. The near side: the newel, the stringer and panel under the treads' line, the post at the head.
+  gl.surface(sidePlane(s, nearO), bias + 0.6, 1);
+  const side = (u, z) => at(...P(u, nearO), z);
+  const pieces = [
+    [side(-0.25, 0), side(0.3, 0), side(0.3, NEWEL_H), side(-0.25, NEWEL_H)],
+    [side(0.3, 0), side(2.7, 0), side(2.7, 2.7 * 32 + SIDE_OVER), side(0.3, 0.3 * 32 + SIDE_OVER)],
+    [side(2.7, 0), side(3.25, 0), side(3.25, HEAD_POST_H), side(2.7, HEAD_POST_H)],
+  ];
+  for (const q of pieces) gl.texQuad(q, q.map(uvOf), opts);
+  return true;
+}
+// The stairs of layer L whose steps are among `tilesL`, as drawables: the drawn stair's picture, one drawable a stair (each of its
+// parts on its own plane); the dev art's twelve boxes where a material has no picture.
 export function stairDrawables(tilesL, L, bias, out) {
   const list = map.stairsOn(L);
   if (!list.length) return;
   const inView = new Set(tilesL.map(([x, y]) => `${x},${y}`));
   for (const { s, well } of list) {
     if (well) continue;
+    if (!s.tiles.some(([tx, ty]) => inView.has(`${tx},${ty}`))) continue;
+    let sheet = null;
+    try { sheet = getSheet(`stair_${s.material || "wood"}`); } catch { sheet = null; }
+    const name = `idle_${s.dir}_0`;
+    if (sheet && sheet.frames && sheet.frames[name]) {
+      const [mx, my] = s.tiles[1];
+      out.push({ key: (mx + my) * 1000 + 0.9, kind: "stair", vis: true, rect: null, canOcclude: false, occluder: false, emit: () => emitDrawnStair(s, sheet, name, bias) });
+      continue;
+    }
     s.tiles.forEach(([tx, ty], i) => {
       if (!inView.has(`${tx},${ty}`)) return;
       const shade = STAIR_SHADES[s.material] || STAIR_SHADES.wood;

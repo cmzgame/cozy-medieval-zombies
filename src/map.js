@@ -2566,14 +2566,12 @@ function stairBlocks(gx, gy, r2, layer, sOn) {
 }
 // How far a body's feet are from a stair's middle line at most on its own layer (the half-width of its feet against the stair's sides).
 export const STAIR_FEET = 0.15;
-// A body's rise at `t` tiles up a stair (0 to 3): twelve treads, four a tile, each 8 px over the one before; the feet climb onto a
-// tread over the first third of its depth and stand on its top for the rest (render/storeys.js draws the treads to the same numbers).
+// A body's rise at `t` tiles up a stair (0 to 3): the top of the tread under its feet. Twelve treads, tread k (1 to 12) 8k px tall and
+// centred k / 4 tiles up, the last half a tread flush with the landing, bare floor before the first (the drawn stairs' layout, art round 8;
+// render/storeys.js draws the dev art's to the same numbers).
 export const STAIR_TREADS = 12;
 export function stairRise(t) {
-  const u = Math.max(0, Math.min(3, t)) * (STAIR_TREADS / 3);
-  const k = Math.min(STAIR_TREADS - 1, Math.floor(u));
-  const f = u - k;
-  return (k + Math.min(1, f / 0.35)) * (96 / STAIR_TREADS);
+  return Math.max(0, Math.min(STAIR_TREADS, Math.round(Math.max(0, Math.min(3, t)) * 4))) * 8;
 }
 // The stair a body at (gx, gy) on `layer` is on (its centre over its three tiles, or just past its top edge, where it is crossing to the
 // landing this step), or null.

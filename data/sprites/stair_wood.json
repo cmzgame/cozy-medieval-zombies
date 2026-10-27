@@ -1,0 +1,41 @@
+{
+ "anchorVertex": "top",
+ "facings": [
+  "n",
+  "w",
+  "s",
+  "e"
+ ],
+ "drawings": {
+  "n": {
+   "image": "data/art/village/stair_wood_n.png",
+   "anchor": [
+    34,
+    142
+   ]
+  },
+  "w": {
+   "image": "data/art/village/stair_wood_w.png",
+   "anchor": [
+    100,
+    142
+   ]
+  },
+  "s": {
+   "image": "data/art/village/stair_wood_s.png",
+   "anchor": [
+    100,
+    64
+   ]
+  },
+  "e": {
+   "image": "data/art/village/stair_wood_e.png",
+   "anchor": [
+    34,
+    64
+   ]
+  }
+ },
+ "carry": false,
+ "note": "the drawn wooden stair (art round 8): a straight run of three tiles climbing one storey (96 px), twelve treads of 8 px, closed stringers over recessed spandrel panels, a newel at the foot and a post at the head of each side, open and dark under the run behind its header; drawn by the engine on its own planes (render/storeys.js), never placed as a prop"
+}
