@@ -23,37 +23,42 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-26, night: stopped for Michael's playtest; the Playtest Checklist is the place to start)
+## Status (2026-10-26, evening: the playtest loop is running; the power items sitting is next)
 
-**Stopped here on purpose** (Michael, 2026-10-26: "I want to stop here at the playtesting page and my actual playtest"). Nothing merges until he has played. He tests from the **Playtest Checklist** (a private page of his, https://claude.ai/artifact/61HoYfV2iwDFboMeAikYws; the wiki's copy is the Playtest checklist page, which replaced Valley day): 110 tryable changes since 2026-10-17, his ticks, a note per item, and a bug-report box. **He filed 5 reports there on 2026-10-26, to handle next session, not before** ("do not deal with them now"): read the page's `reports` collection with ArtifactData, file each in `docs/bugs.md`, and set its `status` there so he can follow it.
+**Michael is playtesting from the Playtest Checklist** (his private page, https://claude.ai/artifact/61HoYfV2iwDFboMeAikYws; the wiki's copy is the Playtest checklist page). It holds every tryable change since 2026-10-17, his ticks, a note per item, and a bug-report box. **The loop:**
+- he files reports there;
+- Primary reads the page's `reports` collection (ArtifactData), fixes the bugs in batches, asks him the design questions, and sets each report's `status` to where it went;
+- every merge with a player-visible change adds a row to the page's `items` and to the wiki's checklist.
 
-**Merged 2026-10-25 and 26** (each reviewed by a fresh agent and run in the pane and in two tabs by Primary, muted; the wiki synced):
-- The belt's slot roles (#478) and handedness (#477); test pages silent (#473, #474); the test runner `check("all")` and its order fixes (#487, the Secondary).
-- **Potions, poisons, and mana** (`docs/47`): mana (#488), vials, the cauldron, and drinking (#491), poisons (#496). Step 4, throwing potions and the splash (#483), is not built.
-- **Throwing knives and axes** (`docs/24` section 1; #494, the Secondary); their art owed (#493).
-- **Sight-pull** ruled (`docs/48`, #490); **built on the branch `secondary/sight-pull` (5a8c7d61), held, no PR**, for after the playtest (#492). Its open item: `check("windows")` fails after `check("melee")` in one page, with or without the pull, order-dependent, older than the branch.
-- Docs: the levers for the belt order and handedness (#485), a lit cauldron's Take apart line in `docs/bugs.md` (#495).
+Every report filed so far has a status.
 
-**Next, after the playtest:** Michael's reports and notes from the checklist; then sight-pull's PR (#492) and throwing potions (#483); then the sittings, each a sit-down with him:
-1. Power items: gems (#281), trinkets (#282), silver (#283).
-2. Armour and difficulty (#133).
-3. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
-4. The demo, the business, and so on.
-5. Eventually, the regions.
-Still open beside them: Herbalism 6 and 7's replacements and what the herb bed grows (`docs/02` open questions 35 and 36).
+**Merged on 2026-10-26** (each reviewed by a fresh agent and run by Primary in the pane, in order on one page with `check("all", { only })`, and in two tabs; the wiki synced):
+- **The playtest fixes:**
+  - #501: throwables in hand slots, the belt's swap into the freed slot, the aim over every panel, the map marker, a lit cauldron's Take apart;
+  - #502: the art load retries a failed picture, and serve.py caches no error;
+  - #507: Delete world and every question asked on the page, the spear's line, the cooking list's scroll, the bucket's Use on a crop, Water with each vessel, the Inspect card, a right click cancels a ghost, the tainted-water warnings, Fill skipping clean skins, knife damage 18.
+- **The playtest features** (#508, ruled in #505): a bucket boiled and poured into skins; Burn corpse for a tinderbox or a lit torch; sleep fades, runs at 20, wakes early on any key or click; bags and belts open where they lie (take-only inside another container); a stack fills a matching stack. `net.PROTOCOL` 21.
+- **Sight-pull** (#504; `docs/48`): one of the dead first turning to a player calls once to those that see it, with no chain. GitHub's merge call timed out after the merge, so #504 was closed by hand, its merge `5eb40e61`.
+- **Rules:** honey goes into a clay jar (#499; built in #500, not yet); no browser dialog (#509, a rule and a check).
 
-**The checklist is kept current:** each merge with a player-visible change adds a row to the page's `items` collection and to the wiki's Playtest checklist.
+**Waiting on Michael:**
+- the halberd's second attack (#503; his idea: the thrust on hold-right plus left, middle mouse kept for true third attacks), for the armour sitting;
+- the minimap (#498), for an interface sitting;
+- whether tools may be held beside the spear (today no: it is never dual wielded, and a swinging tool counts as a weapon).
+
+**Next:**
+1. Michael's further playtest reports, in batches.
+2. **The power items sitting:** gems (#281), trinkets (#282), silver (#283).
+3. Armour and difficulty (#133, with #503).
+4. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
+5. The demo, the business, and so on.
+6. Eventually, the regions.
+
+**Built but queued:** #483 throwing potions; #500 honey in clay jars.
 
 **Open lines of `docs/39` by issue** (counted 2026-10-25, evening, by line; 52 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #133 5 · #181 4 · #283 4 · #103 3 · #262, #104, #271, #261, #217, #106 1 each.
 
-**Waiting on Michael** (defaults built, his to confirm or overrule; each named in its PR's Risks and in `docs/47`, `docs/24`, `docs/48`):
-- the belt (#478): what a draw pushes out tries the utility slot before the floor; the utility slot's menu equips into the item's own hand;
-- handedness (#477): a left-hander's main slot in the character screen's other column;
-- potions and poisons: healing 40, the stamina buff, 10 s between potions, the brew's 20 s, the poison drain and its once-a-second tick, the vials coloured on seal and glazed band, ten knives an iron bar;
-- sight-pull: 4 tiles scaled by the light, the tells;
-- from before: the shared repair count and the plank for the rod and bow (#425); water's infection opening on "Bitten"; a tainted sip at full thirst; #426 brightness and Plants vs Zombies; #415 spikes; #419 the Stardew notebook; the loot rates; the rucksack's recipe; the burst against a bow, shield, or brace; #271's items 6 and 8 to 11; #393 the downed art; knockdown on cards; music; #324; the `needs-michael` issues.
-
-**Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`). `net.PROTOCOL` is 20.
+**Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`). Primary's pane runs on its own `medieval` server (8010); the Secondary's on `medieval-second` (8011).
 
 **Not done, Michael's hand:** the finished builders' worktrees under `.claude/worktrees/agent-*` (all merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
 
