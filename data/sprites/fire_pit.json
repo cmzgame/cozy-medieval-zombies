@@ -1,17 +1,32 @@
 {
  "name": "fire pit",
+ "anchorVertex": "top",
  "facings": [
-  "y"
+  "y",
+  "x"
  ],
  "facingFootprint": {
   "y": [
    2,
    2
+  ],
+  "x": [
+   2,
+   2
   ]
  },
- "placeholder": {
-  "kind": "fire_pit",
-  "color": "#6f6a62"
+ "drawings": {
+  "y": {
+   "image": "data/art/village/fire_pit.png",
+   "anchor": [
+    58,
+    19
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
  },
  "fire": {
   "radius": 5,
@@ -26,8 +41,21 @@
   },
   "fuel": "log",
   "hoursPerUnit": 3,
+  "at": [
+   57,
+   49
+  ],
+  "frames": [
+   "data/art/village/fire_pit_fire_0.png",
+   "data/art/village/fire_pit_fire_1.png",
+   "data/art/village/fire_pit_fire_2.png"
+  ],
+  "base": [
+   18,
+   27
+  ],
   "fps": 6
  },
  "carry": false,
- "note": "the fire pit (Michael, 2026-10-26, the fire rulings under Round rooms: a spec): the 2 by 2 floor fire, a stone base and short walls with a rack over it on legs, built from the palette on open ground indoors or out, never moved, taken apart out; it cooks as every fire does, lights its room indoors as the fireplace does, and outdoors is the brightest fire (radius 5, docs/42); a switch as the home lights are (docs/43 section 3), the fuel fields the fireplace's own. Dev art generated (src/placeholders.js generateFirePit) and cut into three screen columns by src/assets.js sliceSheet at the left and right tiles' centres until the drawn art lands (`drawings`, and `fire.frames`, `fire.at`, `fire.base` as the fireplace's)"
+ "note": "the fire pit (Michael, 2026-10-26, docs/02 Round rooms: a spec, the fire rulings; art round 6): the 2 by 2 floor fire, indoors or out, built and never moved; a low round base of flags, a short wall of squared blocks round a bed of coals and crossed logs, a wrought-iron rack over it on two posts (on the line through the left and right tiles' centres) with a crossbar, two pots on S-hooks (one lidded) and a wooden ladle on the bar's end; the rack runs across the screen; two facings, y as drawn (ladle at the left) and x its mirror (ladle at the right; the lit side swaps, the accepted cost), so R turns it; its three flame frames stand under the pots, already cut where the wall, the logs, and the pots stand in front of them. The engine cuts it into three screen columns (the left tile, the middle two, the right tile): the posts stand in the outer columns and the pots in the middle one, in both facings (the art's README); the frames mirror with the drawing"
 }

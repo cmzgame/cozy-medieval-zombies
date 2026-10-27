@@ -1,1 +1,57 @@
-{"placeholder": {"kind": "campfire", "color": "#6a645c"}, "fire": {"radius": 4, "burns": true, "cooks": true, "maxFuel": 6, "flicker": {"amp": 0.22, "speed": 7}, "fuel": "log", "hoursPerUnit": 3}}
+{
+ "anchorVertex": "top",
+ "facings": [
+  "y",
+  "x"
+ ],
+ "facingFootprint": {
+  "y": [
+   1,
+   1
+  ],
+  "x": [
+   1,
+   1
+  ]
+ },
+ "drawings": {
+  "y": {
+   "image": "data/art/village/campfire.png",
+   "anchor": [
+    21,
+    0
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
+ },
+ "fire": {
+  "radius": 4,
+  "burns": true,
+  "cooks": true,
+  "maxFuel": 6,
+  "flicker": {
+   "amp": 0.22,
+   "speed": 7
+  },
+  "fuel": "log",
+  "hoursPerUnit": 3,
+  "at": [
+   20,
+   19
+  ],
+  "frames": [
+   "data/art/village/campfire_fire_0.png",
+   "data/art/village/campfire_fire_1.png",
+   "data/art/village/campfire_fire_2.png"
+  ],
+  "base": [
+   9,
+   22
+  ],
+  "fps": 6
+ },
+ "note": "the drawn campfire (art round 6): a ring of ten fieldstones round a bed of ash and coals, four logs stood in a teepee and one lying ready; the travelling fire, set down from the Campfire item and picked up out and empty; two facings, y as drawn (the spare log at the back right) and x its mirror (the spare log at the back left; the lit side swaps); its three flame frames stand in the teepee, already cut where the near logs and stones stand in front of them, and mirror with the drawing"
+}

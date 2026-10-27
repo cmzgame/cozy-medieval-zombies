@@ -4795,7 +4795,7 @@ check("the fires: a 2 by 2 picture cut into three screen columns, each sorted by
   assert([25, 26, 89, 90, 57, 13, 102].map((u) => assetsMod.sliceTileAt(u, art, fp)).join("") === "2331321", "the drawn fire pit's columns");
   // The fire pit's own picture is cut so: its definition's footprint and facing.
   const def = getDef("fire_pit");
-  assert(JSON.stringify(assetsMod.footprintOf(def)) === "[2,2]" && def.placeholder.kind === "fire_pit" && def.fire.radius === 5 && def.fire.room && def.fire.cooks && def.fire.switch && def.fire.maxFuel === 6 && def.fire.hoursPerUnit === 3 && def.fire.flicker.amp === 0.24 && def.carry === false, `the fire pit's definition: ${JSON.stringify(def.fire)}`);
+  assert(JSON.stringify(assetsMod.footprintOf(def)) === "[2,2]" && (def.placeholder ? def.placeholder.kind === "fire_pit" : !!(def.drawings && def.drawings.y)) && def.fire.radius === 5 && def.fire.room && def.fire.cooks && def.fire.switch && def.fire.maxFuel === 6 && def.fire.hoursPerUnit === 3 && def.fire.flicker.amp === 0.24 && def.carry === false, `the fire pit's definition: ${JSON.stringify(def.fire)}`);
   // Two tiles: the old rule, a column at the second tile's centre moved 9 px toward the first.
   for (const [f2, cut, second] of [[[1, 2], a[0] - 32 + 9, (u, c) => u < c], [[2, 1], a[0] + 32 - 9, (u, c) => u >= c]]) {
     for (let u = 0; u < W; u++) assert(assetsMod.sliceTileAt(u, a, f2) === (second(u, cut) ? 1 : 0), `the two-tile cut ${JSON.stringify(f2)} at ${u}`);
