@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Round walls are stone only for now: a few on the map, built only with Free building until their cost is settled (2026-10-27, Round walls are stone only, a few on the map)
 - A torch is placed on a wall from its own menu with a bracket drawn with it; the Wall bracket item goes; rugs and paintings are found and collected, never built or crafted, marked collectible (2026-10-27, A torch goes on a wall with its bracket)
 - Round rooms are a spec (`50`): circles, not slanted walls; odd sizes ~~3,~~ 5 and 7 across (the 3 struck by Michael's ruling on Primary's scan, 2026-10-26: "5 by 5 the smallest"); the world's logic on the stepped tile edges, bodies stopped by the drawn curve too, the ring counting as wall for torches' brackets (a fireplace needs a flat wall: a round room's fire is the 2 by 2 floor fire or none), no furniture on the eight tiles the curve crosses, the ring as thick and tall as its material's straight wall; doors at the four points where the circle touches its square; built by players and placed on the map, the map first; rounded corners too; the cost scales with the size (2026-10-26, Round rooms: a spec)
 - The build menu holds only what cannot be picked up and carried; the campfire is made at the workbench, 1 by 1 on the ground and 3 by 3 in the bag; a lit room flickers down a little, a lever (2026-10-27, The build menu holds only what cannot be carried)
@@ -115,6 +116,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- A thrown knife or axe clears a fence (36 px) and never a wall (96 px), as the flights' wall heights since walls 96 have it (2026-10-27, Thrown things clear fences, not walls)
 - Sight-pull: one of the dead first turning to hunt a player calls once to the dead near it that see it, and those never call others; sound draws no one (2026-10-25, Sight-pull ruled)
 - Throwing knives do 18 damage, not 15 (2026-10-26, Throwing knives do 18)
 - Throwing knives pull and axes stop: the knife 18 (15 until 2026-10-26) and 30% to break, the axe 30, always staggering, knocking down at 0.35, 10% to break; they spin, and land or lodge like arrows (2026-10-25, Throwing knives and axes ruled)
@@ -319,6 +321,14 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-27 — Thrown things clear fences, not walls (Michael)
+
+Since walls 96 (#529) a flight is stopped only below a wall's own height (`archery.js` `wallStops`, a definition's `wall.height`), so a thrown knife or axe clears a 36 px fence and never a 96 px house wall. Michael confirmed it: "I actually prefer thrown items to clear the fences, just not the walls." Nothing changes in the code; the fence's height is its lever (`docs/42`, the openings' heights).
+
+### 2026-10-27 — Round walls are stone only, a few on the map, built with Free building alone (Michael)
+
+On the round rooms' build (`50`): "A few on the map, buildable by dev settings, otherwise not in the game yet until we settle on cost, etc." **Ruled:** round walls are stone only for now (no log or plank ring); the map places a few (the proving ground's room and two-storey tower, `tools/mapgen/proving.py`, and Hollow Farm's dovecote on the valley, `50` section 5's default); the palette's round stone wall is shown and buildable only while Free building is on (`dev` in `data/build.json`, as a region's wood is hidden), its cost a placeholder (*Primary's default*: 2 stone an edge of the outline, 40 at 5 across and 56 at 7), never charged since Free building waives it. It narrows `50` section 5's palette (a ring for each wall material the palette has, no stone ring until the stone wall) until the cost is settled.
 
 ### 2026-10-27 — A torch goes on a wall with its bracket; rugs and paintings are found, never made (Michael)
 

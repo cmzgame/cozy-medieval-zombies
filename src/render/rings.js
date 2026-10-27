@@ -21,21 +21,19 @@ import { ghostColor } from "./props.js";
 
 export const SEGMENTS = 48; // the drawn curve's segments round the whole ring (7.5 degrees each); the bodies' chords are coarser (round.js)
 const FACE = "north_plain"; // the straight face wrapped round the curve
+const FACE_COLS = [4, 28]; // the columns of its 32 the wrap takes
 const DEG = Math.PI / 180;
 
 // Whether a segment centred at angle `a` (radians, from +x toward +y) is on the near half: its outward normal has x + y > 0, toward the camera.
 const nearHalf = (a) => Math.cos(a) + Math.sin(a) > 0;
 
-// The ground point a face's light is read at: `off` tiles off the curve, outward (+) or inward (-), moved on until it is outside the steps
-// (the outer face) or on a stepped tile (the inner), so the inner face takes its room's light and the outer the daylight.
+// The ground point a face's light is read at: LIGHT_IN tiles in from the curve for the inner face, out from it for the outer. The light is
+// read per pixel along the line between two such points, so the whole line must keep to one side of the steps: a circle LIGHT_IN in crosses
+// only stepped tiles (their centres within R - LIGHT_IN + 0.71 < R), and one LIGHT_IN out only tiles off them, so the inner face takes its
+// room's light and the outer the daylight, with no stripe of a pocket's daylight where a line cut a step's corner.
+const LIGHT_IN = 0.75;
 function lightPoint(s, a, out) {
-  for (let d = 0.45; d < 1.6; d += 0.1) {
-    const gx = s.cx + Math.cos(a) * (s.R + out * d);
-    const gy = s.cy + Math.sin(a) * (s.R + out * d);
-    const stepped = round.isStepped(s.x0, s.y0, s.n, Math.round(gx), Math.round(gy));
-    if (stepped === out < 0) return [gx, gy];
-  }
-  return [s.cx + Math.cos(a) * (s.R + out * 0.45), s.cy + Math.sin(a) * (s.R + out * 0.45)];
+  return [s.cx + Math.cos(a) * (s.R + out * LIGHT_IN), s.cy + Math.sin(a) * (s.R + out * LIGHT_IN)];
 }
 
 // The ring's two drawables for every ring on the ground whose square meets the tiles drawn.
@@ -153,9 +151,11 @@ function makeHalf(r, near, visible, faded, ghostTint, ghostFlags = 0) {
         }
         gl.layer(0);
         if (uvF) {
-          const w = Math.min(32, B[0] - A[0]);
-          const span = Math.floor(32 - w); // which columns of the straight face this segment takes: varied along the ring, never past its end
-          const c0 = span > 0 ? (Math.round(amid / DEG) * 7) % (span + 1) : 0;
+          // Which columns of the straight face this segment takes: varied along the ring, and never the face's first or last few, where the
+          // straight picture draws its end against the next segment's (a light line down every joint when wrapped round the curve).
+          const w = Math.min(FACE_COLS[1] - FACE_COLS[0], B[0] - A[0]);
+          const span = Math.floor(FACE_COLS[1] - FACE_COLS[0] - w);
+          const c0 = FACE_COLS[0] + (span > 0 ? (Math.round(amid / DEG) * 7) % (span + 1) : 0);
           const foot = (c) => [uvF[0] + an[0] + c - T / 2, uvF[1] + an[1] - iso.HH + T / 4 + c / 2];
           const fa = foot(c0);
           const fb = foot(c0 + w);

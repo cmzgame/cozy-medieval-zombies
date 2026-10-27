@@ -615,6 +615,10 @@ def build():
     fold = g.place("the croft's sheepfold", [146, 211, 12, 9])
     fold.fence([0, 0, 12, 9], gates=[{"side": "n", "at": 6}])
     fold.prop("feed_trough", (3, 2), id="feed_trough_fold", note="the sheepfold's feeding trough (docs/45 section 3)")
+    # Hollow Farm's dovecote (docs/50 section 5's default): a round stone room, 5 by 5, on the wood's edge north of the orchard, its door
+    # south toward the farm. Round walls are stone and a few on the map for now (Michael, 2026-10-27).
+    dove = g.place("Hollow Farm's dovecote", [40, 222, 5, 5])
+    dove.round([0, 0], 5, openings={"s": "door", "e": "window"})
 
     # ---- reserves: the castle (step 5) and the farms (step 4) take no forest yet ----
     g.reserve([VX, VY, 64, 144])      # the village block, 29/04's plan

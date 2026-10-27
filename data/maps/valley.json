@@ -12063,6 +12063,35 @@
      "note": "the sheepfold's feeding trough (docs/45 section 3)"
     }
    ]
+  },
+  {
+   "name": "Hollow Farm's dovecote",
+   "rect": [
+    40,
+    222,
+    5,
+    5
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [],
+   "fences": [],
+   "props": [],
+   "rounds": [
+    {
+     "at": [
+      0,
+      0
+     ],
+     "size": 5,
+     "wall": "wall_stone",
+     "layer": 0,
+     "openings": {
+      "s": "door",
+      "e": "window"
+     }
+    }
+   ]
   }
  ],
  "reserve": [
