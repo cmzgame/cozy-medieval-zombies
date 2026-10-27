@@ -75,8 +75,8 @@ export function figure(gx, gy) {
 // walked through (`solid` false: a crop, a mushroom, an herb, a sapling) a billboard through its tile's centre, so a figure standing on
 // its tile at or before the centre is drawn over it and one behind the centre is covered by it, as the sort drew them (the review of
 // #530: on its two front faces a crop covered the legs of a figure walking its row).
-export function propSlice(tx, ty, canopy = false, walked = false) {
-  if (walked) return billboard(tx, ty);
+export function propSlice(tx, ty, canopy = false, walked = false, dy = 0) {
+  if (walked) return billboardBelow(tx, ty, dy); // through where it stands: a forage mushroom's offset moves it up to a third of a tile
   return canopy ? billboard(tx + 0.5, ty + 0.5) : ridge(tx + 0.5, ty + 0.5);
 }
 

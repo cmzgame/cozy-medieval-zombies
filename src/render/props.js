@@ -220,11 +220,12 @@ export function propDrawables(tiles, visible, out) {
     // A hive in sight has its bees by day (#441): the far ones before it, the near ones after.
     const swarm = f && vis && i === 0 && getDef(prop.sprite).hive ? bees.beesFor(prop, f, x, y, an) : null;
     // Its depth (docs/51 section 3): the slice's own footprint tile's two front faces, split at its front corner; a tree's or any canopy's
-    // a billboard through that corner; a thing walked through (a crop, a mushroom, an herb) a billboard through its tile's centre. Its
+    // a billboard through that corner; a thing walked through (a crop, a mushroom, an herb) a billboard through its own ground point, its
+    // tile's centre moved by its offset's screen rows (the review of f9d0fcc5: a forage mushroom stands off its centre). Its
     // flames, its bees, and its outline on the same surface.
     const walked = prop.solid === false;
     const canopy = !walked && !!getDef(prop.sprite).canopy;
-    const surf = depth.propSlice(tx, ty, canopy, walked);
+    const surf = depth.propSlice(tx, ty, canopy, walked, off[1]);
     const held = backWalls(surf, tx, ty, canopy); // held off the walls on its tile's back edges, which it stands against
     const d = {
       key: (tx + ty) * 1000 + 1,

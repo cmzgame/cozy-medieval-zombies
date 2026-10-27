@@ -80,6 +80,7 @@ const sFloorC = new Float64Array(2);
 let sBias = 0; // the drawable's kind bias (scene.js DEPTH_BIAS)
 let order = 0; // quads emitted on the surface so far: each sits `depthStepSize` nearer than the last
 let maxOrder = Infinity; // the most steps the surface's quads may climb: under its kind's room (surface), so at 16 bits a drawable never reaches the next kind
+let layerTop = -1; // the highest layer used since the last `layer(null)`: the count goes on after it
 let layerAt = -1; // >= 0: the quads that follow take this step of the order, whatever came before (`layer`), and do not count
 let behind = false; // an outline's copies: a step behind the quad they outline, not counted
 let held = 0; // > 0: quads share one step (bees: a figure of many pixels is one layer), stepped once when released
@@ -673,6 +674,7 @@ export function surface(s, bias = 0, room = Infinity) {
   maxOrder = Number.isFinite(room) ? Math.max(0, Math.ceil(room / depthStepSize - 1e-9) - 1) : Infinity;
   roomOf = room;
   layerAt = -1;
+  layerTop = -1;
   behind = false;
   held = 0;
   heldUsed = false;
@@ -709,11 +711,13 @@ export function setBehind(on) {
 // four steps, whatever it carries: render/walls.js). Quads in one layer must not overlap one another, as held ones.
 export function layer(n) {
   if (n == null) {
-    if (layerAt >= 0) order = Math.max(order, layerAt + 1);
+    if (layerTop >= 0) order = Math.max(order, layerTop + 1);
     layerAt = -1;
+    layerTop = -1;
     return;
   }
   layerAt = n;
+  layerTop = Math.max(layerTop, n);
 }
 
 // While held, the quads that follow share one step of the emit order (a bee's pixels, which never overlap one another); released, the
