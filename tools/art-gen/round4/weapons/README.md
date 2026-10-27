@@ -61,3 +61,6 @@ World files are `<id>_world.png`, `<id>_world_22_5.png`, `_45`, `_67_5` and `_90
 2. **Portraits** at 2x: sword, mace, halberd, spear, shield, bow.
 3. **World angles** at 3x on grass, one row per weapon (sword, mace, halberd, spear) at 0, 22.5, 45, 67.5 and 90 degrees. Each is labelled with its size and grip, and the grip pixel is boxed in red.
 4. **In the hand** at 3x: each weapon at 0 and 45 degrees with its grip on the right hand of the 55 px figure. The figure is taken read-only from the repo's `docs/art/previews/preview_items_3x.png`, with its throwing knife and the neighbouring figure painted out.
+
+
+**Engine correction (2026-10-26, Claude Code, the review of #514):** the generated raised guard's disc is centred on its anchor, not 4 px below it (`figure/held.js` samples it about (16, 20), the disc's centre), so the guard's grip in the game is (10, 10), the disc's centre, not (10, 6); `data/items.json` says so.

@@ -1420,7 +1420,8 @@
         5,
         0
        ],
-       "loot": "home_chest"
+       "loot": "home_chest",
+       "facing": "x"
       },
       {
        "sprite": "bed",
@@ -1438,14 +1439,16 @@
        "tile": [
         10,
         6
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         7,
         6
-       ]
+       ],
+       "facing": "y"
       }
      ],
      "brackets": [
@@ -2134,7 +2137,8 @@
        "tile": [
         11,
         2
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -2251,7 +2255,8 @@
        "tile": [
         3,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bed",
@@ -2269,7 +2274,8 @@
        "tile": [
         7,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bed",
@@ -2287,7 +2293,8 @@
        "tile": [
         11,
         0
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -2524,7 +2531,8 @@
        "tile": [
         9,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -2610,7 +2618,8 @@
        "tile": [
         3,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -2732,7 +2741,8 @@
        "tile": [
         5,
         5
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -2902,7 +2912,8 @@
        "tile": [
         0,
         5
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "fireplace",
@@ -2938,7 +2949,8 @@
        "tile": [
         6,
         6
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -2963,7 +2975,8 @@
        "tile": [
         11,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bookcase",
@@ -3252,14 +3265,16 @@
        "tile": [
         0,
         8
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "chest",
        "tile": [
         4,
         9
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "desk",
@@ -3306,7 +3321,8 @@
        "tile": [
         9,
         9
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -3353,28 +3369,32 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "shelf",
        "tile": [
         2,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         4,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "chest",
        "tile": [
         7,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -3395,7 +3415,8 @@
        "tile": [
         7,
         5
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -3524,7 +3545,8 @@
        "tile": [
         3,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -3549,7 +3571,8 @@
        "tile": [
         4,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -3630,14 +3653,16 @@
        "tile": [
         7,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "barrel",
@@ -3652,7 +3677,8 @@
         0,
         4
        ],
-       "loot": "joiner_chest"
+       "loot": "joiner_chest",
+       "facing": "y"
       }
      ],
      "brackets": [
@@ -3753,7 +3779,8 @@
        "tile": [
         7,
         4
-       ]
+       ],
+       "facing": "x"
       }
      ]
     }
@@ -3872,7 +3899,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "cupboard",
@@ -3898,7 +3926,8 @@
         7,
         5
        ],
-       "loot": "weaver_chest"
+       "loot": "weaver_chest",
+       "facing": "x"
       },
       {
        "sprite": "fireplace",
@@ -4031,7 +4060,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "chest",
@@ -4039,7 +4069,8 @@
         0,
         4
        ],
-       "loot": "smithy_chest"
+       "loot": "smithy_chest",
+       "facing": "y"
       }
      ],
      "brackets": [
@@ -4089,7 +4120,8 @@
        "tile": [
         3,
         4
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "cupboard",
@@ -4191,14 +4223,16 @@
         3,
         3
        ],
-       "loot": "toll_chest"
+       "loot": "toll_chest",
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         2,
         0
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -4304,7 +4338,8 @@
        "tile": [
         0,
         3
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "bed",
@@ -4322,7 +4357,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -4435,7 +4471,8 @@
        "tile": [
         5,
         1
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "table",
@@ -4581,7 +4618,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "bed",
@@ -4599,7 +4637,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -4730,7 +4769,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -4769,7 +4809,8 @@
        "tile": [
         1,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "workbench",
@@ -4874,7 +4915,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "bed",
@@ -4892,7 +4934,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -5005,7 +5048,8 @@
        "tile": [
         5,
         1
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "table",
@@ -5151,7 +5195,8 @@
        "tile": [
         0,
         0
-       ]
+       ],
+       "facing": "y"
       },
       {
        "sprite": "bed",
@@ -5169,7 +5214,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -5306,7 +5352,8 @@
        "tile": [
         5,
         3
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "bookcase",
@@ -5547,14 +5594,16 @@
         0,
         0
        ],
-       "loot": "barn_rack"
+       "loot": "barn_rack",
+       "facing": "y"
       },
       {
        "sprite": "shelf",
        "tile": [
         2,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -5754,7 +5803,8 @@
        "tile": [
         3,
         7
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -5779,21 +5829,24 @@
        "tile": [
         11,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "chest",
        "tile": [
         11,
         3
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         7,
         7
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -5807,7 +5860,8 @@
        "tile": [
         11,
         7
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -5857,7 +5911,8 @@
         0,
         0
        ],
-       "loot": "granary_hollow"
+       "loot": "granary_hollow",
+       "facing": "y"
       },
       {
        "sprite": "barrel",
@@ -8806,21 +8861,24 @@
        "tile": [
         9,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "chest",
        "tile": [
         9,
         5
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         6,
         6
-       ]
+       ],
+       "facing": "x"
       }
      ],
      "brackets": [
@@ -11080,14 +11138,16 @@
        "tile": [
         8,
         0
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "shelf",
        "tile": [
         8,
         4
-       ]
+       ],
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -11156,7 +11216,8 @@
         0,
         0
        ],
-       "loot": "granary_mill"
+       "loot": "granary_mill",
+       "facing": "y"
       },
       {
        "sprite": "barrel",
@@ -11388,7 +11449,8 @@
         7,
         0
        ],
-       "loot": "miners_chest"
+       "loot": "miners_chest",
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -11630,7 +11692,8 @@
         7,
         0
        ],
-       "loot": "quarry_chest"
+       "loot": "quarry_chest",
+       "facing": "x"
       },
       {
        "sprite": "barrel",
@@ -11808,7 +11871,8 @@
         5,
         3
        ],
-       "loot": "charcoal_sacks"
+       "loot": "charcoal_sacks",
+       "facing": "x"
       }
      ],
      "brackets": [

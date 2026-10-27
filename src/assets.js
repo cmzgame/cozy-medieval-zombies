@@ -314,7 +314,7 @@ export function corpseSheetCount() {
 // where the hand holds it, drawn upright and shown at every one of the 16 held angles unrotated
 // ("glued to the hand", the book), or, for an item with hand-drawn angles, the picture at each tilt.
 // `src` is the upright drawing; the sheet's anchor is the grip, so the renderer puts the grip on the hand.
-// Three modes (`held.mode`): "fixed" (the picture at every angle, unrotated: the book), "rotate" (the
+// Four modes (`held.mode`): "fixed" (the picture at every angle, unrotated: the book), "rotate" (the
 // upright picture turned into the 16 angles about its grip by nearest pixel, as the generated shapes are:
 // the knife and axe), and "angles" (hand-drawn tilts from 0 to 90 degrees clockwise with flips for the rest:
 // the staff; the design agent's README has the rule). Sixteen angles, 0 up, clockwise, 22.5 apart.

@@ -397,7 +397,7 @@ check("dev chest: every thing in the Developer Chest's list fits its grid by pla
   const [c, r] = itemsMod.containerGrid("dev_kit");
   const bag = inventoryMod.createBag(c, r, "chest");
   const loose = itemsMod.rollLoot("dev_kit");
-  const left = loose.filter(({ id, count, ...props }) => !devGridMod.add(bag, id, count, props)).map((e) => e.id);
+  const left = loose.filter(({ id, count, ...props }) => devGridMod.add(bag, id, count, props) !== (count || 1)).map((e) => e.id); // a stack only part placed is a miss
   assert(left.length === 0, `${left.length} things do not fit the ${c} by ${r} grid: ${left.join(", ")}`);
   const cells = bag.items.reduce((n, e) => n + itemsMod.getItem(e.id).size[0] * itemsMod.getItem(e.id).size[1], 0);
   return `${bag.items.length} entries in ${cells} of ${c * r} cells`;
@@ -1495,7 +1495,7 @@ for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) =>
 // world of the same seed has the same ones with or without trees, inside the bounds and in the wild beyond.
 check("trees off: the mushrooms stand where they stand with trees (the valley, inside the bounds and beyond)", () => {
   const json = read("data/maps/valley.json");
-  const spots = [[104, 216], [60, 150], [-40, 120], [300, 100], [128, 300]]; // the spawn, the village, the wild beyond each side
+  const spots = [[104, 216], [60, 150], [-40, 120], [300, 100], [128, 300]]; // your cottage, the village, the wild beyond each side
   const grab = (trees) => {
     gameMod.create({ json, rules: { zombieAggro: false, trees } });
     for (const [x, y] of spots) mapMod.ensureAround(x, y, 5);

@@ -760,7 +760,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **The cure** [to build]: mid to late game, gated by skill, and **not in the valley** (ruled 2026-10-19): found beyond it (Faith's Cure Undeath, learned in a region; a Divine Potion at Potions 10, the Abbey's (ruled 2026-10-23)). **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial (water's chance follows it, 2026-10-25, `44`).
 
 ### Mana
-- **Mana** [built, #480] (`47`: 100, one point every three seconds, the Fire Bolt 20): spells cost it, slow natural regeneration, a free top-up praying at an altar (Faith 1), and a mana bar [built, #480]; mana potions (Potions 4), more mana (Faith 4), cheaper spells (Magic 2), perhaps special foods later [to build].
+- **Mana** [built, #480] (`47`: 100, two points every three seconds since 2026-10-26, the Fire Bolt 20): spells cost it, slow natural regeneration, a free top-up praying at an altar (Faith 1), and a mana bar [built, #480]; mana potions (Potions 4), more mana (Faith 4), cheaper spells (Magic 2), perhaps special foods later [to build].
 
 ### Rot and preserving
 - **Food rots** [to build] (ruled; a pace, not world decay).

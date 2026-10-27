@@ -189,7 +189,7 @@ def build():
         partitions=[part_w(7, 0, 7, door_at=3)],
         props=[hearth_w(0, 2), along_x("table", 2, 3), chair(2, 2, "s"), chair(3, 2, "s"), chair(2, 4, "n"), chair(3, 4, "n"),
                one("chest", 5, 0, loot="home_chest"),
-               along_x("bed", 8, 0), one("chest", 10, 6), one("shelf", 7, 6)],
+               along_x("bed", 8, 0), one("chest", 10, 6), one("shelf", 7, 6, facing="y")],  # the shelf backs onto the partition
         brackets=[{"side": "w", "at": 5, "facing": "in", "lantern": True}],
     )
     home.crops([13, 1, 7, 6], ["potato", "cabbage"], stages=(1, 2, 2), seed=3)

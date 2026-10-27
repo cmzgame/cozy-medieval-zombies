@@ -278,9 +278,10 @@ export function floorItemDrawables(tiles, visible, out) {
           const ox = x + ((i % 3) - 1) * 9;
           const oy = y - 3 - Math.floor(i / 3) * 5;
           const flags = gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0);
-          // An item whose icon is generated from a design (an herb, a mushroom, clay, salt; docs/46 step 2) lies as that picture, the pair's
-          // world half; every other item keeps the block in its colour until it has drawn art.
-          const pic = def.icon && def.icon.placeholder ? projectileSheet(`icon_${e.id}`) : null;
+          // An item whose icon is generated from a design (an herb, a mushroom, salt; docs/46 step 2) lies as that picture, the pair's world
+          // half; an item with drawn art as its own world picture, a long one flat (`floor_<id>`, main.js's held stage; the demo pass,
+          // 2026-10-26); every other item keeps the block in its colour until it has drawn art.
+          const pic = def.icon && def.icon.placeholder ? projectileSheet(`icon_${e.id}`) : projectileSheet(`floor_${e.id}`);
           if (pic) {
             if (lit) hl.outline(pic, "idle_0", ox, oy + 2, { world: [tx, ty], heights: 0 });
             frameQuad(pic, "idle_0", ox, oy + 2, { world: [tx, ty], heights: 0, flags });
