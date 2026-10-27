@@ -8,6 +8,7 @@
 // nothing here writes on the speaker (docs/31/05 item 7, #102).
 
 import * as iso from "../iso.js";
+import { hiderFor, liftOf, shownTo } from "../render/storeys.js"; // a body drawn at its storey and its rise (docs/49 section 6)
 import * as log from "./log.js";
 import * as view from "../view.js";
 import { tileKey } from "../visibility.js";
@@ -60,12 +61,14 @@ let lastHeardAt = -Infinity; // sim seconds
 export function updateSpeech(characters, visible, player, dt) {
   const seen = new Set();
   const withLine = new Set();
+  const hide = player ? hiderFor(player) : null;
   const uiW = uiEl.clientWidth;
   for (const ch of characters) {
     // A friend asleep (Michael, 2026-10-26, The playtest's rulings): a "Zz" over them, drawn by every other client from the record's
     // `sleeping`, never the sleeper's own (its screen is black, ui/sleep-fade.js); a line said meanwhile shows instead.
     const line = ch.line || (ch.kind === "player" && ch !== player && ch.sleeping && !ch.dead ? ZZ : null);
     if (!line) continue;
+    if (player && !shownTo(player, ch, hide)) continue; // on a storey hidden from me (docs/49 section 6)
     if (ch.dead) continue; // cleared by the world's step on the authority (game.js ageSpeech, #154); a guest's replica gets the end in the record
     const shown =
       ch === player ||
@@ -101,6 +104,7 @@ export function updateSpeech(characters, visible, player, dt) {
       if (ch.kind !== "zombie" && line !== ZZ && /[\p{L}\p{N}]/u.test(line.text)) log.push(line.text, "say", ch === player ? "You" : ch.name || (ch.kind === "player" ? "Someone" : "Villager"));
     }
     const s = iso.toScreen(ch.gx, ch.gy);
+    s.y -= liftOf(ch); // at the height it stands (docs/49 section 6)
     const p = view.toUi(s.x, s.y - HEAD_TOP);
     // The box keeps inside the window; the tail still points at the speaker.
     const half = entry.w / 2;

@@ -28,6 +28,9 @@ export function clear() {
 
 // The object a right-click at the canvas point (sx, sy) would act on first, or null. `visible`: the tiles in my sight (null: all).
 export function targetAt(sx, sy, player, visible = null) {
+  return interact.onFloorOf(player, () => targetHere(sx, sy, player, visible)); // the cursor on the player's own floor (docs/49 section 6)
+}
+function targetHere(sx, sy, player, visible) {
   const seen = (tx, ty) => !visible || visible.has(tileKey(tx, ty));
   // One of the dead lying downed (#385): outlined as the moment for a finisher, though no menu action is on it.
   const lying = interact.characterAt(sx, sy, player);

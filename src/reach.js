@@ -28,7 +28,7 @@ export function reachProblem(player, tiles, range, layer = (player && player.lay
   if ((layer || 0) !== ((player && player.layer) || 0)) return OTHER_FLOOR;
   const { tile, distance } = nearestTile(player, tiles);
   if (!tile || distance > range) return TOO_FAR;
-  if (!lineOfSight(player.gx, player.gy, tile[0], tile[1])) return WALL_IN_THE_WAY;
+  if (!lineOfSight(player.gx, player.gy, tile[0], tile[1], (player && player.layer) || 0)) return WALL_IN_THE_WAY;
   return null;
 }
 

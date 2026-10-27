@@ -5270,7 +5270,7 @@ check("upper floors, step 1: collision and the paths are each layer's: the first
   const up = walk(1);
   const ground = walk(0);
   assert(up < 3.75 && ground > 5.5, `the walk east from 3,25 ended at ${up.toFixed(2)} on the first floor and ${ground.toFixed(2)} on the ground`);
-  assert(mapMod.circleBlocked(5, 25, 0.3, 1) && !mapMod.circleBlocked(5, 25, 0.3, 0), "the stairwell blocks the ground, or not the first floor");
+  assert(mapMod.circleBlocked(5, 24.35, 0.3, 1) && mapMod.circleBlocked(5, 24.35, 0.3, 0) && !mapMod.circleBlocked(5, 25, 0.3, 0), "the stair's closed sides (the stairwell's on the first floor, its own on the ground), or a body on the stair held"); // step 3: a stairwell is entered only over the top edge
   // The first floor's north wall: no step out of it on layer 1; on the ground outside the house the same tiles are open grass.
   assert(!mapMod.canStep(3, 23, 3, 22, 1) && !mapMod.canStep(3, 23, 3, 22, 0) && mapMod.canStep(3, 21, 3, 20, 0) && !mapMod.canStep(3, 21, 3, 20, 1), "the first floor's wall or void, or the ground's grass, steps wrong");
   // A path on the second floor round its stairwell, and none from the cellar into the earth.
@@ -5334,8 +5334,8 @@ check("upper floors, step 1: the save keeps every layer: a prop, a wall, and an 
   assert(lit.length === 1, `${lit.length} brackets on the first floor`);
   return `a stick on the landing, a wall on the second floor, a stone floor in the cellar, all on their layers after the restore`;
 });
-check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 23)", () => {
-  assert(netMod.PROTOCOL === 23, `PROTOCOL ${netMod.PROTOCOL}`);
+check("upper floors, step 1: the wire: a touched chunk goes with its layer, an aim and a command name theirs, the host refuses one on another layer (PROTOCOL 24 since steps 2 and 3)", () => {
+  assert(netMod.PROTOCOL === 24, `PROTOCOL ${netMod.PROTOCOL}`);
   const s2 = netMod.cleanSnap({ aimAt: [3.5, 4.5] });
   const s3 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 1] });
   const s0 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 0] });
@@ -5406,6 +5406,113 @@ check("upper floors, step 1 (the review of #533): reach is on one layer, a put-d
   const why = mapMod.stairProblemsOf();
   assert(why.length === 1 && /stands over a step/.test(why[0]) && mapMod.tileAt(4, 27, 0).prop && mapMod.tileAt(4, 27, 0).prop.sprite === "chest" && mapMod.tileAt(4, 27, 0).floor !== mapMod.HOLE, `the stair under the chest: ${why.join("; ") || "laid"}`);
   return `reach refused across a floor; the table put down upstairs; refused: ${why[0]}`;
+});
+check("upper floors, step 3 (the review of #534): E, the menu, and the cursor read the player's own floor: an apple upstairs is taken, the table below has no actions", () => {
+  towerHouse();
+  const p = gameMod.state.player;
+  const table = mapMod.allProps().find((q) => q.sprite === "table" && (q.layer || 0) === 0 && q.tile[0] === 7 && q.tile[1] === 27);
+  assert(table, "no table on the ground");
+  const o = isoMod.getOrigin();
+  p.gx = 5; p.gy = 24; p.layer = 1;
+  try {
+    const below = mapMod.dropItem(5, 24, { id: "apple", count: 1 }, 0);
+    const above = mapMod.dropItem(5, 24, { id: "apple", count: 1 }, 1);
+    const e = interactImport.nearestSimpleAction(p);
+    assert(e && e.target.kind === "item" && e.target.uid === above.uid, `E upstairs: ${e ? JSON.stringify(e.target) : "nothing"}`);
+    assert(interactImport.actionsForTarget({ kind: "prop", id: table.id }, p).length === 0, "the table on the ground has actions for a player upstairs");
+    // The cursor: the point where the first floor's tile (5, 24) is drawn, a storey up the screen, names the apple up there and not the one below.
+    isoMod.setOrigin(0, 0);
+    const s = isoMod.toScreen(5, 24);
+    const at = interactImport.actionsAt(s.x, s.y - mapMod.STOREY, p).filter((a) => a.target && a.target.kind === "item").map((a) => a.target.uid);
+    assert(at.includes(above.uid) && !at.includes(below.uid), `the cursor upstairs: ${at.join(", ") || "no item"}`);
+    assert(isoMod.getOrigin().y === 0, "the pick left the origin lifted");
+    p.layer = 0;
+    const atGround = interactImport.actionsAt(s.x, s.y, p).filter((a) => a.target && a.target.kind === "item").map((a) => a.target.uid);
+    assert(atGround.includes(below.uid) && !atGround.includes(above.uid), `the cursor on the ground: ${atGround.join(", ") || "no item"}`);
+  } finally {
+    p.layer = 0;
+    isoMod.setOrigin(o.x, o.y);
+  }
+  return "E upstairs takes the upstairs apple; the ground's table offers nothing; the cursor reads each floor at its own height";
+});
+// ---- upper floors (docs/49), step 3: stairs and walking ----
+check("upper floors, step 3: a body walks up the tower house's stair (rise 32 a tile), crosses its top edge onto the first floor, and back down; nothing steps on from the side", () => {
+  towerHouse();
+  const p = { gx: 3, gy: 25, layer: 0, rise: 0 };
+  const go = (dx, dy, n) => { for (let i = 0; i < n; i++) { const m = mapMod.moveCircle(p.gx, p.gy, 0.3, dx, dy, p.layer); p.gx = m.gx; p.gy = m.gy; mapMod.stairStep(p); } };
+  go(0.05, 0, 30); // to x 4.5: a tile up the stair
+  assert(p.layer === 0 && Math.abs(p.rise - 32) < 2, `a tile up: layer ${p.layer}, rise ${p.rise}`);
+  go(0.05, 0, 50); // past the top edge at 6.5
+  assert(p.layer === 1 && p.rise === 0 && p.gx > 6.5, `past the top: layer ${p.layer}, rise ${p.rise}, x ${p.gx.toFixed(2)}`);
+  go(0, -0.05, 15); // on the first floor, north from the landing
+  assert(p.layer === 1 && p.gy < 24.5, `the first floor's walk: layer ${p.layer}, y ${p.gy.toFixed(2)}`);
+  go(0, 0.05, 15);
+  go(-0.05, 0, 30); // back over the top edge: on the stair again, high
+  assert(p.layer === 0 && p.rise > 40 && p.rise < 96, `back over the top: layer ${p.layer}, rise ${p.rise.toFixed(1)}`);
+  go(-0.05, 0, 80);
+  assert(p.layer === 0 && p.rise === 0 && p.gx < 3.5, `down at the foot: layer ${p.layer}, rise ${p.rise}, x ${p.gx.toFixed(2)}`);
+  const q = { gx: 5, gy: 24, layer: 0, rise: 0 };
+  for (let i = 0; i < 40; i++) { const m = mapMod.moveCircle(q.gx, q.gy, 0.3, 0, 0.05, q.layer); q.gx = m.gx; q.gy = m.gy; mapMod.stairStep(q); }
+  assert(q.gy < 24.25 && q.rise === 0, `a body walking at the stair's side got on it (y ${q.gy.toFixed(2)}, rise ${q.rise})`);
+  const r = { gx: 5, gy: 24, layer: 1, rise: 0 };
+  for (let i = 0; i < 40; i++) { const m = mapMod.moveCircle(r.gx, r.gy, 0.3, 0, 0.05, r.layer); r.gx = m.gx; r.gy = m.gy; mapMod.stairStep(r); }
+  assert(r.gy < 24.25 && r.layer === 1, `a body on the first floor walked into the stairwell from its side (y ${r.gy.toFixed(2)}, layer ${r.layer})`);
+  // The pathfinder on one layer keeps to the stair's line: a path from the foot to the top step, none onto it from the side.
+  const up = pathfind.findPath([3, 25], [6, 25], mapMod.canStepOn(0));
+  assert(up && up.map((t) => t.join(",")).join(" ") === "4,25 5,25 6,25" && !mapMod.canStep(5, 24, 5, 25, 0) && !mapMod.canStep(6, 25, 7, 25, 0), `the path up ${JSON.stringify(up)}`);
+  return "up 32 a tile, onto the first floor past the top edge, back down; the sides closed on both layers";
+});
+check("upper floors, step 3 (the review of #534): from under a landing, walking any way never climbs onto the stair over its top edge", () => {
+  towerHouse();
+  const out = [];
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+    const b = { gx: 7.2, gy: 25, layer: 0, rise: 0 };
+    let rose = 0;
+    for (let i = 0; i < 80; i++) {
+      const m = mapMod.moveCircle(b.gx, b.gy, 0.3, dx * 0.05, dy * 0.05, b.layer);
+      b.gx = m.gx;
+      b.gy = m.gy;
+      mapMod.stairStep(b);
+      rose = Math.max(rose, b.rise || 0, b.layer ? 99 : 0);
+    }
+    out.push(`${dx},${dy}: ${b.gx.toFixed(2)},${b.gy.toFixed(2)} L${b.layer}`);
+    assert(!rose, `walking ${dx},${dy} from under the landing it rose (${out[out.length - 1]})`);
+  }
+  return out.join("; ");
+});
+check("upper floors, step 3: one of the dead that sees a player go up follows by the stair (the stair-first rule), and bites and blows stay on one layer", () => {
+  const json = read("data/maps/square.json");
+  gameMod.create({ json, rules: { zombieAggro: true } });
+  loopMod.init({ update: (dt) => { gameMod.begin(dt); gameMod.step(dt, gameMod.idleSnapshot()); }, render: () => {} });
+  const S = gameMod.state;
+  const p = S.player;
+  p.gx = 7.2; p.gy = 24.2; p.layer = 1;
+  S.zombies.splice(1);
+  const z = S.zombies[0];
+  Object.assign(z, { gx: 3.4, gy: 25.4, layer: 0, state: "idle", path: [], lastSeen: null, aggro: false });
+  let at = null;
+  for (let i = 0; i < 60 * 25 && at === null; i++) {
+    loopMod.advance(1 / 60);
+    if (z.layer === 1) at = i / 60;
+  }
+  assert(at !== null, `the dead one never came up (at ${z.gx.toFixed(2)},${z.gy.toFixed(2)} layer ${z.layer}, ${z.state})`);
+  // A blow from the ground at one upstairs a step away reaches nothing, and the biter's reach is nothing across a storey.
+  const hp = p.hp;
+  Object.assign(z, { gx: p.gx + 0.5, gy: p.gy, layer: 0, rise: 0 });
+  for (let i = 0; i < 120; i++) loopMod.advance(1 / 60);
+  assert(p.hp === hp, `bitten through the floor: ${hp} to ${p.hp}`);
+  return `up the stair after ${at.toFixed(1)} s; no bite through the floor`;
+});
+check("upper floors, step 3: the valley's tall house east of your cottage has a stair to its first floor, the spawn and the cottage as they were", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const b = mapMod.buildings().find((q) => q.set === "the tall house");
+  assert(b && b.layers.join(",") === "0,1" && !mapMod.stairProblemsOf().length, `the tall house: ${b && b.layers}, ${mapMod.stairProblemsOf().join("; ")}`);
+  const s = mapMod.stairs().find((q) => q.building === b.id);
+  assert(s && mapMod.tileAt(s.landing[0], s.landing[1], 1).floor === "floor_wood", "no stair or landing");
+  assert(JSON.stringify(gameMod.state.info.spawn) === "[102,218]" && mapMod.buildings().some((q) => q.set === "your cottage"), "the spawn or the cottage moved");
+  const room = mapMod.getRoom(mapMod.roomAt(b.rect[0] + 1, b.rect[1] + 1, 1));
+  assert(room && room.layer === 1 && room.size === 48, `the first floor's room: ${room && room.size}`);
+  return `stair ${s.at} ${s.dir}, landing ${s.landing}; the first floor a room of ${room.size}`;
 });
 check("upper floors, step 1: the sync check sees a replica on the wrong storey (the players' and the dead's parts and hashText hash layer and rise); the ground hashes as before", () => {
   towerHouse();
