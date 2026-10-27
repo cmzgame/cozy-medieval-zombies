@@ -44,7 +44,7 @@ export async function run(game, opts = {}) {
       const mine = rep.ring.get(g.tick);
       row(`${playerId}'s tick is in the host's ring`, !!mine, mine ? `tick ${g.tick}` : `tick ${g.tick} not kept (the ring holds ${[...rep.ring.keys()].join(", ") || "nothing"}): step the host less far ahead`);
       if (!mine) continue;
-      for (const part of ["map", "chart", "registry", "fires", "players", "dead", "animals", "clock", "rules", "items", "living"]) {
+      for (const part of ["map", "chart", "registry", "rings", "fires", "players", "dead", "animals", "clock", "rules", "items", "living"]) {
         const census = part === "items" || part === "living";
         const what = part === "items" ? "every item's count" : part === "living" ? "the count of what the living dead and the villagers wear" : `the ${part}`;
         const detail = census ? `host ${mine.census}; guest ${g.parts.census}` : `host ${mine.counts}`;

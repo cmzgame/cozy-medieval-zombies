@@ -1143,11 +1143,13 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf
     if (existing.built) wall.underBuilt = true; // the player's own wall comes back the player's own
     if (existing.free) wall.underFree = true; // and a free one free
     if (existing.round) wall.underRound = existing.round; // a ring's door point: the door keeps the ring under it, so taking it away restores the ring wall (docs/50 section 3)
+    if (existing.roundTaken) wall.roundTaken = true; // a wall the ring took in (a house's) stays the house's under a door too
   } else if (existing && existing.under) {
     wall.under = existing.under; // a new door over a broken stamped one still stands in the wall it was stamped into
     if (existing.underBuilt) wall.underBuilt = true;
     if (existing.underFree) wall.underFree = true;
     if (existing.underRound) wall.underRound = existing.underRound;
+    if (existing.roundTaken) wall.roundTaken = true;
   }
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
   const own = kind !== "wall" ? storedLeaf(sprite, leaf || (existing && existing.kind === kind ? carriedLeaf(existing) : "")) : null; // a door or window of another wood than its wall (#334); nothing stored when it is the wall's own; over a broken one of its kind the default is the old one's wood
@@ -1216,6 +1218,7 @@ export function destroyWall(tx, ty, edge, restoreUnder = false, layer = 0) {
     if (wall.underBuilt) t[edge].built = true;
     if (wall.underFree) t[edge].free = true; // a wall built while Free building was on comes back free: it gives nothing when taken apart (docs/43, section 2)
     if (wall.underRound) t[edge].round = wall.underRound; // a ring wall again, drawn as the curve (docs/50 section 3)
+    if (wall.underRound && wall.roundTaken) t[edge].roundTaken = true;
   }
   touch(tx, ty, layer);
   rebuildRoomsAround(tx, ty, edge, layer);
@@ -1394,9 +1397,30 @@ function settleRings(c) {
     for (const w of [t.n, t.w]) {
       if (!w || !(w.round || w.underRound)) continue;
       const rec = ringFromWall(w, c.layer);
-      if (!rings.has(rec.id)) addRing(rec);
+      const have = rings.get(rec.id);
+      if (!have) {
+        if (w.roundTaken) rec.fromTaken = true; // a wall it took in says nothing of the ring's own (the house's, an authored one): kept until one of its own is seen
+        addRing(rec);
+      } else if (have.fromTaken && !w.roundTaken) {
+        Object.assign(have, { sprite: rec.sprite, built: rec.built, free: rec.free });
+        delete have.fromTaken;
+      }
     }
   }
+}
+
+// The edges of a ring's outline (at x0, y0, n) with nothing on them yet: the ones it would lay, and pay for (a wall already there is taken in).
+export function ringNewEdges(x0, y0, n, layer = 0) {
+  return round.shape(x0, y0, n).outline.filter(([tx, ty, e]) => !(peekTile(tx, ty, layer) && peekTile(tx, ty, layer)[e])).length;
+}
+
+// The plain walls a ring laid itself (not taken in), still standing: what taking it apart gives back for.
+export function ringOwnEdges(r) {
+  return round.shape(r.x0, r.y0, r.n).outline.filter(([tx, ty, e]) => {
+    const w = tileAt(tx, ty, r.layer)[e];
+    const tag = w && w.round;
+    return isRingWall(w) && !w.roundTaken && tag[0] === r.x0 && tag[1] === r.y0 && tag[2] === r.n;
+  }).length;
 }
 
 // Why a ring's rule refuses a wall of `kind` on this edge, or "" (docs/50 sections 3 and 5): a door or a window on a ring edge only at one of
@@ -1448,11 +1472,12 @@ export function buildRing(x0, y0, n, sprite, layer = 0, { built = true, free = f
     const t = growTile(tx, ty, layer);
     const w = t[edge];
     if (w && w.kind !== "wall") {
-      w.underRound = tag;
-      if (!w.under) w.under = sprite;
+      w.underRound = tag; // a door or a window already at a door point stays, the ring under it; taken in, it is not the ring's to take away
+      w.roundTaken = true;
     } else if (w) {
       releaseHangings(tx, ty, edge, layer); // no painting on the curve (docs/50 section 3)
-      w.round = tag;
+      w.round = tag; // a plain wall already there (a house's, against which the ring stands as an apse): drawn as the curve, its own still
+      w.roundTaken = true;
     } else {
       const nw = createWall("wall", sprite);
       nw.round = tag;
@@ -1480,16 +1505,27 @@ export function removeRing(id) {
     const tag = w && (w.round || w.underRound);
     return !!tag && tag[0] === r.x0 && tag[1] === r.y0 && tag[2] === r.n;
   };
+  // A wall or an opening the ring took in when it was built is left as it was before, straight again; only what the ring laid goes.
+  const release = (tx, ty, edge, w) => {
+    delete w.round;
+    delete w.underRound;
+    delete w.roundTaken;
+    touch(tx, ty, r.layer);
+  };
   for (const [tx, ty, edge] of s.outline) {
     const w = tileAt(tx, ty, r.layer)[edge];
-    if (mine(w) && w.kind !== "wall") {
+    if (!mine(w) || w.kind === "wall") continue;
+    if (w.roundTaken) release(tx, ty, edge, w);
+    else {
       taken.push({ ...w });
       destroyWall(tx, ty, edge, true, r.layer); // the ring wall comes back under it, then goes with the rest
     }
   }
   for (const [tx, ty, edge] of s.outline) {
     const w = tileAt(tx, ty, r.layer)[edge];
-    if (mine(w)) {
+    if (!mine(w)) continue;
+    if (w.roundTaken) release(tx, ty, edge, w);
+    else {
       taken.push({ ...w });
       destroyWall(tx, ty, edge, false, r.layer);
     }

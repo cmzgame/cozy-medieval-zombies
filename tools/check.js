@@ -5920,7 +5920,22 @@ check("round rooms, step 6: the round stone wall is in the palette only with Fre
     me.gy = 9;
     placementImport.performPlacement(me, { kind: "remove", target: { type: "round", id: "round_0_21_0" } });
     assert(mapMod.ringById("round_0_21_0") && /village/.test(said[said.length - 1] || ""), `the map's ring: "${said[said.length - 1]}"`);
-    return "hidden and refused without Free building; built by a guest's command, taken apart whole; the map's refused";
+    // Against a house (the apse, docs/50 section 5): a straight wall and a door on its outline are taken in and come back straight when it goes.
+    for (let x = 1; x <= 7; x++) mapMod.buildWall(x, 7, "n", "wall", "wall_wood");
+    mapMod.buildWall(4, 7, "n", "door", "wall_wood");
+    const newEdges = mapMod.ringNewEdges(2, 2, 5);
+    me.gx = 4;
+    me.gy = 0.6;
+    placementImport.performPlacement(me, { kind: "build", what: "round_stone", tx: 2, ty: 2, size: 5 });
+    me.action = null;
+    const apse = mapMod.ringAt(4, 4);
+    const south = [3, 4, 5].map((x) => mapMod.tileAt(x, 7).n);
+    assert(apse && newEdges === 17 && south.every((w) => w && w.roundTaken && (w.round || w.underRound)) && mapMod.isRingWall(south[0]) && south[1].kind === "door", `against the wall: ${newEdges} new edges, south ${JSON.stringify(south.map((w) => w && [w.kind, !!w.roundTaken]))}`);
+    assert(mapMod.ringOwnEdges(apse) === 17, `its own plain edges: ${mapMod.ringOwnEdges(apse)} (it laid 17)`);
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "round", id: apse.id } });
+    const back = [3, 4, 5].map((x) => mapMod.tileAt(x, 7).n);
+    assert(!mapMod.ringById(apse.id) && back.every((w) => w && !w.round && !w.underRound && !w.roundTaken && w.sprite === "wall_wood") && back[1].kind === "door" && !mapMod.tileAt(3, 2).n, `taken apart, the house's wall: ${JSON.stringify(back.map((w) => w && [w.kind, w.sprite, !!w.round]))}`);
+    return "hidden and refused without Free building; built by a guest's command, taken apart whole; the map's refused; against a wall with a door, the wall and the door taken in and left straight when it went";
   } finally {
     rulesImport.set({ freeBuilding: was });
     promptMod.setMessageSink(null);

@@ -81,12 +81,31 @@ function makeHalf(r, near, visible, faded, ghostTint, ghostFlags = 0) {
   const t = T / 2 / depth.UNIT; // half the thickness in tiles: the faces are this far either side of the curve
   const out = near ? 1 : -1; // the face the camera sees: the outer on the near half, the inner on the far
   const Rf = s.R + out * t;
+  // A door or a window at a door point is drawn by render/walls.js as itself, straight on its edge, with its frame at each end: the curve
+  // leaves a gap there from one end of the edge to the other (atan(0.5 / R) either side of the point), or an open door would show the ring
+  // through it. The door points' angles in the order round.js names them (north, east, south, west).
+  const gaps = [];
+  const half = Math.atan(0.5 / s.R);
+  const doorAngles = [270, 0, 90, 180];
+  s.doors.forEach(([tx, ty, e], k) => {
+    const w = ghostTint ? null : map.tileAt(tx, ty, r.layer)[e];
+    if (!w || w.kind === "wall") return;
+    const c = doorAngles[k] * DEG;
+    gaps.push([c - half, c + half], [c - half + 2 * Math.PI, c + half + 2 * Math.PI]);
+  });
   const segs = [];
   for (let i = 0; i < SEGMENTS; i++) {
-    const a0 = (i * 360 / SEGMENTS) * DEG;
-    const a1 = ((i + 1) * 360 / SEGMENTS) * DEG;
+    let a0 = (i * 360 / SEGMENTS) * DEG;
+    let a1 = ((i + 1) * 360 / SEGMENTS) * DEG;
     if (nearHalf((a0 + a1) / 2) !== near) continue;
-    segs.push([a0, a1]);
+    let gone = false;
+    for (const [g0, g1] of gaps) {
+      if (a1 <= g0 || a0 >= g1) continue;
+      if (a0 >= g0 && a1 <= g1) gone = true;
+      else if (a0 < g0) a1 = g0;
+      else a0 = g1;
+    }
+    if (!gone && a1 - a0 > 1e-4) segs.push([a0, a1]);
   }
   const alpha = faded ? NEAR_WALL_ALPHA : 1;
   const color = sheet.color || "#7b7670";

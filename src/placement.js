@@ -90,17 +90,19 @@ export function paletteKinds() {
 // 5, 28 at 7), never charged while Free building is on, the only time it is offered.
 export const isRoundBuild = (what) => !!(buildData[what] && buildData[what].kind === "round");
 
-function roundCost(what, n) {
+// What a ring costs: its entry's cost for each edge it lays (one already walled is taken in, free), or for a whole outline when no square is named
+// (the palette's row).
+function roundCost(what, n, at = null) {
   const per = costOf(what);
-  const edges = round.shape(0, 0, n).outline.length;
+  const edges = at ? map.ringNewEdges(at[0], at[1], n, at[2] || 0) : round.shape(0, 0, n).outline.length;
   return Object.fromEntries(Object.entries(per).map(([id, k]) => [id, k * edges]));
 }
 
-function roundShortfall(player, what, n) {
+function roundShortfall(player, what, n, at = null) {
   const tool = buildData[what] && buildData[what].tool;
   const noTool = tool ? toolProblem(player, tool) : null;
   if (noTool) return noTool;
-  for (const [id, k] of Object.entries(roundCost(what, n))) if (inventory.countAll(player, id) < k) return `Need ${k} ${noun(id, k)}`;
+  for (const [id, k] of Object.entries(roundCost(what, n, at))) if (inventory.countAll(player, id) < k) return `Need ${k} ${noun(id, k)}`;
   return "";
 }
 
@@ -129,7 +131,7 @@ function roundBlock(player, what, x0, y0, n) {
     const me = segs.some(([ax, ay, bx, by]) => distToSeg(player.gx, player.gy, ax, ay, bx, by) < 0.45);
     return me ? "Step back" : "Someone is in the way";
   }
-  return roundShortfall(player, what, n);
+  return roundShortfall(player, what, n, [x0, y0, player.layer || 0]);
 }
 
 function distToSeg(px, py, ax, ay, bx, by) {
@@ -185,7 +187,7 @@ function startRoundBuild(player, what, x0, y0, n) {
         showMessage(why);
         return false;
       }
-      for (const [id, k] of Object.entries(roundCost(what, n))) inventory.takeAll(player, id, k);
+      for (const [id, k] of Object.entries(roundCost(what, n, [x0, y0, player.layer || 0]))) inventory.takeAll(player, id, k);
       return !!map.buildRing(x0, y0, n, d.sprite, player.layer || 0, { built: true, free: !!rules.freeBuilding });
     },
   };
@@ -199,7 +201,7 @@ function ringParts(ring) {
   const per = what ? buildData[what].cost || {} : {};
   const s = round.shape(ring.x0, ring.y0, ring.n);
   const total = {};
-  if (!ring.free) for (const [id, k] of Object.entries(per)) total[id] = (total[id] || 0) + Math.floor((k * s.outline.length) / 2);
+  if (!ring.free) for (const [id, k] of Object.entries(per)) total[id] = (total[id] || 0) + Math.floor((k * map.ringOwnEdges(ring)) / 2); // the edges it laid, not a wall it took in
   for (const [tx, ty, e] of s.doors) {
     const w = map.tileAt(tx, ty, ring.layer)[e];
     if (!w || w.kind === "wall" || !w.built) continue;
