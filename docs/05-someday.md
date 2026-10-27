@@ -16,7 +16,7 @@ One line per idea: what, who, when, and the one sentence on what must not be for
 - **Quests and RPG-like elements.** Part of the original medieval wish. Never say never, but the game has to be playable, fun, and content-rich first. NPCs with lines, routines, and bags are the groundwork; a quest is a line plus a check plus a reward, and all three exist by then.
 - **NPC relationships and trade.** A vendor you keep alive sells cheaper, "yadda yadda", miles down the road. Bags on NPCs are the groundwork.
 - **Roofs.** Drawn and hidden when inside. Not for the probe, no real art yet. Nothing in the renderer may assume buildings are open to the sky forever.
-- **Upper floors.** Single storey first; since 2026-10-09 every lookup, chunk key, light cache, and entity carries a layer, always 0, and nothing in the renderer or the data forbids a second one (what it would take, from data to stairs: `history/05-someday-scopes.md`).
+- **Upper floors.** Now a spec: `49` (2026-10-26); its later things (destroyable stairs, a cellar hatch, digging, villagers upstairs, light through a window down, seeing through a stairwell, shooting up, a map per layer, ladders) are its step 9.
 - **Zones.** Parts of the map with their own register: the harvest village now, a Tirisfal-gloomy wood later with blue and purple trees, the plague doctor, scarecrow men. A zone is a rectangle with a palette and a scatter mix, which the scatter rule already half is. Michael's rule: harvest first, until the farming game is fun.
 - **Armour.** More slots of the shield's shape. The sibling's post-1.0 note.
 - **Low-fantasy headroom.** A cursed blade, a staff, something in the woods. The setting allows it; nothing asks for it.

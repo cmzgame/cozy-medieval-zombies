@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Upper floors are a spec (`49`): stairs are built by players and placed on the map, and cannot be destroyed for now; third floors and root cellars are designed in, a second floor alone is enough; nothing waits on roofs; round rooms next, roofs a distant third (2026-10-26, Upper floors: a spec)
 - The demo pass: the dev chest holds every weapon and tool, the basic materials, the potions, seeds, the bearskin rug and one wide painting; your cottage 11 by 7 inside; mana regenerates 0.667 a second and its bar sits between health and stamina (2026-10-26, The demo pass)
 - Any key or click wakes a sleeper early, the screen fading back in; the menu's Burn corpse works with a lit torch in hand as well as a tinderbox (2026-10-26, Waking early, and Burn corpse by a lit torch)
 - Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills (2026-10-26, Fill waterskins skips clean water)
@@ -311,6 +312,14 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-26 — Upper floors: a spec; stairs built and placed, not destroyed for now (Michael)
+
+From the research in #511 (what multilevel would take, Zomboid style; Michael's bar: "it's not worth doing if you can't look out a second story window and see zombies on the ground", and bows "as an attack from up high"), Michael asked for a real spec, upper floors first, round rooms (#513) next, roofs (#512) "a distant third", and neither of the first two to wait on roof answers. Then: "Also consider things like third floors, root cellar basements, etc. But if a second floor is the only thing I get out of it, I would still be happy. Also, stairs buildable by players and also exist prefab on map, players cannot destroy them for now so we don't have to make plans for inaccessible second stories if you destroyed the stairs too fast. Destroyable stairs are a nice to have, not an immediate need." The spec is `docs/49`; its defaults are the spec's own, his to overrule.
+
+- **Stairs are built by players and placed on the map,** and **cannot be destroyed for now**, so no upper floor is ever cut off. Destroyable stairs are a later nice-to-have.
+- **Third floors and root cellars are designed in;** a second floor alone is enough.
+- **The order:** upper floors, then round rooms, then roofs; none waits on roofs.
 
 ### 2026-10-26 — The demo pass: the dev chest for trying everything, a roomier cottage, mana twice as fast and between health and stamina, real art for the first fifteen minutes (Michael)
 
