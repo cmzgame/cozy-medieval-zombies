@@ -48,6 +48,10 @@ The five woods beyond oak come from your `woods.py` and `wood_tones.json`, as th
 
 **Previews:** the same previews as before (`village_preview.py`, `placement_preview.py`): the cutaways, the exteriors, the door and window states, and the placement tests (`place_alone`, `place_lines`, `place_lone`, `place_corners`, `place_tees_mixed`, `place_boards`, `place_far`) at 1x and 3x, plus **one new picture: a wall with a crate in front of it**, the crate a one-tile cube 32 px tall (the engine's dev crate; a plain brown box is fine), so the three-crate height reads at a glance, and a second with the character in the doorway.
 
+## The furniture stays as it is
+
+Nothing but walls, their openings, posts, leaves, shutters, and boards is in this request. The furniture you drew in rounds 4 and 5 (the bed, chair, barrel, chest, bookcase, woodpile, shelf, cupboard, table, workbench, cauldron) keeps its sizes: the tallest pieces, the shelf and the cupboard, stand about a figure and a quarter, which is about 70% of today's wall and will be about 60% of the new one, a normal cupboard against a normal ceiling (`docs/art/previews/round4/props.png`, `round5/props.png`). Do not scale them. If Michael later wants a floor-to-ceiling piece (a wardrobe, a tall dresser, a full-height bookcase for the inn), that is a new ask drawn to 96 from the start, not part of this redraw.
+
 ## How it drops in (the engine's side, for your information)
 
 The game reads each wall's `height` from its sprite definition (`data/sprites/wall_<material>.json`, `wall.height`), the images and anchors from your JSON, and the openings' heights from four constants; all of those change in the same pull request as your delivery (`docs/52`). The delivery checklist is `docs/27-art-integration.md` section A: the zip's layout, the anchors file, the previews, and a note saying which version and why. The engine then proves it: `check("sheets")` against your files, `check("build")` with the crate stack, and `check("woods")` against the leaf woods.

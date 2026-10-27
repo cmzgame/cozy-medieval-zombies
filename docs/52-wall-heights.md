@@ -17,6 +17,7 @@ Measured from the floor at the wall's foot. **Ruled:** the wall, the door, the w
 - **Torch bracket: 48** (3 halves, from 32; *default*), riding higher on the taller wall, under the window's top.
 - **Fences: 36, unchanged.** A fence is not a wall's height and keeps its own art (`art/11`, `wall_fence`). The gate and boards on a fence too.
 - **Wall thickness unchanged:** stone 16, wood 14, log 18 (`02`, Wall thickness per material).
+- **The drawn furniture keeps its sizes** (rounds 4 and 5): the tallest, the shelf and the cupboard, are about a figure and a quarter, about 60% of a 96 wall, a cupboard against a ceiling; nothing is scaled (`art/12`).
 
 **Every wall material conforms:** oak, spruce, mahogany, Winter Pine, Bloodbark, daub, log, stone, and the castle's future ashlar. The castle plan's taller materials (`29-world/03`, 112 px curtain walls and 128 px towers) are withdrawn: a castle is taller by storeys (`49`), not by walls. Its arrow slit stays an art variant of the window, at the window's opening (section 4 has the one question it raises).
 
