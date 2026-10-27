@@ -1884,11 +1884,11 @@
    "name": "a fire pit by your cottage",
    "rect": [
     107,
-    230,
+    231,
     2,
     2
    ],
-   "padding": 2,
+   "padding": 4,
    "buildings": [],
    "floorRects": [],
    "fences": [],
