@@ -9,6 +9,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### The world and the map
 
 - Round rooms are a spec (`50`): circles, not slanted walls; odd sizes ~~3,~~ 5 and 7 across (the 3 struck by Michael's ruling on Primary's scan, 2026-10-26: "5 by 5 the smallest"); the world's logic on the stepped tile edges, bodies stopped by the drawn curve too, the ring counting as wall for torches' brackets (a fireplace needs a flat wall: a round room's fire is the 2 by 2 floor fire or none), no furniture on the eight tiles the curve crosses, the ring as thick and tall as its material's straight wall; doors at the four points where the circle touches its square; built by players and placed on the map, the map first; rounded corners too; the cost scales with the size (2026-10-26, Round rooms: a spec)
+- The build menu holds only what cannot be picked up and carried; the campfire is made at the workbench, 1 by 1 on the ground and 3 by 3 in the bag; a lit room flickers down a little, a lever (2026-10-27, The build menu holds only what cannot be carried)
 - Fires are two built things (2026-10-26, Round rooms: a spec, the fire rulings; their spec is Primary's): the Fireplace against a flat wall and the 2 by 2 floor fire, indoors or out, one cooking interface, built not crafted, never moved, taken apart, both flickering more than today; the carried 1 by 1 campfire stays
 - Upper floors are a spec (`49`): stairs are built by players and placed on the map, three tiles long, climbing one floor, the layer changing as you cross their top, with a landing tile of their own that is never built on and no door at their top, and cannot be destroyed for now; ladders and hatches are the map's only, never removed or pulled up, climbed by E, and ignored by the dead; an empty tile is never walkable and nothing ever falls; shooting down is for bows and thrown knives and axes, not spells or spears; the sniper's nest is fine; no cellar is dug and worlds are expendable while testing; third floors and root cellars under existing houses are designed in, a second floor alone is enough; nothing waits on roofs; round rooms next, roofs a distant third (2026-10-26, Upper floors: a spec)
 - Walls are 96 px tall, three crates: the door's top at 64, the window's top at 64 and its sill low and big on purpose (24, a default), every wall material the same (a fence stays 36) and the castle taller by storeys, never by walls (2026-10-26, Walls 96 px tall)
@@ -317,6 +318,14 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-27 — The build menu holds only what cannot be carried; the campfire is crafted; the fires' flicker a lever (Michael)
+
+Following the fire rulings (2026-10-26, under Round rooms: a spec), when Primary pointed out that the campfire is built from the palette today:
+- **The build menu holds only things you cannot pick up and carry:** "I would prefer to keep the build menu exclusively things you cannot pick up and carry around. So if wall paintings are there, make them crafted." Today's palette: walls, doors, windows, fences, gates, the campfire, the hearth, the feed trough; the campfire is the one that leaves. (Paintings and rugs are not in it; nothing makes them yet.)
+- **The campfire is made at the workbench, 1 by 1 on the ground and big in the bag:** "To be clear here, I meant 1x1 on the ground in the world. I would make it a 2x2 or 3x3 in your inventory because it's a pretty powerful tool to just lug around. That also means it needs inventory art. Make it from the workbench." *Primary's reading:* 3 by 3 in the bag (5 by 5 today), from the same 3 stone and 2 logs, set down with Place as the cauldron is.
+- **The fires' flicker darkens the lit room a little, as a lever:** "it can flicker down from now in light, it'll still be mostly lit, and the flicker darkening it for a second is realistic. However you build this though, tunable is better in case I don't love the flicker." *Default:* a lit room dips to about 85% at the flicker's lowest (`docs/42`).
+- **Torches on a round wall:** allowed, as ruled (a bracket on the ring, drawn at its point on the curve); only the fireplace cannot stand against it.
 
 ### 2026-10-26 — Round rooms: a spec; odd sizes ~~3 to 7~~ 5 and 7, doors at the four points, rounded corners (Michael)
 
