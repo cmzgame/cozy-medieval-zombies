@@ -11,11 +11,21 @@ import { tileKey } from "../visibility.js";
 import { WALL_T, WOOD, METAL, DOOR_TOP, WINDOW_SILL, WINDOW_TOP, BRACKET_UP } from "../placeholders.js";
 import * as gl from "../gl.js";
 import { GHOST_FLAGS, ghostColor } from "./props.js";
-import { NEAR_WALL_ALPHA, flameFrame, frameQuad } from "./scene.js";
+import { NEAR_WALL_ALPHA, DEPTH_BIAS, DEPTH_ROOM, flameFrame, frameQuad } from "./scene.js";
+import * as depth from "./depth.js"; // the walls' faces, caps, leaves, and posts on their true planes (docs/51)
 import { emitHangings } from "./paintings.js"; // what hangs on a wall's face (#326)
 import { sheetFor } from "../woods.js"; // a door or window of another wood than its wall (#334)
 
 // ---- walls ----
+
+// A wall's layers on its depth surface (gl.layer, docs/51 section 3): its face (a cut wall's pieces side by side); its cap redrawn on the
+// sky and what is on its face (boards, a leaf or shutters, a bracket and a lantern's cage and pane), which never overlap one another;
+// what sits over those (a painting, a plank leaf's strips, a torch on its bracket); and a flame. Four steps whatever the wall carries,
+// so at 16 bits (a quarter of a unit a step) its last stays under a prop held on its face, a unit over it (scene.js DEPTH_ROOM).
+const L_FACE = 0;
+const L_ON = 1;
+const L_OVER = 2;
+const L_FLAME = 3;
 
 // The frame for a wall's state. Boards on the visible (near) face draw as the
 // boarded variants; boards on the far face are not seen, and a broken leaf is
@@ -41,7 +51,9 @@ function wallVariant(wall) {
 function emitPlankLeaf(quad, strips, shadeF, opts) {
   const [p0, p1, p2, p3] = quad;
   const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  gl.layer(L_ON);
   gl.poly(quad, gl.rgb(shade(WOOD, shadeF), opts.alpha), opts);
+  gl.layer(L_OVER);
   const bands = strips === 1 ? [0.5] : [0.3, 0.7];
   for (const t of bands) {
     const a = lerp(p0, p1, t);
@@ -71,7 +83,10 @@ function emitSwungLeaves(wall, edge, x, y, h, outside, opts) {
     const v = [perp[0] * len * outside, perp[1] * len * outside];
     const p0 = lerp(0.18, y0);
     const p1 = lerp(0.18, y1);
+    // The leaf stands square to the wall through its hinge, 0.18 of the edge from its far end (docs/51 section 3), then the wall's face again.
+    if (opts.face) gl.setPlane(edge === "n" ? depth.planeX(opts.tx - 0.32) : depth.planeY(opts.ty + 0.32));
     emitPlankLeaf([p0, p1, [p1[0] + v[0], p1[1] + v[1]], [p0[0] + v[0], p0[1] + v[1]]], 2, outside > 0 ? 0.95 : 0.7, opts);
+    if (opts.face) gl.setPlane(opts.face);
     return;
   }
   // Each shutter is a quarter of the edge wide, hinged at its jamb, and turned
@@ -168,11 +183,30 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
   const outside = open && !o.ghost ? map.outsideSign(tx, ty, edge) : 0;
   const leaves = (far) => (wall.kind === "door" ? [`leaf${far}_${side}`] : [`shutter${far}_left_${side}`, `shutter${far}_right_${side}`]);
+  // A door's open leaf stands square to its wall through its hinge and takes that plane (docs/51 section 3); shutters fold back flat
+  // against the wall and keep its face's. The hinge is the leaf picture's edge against the wall: a north wall's near leaf runs down-left
+  // from it (its right edge), its far leaf up-right (its left edge); a west wall's the other way round.
+  const leafQuad = (p, far) => {
+    if (wall.kind === "door" && o.face && parts && parts.frames[p]) {
+      const lf = parts.frames[p];
+      const la = (parts.frameAnchors && parts.frameAnchors[p]) || parts.anchor;
+      const left = x - la[0];
+      const hingeX = (edge === "n") !== far ? left + lf[2] : left;
+      const [hx, hy] = depth.faceAtColumn(edge, tx, ty, far ? -T : T, hingeX);
+      gl.setPlane(depth.leaf(edge, hx, hy));
+      wallPartQuad(parts, p, x, y, o);
+      gl.setPlane(o.face);
+      return;
+    }
+    wallPartQuad(parts, p, x, y, o);
+  };
   // A leaf swung away from the camera stands behind the wall: drawn only when
   // the wall is translucent, just before it (docs/17, ruling 2).
-  if (outside < 0 && o.faded) for (const p of leaves("_far")) wallPartQuad(parts, p, x, y, o);
+  gl.layer(L_FACE); // translucent with the faded wall, which writes no depth: drawn in this order, under the face
+  if (outside < 0 && o.faded) for (const p of leaves("_far")) leafQuad(p, true);
   if (o.faded && o.cuts && (o.cuts.near != null || o.cuts.far != null)) emitCutWall(sheet, name, edge, x, y, h, T, o, o.cuts);
   else wallPartQuad(sheet, name, x, y, o);
+  gl.layer(L_ON);
   if (!o.faded && !o.ghost) {
     // A margin of a ground pixel all round: the drawn cap's edges are stair
     // steps that poke past the exact parallelogram, and those pixels took the
@@ -186,7 +220,7 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   }
   if (boards) wallPartQuad(getSheet(sheet.wall.boards || "wall_boards"), `boards_${boards}_${side}_${n}`, x, y, o);
   if (mid) wallPartQuad(parts, mid, x, y, o); // the swinging leaf in place of the open one, while it swings
-  else if (outside > 0) for (const p of leaves("")) wallPartQuad(parts, p, x, y, o);
+  else if (outside > 0) for (const p of leaves("")) leafQuad(p, false);
 }
 
 function isNearWall(tx, ty, edge, playerRoom) {
@@ -194,6 +228,39 @@ function isNearWall(tx, ty, edge, playerRoom) {
   const t = map.tileAt(tx, ty);
   const far = edge === "n" ? map.tileAt(tx, ty - 1) : map.tileAt(tx - 1, ty);
   return far.room === playerRoom && t.room !== playerRoom;
+}
+
+// What stands at a vertex, the player's room aside, worked out once a frame (a wall reads the post at its camera-side end, the posts
+// read their own, a cut wall reads both its ends: the review of #530): null, or the post's sheet and the thinnest wall it joins.
+const MATERIAL_RANK = { stone: 3, log: 2, wood: 1 };
+const rankOf = (s) => MATERIAL_RANK[s.wall ? s.wall.material : s.pattern === "brick" ? "stone" : s.pattern === "log" ? "log" : "wood"] || 0;
+const postCache = new Map(); // vertex key -> { sheet, thin } or null, for the frame postFrame
+let postFrame = -1;
+function postBase(tx, ty, nE, nW, wS, wN) {
+  if (gl.frameId() !== postFrame) {
+    postCache.clear();
+    postFrame = gl.frameId();
+  }
+  const keyed = tx > -4096 && tx < 4096 && ty > -4096 && ty < 4096; // a small whole number for the key, the map's every tile but the far wild
+  const key = keyed ? (tx + 4096) * 8192 + (ty + 4096) : -1;
+  const got = keyed ? postCache.get(key) : undefined;
+  if (got !== undefined) return got;
+  let base = null;
+  if (!(nE && nW && !wS && !wN && nE.sprite === nW.sprite) && !(wS && wN && !nE && !nW && wS.sprite === wN.sprite)) {
+    let sheet = null;
+    let thin = Infinity;
+    for (const w of [nE, nW, wS, wN]) {
+      if (!w) continue;
+      const s = getSheet(w.sprite);
+      if (!sheet || rankOf(s) > rankOf(sheet)) sheet = s;
+      // The thinnest wall it joins: its depth is taken flush with that wall's faces (makePost), so a post of a thicker material (stone
+      // between timber) stands no further forward than the timber it meets.
+      thin = Math.min(thin, s.thickness || WALL_T);
+    }
+    base = { sheet, thin };
+  }
+  if (keyed) postCache.set(key, base);
+  return base;
 }
 
 // The post at the top vertex of (tx, ty), if one stands there: where walls meet
@@ -207,22 +274,15 @@ export function postAt(tx, ty, playerRoom) {
   const wS = map.tileAt(tx, ty).w;
   const wN = map.tileAt(tx, ty - 1).w;
   if (!nE && !nW && !wS && !wN) return null;
-  if (nE && nW && !wS && !wN && nE.sprite === nW.sprite) return null;
-  if (wS && wN && !nE && !nW && wS.sprite === wN.sprite) return null;
-  const walls = [nE, nW, wS, wN].filter(Boolean);
-  const rank = (s) => ({ stone: 3, log: 2, wood: 1 })[s.wall ? s.wall.material : s.pattern === "brick" ? "stone" : s.pattern === "log" ? "log" : "wood"] || 0;
-  let sheet = getSheet(walls[0].sprite);
-  for (const w of walls) {
-    const s = getSheet(w.sprite);
-    if (rank(s) > rank(sheet)) sheet = s;
-  }
+  const base = postBase(tx, ty, nE, nW, wS, wN);
+  if (!base) return null;
   // Translucent only when every wall it joins is a near wall (the front corner);
   // where a near wall meets a far one the post stays solid with the far wall
   // (Michael's designer, 2026-10-12: a ghost post over a solid wall's end read
   // as a pale column).
-  const near = [[nE, tx, ty, "n"], [nW, tx - 1, ty, "n"], [wS, tx, ty, "w"], [wN, tx, ty - 1, "w"]]
-    .every(([w, x, y, e]) => !w || isNearWall(x, y, e, playerRoom));
-  return { sheet, near };
+  const near = playerRoom > 0 && (!nE || isNearWall(tx, ty, "n", playerRoom)) && (!nW || isNearWall(tx - 1, ty, "n", playerRoom))
+    && (!wS || isNearWall(tx, ty, "w", playerRoom)) && (!wN || isNearWall(tx, ty - 1, "w", playerRoom));
+  return { sheet: base.sheet, near, thin: base.thin };
 }
 
 // Corner posts.
@@ -231,7 +291,7 @@ export function postDrawables(tiles, visible, playerRoom, out) {
     const post = postAt(tx, ty, playerRoom);
     if (!post) continue;
     const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
-    out.push(makePost(tx, ty, post.sheet, vis, post.near));
+    out.push(makePost(tx, ty, post.sheet, vis, post.near, post.thin));
   }
 }
 
@@ -328,7 +388,7 @@ function emitCutWall(sheet, name, edge, x, y, h, T, o, cuts) {
   if (xR > xL) piece([[xL, Tp], [xR, Tp], [xR, B], [xL, B]]);
 }
 
-function makePost(tx, ty, sheet, vis, near) {
+function makePost(tx, ty, sheet, vis, near, thin = null) {
   const p = iso.toScreen(tx - 0.5, ty - 0.5);
   const x = Math.round(p.x);
   const y = Math.round(p.y);
@@ -344,11 +404,21 @@ function makePost(tx, ty, sheet, vis, near) {
   const hidden = false;
   const alpha = faded ? NEAR_WALL_ALPHA : 1;
   const flags = vis ? gl.FLAG_NOFOG : 0;
+  // Its depth (docs/51 section 3): the two faces of its square, split at its near corner's column. A drawn post is centred on the vertex,
+  // a pixel proud of the wall in its picture (its cap below), but its depth is taken flush with the faces of the thinnest wall it joins,
+  // a little behind them (scene.js DEPTH_BIAS): proud, its corner stood a unit into a room's far corner and drew a light line down it,
+  // and a stone post between timber walls stood over the timber that begins at it, neither of which the sort ever showed. The walls'
+  // own surfaces give way to it at their camera-side ends (depth.wallSurface). The generated one's square has the vertex for its near
+  // corner.
+  const hs = sheet.wall && sheet.wall.post ? (thin || T) / 2 / depth.UNIT : 0;
+  const surf = depth.ridge(tx - 0.5 + hs, ty - 0.5 + hs);
   return {
     key: (tx + ty - 1) * 1000 + 0.5,
     kind: "wall",
+    post: { tx, ty }, // check("depth") finds its drawable
     emit() {
       if (hidden) return;
+      gl.surface(surf, DEPTH_BIAS.post, DEPTH_ROOM.post);
       if (sheet.wall && sheet.wall.post) {
         // The drawn post (docs/17), anchored on the vertex itself, its cap redrawn on the sky.
         const ps = getSheet(sheet.wall.post);
@@ -374,9 +444,11 @@ function makePost(tx, ty, sheet, vis, near) {
       // The post stands at the top vertex of (tx, ty); its left face continues
       // the north-wall line and looks onto (tx - 1, ty), its right face the
       // west-wall line and looks onto (tx, ty - 1); the top is the sky.
+      gl.holdOrder(true); // its two faces and its top meet at their edges: one step
       gl.poly([D, A, up(A), up(D)], gl.rgb(shade(color, 0.5), alpha), { world: [tx - 1, ty], heights: [0, 0, h, h], flags });
       gl.poly([A, B, up(B), up(A)], gl.rgb(shade(color, 0.62), alpha), { world: [tx, ty - 1], heights: [0, 0, h, h], flags });
       gl.poly([up(A), up(B), up(C), up(D)], gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
+      gl.holdOrder(false);
     },
   };
 }
@@ -423,7 +495,7 @@ function shakeOffset(tx, ty, edge) {
 export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null) {
   const sheet = sheetFor(wall); // the wall's own sheet, or its shut leaves recoloured and its open ones another wood's (#334)
   const variant = wallVariant(wall);
-  const depth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
+  const sortDepth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
   const p = iso.toScreen(tx, ty);
   const x = Math.round(p.x) + shakeOffset(tx, ty, edge);
   const y = Math.round(p.y);
@@ -442,6 +514,15 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
   const b = edge === "n" ? [x + iso.HW, y] : [x, y - iso.HH];
   const wa = edge === "n" ? [tx - 0.4, ty - 0.2] : [tx - 0.2, ty - 0.4];
   const wb = edge === "n" ? [tx + 0.4, ty - 0.2] : [tx - 0.2, ty + 0.4];
+  // Its depth (docs/51 section 3): the wall's true near face, a plane, and past its camera-side end the end's own face (depth.wallSurface);
+  // its cap redrawn on the sky, its boards, leaves, shutters, hangings, bracket, and flame on it, each a step nearer than the one before.
+  // Where a drawn post stands at its camera-side end (the vertex east of a north wall, south of a west one), centred on the vertex
+  // (Tp / 2 + 1) units each way, its face reaches 2 (Tp / 2 + 1) - T / 2 back along the wall from the face's end, and the ridge moves
+  // back with it, a unit further (the post's last column clear of the tie at the ridge); at a plain joint it moves back two units, under the next segment's first column (its outline, which the sort drew
+  // over this one's last), and no further, so what stands just inside the wall there stays behind it.
+  const endPost = edge === "n" ? postAt(tx + 1, ty, null) : postAt(tx, ty + 1, null);
+  const postSheet = endPost && endPost.sheet.wall && endPost.sheet.wall.post ? endPost.sheet : null;
+  const face = depth.wallSurface(edge, tx, ty, T, (postSheet ? (postSheet.thickness || WALL_T) + 3 - T / 2 : 2) / depth.UNIT);
   const br = wall.bracket && wall.bracket.side > 0 ? wall.bracket : null;
   let bx = 0;
   let by = 0;
@@ -456,26 +537,30 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
     }
   }
   return {
-    key: depth * 1000,
+    key: sortDepth * 1000,
     kind: "wall",
+    wall: { tx, ty, edge }, // check("depth") finds its drawable
     emit() {
+      gl.surface(face, 0, DEPTH_ROOM.wall);
       const tint = ghostTint || [1, 1, 1, alpha];
       if (sheet.wall) {
-        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts });
+        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts, face });
       } else {
       // Swung leaves only for a whole, open, unboarded leaf.
       const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
       const outside = open ? map.outsideSign(tx, ty, edge) : 0;
-      const leafOpts = { world: [tx, ty], flags, alpha };
+      const leafOpts = { world: [tx, ty], flags, alpha, face, tx, ty };
       if (open && outside < 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
       // The face: the frame, its bottom corners on the edge's ends so the
       // light is read along the foot and height climbs to the top.
       const name = edge === "n" ? `north_${variant}_0` : `west_${variant}_0`;
       const anchor = edge === "n" ? sheet.anchor : sheet.anchorWest;
       const f = sheet.frames[name];
+      gl.layer(L_FACE);
       if (f) {
         gl.quad(x - anchor[0], y - anchor[1], f[2], f[3], gl.frameUV(sheet, name), { world: [wa, wb, wb, wa], heights: [f[3], f[3], 0, 0], color: tint, flags });
       }
+      gl.layer(L_ON);
       // The top strip, on the sky.
       const top = edge === "n"
         ? [[x, y - iso.HH - h], [x + iso.HW, y - h], [x + iso.HW + T, y - T / 2 - h], [x + T, y - iso.HH - T / 2 - h]]
@@ -483,9 +568,11 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
       gl.poly(top, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
       if (open && outside > 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
       }
-      if (wall.hangings && !ghostTint) emitHangings(wall, edge, tx, ty, { tint, flags }); // paintings, right after their segment, before its bracket
+      gl.layer(L_OVER);
+      if (wall.hangings && !ghostTint) emitHangings(wall, edge, tx, ty, { tint, flags }); // paintings, right after their segment, before its bracket (their outline a layer under them, over the face)
       if (br) {
         const opts = { world: [tx, ty], flags };
+        gl.layer(L_ON); // the bracket's iron, and a lantern's cage and pane, side by side
         gl.poly([[bx - 2, by - 3], [bx + 2, by - 3], [bx + 2, by + 4], [bx - 2, by + 4]], gl.rgb(METAL, alpha), opts);
         gl.poly([[bx - 4, by - 1], [bx + 4, by - 1], [bx + 4, by + 1], [bx - 4, by + 1]], gl.rgb(METAL, alpha), opts);
         if (br.lantern) {
@@ -497,11 +584,16 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
           if (br.lit !== false) gl.poly([[bx - 3, by - 15], [bx + 3, by - 15], [bx + 3, by - 4], [bx - 3, by - 4]], gl.rgb("#e6b45a", alpha), { world: [tx, ty], flags: flags | gl.FLAG_UNLIT });
           else gl.poly([[bx - 3, by - 15], [bx + 3, by - 15], [bx + 3, by - 4], [bx - 3, by - 4]], gl.rgb("#3c3a3e", alpha), opts);
         } else if (br.torch) {
-          gl.poly([[bx - 1, by - 14], [bx + 2, by - 14], [bx + 2, by - 1], [bx - 1, by - 1]], gl.rgb(WOOD, alpha), opts);
+          // The torch over the iron: its stick from under its head (the head covered the stick's top two rows, the same pixels), then the
+          // head, side by side; its flame over the head.
+          gl.layer(L_OVER);
+          gl.poly([[bx - 1, by - 12], [bx + 2, by - 12], [bx + 2, by - 1], [bx - 1, by - 1]], gl.rgb(WOOD, alpha), opts);
           gl.poly([[bx - 2, by - 17], [bx + 3, by - 17], [bx + 3, by - 12], [bx - 2, by - 12]], gl.rgb("#3a2a22", alpha), opts);
+          gl.layer(L_FLAME);
           if (vis && br.lit !== false) frameQuad(getSheet("flame"), `flame_${flameFrame(tx + ty)}`, bx, by - 15, { world: [tx, ty], flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG, ...(ghostTint ? { color: ghostTint } : {}) }); // a refused ghost's flame takes its tint
         }
       }
+      gl.layer(null);
     },
   };
 }
