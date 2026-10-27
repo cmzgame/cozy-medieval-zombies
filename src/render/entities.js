@@ -10,7 +10,7 @@ import * as map from "../map.js";
 import { tileKey } from "../visibility.js";
 import { getItem } from "../items.js";
 import * as gl from "../gl.js";
-import { DEPTH_BIAS, flameFrame, frameQuad } from "./scene.js";
+import { DEPTH_BIAS, DEPTH_ROOM, flameFrame, frameQuad } from "./scene.js";
 import * as depth from "./depth.js"; // a figure's billboard through its front, an arrow's through its ground point (docs/51)
 import { seenAlpha } from "../sight.js";
 import { sight as sightTuning } from "../tuning.js";
@@ -242,7 +242,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
       vis: true,
       occluded: false,
       emit() {
-        gl.surface(surf, DEPTH_BIAS.figure);
+        gl.surface(surf, DEPTH_BIAS.figure, DEPTH_ROOM.figure);
         const world = [e.gx, e.gy];
         const target = client.targets.has(e.id) && fade >= sightTuning.seenAt;
         if (target) {
@@ -266,6 +266,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
         if (carried) {
           // Each footprint slice at its offset from the anchor, lifted over the head.
           const [cw, ch] = carried.footprint;
+          gl.holdOrder(true); // its slices side by side: one step
           let i = 0;
           for (let dy = 0; dy < ch; dy++) {
             for (let dx = 0; dx < cw; dx++, i++) {
@@ -275,6 +276,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
               frameQuad(carrySheet, cn, Math.round(o.x), Math.round(o.y) - lift, { world, heights: cf ? [cf[3] + lift, cf[3] + lift, lift, lift] : lift, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
             }
           }
+          gl.holdOrder(false);
         }
       },
     });

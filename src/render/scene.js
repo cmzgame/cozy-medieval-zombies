@@ -54,6 +54,13 @@ export const NEAR_WALL_ALPHA = 0.42;
 // walls, their caps, the arrows, is its true geometry. Each quad a drawable emits after its first sits gl.depthStep() nearer again.
 export const DEPTH_BIAS = { floorItem: 0.5, post: -0.5, prop: 1, figure: 2, particle: 1, liftedFloor: 1 };
 
+// How far over its bias a kind's own quads may climb by the emit order (gl.surface's `room`): the gap to the next kind that can share
+// its plane, so a drawable's last layer stays under it at any buffer depth (at 16 bits a step is a quarter of a unit; the review of
+// #530: a wall's sixth quad passed a prop's +1, a hanging or a bracket over a cupboard held on the wall's face). A post's room is the
+// walls' faces it is flush with; a wall's, the props held on its face; a floor item's, the props over it; a prop's, the figures; a
+// figure's, its own fire. Each lays out its layers to fit (render/walls.js's four, a floor item's block by block).
+export const DEPTH_ROOM = { post: 0.5, wall: 1, floorItem: 0.5, prop: 1, figure: 1 };
+
 // For check("depth"): a drawable `skip` returns true for is gathered, sorted, and counted as ever but not drawn, so a check can tell a
 // thing's own pixels from what is behind them; `override` replaces fields of the frame's scene (a ghost, the marker, a flight, the tile
 // mark, the highlight, the fog), so a check can stage what the client's own modules would; `mark` ({ is, color }) draws the drawables `is`

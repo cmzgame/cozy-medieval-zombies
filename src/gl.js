@@ -30,7 +30,7 @@ export const FLAG_STANDING = 16; // a prop or a character: takes the legibility 
 export const FLAG_SOLID = 32; // the quad's colour, flat, keeping the sprite's shape: an outline (docs/14)
 
 // The passes (docs/51 section 4). PASS_STAND is what a standing drawable asks for: its quads go to the opaque pass, or
-// to the translucent one by the rule above. PASS_TRANS is never asked for by an emitter; `setTranslucent` forces it.
+// to the translucent one by the rule above (`route`); PASS_TRANS is that store's index, never asked for by an emitter.
 export const PASS_FLAT = 0;
 export const PASS_STAND = 1;
 export const PASS_TRANS = 2;
@@ -65,22 +65,29 @@ let verts = buckets[0].verts;
 let count = 0; // floats written to the current store
 let upload = new Float32Array(1 << 17); // the four stores end to end, for the one buffer upload of a frame
 let lastPassCounts = [0, 0, 0, 0]; // vertices in each pass last frame (check("depth"), the cost row)
+let lastRoomStep16 = 0; // the last frame's quads whose step would have passed their kind's room at 16 bits (check("depth"))
 
 // ---- the depth surface (docs/51 section 3) ----
 let depthBits = 16; // what the context gave, read in setup(); 16 is all WebGL promises
 let depthStepSize = 0.25; // the emit-order step in depth units: two steps of the buffer, or more (sized in setup)
 let pass = PASS_FLAT;
-let forceTrans = false;
 let sA = 0; // the surface: depth = sA * sx - sy + sC (a plane), or, with sX a number, the ridge
 let sC = 0; //   sC - sy - 1.5 |sx - sX| (two planes meeting at the column sX)
 let sX = NaN;
-let sFloors = null; // a ridge's floor planes (render/depth.js againstWalls): [[A, C], ...], its depth the most of the ridge and them
+let sFloorN = 0; // a surface's floor planes (render/depth.js againstWalls), its depth the most of its own and theirs: how many,
+const sFloorA = new Float64Array(2); //   and each one's A and C (depth = A * sx - sy + C)
+const sFloorC = new Float64Array(2);
 let sBias = 0; // the drawable's kind bias (scene.js DEPTH_BIAS)
 let order = 0; // quads emitted on the surface so far: each sits `depthStepSize` nearer than the last
-let behind = false; // an outline's copies: a step behind the surface's base, not counted
+let maxOrder = Infinity; // the most steps the surface's quads may climb: under its kind's room (surface), so at 16 bits a drawable never reaches the next kind
+let layerAt = -1; // >= 0: the quads that follow take this step of the order, whatever came before (`layer`), and do not count
+let behind = false; // an outline's copies: a step behind the quad they outline, not counted
 let held = 0; // > 0: quads share one step (bees: a figure of many pixels is one layer), stepped once when released
 let heldUsed = false;
 let center = 0; // the camera's depth this frame: vertices store depth less it
+let frameNo = 0; // frames begun: what a per-frame cache keys on (render/walls.js's posts)
+let roomStep16 = 0; // quads this frame whose step would pass their kind's room at 16 bits' step (check("depth")): the layering's own need, unclamped
+const STEP_16 = (2 * 2 * DEPTH_HALF_RANGE) / 2 ** 16;
 let mark = null; // check("depth")'s probe: [r, g, b] every quad is drawn in, flat, unlit, and unfogged, its alpha and its pass kept
 let whiteUV = null;
 let emptyUV = null; // a transparent patch: what a sprite that could not be placed draws as (a last resort now: a sheet larger than a page, or a page the GPU refused)
@@ -496,7 +503,7 @@ function readDepthBits() {
 
 // What the depth buffer gave and the steps sized from it, for check("depth").
 export function depthInfo() {
-  return { bits: depthBits, step: depthStepSize, halfRange: DEPTH_HALF_RANGE, unitsPerBufferStep: (2 * DEPTH_HALF_RANGE) / 2 ** depthBits, passes: [...lastPassCounts] };
+  return { bits: depthBits, step: depthStepSize, halfRange: DEPTH_HALF_RANGE, unitsPerBufferStep: (2 * DEPTH_HALF_RANGE) / 2 ** depthBits, passes: [...lastPassCounts], pastRoomAt16: lastRoomStep16 };
 }
 
 // The emit-order step in depth units (scene.js sizes nothing from it; the outline and the checks read it).
@@ -615,21 +622,26 @@ export function begin(cameraDepth = 0) {
   count = 0;
   groundFloats = 0;
   groundRanges.length = 0;
+  frameNo++;
+  roomStep16 = 0;
   // The centre moves in whole steps of 256 units, never with the camera's fraction of a tile: every depth on a wall, a post, or a
   // prop's slice is then a multiple of 1/32 of a unit less a multiple of 256, which a float holds exactly, so two quads on one plane
   // come out the same wherever the camera stands, and walking flips nothing (Michael's playtest, 2026-10-27: the walls flickered as he
   // walked). The range keeps 4096 - 128 either side of the camera, past what a 4K window shows (docs/51 section 5).
   center = Math.round(cameraDepth / DEPTH_CENTRE_STEP) * DEPTH_CENTRE_STEP;
   pass = PASS_FLAT;
-  forceTrans = false;
   surface({ A: 0, C: cameraDepth }, 0);
+}
+
+// The frame being drawn, by number: a cache of what the frame reads of the world keys on it.
+export function frameId() {
+  return frameNo;
 }
 
 // Which pass the quads that follow are for: PASS_FLAT (lying on the ground: no depth), PASS_STAND (standing: opaque or translucent by
 // the quad), PASS_TOP (over everything, no test). A standing drawable's emit runs in PASS_STAND (scene.js sets it).
 export function setPass(p) {
   pass = p;
-  forceTrans = false;
 }
 
 export function getPass() {
@@ -639,29 +651,28 @@ export function getPass() {
 // Run `fn` with its quads in pass `p` (a lying arrow inside a pile of items: flat, in the pile's place in the order), then back.
 export function withPass(p, fn) {
   const was = pass;
-  const wasT = forceTrans;
   pass = p;
-  forceTrans = false;
   try {
     fn();
   } finally {
     pass = was;
-    forceTrans = wasT;
   }
 }
 
-// Every standing quad that follows to the translucent pass, whatever its alpha (docs/51 section 4: a drawable marked `translucent`).
-export function setTranslucent(on) {
-  forceTrans = !!on;
-}
-
 // The depth surface of the drawable about to emit (render/depth.js makes them): `{ A, C }` a plane, depth = A * sx - sy + C at screen
-// point (sx, sy); `{ C, xF }` a ridge, depth = C - sy - 1.5 |sx - xF|, its quads cut at the column xF. `bias` is its kind's (scene.js
-// DEPTH_BIAS). The emit order starts again: its first quad at the bias, each after a step nearer.
-export function surface(s, bias = 0) {
+// point (sx, sy); `{ C, xF }` a ridge, depth = C - sy - 1.5 |sx - xF|, its quads cut at the column xF; either may carry floor planes
+// (`floorL`, `floorR`: render/depth.js againstWalls). `bias` is its kind's (scene.js DEPTH_BIAS). The emit order starts again: its first
+// quad at the bias, each after a step nearer. `room` (scene.js DEPTH_ROOM) is how far above its bias its quads may climb: the gap to the
+// next kind that can share its plane (a prop held on a wall's face sits 1 over it), so the order's steps stop short of it, whatever the
+// buffer's depth (at 16 bits a step is a quarter of a unit: a wall's fifth quad would reach a prop's bias). The drawables lay out their
+// layers to fit (`layer`, `holdOrder`); a quad past the room takes the room's last step, after the one before it.
+export function surface(s, bias = 0, room = Infinity) {
   setPlane(s);
   sBias = bias;
   order = 0;
+  maxOrder = Number.isFinite(room) ? Math.max(0, Math.ceil(room / depthStepSize - 1e-9) - 1) : Infinity;
+  roomOf = room;
+  layerAt = -1;
   behind = false;
   held = 0;
   heldUsed = false;
@@ -670,22 +681,39 @@ export function surface(s, bias = 0) {
 // Another plane for the quads that follow, the drawable's bias and emit order kept (a door's leaf, square to its wall, between the
 // wall's own quads).
 export function setPlane(s) {
-  sFloors = null;
+  sFloorN = 0;
+  for (const f of [s.floorL, s.floorR]) {
+    if (!f) continue;
+    sFloorA[sFloorN] = f.A;
+    sFloorC[sFloorN] = f.C;
+    sFloorN++;
+  }
   if (s.xF === undefined || Number.isNaN(s.xF)) {
     sA = s.A;
     sX = NaN;
   } else {
     sA = 0;
     sX = s.xF;
-    if (s.floorL || s.floorR) sFloors = [s.floorL, s.floorR].filter(Boolean).map((f) => [f.A, f.C]);
   }
   sC = s.C;
 }
 
-// An outline's copies (Object Highlight, the swing outline, an item's halo): on the surface, a step behind its base, and not counted, so
-// the base drawn after them is in front where they overlap and they show round it.
+// An outline's copies (Object Highlight, the swing outline, an item's halo): on the surface, a step behind the quad they outline (the
+// next counted one), and not counted, so it is in front where they overlap and they show round it.
 export function setBehind(on) {
   behind = !!on;
+}
+
+// The quads that follow take step `n` of the surface's order and do not count, until `layer(null)`, after which the count goes on from
+// the step after the highest layer used (a wall lays out its face, its cap and what hangs on it, what sits over that, and a flame, in
+// four steps, whatever it carries: render/walls.js). Quads in one layer must not overlap one another, as held ones.
+export function layer(n) {
+  if (n == null) {
+    if (layerAt >= 0) order = Math.max(order, layerAt + 1);
+    layerAt = -1;
+    return;
+  }
+  layerAt = n;
 }
 
 // While held, the quads that follow share one step of the emit order (a bee's pixels, which never overlap one another); released, the
@@ -733,7 +761,7 @@ function keepBucket() {
 // figure's carried torch send their halos there and the rest of the wall or the figure stays opaque); else the opaque pass.
 function route(alpha, flags, soft) {
   if (pass === PASS_FLAT || pass === PASS_TOP) return pass;
-  return forceTrans || alpha < 1 || flags & FLAG_OCCLUDER || soft ? PASS_TRANS : PASS_STAND;
+  return alpha < 1 || flags & FLAG_OCCLUDER || soft ? PASS_TRANS : PASS_STAND;
 }
 
 // The probe's mark (scene.js `probe.mark`, check("depth")): while set, every quad that follows is drawn in this one colour, flat (its
@@ -742,12 +770,20 @@ export function setMark(rgb) {
   mark = rgb;
 }
 
+// The step the next quad takes: its layer, or the count so far; an outline's a step behind that; never past the room.
+let roomOf = Infinity; // the room the surface was given, in units (for the 16-bit count)
+function slotNow() {
+  const s = (layerAt >= 0 ? layerAt : order) - (behind ? 1 : 0);
+  if (s > 0 && s * STEP_16 >= roomOf - 1e-9) roomStep16++;
+  return s > maxOrder ? maxOrder : s;
+}
+
 function biasNow() {
-  return behind ? sBias - depthStepSize : sBias + order * depthStepSize;
+  return sBias + slotNow() * depthStepSize;
 }
 
 function stepOrder() {
-  if (behind) return;
+  if (behind || layerAt >= 0) return;
   if (held) heldUsed = true;
   else order++;
 }
@@ -780,13 +816,12 @@ function vertex(x, y, u, v, page, wx, wy, h, c, flags, d) {
   count += STRIDE;
 }
 
-// A convex polygon of vertices [x, y, u, v, wx, wy, h], fanned from its first, its depth from the plane (A, C) and the bias, stored less
-// the camera's; `C` null for a pass that has no depth (flat, top: a constant inside the range, so nothing is clipped).
-// Each corner's depth is worked out once (`fanDepth`), and the triangles written from the corners, with no array made per vertex: the
-// frame emits thousands of these.
+// A convex polygon of `n` vertices [x, y, u, v, wx, wy, h] (P[0] to P[n - 1]), fanned from its first, its depth from the plane (A, C)
+// and the bias, stored less the camera's; `C` null for a pass that has no depth (flat, top: a constant inside the range, so nothing is
+// clipped). Each corner's depth is worked out once (`fanDepth`), and the triangles written from the corners, with no array made per
+// vertex: the frame emits thousands of these.
 const fanDepth = new Float64Array(16);
-function fan(P, pg, c, flags, A, C, bias) {
-  const n = P.length;
+function fan(P, n, pg, c, flags, A, C, bias) {
   if (n < 3) return;
   grow(STRIDE * 3 * (n - 2));
   const k = C === null ? 0 : C + bias - center;
@@ -802,29 +837,49 @@ function fan(P, pg, c, flags, A, C, bias) {
   }
 }
 
-// A polygon cut by the vertical line x = X into the part left of it and the part right (a vertex on the line in both), each vertex's
-// attributes carried along the edge it was cut from.
-function clipAt(P, X) {
-  const L = [];
-  const R = [];
-  for (let i = 0; i < P.length; i++) {
+// Scratch polygons, kept between calls and grown when a polygon needs more corners: every quad that crosses a ridge's column is cut
+// (every wall face, most props), and the cut writes into these instead of making arrays (the review of #530: a frame made thousands).
+// A corner: a plain array of seven numbers, as quad's own corners are, so the fan reads one kind of array (a typed array here made it
+// slower than the arrays it saves).
+const corner7 = () => [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+function scratch(n = 16) {
+  const a = [];
+  for (let i = 0; i < n; i++) a.push(corner7());
+  return a;
+}
+function room(P, n) {
+  while (P.length < n) P.push(corner7());
+  return P;
+}
+const PIN = scratch(); // texQuad's and poly's corners
+const CUT_A = scratch(); // a cut's two sides, and an envelope's piece
+const CUT_B = scratch();
+
+// The part of polygon P (n corners) on one side of the vertical line x = X (`left`: x <= X; else x >= X) into `out`, a corner on the
+// line in both, each new corner's attributes carried along the edge it was cut from; returns its corner count.
+function clipSide(P, n, X, left, out) {
+  room(out, n + 1);
+  let m = 0;
+  for (let i = 0; i < n; i++) {
     const a = P[i];
-    const b = P[(i + 1) % P.length];
-    if (a[0] <= X) L.push(a);
-    if (a[0] >= X) R.push(a);
+    const b = P[i + 1 === n ? 0 : i + 1];
+    if (left ? a[0] <= X : a[0] >= X) {
+      const o = out[m++];
+      for (let j = 0; j < 7; j++) o[j] = a[j];
+    }
     if ((a[0] < X && b[0] > X) || (a[0] > X && b[0] < X)) {
       const t = (X - a[0]) / (b[0] - a[0]);
-      const m = [X, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t, a[4] + (b[4] - a[4]) * t, a[5] + (b[5] - a[5]) * t, a[6] + (b[6] - a[6]) * t];
-      L.push(m);
-      R.push(m);
+      const o = out[m++];
+      o[0] = X;
+      for (let j = 1; j < 7; j++) o[j] = a[j] + (b[j] - a[j]) * t;
     }
   }
-  return [L, R];
+  return m;
 }
 
 // One primitive onto its pass with its depth: a plane's whole, or a ridge's two sides, cut at its column where it crosses it (docs/51
 // section 3: a prop's left half on its footprint's south-west face, its right on the south-east).
-function emitPoly(P, pg, c, flags, soft) {
+function emitPoly(P, n, pg, c, flags, soft) {
   const b = route(c[3], flags, soft);
   if (mark) {
     c = [mark[0], mark[1], mark[2], c[3]];
@@ -832,69 +887,119 @@ function emitPoly(P, pg, c, flags, soft) {
   }
   useBucket(b);
   if (b === PASS_FLAT || b === PASS_TOP) {
-    fan(P, pg, c, flags, 0, null, 0);
+    fan(P, n, pg, c, flags, 0, null, 0);
     return;
   }
   const bias = biasNow();
-  if (Number.isNaN(sX)) fan(P, pg, c, flags, sA, sC, bias);
-  else {
-    let lo = Infinity;
-    let hi = -Infinity;
-    for (let j = 0; j < P.length; j++) {
+  let lo = Infinity;
+  let hi = -Infinity;
+  if (sFloorN || !Number.isNaN(sX)) {
+    for (let j = 0; j < n; j++) {
       const x = P[j][0];
       if (x < lo) lo = x;
       if (x > hi) hi = x;
     }
+  }
+  if (sFloorN) emitEnvelope(P, n, pg, c, flags, bias, lo, hi);
+  else if (Number.isNaN(sX)) fan(P, n, pg, c, flags, sA, sC, bias);
+  else {
     const cl = sC - 1.5 * sX; // the left face: depth = 1.5 sx - sy + cl
     const cr = sC + 1.5 * sX; // the right: -1.5 sx - sy + cr
-    if (sFloors) emitEnvelope(P, pg, c, flags, bias, lo, hi, [1.5, cl], [-1.5, cr]);
-    else if (hi <= sX) fan(P, pg, c, flags, 1.5, cl, bias);
-    else if (lo >= sX) fan(P, pg, c, flags, -1.5, cr, bias);
+    if (hi <= sX) fan(P, n, pg, c, flags, 1.5, cl, bias);
+    else if (lo >= sX) fan(P, n, pg, c, flags, -1.5, cr, bias);
     else {
-      const [L, R] = clipAt(P, sX);
-      fan(L, pg, c, flags, 1.5, cl, bias);
-      fan(R, pg, c, flags, -1.5, cr, bias);
+      fan(CUT_A, clipSide(P, n, sX, true, CUT_A), pg, c, flags, 1.5, cl, bias);
+      fan(CUT_B, clipSide(P, n, sX, false, CUT_B), pg, c, flags, -1.5, cr, bias);
     }
   }
   stepOrder();
 }
 
-// A ridge with floor planes (render/depth.js againstWalls): the depth at each column the most of the ridge's side there and the floors,
-// a piecewise plane, so the polygon is cut at every column where the topmost line changes and each piece fanned on its own line.
-function emitEnvelope(P, pg, c, flags, bias, lo, hi, left, right) {
-  const lines = [left, right, ...sFloors];
-  const top = (x) => {
-    let best = x <= sX ? left : right;
-    for (const f of sFloors) if (f[0] * x + f[1] > best[0] * x + best[1]) best = f;
-    return best;
-  };
-  const cuts = [sX];
-  for (let i = 0; i < lines.length; i++) {
-    for (let j = i + 1; j < lines.length; j++) {
-      const dA = lines[i][0] - lines[j][0];
-      if (Math.abs(dA) > 1e-9) cuts.push((lines[j][1] - lines[i][1]) / dA);
+// A surface with floor planes (render/depth.js againstWalls): the depth at each column the most of the surface's own there (a plane's,
+// or a ridge's side) and the floors', a piecewise plane, so the polygon is cut at every column where the topmost line changes and each
+// piece fanned on its own line. The lines and the cuts are kept in fixed arrays: at most a ridge's two sides and two floors.
+const lineA = new Float64Array(4);
+const lineC = new Float64Array(4);
+const cutX = new Float64Array(8);
+let topA = 0;
+let topC = 0;
+function topAt(x, nBase) {
+  // The surface's own line at x (a ridge's side by the column), then the floors over it.
+  let k = nBase === 2 && x > sX ? 1 : 0;
+  let best = lineA[k] * x + lineC[k];
+  for (let i = nBase; i < nBase + sFloorN; i++) {
+    const d = lineA[i] * x + lineC[i];
+    if (d > best) {
+      best = d;
+      k = i;
     }
   }
-  const xs = [lo, ...cuts.filter((x) => x > lo && x < hi).sort((a, b) => a - b), hi];
-  for (let i = 0; i < xs.length - 1; i++) {
-    const a = xs[i];
-    const b = xs[i + 1];
-    if (b - a < 1e-6) continue;
-    let piece = P;
-    if (a > lo) piece = clipAt(piece, a)[1];
-    if (b < hi) piece = clipAt(piece, b)[0];
-    const line = top((a + b) / 2);
-    fan(piece, pg, c, flags, line[0], line[1], bias);
+  topA = lineA[k];
+  topC = lineC[k];
+}
+let nCut = 0;
+function addCut(x, lo, hi) {
+  if (!(x > lo && x < hi)) return;
+  let i = nCut++;
+  while (i > 0 && cutX[i - 1] > x) {
+    cutX[i] = cutX[i - 1];
+    i--;
+  }
+  cutX[i] = x;
+}
+function emitEnvelope(P, n, pg, c, flags, bias, lo, hi) {
+  let nBase = 1;
+  if (Number.isNaN(sX)) {
+    lineA[0] = sA;
+    lineC[0] = sC;
+  } else {
+    lineA[0] = 1.5;
+    lineC[0] = sC - 1.5 * sX;
+    lineA[1] = -1.5;
+    lineC[1] = sC + 1.5 * sX;
+    nBase = 2;
+  }
+  const nl = nBase + sFloorN;
+  for (let i = 0; i < sFloorN; i++) {
+    lineA[nBase + i] = sFloorA[i];
+    lineC[nBase + i] = sFloorC[i];
+  }
+  // The columns where the topmost line can change, inside the polygon, in order.
+  nCut = 0;
+  if (nBase === 2) addCut(sX, lo, hi);
+  for (let i = 0; i < nl; i++) {
+    for (let j = i + 1; j < nl; j++) {
+      const dA = lineA[i] - lineA[j];
+      if (Math.abs(dA) > 1e-9) addCut((lineC[j] - lineC[i]) / dA, lo, hi);
+    }
+  }
+  let a = lo;
+  for (let i = 0; i <= nCut; i++) {
+    const b = i < nCut ? cutX[i] : hi;
+    if (b - a >= 1e-6) {
+      let piece = P;
+      let m = n;
+      if (a > lo) {
+        m = clipSide(piece, m, a, false, CUT_A);
+        piece = CUT_A;
+      }
+      if (b < hi) {
+        m = clipSide(piece, m, b, true, CUT_B);
+        piece = CUT_B;
+      }
+      topAt((a + b) / 2, nBase);
+      fan(piece, m, pg, c, flags, topA, topC, bias);
+    }
+    a = b;
   }
 }
 
 // The depth a standing quad's point would take on the current surface, the bias included, in the world's units (not less the camera's):
 // for check("depth").
 export function depthAt(sx, sy) {
-  const bias = biasNow();
-  if (Number.isNaN(sX)) return sA * sx - sy + sC + bias;
-  let d = sC - 1.5 * Math.abs(sx - sX);
-  if (sFloors) for (const f of sFloors) d = Math.max(d, f[0] * sx + f[1]);
+  const bias = sBias + Math.min(layerAt >= 0 ? layerAt : order, maxOrder) * depthStepSize;
+  let d = Number.isNaN(sX) ? sA * sx + sC : sC - 1.5 * Math.abs(sx - sX);
+  for (let i = 0; i < sFloorN; i++) d = Math.max(d, sFloorA[i] * sx + sFloorC[i]);
   return d - sy + bias;
 }
 
@@ -907,7 +1012,7 @@ const WHITE = [1, 1, 1, 1];
 // bottom stays put (a clicked thing's sway; docs/02, question 27).
 // `uv`'s sixth is 1 for a soft sheet's frame (frameUV): such a quad goes to the translucent pass.
 // The corners of the quad being emitted, kept between calls (emitPoly is done with them before quad is called again).
-const QUAD = [new Array(7), new Array(7), new Array(7), new Array(7)];
+const QUAD = [corner7(), corner7(), corner7(), corner7()];
 function corner(q, x, y, u, v, w, h) {
   q[0] = x;
   q[1] = y;
@@ -931,17 +1036,30 @@ export function quad(x, y, w, h, uv, { world, heights = 0, color = WHITE, flags 
   corner(QUAD[1], x1 + skew, y, u1, v0, one ? world : world[1], flat ? heights : heights[1]);
   corner(QUAD[2], x1, y1, u1, v1, one ? world : world[2], flat ? heights : heights[2]);
   corner(QUAD[3], x, y1, u0, v1, one ? world : world[3], flat ? heights : heights[3]);
-  emitPoly(QUAD, pg, color, flags, uv[5] === 1);
+  emitPoly(QUAD, 4, pg, color, flags, uv[5] === 1);
 }
 
 // A textured convex quad with any four screen corners and their own atlas
 // texel coordinates, in order around it (docs/17: a drawn wall's cap redrawn
 // on the sky). `world` is one [gx, gy] or four; `heights` likewise.
 export function texQuad(pts, uvs, { world, heights = 0, color = WHITE, flags = 0, page = 0, soft = false } = {}) {
-  const W = typeof world[0] === "number" ? [world, world, world, world] : world;
-  const H = typeof heights === "number" ? [heights, heights, heights, heights] : heights;
+  const one = typeof world[0] === "number";
+  const flat = typeof heights === "number";
+  const n = pts.length;
+  room(PIN, n);
+  for (let k = 0; k < n; k++) {
+    const q = PIN[k];
+    const w = one ? world : world[k];
+    q[0] = pts[k][0];
+    q[1] = pts[k][1];
+    q[2] = uvs[k][0];
+    q[3] = uvs[k][1];
+    q[4] = w[0];
+    q[5] = w[1];
+    q[6] = flat ? heights : heights[k];
+  }
   // `page`: the atlas page the texel coordinates are on (frameUV's fifth)
-  emitPoly(pts.map((p, k) => [p[0], p[1], uvs[k][0], uvs[k][1], W[k][0], W[k][1], H[k]]), page, color, flags, soft);
+  emitPoly(PIN, n, page, color, flags, soft);
 }
 
 // A flat-coloured convex polygon, fanned from its first point. `world` is one
@@ -950,12 +1068,22 @@ export function poly(points, color, { world, heights = 0, flags = 0 } = {}) {
   if (points.length < 3) return;
   const u = (whiteUV[0] + whiteUV[2]) / 2;
   const v = (whiteUV[1] + whiteUV[3]) / 2;
-  const W = typeof world[0] === "number" ? null : world;
-  const H = typeof heights === "number" ? null : heights;
-  emitPoly(points.map((p, k) => {
-    const w = W ? W[k] : world;
-    return [p[0], p[1], u, v, w[0], w[1], H ? H[k] : heights];
-  }), 0, color, flags, false);
+  const one = typeof world[0] === "number";
+  const flat = typeof heights === "number";
+  const n = points.length;
+  room(PIN, n);
+  for (let k = 0; k < n; k++) {
+    const q = PIN[k];
+    const w = one ? world : world[k];
+    q[0] = points[k][0];
+    q[1] = points[k][1];
+    q[2] = u;
+    q[3] = v;
+    q[4] = w[0];
+    q[5] = w[1];
+    q[6] = flat ? heights : heights[k];
+  }
+  emitPoly(PIN, n, 0, color, flags, false);
 }
 
 // The canvas to black, with nothing drawn: with no world in, a canvas left alone keeps the last frame of the
@@ -1030,6 +1158,7 @@ function uploadAtlas() {
 export function end(u) {
   keepBucket(); // the store being written keeps its count, whichever it is: a frame whose last quad lies flat (nothing standing in it) included
   for (let b = 0; b < 4; b++) lastPassCounts[b] = buckets[b].count / STRIDE;
+  lastRoomStep16 = roomStep16;
   if (lost) return; // nothing to draw to; the batch is dropped
   uploadAtlas();
   // The viewport is the whole buffer while u_res is the world's size in its

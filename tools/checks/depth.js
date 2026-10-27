@@ -13,9 +13,12 @@
 // time, on bare ground near the player; the world's dead, villagers, and animals are held out meanwhile. Everything it made, moved, or
 // set is put back in its finally: the walls and props, the floor items, the player's place, facing, and hands, the hour, the rules, the
 // generator, the legibility floor, the blend, the swing's targets, and the wall clock.
-// Rows 1 to 4 were the gate for removing render/entities.js's `besideWalls` (docs/51 section 6), gone since. Row 12's range is read at the tab's own
+// Rows 1 to 4 were the gate for removing render/entities.js's `besideWalls` (docs/51 section 6), gone since. Rows 19 to 23 are the fresh
+// review's of #530: a figure on a pile and in a crop row, a crop over a figure behind it, the outline of a piece of two tiles, and the
+// layers' room at 16 bits. Row 12's range is read at the tab's own
 // size; the spec asks it at 3840 by 2160 at zoom 1.1 (the pane's resize_window), and the row says which it had. Row 13 measures the
-// frame's time on the busy view: the "before" is the mean of the same loop on main's renderer, passed as `{ before: ms }`.
+// frame's time on the busy view, first, before the probe's paired draws: the "before" is the mean of the same loop on main's renderer on a
+// fresh page, passed as `{ before: ms }`.
 
 export async function run(game, opts = {}) {
   const G = game;
@@ -226,6 +229,43 @@ export async function run(game, opts = {}) {
       south.push([x, Y + 8, "posts"]);
     }
     const lone = [[X + 16, Y + 4, "w"], [X + 16, Y + 4, "posts"], [X + 16, Y + 5, "posts"]];
+    // 13. The cost: the busy view (night, a torch lit, twenty of the dead in view), the frame's time over sixty draws, and pass 2's count.
+    // First, before any of the rows' paired draws: those draw with the probe's mark (a colour made per quad), after which the batch's
+    // own path ran at half its speed, so measured last the row read twice the frame the game draws (the review of #530 read +15%).
+    {
+      G.clock.setHour(0);
+      standAt(X + 12, Y + 14);
+      me.hands.main = G.items.makeEntry("torch", 1);
+      me.hands.main.lit = true;
+      const dead = [];
+      for (let i = 0; i < 20; i++) {
+        const a = (i / 20) * Math.PI * 2;
+        const z = createZombie(X + 12 + Math.cos(a) * (3 + (i % 3)), Y + 14 + Math.sin(a) * (3 + (i % 3)), { hp: 1000 });
+        S.zombies.push(z);
+        dead.push(z);
+      }
+      step(2);
+      // The mean over 600 draws, after 30 to warm: the browser's clock is coarse (a tenth of a millisecond in the pane), and a frame
+      // takes about half a millisecond, so a median of sixty moves by a fifth with the clock's grain alone.
+      for (let i = 0; i < 30; i++) G.loop.advance(0);
+      const times = [];
+      for (let i = 0; i < 600; i++) {
+        G.loop.advance(0);
+        times.push(G.timing.render || 0);
+      }
+      const mean = times.reduce((a, b) => a + b, 0) / times.length;
+      times.sort((p, q) => p - q);
+      const median = times[300];
+      const stats = { ...scene.lastStats };
+      const before = Number(opts.before);
+      const within = Number.isFinite(before) && before > 0 ? mean <= before * 1.1 : null;
+      row("13. the cost on the busy view: the frame's time, and the drawables in pass 2", within, `mean ${mean.toFixed(3)} ms, median ${median.toFixed(2)}, over 600 draws (render's time, main.js)${Number.isFinite(before) && before > 0 ? ` against ${before} ms before: ${(100 * (mean / before - 1)).toFixed(1)}%` : "; pass { before: ms }, the mean of the same loop on main, to compare (within 10%)"}; ${stats.drawables} drawables, ${stats.translucent} in pass 2; ${JSON.stringify(glm.depthInfo().passes)} vertices by pass`);
+      for (const z of dead) S.zombies.splice(S.zombies.indexOf(z), 1);
+      me.hands.main = saved.main;
+      G.clock.setHour(12);
+      step();
+    }
+
     standAt(X + 12, Y + 14);
     freeze(true);
 
@@ -389,6 +429,122 @@ export async function run(game, opts = {}) {
         results.push({ dx, dy, whole: dx % 10 === 0 && dy % 10 === 0, n, flips, light });
       }
       row("18. the walls the same from places a fraction of a tile apart (no tie between surfaces flips as the camera moves)", results.every((r) => r.whole && r.n > 0 && r.flips === 0), results.map((r) => `moved ${r.dx},${r.dy} px: ${r.flips} of ${r.n} wall px another surface's, ${r.light} by the light's rounding${r.whole ? "" : " (not a whole ten: the camera did not move as asked)"}`).join("; "));
+    }
+
+    // 19. A figure on a floor pile's tile (the review of #530): standing at the tile's centre on a pile of six, it is whole (the pile's
+    // blocks behind its feet drawn under it, as the sort drew them).
+    {
+      const px = X + 20;
+      const py = Y + 14;
+      for (const id of ["apple", "apple", "bread", "stone", "stone", "apple"]) drop(px, py, G.items.makeEntry(id, 1));
+      standAt(px, py);
+      const sil = silhouetteOf(isPlayer);
+      const shown = and(visibleOf(isPlayer), sil);
+      const over = and(sil, silhouetteOf(isFloor(px, py)));
+      const cols = columnsLost(sil, shown);
+      row("19. a figure at the centre of a floor pile's tile is whole", over.count > 0 && share(shown, sil) >= 0.98 && cols.length === 0, `${pct(share(shown, sil))} of ${sil.count} shown, ${over.count} of them over the pile of six${cols.length ? `; columns short: ${cols.slice(0, 6).join(", ")}` : ""}`);
+      undrop();
+    }
+
+    // 20 and 21. A figure walking through a crop (the review of #530: a crop on its tile's two front faces covered the legs of a figure
+    // walking its row): whole at the crop's tile's centre and before it; a tile behind it (on the tile behind-left), covered where the
+    // crop is drawn.
+    {
+      const cx = X + 20;
+      const cy = Y + 19;
+      const kinds = ["crop_rye_2", "crop_flax_2", "crop_cabbage_2"];
+      const crops = [];
+      for (let i = 0; i < 3; i++) crops.push(await place(kinds[i], cx - 1 + i, cy, { solid: false }));
+      const crop = crops[1];
+      const isCrop = isProp(crop);
+      const res = [];
+      for (const [what, gx, gy] of [["at the centre", cx, cy], ["before it", cx + 0.3, cy + 0.3]]) {
+        standAt(gx, gy);
+        const sil = silhouetteOf(isPlayer);
+        const shown = and(visibleOf(isPlayer), sil);
+        const over = and(sil, silhouetteOf(isCrop));
+        res.push({ what, share: share(shown, sil), n: sil.count, over: over.count, cols: columnsLost(sil, shown).length });
+      }
+      row("20. a figure in a crop's tile is whole at its centre and before it", res.every((r) => r.over > 0 && r.share >= 0.98 && r.cols === 0), res.map((r) => `${r.what} ${pct(r.share)} of ${r.n}, ${r.over} over the crop${r.cols ? `, ${r.cols} columns short` : ""}`).join("; "));
+      // Read where the crop's own pixels are whole: through its half-clear edge pixels (alpha a half to whole: drawn, blended) the figure
+      // behind rightly shows a little.
+      standAt(cx - 0.6, cy - 0.6);
+      for (const c of crops) c.pokedAt = null; // walked through on the way: still, so its frame lies where it is drawn
+      const sil = silhouetteOf(isPlayer);
+      const shown = and(visibleOf(isPlayer), sil);
+      const cp = screen(cx, cy);
+      const cSheet = G.assets.getSheet(crop.sprite);
+      const whole = opaqueOf(cSheet, G.assets.idleFrame(cSheet, crop, 0), Math.round(cp.x) + (crop.offset ? crop.offset[0] : 0), Math.round(cp.y) + (crop.offset ? crop.offset[1] : 0));
+      const over = and(and(sil, silhouetteOf(isCrop)), whole);
+      const covered = minus(over, shown);
+      row("21. a figure a tile behind a crop is covered where the crop is drawn", over.count > 0 && share(covered, over) >= 0.98, `${covered.count} of the ${over.count} px where the crop's whole pixels lie over the figure covered; ${pct(share(shown, sil))} of the figure shown`);
+      for (const c of crops) unplace(c);
+    }
+
+    // 22. Object Highlight on a piece of two tiles (the review of #530: each slice's copies on its own surface beat the next slice's own
+    // pixels, a light line down the seam): a bed, a table, the fireplace, and the chicken coop, each facing both ways on open ground and
+    // the bed against the house's north wall: no pixel the outline changes lies inside the piece's own silhouette.
+    {
+      const res = [];
+      for (const [sprite, tx, ty, fp, facing] of [
+        ["bed", X + 18, Y + 18, [2, 1], "x"], ["bed", X + 18, Y + 18, [1, 2], "y"], ["table", X + 18, Y + 18, [2, 1], "x"], ["table", X + 18, Y + 18, [1, 2], "y"],
+        ["fireplace", X + 18, Y + 18, [2, 1], "x"], ["fireplace", X + 18, Y + 18, [1, 2], "y"], ["chicken_coop", X + 18, Y + 18, [2, 1], "x"], ["chicken_coop", X + 18, Y + 18, [1, 2], "y"],
+        ["bed", X + 5, Y + 4, [2, 1], "x"],
+      ]) {
+        const piece = await place(sprite, tx, ty, { footprint: fp, facing });
+        standAt(tx < X + 10 ? X + 7 : tx + 2, tx < X + 10 ? Y + 6.5 : ty + 3);
+        const hl = { highlight: { kind: "prop", id: piece.id } };
+        const sil = silhouetteOf(isProp(piece));
+        const lit = diff(shot(isPlayer, hl), shot(isPlayer));
+        const inside = and(lit, sil).count;
+        res.push({ what: `${sprite} ${facing}${tx < X + 10 ? " against a wall" : ""}`, inside, ring: minus(lit, sil).count, sil: sil.count });
+        unplace(piece);
+      }
+      row("22. Object Highlight on a bed, a table, the fireplace, and the chicken coop: no outline pixel inside the piece's silhouette", res.every((r) => r.sil > 0 && r.ring > 0 && r.inside === 0), res.map((r) => `${r.what}: ${r.inside} inside of ${r.sil}, ${r.ring} round it`).join("; "));
+    }
+
+    // 23. No drawable's own layers climb past its kind's room at 16 bits (the review of #530: at a quarter of a unit a step a wall's
+    // sixth quad passed a prop's +1, and a pile of a dozen items climbed 12 units): the house with a lit torch on a bracket, a lantern on
+    // another, a painting, a boarded window and a door open, a pile, and the player with a lit torch and a shield. gl.js counts every
+    // quad whose step, at 16 bits' quarter unit, would reach its kind's room (scene.js DEPTH_ROOM); the room's last step holds it.
+    {
+      const segs = [[X + 6, Y + 4, { side: 1, torch: true, lit: true, made: true }], [X + 7, Y + 4, { side: 1, lantern: true, lit: true, made: true }]];
+      for (const [tx, ty, br] of segs) {
+        const w = G.map.peekTile(tx, ty).n;
+        w.bracket = br;
+        pokes.push(() => { delete w.bracket; });
+      }
+      const pw = G.map.peekTile(X + 5, Y + 4).n;
+      if (G.items.getItem("painting_small_oak")) {
+        pw.hangings = [{ item: "painting_small_oak", slot: 0, span: 1 }];
+        pokes.push(() => { delete pw.hangings; });
+      }
+      const win = G.map.peekTile(X + 4, Y + 5).w;
+      const wasWin = { kind: win.kind, boards: win.boards };
+      win.kind = "window";
+      win.boards = { near: [1, 1], far: [] };
+      pokes.push(() => { win.kind = wasWin.kind; win.boards = wasWin.boards; });
+      const door = G.map.peekTile(X + 8, Y + 8).n;
+      const wasOpen = door.open;
+      door.open = true;
+      pokes.push(() => { door.open = wasOpen; });
+      for (let x = X + 4; x <= X + 9; x++) for (let y = Y + 4; y <= Y + 8; y++) G.map.touch(x, y);
+      for (const id of ["apple", "apple", "bread", "stone", "stone", "apple", "bread", "stone", "apple", "apple", "bread", "stone"]) drop(X + 6, Y + 5, G.items.makeEntry(id, 1));
+      me.hands.main = G.items.makeEntry("torch", 1);
+      me.hands.main.lit = true;
+      if (G.items.getItem("shield")) me.hands.off = G.items.makeEntry("shield", 1);
+      standAt(X + 6.5, Y + 6.5, "s");
+      shot();
+      const inside = glm.depthInfo().pastRoomAt16;
+      standAt(X + 12, Y + 13, "n");
+      shot();
+      const outside = glm.depthInfo().pastRoomAt16;
+      row("23. at 16 bits no drawable's own layers climb past its kind's room (walls with a torch, a lantern, a painting, boards, a door open; a pile of twelve; a figure with a torch and a shield)", inside === 0 && outside === 0, `${inside} quads past their room from inside the house, ${outside} from the yard; the rooms ${JSON.stringify(scene.DEPTH_ROOM)}${G.items.getItem("painting_small_oak") ? "" : "; no painting_small_oak item: the painting left out"}`);
+      undrop();
+      me.hands.main = saved.main;
+      me.hands.off = saved.off;
+      while (pokes.length) pokes.pop()();
+      for (let x = X + 4; x <= X + 9; x++) for (let y = Y + 4; y <= Y + 8; y++) G.map.touch(x, y);
     }
 
     // 5. A tree in front of a house: a large oak on the tile against its south wall, and one a tile clear of it; the canopy over the wall's
@@ -765,40 +921,6 @@ export async function run(game, opts = {}) {
       row("12. no flicker (two draws of a still scene the same bytes), and the range holds", same && outOf === 0 && topsOk !== false, `${same ? "the same" : "different"}; ${outOf} of ${inside} standing vertices in the window outside the range; ${tops}; ${size}`);
     }
 
-    // 13. The cost: the busy view (night, a torch lit, twenty of the dead in view), the frame's time over sixty draws, and pass 2's count.
-    {
-      freeze(false);
-      G.clock.setHour(0);
-      standAt(X + 12, Y + 14);
-      me.hands.main = G.items.makeEntry("torch", 1);
-      me.hands.main.lit = true;
-      const dead = [];
-      for (let i = 0; i < 20; i++) {
-        const a = (i / 20) * Math.PI * 2;
-        const z = createZombie(X + 12 + Math.cos(a) * (3 + (i % 3)), Y + 14 + Math.sin(a) * (3 + (i % 3)), { hp: 1000 });
-        S.zombies.push(z);
-        dead.push(z);
-      }
-      step(2);
-      // The mean over 600 draws, after 30 to warm: the browser's clock is coarse (a tenth of a millisecond in the pane), and a frame
-      // takes about half a millisecond, so a median of sixty moves by a fifth with the clock's grain alone.
-      for (let i = 0; i < 30; i++) G.loop.advance(0);
-      const times = [];
-      for (let i = 0; i < 600; i++) {
-        G.loop.advance(0);
-        times.push(G.timing.render || 0);
-      }
-      const mean = times.reduce((a, b) => a + b, 0) / times.length;
-      times.sort((p, q) => p - q);
-      const median = times[300];
-      const stats = { ...scene.lastStats };
-      const before = Number(opts.before);
-      const within = Number.isFinite(before) && before > 0 ? mean <= before * 1.1 : null;
-      row("13. the cost on the busy view: the frame's time, and the drawables in pass 2", within, `mean ${mean.toFixed(3)} ms, median ${median.toFixed(2)}, over 600 draws (render's time, main.js)${Number.isFinite(before) && before > 0 ? ` against ${before} ms before: ${(100 * (mean / before - 1)).toFixed(1)}%` : "; pass { before: ms }, the mean of the same loop on main, to compare (within 10%)"}; ${stats.drawables} drawables, ${stats.translucent} in pass 2; ${JSON.stringify(glm.depthInfo().passes)} vertices by pass`);
-      for (const z of dead) S.zombies.splice(S.zombies.indexOf(z), 1);
-      me.hands.main = saved.main;
-      G.clock.setHour(12);
-    }
   } catch (err) {
     row("the check ran to its end", false, String(err && err.stack ? err.stack.split("\n").slice(0, 3).join(" | ") : err));
   } finally {
@@ -909,6 +1031,25 @@ export async function run(game, opts = {}) {
       }
     }
     return { n, ok };
+  }
+
+  // A mask of the buffer pixels under a frame's whole (opaque) pixels drawn at (x, y) by its anchor, one per world pixel.
+  function opaqueOf(sheet, name, x, y) {
+    const m = new Uint8Array(W() * H());
+    let c = 0;
+    const fd = frameData(sheet, name);
+    if (fd) {
+      const an = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
+      for (let v = 0; v < fd.f[3]; v++) {
+        for (let u = 0; u < fd.f[2]; u++) {
+          if (fd.data[(v * fd.f[2] + u) * 4 + 3] !== 255) continue;
+          const i = idx(x - an[0] + u, y - an[1] + v);
+          if (i >= 0 && !m[i]) { m[i] = 1; c++; }
+        }
+      }
+    }
+    m.count = c;
+    return m;
   }
 
   // The buffer indices of a frame's soft pixels (alpha between a twentieth and nineteen twentieths) drawn at (x, y) by its anchor.

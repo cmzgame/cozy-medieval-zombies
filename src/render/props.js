@@ -9,7 +9,7 @@ import { tileKey } from "../visibility.js";
 import { getItem } from "../items.js";
 import * as gl from "../gl.js";
 import { projectileSheet } from "./entities.js";
-import { OCCLUDER_MIN_HEIGHT, DEPTH_BIAS, frameQuad } from "./scene.js";
+import { OCCLUDER_MIN_HEIGHT, DEPTH_BIAS, DEPTH_ROOM, frameQuad } from "./scene.js";
 import * as depth from "./depth.js"; // a slice's two front faces, or a canopy's billboard (docs/51)
 import { WALL_T } from "../placeholders.js";
 import { makeWall } from "./walls.js";
@@ -166,20 +166,22 @@ function clickFrame(prop) {
   return null;
 }
 
-// A ridge surface held off the walls on tile (tx, ty)'s north and west edges (render/depth.js againstWalls), each by its own thickness;
-// a billboard (a canopy) is left as it is.
-function backWalls(surf, tx, ty) {
-  if (surf.xF === undefined) return surf;
+// The thickness of a wall on a tile's north or west edge, 0 where it has none.
+function wallThick(w) {
+  if (!w) return 0;
+  try {
+    return getSheet(w.sprite).thickness || WALL_T;
+  } catch {
+    return WALL_T;
+  }
+}
+
+// A surface held off the walls on tile (tx, ty)'s north and west edges (render/depth.js againstWalls), each by its own thickness; a
+// canopy's billboard is left as it is.
+function backWalls(surf, tx, ty, canopy = false) {
+  if (canopy) return surf;
   const t = map.tileAt(tx, ty);
-  const thick = (w) => {
-    if (!w) return 0;
-    try {
-      return getSheet(w.sprite).thickness || WALL_T;
-    } catch {
-      return WALL_T;
-    }
-  };
-  return depth.againstWalls(surf, tx, ty, thick(t && t.n), thick(t && t.w));
+  return depth.againstWalls(surf, tx, ty, wallThick(t && t.n), wallThick(t && t.w));
 }
 
 export function propDrawables(tiles, visible, out) {
@@ -218,9 +220,12 @@ export function propDrawables(tiles, visible, out) {
     // A hive in sight has its bees by day (#441): the far ones before it, the near ones after.
     const swarm = f && vis && i === 0 && getDef(prop.sprite).hive ? bees.beesFor(prop, f, x, y, an) : null;
     // Its depth (docs/51 section 3): the slice's own footprint tile's two front faces, split at its front corner; a tree's or any canopy's
-    // a billboard through that corner. Its flames, its bees, and its outline on the same surface.
-    const surf = depth.propSlice(tx, ty, !!getDef(prop.sprite).canopy);
-    const held = backWalls(surf, tx, ty); // held off the walls on its tile's back edges, which it stands against
+    // a billboard through that corner; a thing walked through (a crop, a mushroom, an herb) a billboard through its tile's centre. Its
+    // flames, its bees, and its outline on the same surface.
+    const walked = prop.solid === false;
+    const canopy = !walked && !!getDef(prop.sprite).canopy;
+    const surf = depth.propSlice(tx, ty, canopy, walked);
+    const held = backWalls(surf, tx, ty, canopy); // held off the walls on its tile's back edges, which it stands against
     const d = {
       key: (tx + ty) * 1000 + 1,
       kind: "prop",
@@ -234,7 +239,7 @@ export function propDrawables(tiles, visible, out) {
       tile: [tx, ty],
       surf: held,
       emit() {
-        gl.surface(held, DEPTH_BIAS.prop);
+        gl.surface(held, DEPTH_BIAS.prop, DEPTH_ROOM.prop);
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         if (swarm) bees.emit(swarm, true, [tx, ty]);
         if (sink > 0) risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, (loop.simTime() - prop.risenAt) / RES.riseSeconds, shudderOf(prop));
@@ -267,11 +272,18 @@ function highlightProp(lit, out) {
       return lit.filter((s) => !s.d.occluder);
     },
     highlightOf: lit[0].prop, // check("depth") finds the outline's drawable
-    // Each slice's copies on that slice's own depth surface, a step behind it (docs/51 section 3), so a slice in front of a wall keeps its
-    // whole outline and one behind a wall loses the part the wall covers.
+    // Every slice's copies on the farthest slice's depth surface, a step behind it (docs/51 section 3), as the sort drew the outline before
+    // every slice: each slice's own surface is in front of the farthest one's in its columns, so no copy is drawn over a slice's own pixels
+    // (the review of #530: on each slice's own surface the nearer slice's copies, a pixel into the farther slice's columns, beat its
+    // pixels there, a light line down the seam of a bed, a table, the fireplace, the coop), and a slice in front of a wall keeps its whole
+    // outline while one behind a wall loses the part the wall covers.
     emit() {
-      for (const s of this.outlined) {
-        gl.surface(s.surf, DEPTH_BIAS.prop);
+      const slices = this.outlined;
+      if (!slices.length) return;
+      let far = slices[0];
+      for (const s of slices) if (s.tx + s.ty < far.tx + far.ty) far = s;
+      gl.surface(far.surf, DEPTH_BIAS.prop, DEPTH_ROOM.prop);
+      for (const s of slices) {
         hl.outline(s.sheet, s.name, s.x, s.y, { world: [s.tx, s.ty], heights: s.f ? [s.f[3], s.f[3], 0, 0] : 0 }, false, 0, s.f ? swayOf(s.prop, s.f[3]) : 0);
       }
     },
@@ -288,9 +300,18 @@ export function floorItemDrawables(tiles, visible, out) {
     const x = Math.round(p.x);
     const y = Math.round(p.y);
     const vis = visible.has(tileKey(tx, ty));
-    // Its depth (docs/51 section 3): the tile's two front faces, split at its front corner, a little over the ground; what lies flat (a
-    // landed arrow, a thrown knife) is drawn in the flat pass, in the pile's place.
-    const surf = backWalls(depth.ridge(tx + 0.5, ty + 0.5), tx, ty);
+    // Its depth (docs/51 section 3): each block or picture a billboard through its own front foot, a little over the ground, held off the
+    // walls on the tile's back edges, so a figure standing on the pile's tile at its centre is drawn over the blocks behind its feet and
+    // one behind the pile is covered by the blocks before it (the review of #530: on the tile's two front faces, whose corner is half a
+    // tile before its centre, the pile covered a figure standing on it). Each block's layers start again on its own surface, so a pile of
+    // any size climbs no further than one block (at 16 bits a dozen items climbed 12 units). What lies flat (a landed arrow, a thrown
+    // knife) is drawn in the flat pass, in the pile's place.
+    const t = map.tileAt(tx, ty);
+    const Tn = wallThick(t && t.n);
+    const Tw = wallThick(t && t.w);
+    const footAt = (dy) => {
+      gl.surface(depth.againstWalls(depth.billboardBelow(tx, ty, dy + y - p.y), tx, ty, Tn, Tw), DEPTH_BIAS.floorItem, DEPTH_ROOM.floorItem);
+    };
     out.push({
       key: (tx + ty) * 1000 + 0.8,
       kind: "prop",
@@ -301,7 +322,6 @@ export function floorItemDrawables(tiles, visible, out) {
       tile: [tx, ty], // check("depth") finds its drawable
       items,
       emit() {
-        gl.surface(surf, DEPTH_BIAS.floorItem);
         items.forEach((e, i) => {
           const lit = hl.isItem(e.uid); // Object Highlight (#301)
           // An arrow that landed lies where it fell, pointing as it flew (docs/20); a thrown knife or axe too, as its own picture turned to
@@ -325,15 +345,24 @@ export function floorItemDrawables(tiles, visible, out) {
           // 2026-10-26); every other item keeps the block in its colour until it has drawn art.
           const pic = def.icon && def.icon.placeholder ? projectileSheet(`icon_${e.id}`) : projectileSheet(`floor_${e.id}`);
           if (pic) {
+            // The picture's foot: its frame's bottom row, drawn by its anchor.
+            const pf = pic.frames.idle_0;
+            const pa = (pic.frameAnchors && pic.frameAnchors.idle_0) || pic.anchor;
+            footAt(pf ? oy + 2 - pa[1] + pf[3] - y : oy + 2 - y);
             if (lit) hl.outline(pic, "idle_0", ox, oy + 2, { world: [tx, ty], heights: 0 });
             frameQuad(pic, "idle_0", ox, oy + 2, { world: [tx, ty], heights: 0, flags });
             return;
           }
+          // A block: its foot the bottom of its front faces; the halo behind its dark rim, the rim, then its three faces in one layer
+          // (they meet at their edges and never overlap).
+          footAt(oy + 6 - y);
           if (lit) hl.itemHalo(ox, oy, [tx, ty]);
           gl.poly([[ox - 7, oy], [ox, oy - 4], [ox + 7, oy], [ox, oy + 4]], gl.rgb("#1a1410"), { world: [tx, ty], flags });
+          gl.holdOrder(true);
           gl.poly([[ox - 6, oy], [ox, oy - 3], [ox + 6, oy], [ox, oy + 3]], c, { world: [tx, ty], flags });
           gl.poly([[ox - 6, oy], [ox, oy + 3], [ox, oy + 6], [ox - 6, oy + 3]], [c[0] * 0.6, c[1] * 0.6, c[2] * 0.6, 1], { world: [tx, ty], flags });
           gl.poly([[ox, oy + 3], [ox + 6, oy], [ox + 6, oy + 3], [ox, oy + 6]], [c[0] * 0.75, c[1] * 0.75, c[2] * 0.75, 1], { world: [tx, ty], flags });
+          gl.holdOrder(false);
         });
       },
     });

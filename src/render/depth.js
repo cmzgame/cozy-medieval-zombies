@@ -43,8 +43,7 @@ export function ridge(gx, gy) {
 
 // A surface's depth at a screen point (for the checks; gl.js computes its own per vertex).
 export function depthOn(s, sx, sy) {
-  if (s.xF === undefined || Number.isNaN(s.xF)) return s.A * sx - sy + s.C;
-  let d = s.C - sy - 1.5 * Math.abs(sx - s.xF);
+  let d = s.xF === undefined || Number.isNaN(s.xF) ? s.A * sx - sy + s.C : s.C - sy - 1.5 * Math.abs(sx - s.xF);
   for (const f of [s.floorL, s.floorR]) if (f) d = Math.max(d, f.A * sx - sy + f.C);
   return d;
 }
@@ -55,9 +54,10 @@ export function depthOn(s, sx, sy) {
 // corner on), and art that reaches there (a table's top, a chest's lid) would be cut by the wall it stands against. There the
 // surface follows the wall's near face instead (its plane, `floorR` for a north wall, `floorL` for a west one: depth is the most
 // of the ridge and those planes), so a prop against a wall is never behind it; the drawable's bias keeps it a little in front.
-// `Tn` and `Tw` are the walls' thicknesses in units, 0 where the edge has none.
+// `Tn` and `Tw` are the walls' thicknesses in units, 0 where the edge has none. A billboard is held so too when it stands on such a tile
+// (a floor item's block, a crop): a tree's canopy (`canopy`) is never held, its billboard reaching far past its tile.
 export function againstWalls(s, tx, ty, Tn, Tw) {
-  if (s.xF === undefined || (!Tn && !Tw)) return s;
+  if (!Tn && !Tw) return s;
   const out = { ...s };
   if (Tn) out.floorR = wallFace("n", tx, ty, Tn);
   if (Tw) out.floorL = wallFace("w", tx, ty, Tw);
@@ -71,9 +71,19 @@ export function figure(gx, gy) {
 }
 
 // A prop's slice at tile (tx, ty): the ridge of its footprint tile's front corner, or, for a tree or any canopy prop, a billboard
-// through that corner (a canopy far wider than its tile would fall back 1.5 a column on the split planes).
-export function propSlice(tx, ty, canopy = false) {
+// through that corner (a canopy far wider than its tile would fall back 1.5 a column on the split planes); and for a prop that is
+// walked through (`solid` false: a crop, a mushroom, an herb, a sapling) a billboard through its tile's centre, so a figure standing on
+// its tile at or before the centre is drawn over it and one behind the centre is covered by it, as the sort drew them (the review of
+// #530: on its two front faces a crop covered the legs of a figure walking its row).
+export function propSlice(tx, ty, canopy = false, walked = false) {
+  if (walked) return billboard(tx, ty);
   return canopy ? billboard(tx + 0.5, ty + 0.5) : ridge(tx + 0.5, ty + 0.5);
+}
+
+// A billboard through the ground point `dy` screen pixels below the tile centre (tx, ty), on its column: a floor item's block, by the
+// row of its own front foot (a pile's blocks are fanned back and up from the tile's centre).
+export function billboardBelow(tx, ty, dy) {
+  return billboard(tx + dy / (2 * iso.HH), ty + dy / (2 * iso.HH));
 }
 
 // A wall segment's near face: a north wall of tile (tx, ty) on y = ty - 0.5, a west wall on x = tx - 0.5, its face toward the camera
