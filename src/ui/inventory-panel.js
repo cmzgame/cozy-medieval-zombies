@@ -805,5 +805,9 @@ function openItemMenu(hit, e) {
     },
   }));
   const u = view.clientToUi(e.clientX, e.clientY);
-  menu.openContextMenu(u.x, u.y, wrapped);
+  // The menu stays while the player walks (main.js) and goes with its item: the same entry (by uid on a guest's replica, whose objects are
+  // new each frame) still in that bag, or in that slot.
+  const same = (q) => !!q && (q === hit.entry || (hit.entry.uid != null && q.uid === hit.entry.uid));
+  const still = hit.slot ? () => same(slotEntry(hit.slot)) : () => !!refind(hit.entry, hit.which);
+  menu.openContextMenu(u.x, u.y, wrapped, { still });
 }

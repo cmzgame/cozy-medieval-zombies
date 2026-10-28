@@ -846,7 +846,11 @@ function handleMouse() {
     }
   }
   menu.tookClick();
-  if (menu.isMenuOpen() && client.me.moving) menu.closeContextMenu();
+  // The world's menu closes when the player walks away from what it was opened on. An item's menu, opened on the bag, a container, the
+  // belt, a hand, or a worn slot, stays while the player walks (Michael's report, 2026-10-27: a tinderbox's Use while walking; only the
+  // pause menu stops the game) and closes when its item is no longer there.
+  if (menu.isItemMenu()) menu.closeIfGone();
+  else if (menu.isMenuOpen() && client.me.moving) menu.closeContextMenu();
 }
 
 function openActionsMenu(m) {
