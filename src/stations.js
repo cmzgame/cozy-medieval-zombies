@@ -254,8 +254,17 @@ export function bodyNearSegments(segs, d = 0.45, layer = 0) {
 
 // Whether a body (a player, a villager, one of the dead, an animal, a body lying) stands on any of these tiles: a built prop never goes up
 // over one (the review of #527: a 2 by 2 fire pit built within reach covered its builder, and could cover one of the dead).
+// Whether a body's circle reaches into a square tile (the tile's nearest point to its centre nearer than its radius, and a hair): a prop set
+// down over it traps it, since an overlapping body can no longer walk out through what it overlaps (map.moveCircle, the recheck of #549).
+// Exact for a square, so a body beside a tile's side within 0.8 of its centre counts, and one off its corner as near as it truly is.
+export function touchesTile(c, tx, ty) {
+  const r = (c.radius || 0.3) + 0.01;
+  const nx = Math.max(tx - 0.5, Math.min(c.gx, tx + 0.5));
+  const ny = Math.max(ty - 0.5, Math.min(c.gy, ty + 0.5));
+  return Math.hypot(c.gx - nx, c.gy - ny) < r;
+}
 export function bodyOnTiles(tiles, layer = null) {
-  return bodies().some((c) => c && (layer === null || (c.layer || 0) === layer) && tiles.some(([tx, ty]) => Math.hypot(c.gx - tx, c.gy - ty) < 0.7)); // on one storey when it is named (docs/49)
+  return bodies().some((c) => c && (layer === null || (c.layer || 0) === layer) && tiles.some(([tx, ty]) => touchesTile(c, tx, ty))); // on one storey when it is named (docs/49)
 }
 
 // Whether a made prop of this footprint may stand with its anchor at (x, y): every one of its tiles walkable, empty, bare of items, not
@@ -270,7 +279,7 @@ function fits(x, y, [w, h], near, layer = 0) {
     if (t.prop || t.items || !map.isWalkableTile(tx, ty) || map.besideDoor(tx, ty) || map.curveCrossed(tx, ty, layer)) return false; // never on a tile a ring's curve crosses (docs/50)
     if (dx > 0 && map.wallBetween(tx - 1, ty, tx, ty)) return false;
     if (dy > 0 && map.wallBetween(tx, ty - 1, tx, ty)) return false;
-    if (near.some((c) => Math.hypot(c.gx - tx, c.gy - ty) < 0.7)) return false;
+    if (near.some((c) => touchesTile(c, tx, ty))) return false;
   }
   return true;
 }

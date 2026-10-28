@@ -4757,7 +4757,7 @@ check("the fires: the Fireplace built along a wall by a guest's command, its fac
     const built = [];
     for (const facing of ["y", "x"]) {
       const f = fits[facing];
-      me.gx = f.tx + (facing === "x" ? 0.5 : 0.6);
+      me.gx = f.tx + (facing === "x" ? 0.5 : 0.85); // clear of its tiles: a body over one would be trapped (fix/overlap-traps)
       me.gy = f.ty + (facing === "x" ? 1.2 : 0.5);
       inventoryMod.addItem(bag2, "stone", facing === "y" ? 0 : 6);
       const before = gameMod.syncParts().map;
@@ -5959,6 +5959,68 @@ check("Michael's stair nook: walls along both sides of a stair and a back wall a
     assert(Math.abs(off) < 0.5, `through a side wall: off ${off.toFixed(2)}`);
   }
   return `built: ${edges.length} walls (the run's two sides, the back wall a tile past its top); the nook kept from the stair both ways; up and down the middle`;
+});
+check("no trap for a body that can no longer walk out of an overlap: no wall, door, or window built across another body, no door shut on one, no prop set down over one; a body climbing at a side limit arrives on the landing clear", () => {
+  const at = openGrass(6, 5);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const z = gameMod.state.zombies[0];
+  const free0 = rulesImport.rules.freeBuilding;
+  const saved = { gx: z.gx, gy: z.gy, layer: z.layer || 0 };
+  const res = [];
+  try {
+    rulesImport.rules.freeBuilding = true;
+    me.layer = 0;
+    // 1. A wall across the dead one standing on the edge: refused; it steps clear: built.
+    z.gx = x + 2; z.gy = y + 2.55; z.layer = 0; // 0.05 past the north edge of (x + 2, y + 3)
+    me.gx = x + 2; me.gy = y + 4.2;
+    placementImport.performPlacement(me, { kind: "build", what: "wall_oak", tx: x + 2, ty: y + 3, edge: "n" });
+    const refusedWall = !mapMod.peekTile(x + 2, y + 3).n;
+    z.gy = y + 2.1;
+    placementImport.performPlacement(me, { kind: "build", what: "wall_oak", tx: x + 2, ty: y + 3, edge: "n" });
+    const builtWall = !!mapMod.peekTile(x + 2, y + 3).n;
+    res.push(`wall: refused over a body ${refusedWall}, built once it stepped clear ${builtWall}`);
+    assert(refusedWall && builtWall, res.join("; "));
+    // 2. A door shut on a body in its doorway: refused, the door stays open; clear of it, it shuts.
+    mapMod.buildWall(x + 4, y + 3, "n", "door", "wall_wood", null, 0);
+    const door = mapMod.peekTile(x + 4, y + 3).n;
+    door.open = true;
+    z.gx = x + 4; z.gy = y + 2.6;
+    me.gx = x + 4; me.gy = y + 3.9;
+    interactImport.performByLabel(me, { kind: "edge", tx: x + 4, ty: y + 3, edge: "n" }, "Close door");
+    const stayedOpen = door.open === true;
+    z.gx = x + 5.5; z.gy = y + 1.5;
+    interactImport.performByLabel(me, { kind: "edge", tx: x + 4, ty: y + 3, edge: "n" }, "Close door");
+    res.push(`door: kept open over a body ${stayedOpen}, shut once clear ${door.open === false}`);
+    assert(stayedOpen && door.open === false, res.join("; "));
+    // 3. A prop over a body: the body's circle against the tile's square, exact (beside a side within 0.8, off a corner as near as it is).
+    const c = { gx: 10.79, gy: 10, radius: 0.3 };
+    const d = { gx: 10.6, gy: 10.6, radius: 0.3 };
+    const e = { gx: 10.85, gy: 10, radius: 0.3 };
+    res.push(`a tile at 10,10: a body at 0.79 beside ${stationsMod.touchesTile(c, 10, 10)}, off its corner at (0.6, 0.6) ${stationsMod.touchesTile(d, 10, 10)}, at 0.85 ${stationsMod.touchesTile(e, 10, 10)}`);
+    assert(stationsMod.touchesTile(c, 10, 10) && stationsMod.touchesTile(d, 10, 10) && !stationsMod.touchesTile(e, 10, 10), res.join("; "));
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+    Object.assign(z, saved);
+  }
+  // 4. Climbing at a side limit: on the landing it is clear of what is beside it (no overlap to be held in).
+  const s = tallHouse();
+  const [lx, ly] = s.landing;
+  mapMod.buildWall(lx, ly, "n", "wall", "wall_wood", null, 1);
+  mapMod.buildWall(lx, ly + 1, "n", "wall", "wall_wood", null, 1);
+  for (const off of [-0.35, 0.35]) {
+    const b = { gx: s.before[0] - s.d[1] * off, gy: s.before[1] + s.d[0] * off, layer: 0, rise: 0, radius: 0.3 };
+    for (let i = 0; i < 100 && b.layer === 0; i++) {
+      const m = mapMod.moveCircle(b.gx, b.gy, 0.3, s.d[0] * 0.05, s.d[1] * 0.05, b.layer);
+      b.gx = m.gx; b.gy = m.gy;
+      mapMod.stairStep(b);
+    }
+    const clear = b.layer === 1 && !mapMod.circleBlocked(b.gx, b.gy, 0.3, 1);
+    res.push(`on the landing from ${off}: clear ${clear}`);
+    assert(clear, res.join("; "));
+  }
+  return res.join("; ");
 });
 check("upper floors, step 1: the sync check sees a replica on the wrong storey (the players' and the dead's parts and hashText hash layer and rise); the ground hashes as before", () => {
   towerHouse();

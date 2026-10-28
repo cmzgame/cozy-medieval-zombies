@@ -792,6 +792,15 @@ function openingActions(o, player) {
       simple: true,
       label: open ? `Close ${name}` : `Open ${name}`,
       perform() {
+        if (w.kind === "door" && w.open) {
+          // Never shut on a body in the doorway (the actor or another): it would be trapped in the shut door, since an overlapping body
+          // can no longer walk out through what it overlaps (map.moveCircle). The host's and a guest's alike (performByLabel runs this).
+          const seg = o.edge === "n" ? [o.tx - 0.5, o.ty - 0.5, o.tx + 0.5, o.ty - 0.5] : [o.tx - 0.5, o.ty - 0.5, o.tx - 0.5, o.ty + 0.5];
+          if (stations.bodyNearSegments([seg], 0.31, map.layerOf(w.at))) {
+            showMessage("Someone is in the way");
+            return false;
+          }
+        }
         if (w.kind === "door") w.open = !w.open;
         else w.shutter = w.shutter === "open" ? "closed" : "open";
         map.touch(o.tx, o.ty, map.layerOf(w.at)); // the wall's own tile on its layer, so the save and the wire carry it (docs/31/05, item 6; it touched nothing before)

@@ -491,7 +491,7 @@ export function canPutDown(player, tx, ty) {
       if (map.stairAt(x, y, L) || map.landingAt(x, y, L)) return false; // never on a stair's step or its landing (the review of #549)
       if (map.besideDoor(x, y, L)) return false; // a door's two tiles stay clear: the dead go for it and need to stand there (#134)
       if (map.curveCrossed(x, y, L)) return false; // no furniture where a ring's curve crosses (Michael, 2026-10-26, docs/50)
-      if (Math.hypot(player.gx - x, player.gy - y) < 0.7) return false;
+      if (stations.bodyOnTiles([[x, y]], L)) return false; // no body, the carrier's or another's, within a body's reach of it: it would be trapped inside
       if (dx > 0 && map.wallBetween(x - 1, y, x, y, L)) return false;
       if (dy > 0 && map.wallBetween(x, y - 1, x, y, L)) return false;
     }
@@ -647,8 +647,13 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
     if (carried && woods.leafProblem(existing.sprite, carried, rules.freeBuilding, kind)) return woods.leafProblem(existing.sprite, carried, rules.freeBuilding, kind);
   }
   if (distToEdge(player.gx, player.gy, tx, ty, edge) < EDGE_CLEARANCE) return "Step back";
+  // Nobody else across it either: a wall built through a body traps it, as it can no longer walk out through what it overlaps (map.moveCircle).
+  if (stations.bodyNearSegments([edgeSegment(tx, ty, edge)], WALL_BODY_CLEAR, L)) return "Someone is in the way";
   return shortfall(player, what);
 }
+// An edge on the ground as a segment, and how near a body may stand to a wall going up on it (its radius, and a hair).
+const edgeSegment = (tx, ty, edge) => (edge === "n" ? [tx - 0.5, ty - 0.5, tx + 0.5, ty - 0.5] : [tx - 0.5, ty - 0.5, tx - 0.5, ty + 0.5]);
+const WALL_BODY_CLEAR = 0.31;
 
 function buildReason(player, what, tx, ty, edge, leaf = "") {
   const [mx, my] = map.edgeMid(tx, ty, edge);
