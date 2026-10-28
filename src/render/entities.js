@@ -142,7 +142,7 @@ export function fireDrawables(particles, visible, out) {
       key: (gx + gy) * 1000 + 2.5, // the depth buffer orders it against the walls (docs/51); the key orders the translucent pass
       kind: "fire",
       emit() {
-        gl.surface(surf, DEPTH_BIAS.figure + DEPTH_BIAS.particle);
+        gl.surface(surf, DEPTH_BIAS.figure + DEPTH_BIAS.particle + depth.across(gx, gy) * gl.depthStep()); // over its body, which is as far across
         frameQuad(getSheet("burn"), name, x, y, { world, heights: 0, color, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
       },
     });
@@ -242,7 +242,8 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
       vis: true,
       occluded: false,
       emit() {
-        gl.surface(surf, DEPTH_BIAS.figure, DEPTH_ROOM.figure);
+        // A little nearer by where it stands across its diagonal, so two side by side on one never tie (render/depth.js across).
+        gl.surface(surf, DEPTH_BIAS.figure + depth.across(e.gx, e.gy) * gl.depthStep(), DEPTH_ROOM.figure);
         const world = [e.gx, e.gy];
         const target = client.targets.has(e.id) && fade >= sightTuning.seenAt;
         if (target) {
