@@ -341,6 +341,8 @@ Then his answers to Primary's scan of the plan (#558), the same day:
 - **Cliffs shoot down as a second floor does:** "it should be no more difficulty than shooting from map level +1 on the 2nd story of any building, perhaps easier because there is no wall with a window to navigate." `49`'s steps 4 and 5, not extra work.
 - **A big map:** "We are going to need a big map, we're gonna have to figure out a way to not load the whole thing at one time and only load chunks near an active player." Untouched authored chunks evicted and regrown from the file; the plan's step 4.
 - **Scenery past the frame, finite:** "The wild might exist where there needs to be something beyond the map, for example if you stop people leaving the map with a river, it would be weird if it was a black void behind it, they should see more forest, but it would be unreachable and the map would never need to expand further in that direction. Does that make sense?" So beyond the frame a finite band of scenery wide enough to fill the view at the map's edge, unreachable, never growing; no black void and no camera clamp.
+- **A hill never fades; a player behind it is drawn as an outline.** Offered (a) that, or (b) the cliff face fading with the inside drawn as rock: "(a) makes sense."
+- **Parked:** "do not get started on building this yet, I want to park it while I play with second stories some more." The plan stays a plan; no build issue is filed.
 
 ### 2026-10-28 — Villagers are immune to the dead; the old ruling expunged (Michael)
 
