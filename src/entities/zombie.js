@@ -478,10 +478,15 @@ function nearestFlame(z) {
   return best;
 }
 
-
-
-
-
+// Whether a flame may not pull it (Michael, 2026-10-27: "Stay on window"; "Fire should not pull from where a zombie saw a player go in ...
+// They need to be persistent or the game will be too easy, and there will be no reason to build defenses"): it is on a player's trail,
+// hunting one first-hand or drawn in by a pull (`huntsPlayer`, cleared only by `giveUp`, so its search runs out by its own rule), holding
+// a siege, or breaking an opening, a window's shutters or boards or a door, whoever it is breaking in for (a breach ends by its own rules:
+// the way open, a bite in reach, the goal gone from that room). Only the dead with no player to follow go to a flame: idle, wandering, or
+// after a villager, or already walking to a flame.
+function onPlayersTrail(z) {
+  return !!(z.huntsPlayer || z.siege || z.breach);
+}
 
 // Walk toward a goal tile, repathing on the interval or when the goal moves.
 function moveToward(z, dt, goalTile, others) {
@@ -682,9 +687,10 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           z.state = "chase";
           z.repathTimer = 0;
         }
-      } else if (z.sincePlayer > T.flamePatience) {
+      } else if (z.sincePlayer > T.flamePatience && !onPlayersTrail(z)) {
         // A flame only takes over once the player has been out of sight a while,
-        // so a zombie you just pulled off a window does not turn straight back.
+        // so a zombie you just pulled off a window does not turn straight back;
+        // and never from a player's trail (onPlayersTrail).
         const f = nearestFlame(z);
         if (f) {
           z.aggro = true;

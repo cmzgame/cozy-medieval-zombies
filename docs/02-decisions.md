@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A flame never pulls one of the dead off a player's trail: one that saw a player go in, holds a siege, or is battering a window or a door stays on it; the flame takes only the dead with no player to follow (2026-10-27, A flame never pulls the dead off a player's trail)
 - Floors are built in plank and stone, anywhere, one tile at a time; no physics: an upper floor's tile is built wherever it touches a walkable tile of its own floor, and a floor's open edge is unwalkable, never a fall (2026-10-27, Floors are built a tile at a time, with no physics)
 - Round walls are stone only for now: a few on the map, built only with Free building until their cost is settled (2026-10-27, Round walls are stone only, a few on the map)
 - A torch is placed on a wall from its own menu with a bracket drawn with it; the Wall bracket item goes; rugs and paintings are found and collected, never built or crafted, marked collectible (2026-10-27, A torch goes on a wall with its bracket)
@@ -84,7 +85,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Authored structure, scattered filler: sets with padding rings, features, scatter by rule, the wild beyond; harvest first (2026-10-09, Milestone 1 passed, and the vibe pass)
 - Shutters on every window: tap E opens and closes; closed shutters block sight; doors start closed; fittings one wood (2026-10-09, Milestone 1 passed, and the vibe pass)
 - Torches mount in brackets and on posts, never on the ground (2026-10-09, afternoon, Torches, fire, hands, and the clock)
-- At night the dead see fire from far away; fires are data; a lit hearth lights its whole room (2026-10-09, afternoon, Torches, fire, hands, and the clock)
+- At night the dead see fire from far away; fires are data; a lit hearth lights its whole room (2026-10-09, afternoon, Torches, fire, hands, and the clock; narrowed 2026-10-27, A flame never pulls the dead off a player's trail)
 - Raw WebGL2 for the world, Canvas 2D for the dev art; portals are emitters with a transmission scalar (2026-10-09, night, The renderer goes to WebGL)
 - Openings are boards only, read from the attacker's side; everything spent, nothing repaired; nothing breaks a wall, save a fence to the dead (one alone slowly, a crowd faster) (2026-10-10, Openings; 2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
 - The dead attack the room's nearest opening, never a window as their way in, or, by default, the one they saw you use (2026-10-10, Openings; narrowed 2026-10-16, Nobody climbs through a window; region is the word; narrowed 2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
@@ -322,6 +323,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-27 — A flame never pulls the dead off a player's trail (Michael)
+
+#552 traced a window-batterer in `check("windows")` leaving its window at night: after three blows, with no sighting of a player for `flamePatience` (8 s), `nearestFlame` found the valley's fire pit 11.8 tiles off, inside `flameRange` (12), set the dead one's memory on it, and the breach was dropped. Asked "At night, a dead one battering a shut window will leave it for a lit flame within 12 tiles once it hasn't seen you for 8 seconds. Keep, or should a dead one already battering stay on the window?", Michael answered: "Stay on window." Then, widening it: "Fire should not pull from where a zombie saw a player go in, to clarify. They need to be persistent or the game will be too easy, and there will be no reason to build defenses." **Ruled:** a flame never pulls one of the dead on a player's trail: one hunting a player, first-hand or drawn in by a pull, until its search runs out by its own rule; one holding a siege; and one breaking an opening, a window's shutters or boards or a door (the ruling names the window; the door is the same breach and the same reason, a player inside). Each keeps the rules it already has for losing the trail: a breach ends when the way is open (a window then searched about, never passed), a bite is in reach, or the goal is no longer through that opening; a search runs out; a siege ends at its dawn. The flame takes only the dead with no player to follow (idle, wandering, after a villager, or already walking to a flame, or one whose trail has gone cold), at the same range and patience as before. *The builder's reading, Michael's to overrule:* a torch a player carries is a flame too, so it no longer draws one already on a player's trail from 12 tiles either; a player is still seen at sight's range, lit by the torch.
 
 ### 2026-10-27 — Floors are built a tile at a time, with no physics (Michael)
 
