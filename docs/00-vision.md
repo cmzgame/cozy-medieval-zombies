@@ -36,7 +36,7 @@ A survival sandbox with a frontier. Home is the cosy half: the farm, the hearth,
 5. **One rule or one meter.** Depth comes from a few simple rules colliding, never from a body map or a spreadsheet.
 6. **Dumb, distributed dead.** Unpredictability comes from distribution and persistence, not intelligence.
 7. **Everything is visible.** Fast states are bars. Slow needs are moodles with the number hidden.
-8. **The village is not empty.** A few villagers with no weapons, who flee, follow, stay, and die. Keeping them alive is a reason to defend more than your own door.
+8. **The village is not empty.** A few villagers with no weapons, who flee, follow, and stay, and are immune to the dead: "the game needs them to be there" (Michael, 2026-10-28, `02`).
 
 The probe of 2026-10-09 proved what the first milestone had to: the walk from the square into a cottage with no cut, the cut-away building, the window's wedge of sight, and a viewport big enough for a village. Everything since has been porting and data (the four proofs as written: `history/00-vision-trimmed.md`).
 

@@ -221,14 +221,41 @@ export async function run(game) {
       let battered = false;
       let searched = false;
       let passed = false;
+      // A villager walks past in plain sight while it batters (Michael, 2026-10-28: "a villager would never pull any zombie, let alone one
+      // on your window"): every villager is immune, so it is never prey; the batterer keeps on the window. Walked by hand along the wall,
+      // three tiles out, so its own fright (it cowers and runs from the dead) does not take it out of sight.
+      const { createVillager } = await import("/src/entities/villager.js");
+      const { lineOfSight } = await import("/src/visibility.js");
+      const passer = createVillager(from[0], from[1], { id: "vt_passer", name: "Passer" });
+      const ex = w.outside[0] - w.inside[0], ey = w.outside[1] - w.inside[1]; // outwards from the window
+      const walkSteps = 60 * 10;
+      let walked = -1; // the step the walk began, once the battering has
+      let inSight = 0, heldWindow = 0, drawnOff = false;
+      const dropPasser = () => { const i = G.game.state.villagers.indexOf(passer); if (i >= 0) G.game.state.villagers.splice(i, 1); };
+      restore.push(dropPasser);
       for (let i = 0; i < 60 * 240 && !searched; i++) {
+        if (battered && walked < 0 && G.map.needsBreaking(win.wall)) { walked = i; G.game.state.villagers.push(passer); }
+        const walking = walked >= 0 && i - walked < walkSteps && G.map.needsBreaking(win.wall);
+        if (walking) {
+          const t = (i - walked) / walkSteps; // from four tiles one side of the line to four the other, along the wall
+          const at = [from[0] - ey * (-4 + 8 * t), from[1] - ex * (-4 + 8 * t)];
+          if (G.map.isWalkableTile(Math.round(at[0]), Math.round(at[1]))) { passer.gx = at[0]; passer.gy = at[1]; passer.path = []; }
+        } else if (walked >= 0) dropPasser();
         step(1);
+        if (walking) {
+          const seen = Math.hypot(passer.gx - z.gx, passer.gy - z.gy) <= G.tuning.zombie.sight && lineOfSight(z.gx, z.gy, passer.gx, passer.gy, z.layer || 0);
+          if (seen) inSight++;
+          if (z.target === passer) drawnOff = true;
+          if (seen && z.breach && z.breach.wall === win.wall) heldWindow++;
+        }
         if (z.breach && z.breach.wall.kind === "window") battered = true;
         if (battered && z.state === "search" && z.noWay > 0) searched = true;
         if (G.map.tileAt(Math.round(z.gx), Math.round(z.gy)).room === G.map.tileAt(w.inside[0], w.inside[1]).room) passed = true;
       }
       row("[no door to reach] the dead batter the shut window open for sight", battered && (win.wall.shutter === "open" || win.wall.broken), `shutter ${win.wall.shutter}, broken ${!!win.wall.broken}, hp ${win.wall.hp}`);
       row("[no door to reach] then they search, and never pass the window", searched && !passed, `state ${z.state}, noWay ${(z.noWay || 0).toFixed(1)}`);
+      row("[no door to reach] a villager walking past in plain sight while it batters never draws it off: it keeps on the window", walked >= 0 && inSight >= 60 && !drawnOff && heldWindow === inSight && passer.hp === passer.maxHp,
+        `in its sight ${(inSight / 60).toFixed(1)} s, on the window ${(heldWindow / 60).toFixed(1)} s of them, drawn off ${drawnOff}, Passer ${passer.hp} of ${passer.maxHp}`);
       // Cost, against the same steps with that dead one far away and not hunting (the pane draws a frame each step, so the
       // baseline is not the headless 0.09 ms): the stalled one must not cost a path search every step.
       const timed = () => { const t0 = performance.now(); for (let i = 0; i < 300; i++) step(1); return (performance.now() - t0) / 300; };

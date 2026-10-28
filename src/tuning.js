@@ -114,7 +114,7 @@ export const villager = {
   talkIdleSeconds: 1, // seconds a villager stands after a conversation before it wanders (fixed, not rolled: talk never touches the generator)
   talkDeadRadius: 5, // tiles: with the dead this close a villager barks instead of talking (docs/34)
   barkMaxLength: 70, // characters: a bark line is at most this long, so a bubble stays a bubble (the validator's)
-  // The cowering (docs/43 section 7): an immune villager (the guide, a teacher) with one of the dead in sight within `cowerRadius` tiles cowers for
+  // The cowering (docs/43 section 7): an immune villager (every villager, 2026-10-28) with one of the dead in sight within `cowerRadius` tiles cowers for
   // `cowerSeconds`, arms up, a `cowerBubble` over its head as the visual twin, then runs about `fleeTiles` tiles away at `fleeSpeed` times its walk,
   // and paths back to its spot once none of the dead is within `cowerClearRadius`. Primary's defaults.
   cowerRadius: 3,

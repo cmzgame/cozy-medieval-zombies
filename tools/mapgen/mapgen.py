@@ -177,14 +177,13 @@ class MapGen:
     def zombie(self, x, y):
         self.json["zombies"].append([int(x), int(y)])
 
-    def villager(self, tile, name, wardrobe, line=None, immune=False, talk=None, guide=False):
-        # `immune`: the dead neither target nor harm this villager, whatever the world's rules (Michael, 2026-10-18, #180: a villager who
-        # teaches a skill is immune, like the guide; the rest can die, and some are there to be at risk).
+    def villager(self, tile, name, wardrobe, line=None, immune=True, talk=None, guide=False):
+        # `immune`: the dead neither target nor harm this villager. Every villager is (Michael, 2026-10-28, docs/02: "villagers are
+        # immune ... the game needs them to be there"); `immune=False` writes the kept mortal path's `"immune": false`, for a later ruling.
         v = {"tile": [int(tile[0]), int(tile[1])], "name": name, "wardrobe": wardrobe}
         if line:
             v["line"] = line
-        if immune:
-            v["immune"] = True
+        v["immune"] = bool(immune)
         # `talk` names the villager's file in data/talk (docs/34; the name lowercased when it is not given); `guide` marks the one beside the spawn.
         if talk:
             v["talk"] = talk
@@ -194,7 +193,7 @@ class MapGen:
 
     def guide(self, tile, name, wardrobe, line=None, talk="guide"):
         """The guide (docs/34; Michael, 2026-10-16, #90): a villager beside the spawn on every map this generator makes, immune to the dead
-        (a per-villager flag, #180), with a name and a voice like any other. `write` refuses a map without exactly one within GUIDE_REACH tiles."""
+        as every villager is, with a name and a voice like any other. `write` refuses a map without exactly one within GUIDE_REACH tiles."""
         self.villager(tile, name, wardrobe, line=line, immune=True, talk=talk, guide=True)
 
     def prop(self, sprite, tile, **extra):

@@ -54,7 +54,7 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
     pullDue: false, // a player's blow landed and it lived: its next step calls the dead that see it (docs/48; damageZombie has no list of them)
     lastSeen: null, // [gx, gy] where the player was last seen
     seesNow: false,
-    target: null, // who it is hunting right now: the player, or (the setting on) a villager it can see
+    target: null, // who it is hunting right now: a player, or a mortal villager it can see (none: every villager is immune, 2026-10-28)
     searchTimer: 0,
     path: [],
     groanTimer: rng.float() * T.groanMax, // so the dead do not all groan together
@@ -439,14 +439,16 @@ function canSeeCharacter(z, c, d) {
   return d <= range && (c.layer || 0) === (z.layer || 0) && lineOfSight(z.gx, z.gy, c.gx, c.gy, z.layer || 0);
 }
 
-// With the setting on, the nearest living villager in sight (docs/19). Only asked
-// when the player is not in sight: the dead always prefer the player.
+// The nearest living mortal villager in sight (docs/19). Only asked when the player is not in sight: the dead always prefer the player.
+// Every villager is immune (Michael, 2026-10-28: "a villager would never pull any zombie, let alone one on your window"), so this finds
+// none, and a dead one battering a window or a door, or in a siege, is never drawn off by one walking past. The path is kept for a later
+// ruling, which flips a villager's data (`immune: false` on its map entry), not this code.
 function nearestPrey(z, villagers) {
-  if (!villagers || !villagers.length || !rules.zombiesAttackVillagers) return null;
+  if (!villagers || !villagers.length) return null;
   let best = null;
   let bestD = Infinity;
   for (const v of villagers) {
-    if (v.dead || v.immune) continue; // an immune villager is never prey (#180)
+    if (v.dead || v.immune) continue; // an immune villager is never prey
     const d = distTo(z, v);
     if (d >= bestD || !canSeeCharacter(z, v, d)) continue;
     best = v;
@@ -679,8 +681,8 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         callOthers(z, others);
       }
     } else {
-      // The player first, always; failing that, with the setting on, the
-      // nearest villager in sight, hunted the same way (memory and all).
+      // The player first, always; failing that, the nearest mortal villager in sight (none while
+      // every villager is immune), hunted the same way (memory and all).
       const prey = nearestPrey(z, villagers);
       if (prey) {
         z.target = prey;
@@ -716,8 +718,8 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       giveUp(z);
     }
   }
-  // A target that died (a villager, bitten through) is no longer seen.
-  if (z.target && z.target.dead) {
+  // A target that died (a villager, bitten through) is no longer seen; nor one immune (a target restored from an older save).
+  if (z.target && (z.target.dead || z.target.immune)) {
     z.target = null;
     z.seesNow = false;
   }

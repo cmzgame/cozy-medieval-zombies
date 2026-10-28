@@ -2568,6 +2568,33 @@ check("villagers: Talk is not answered while an immune villager cowers or runs",
   return "refused cowering and running, answered wary";
 });
 
+// Every villager is immune to the dead (Michael, 2026-10-28, docs/02), by data: the map's flag, true unless an entry says `immune: false`,
+// and no world rule over it. A save from before holds `immune: false` on some villagers and a `zombiesAttackVillagers` rule: restored, the
+// villagers the map placed are immune again (the map's word, not the save's) and the rule is dropped. The mortal path is kept: a map entry
+// with `immune: false` makes a mortal villager (check("immune") has the dead hunt one).
+check("villagers: every one immune by the map's data; an older save's mortal villagers and rule do not come back", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  assert(S.villagers.length > 0 && S.villagers.every((v) => v.immune), `not every villager immune: ${S.villagers.filter((v) => !v.immune).map((v) => v.name).join(", ")}`);
+  assert(!("zombiesAttackVillagers" in rulesMod.rules), "the world still has a villagers rule");
+  const save = JSON.parse(JSON.stringify(gameMod.serialize()));
+  for (const v of save.characters.villagers) v.immune = false; // as a save from before the ruling held the at-risk ones
+  save.rules = { ...save.rules, zombiesAttackVillagers: true };
+  gameMod.restore(save, json);
+  assert(gameMod.state.villagers.every((v) => v.immune), `restored mortal: ${gameMod.state.villagers.filter((v) => !v.immune).map((v) => v.name).join(", ")}`);
+  assert(!("zombiesAttackVillagers" in rulesMod.rules), "an older save's villagers rule came back");
+  const mortalJson = JSON.parse(JSON.stringify(json));
+  mortalJson.villagers[1].immune = false; // the kept path: a later ruling flips this data, not code
+  gameMod.create({ json: mortalJson, rules: { zombieAggro: false } });
+  const flipped = gameMod.state.villagers.filter((v) => !v.immune).map((v) => v.name);
+  assert(flipped.length === 1 && flipped[0] === mortalJson.villagers[1].name, `the map's immune false did not make one mortal: ${flipped.join(", ")}`);
+  const kept = JSON.parse(JSON.stringify(gameMod.serialize()));
+  gameMod.restore(kept, mortalJson);
+  assert(gameMod.state.villagers.filter((v) => !v.immune).length === 1, "a mortal villager's flag did not survive its own map's restore");
+  return `${S.villagers.length} immune; an older save's ${save.characters.villagers.length} immune again; a map's immune false makes ${flipped[0]} mortal`;
+});
+
 // Burn corpse's done line (docs/43 section 7; docs/bugs.md, fixed): the hours read from `work.burnCorpse.hours`, as the card reads them.
 check("burn corpse: the done line says the hours the data gives", () => {
   const json = read("data/maps/valley.json");
