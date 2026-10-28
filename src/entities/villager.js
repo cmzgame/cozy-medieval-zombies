@@ -1,7 +1,8 @@
 // Villagers (docs/19, step 3): living figures on the character model that
 // wander near where the map put them and, when poked, stop, turn to you, and
-// say their line. The dead hunt them only behind a setting (`zombiesAttackVillagers`,
-// docs/19), and one bitten to death turns (`turnVillager`); a swing passes
+// say their line. Every villager is immune to the dead (Michael, 2026-10-28, docs/02: "villagers are immune ... the game needs
+// them to be there"): the `immune` flag, true unless a map entry says `immune: false`. The mortal path is kept, off by data, for a
+// later ruling: the dead hunt a villager whose flag is false, and one bitten to death turns (`turnVillager`). A swing passes
 // through them, they have no needs. `hp`, `maxHp`, `dead`, `radius`, `worn`, and
 // `look` are on them so that fleeing and following (docs/04) need no reshaping.
 // They walk with the walking they share with the dead (movement.js), on a tether
@@ -31,6 +32,12 @@ export function setTalkWorld(fn) {
   talkWorld = fn;
 }
 
+// Whether a map's villager is immune to the dead (Michael, 2026-10-28): yes, unless its entry says `immune: false` (the mortal path, kept
+// for a later ruling; no map has one now). The map's word, read at creation and again at a restore (game.js), never the save's.
+export function immuneOf(spec) {
+  return !spec || spec.immune !== false;
+}
+
 // A villager's talk id (docs/34): the map's `talk`, else the name lowercased; null for a nameless one.
 export function talkIdOf(spec) {
   return spec.talk || (spec.name ? String(spec.name).toLowerCase() : null);
@@ -38,15 +45,15 @@ export function talkIdOf(spec) {
 
 // `line` is what they say when poked ("Hey!" unless the map gives one);
 // `wardrobe` indexes the village wardrobes in data/wardrobes.json.
-export function createVillager(gx, gy, { id = null, name = null, line = null, wardrobe = 0, immune = false, talk: talkId = null, guide = false } = {}) {
+export function createVillager(gx, gy, { id = null, name = null, line = null, wardrobe = 0, immune = true, talk: talkId = null, guide = false } = {}) {
   const v = {
     ...createCharacter("villager", gx, gy, { id: id || `v${nextId++}`, name, speed: T.speed, radius: T.radius, hp: 100 }),
     home: [gx, gy],
-    state: "idle", // idle | wander | talk | hurt | cower | flee | wary (the last three an immune villager's, docs/43 section 7)
+    state: "idle", // idle | wander | talk | hurt | cower | flee | wary (the last three an immune villager's, docs/43 section 7; hurt a mortal one's)
     greeting: line || "Hey!",
-    immune: !!immune, // the dead neither target nor harm it, whatever the world's rules (#180: a teacher, like the guide; the rest can die)
+    immune: !!immune, // the dead neither target nor harm it (every villager, Michael 2026-10-28); false, the kept mortal path: hunted, bitten, turned
     talk: talkId, // the name of its file in data/talk (docs/34); none, or a file that is not there, and it says its map line
-    guide: !!guide, // the one beside the spawn who explains the rules (docs/34, #90); immune comes with it from the map
+    guide: !!guide, // the one beside the spawn who explains the rules (docs/34, #90); immune as every villager is
     barkTurns: {}, // group index -> which of its lines comes next (bookkeeping nothing reads; no rng, so a bark never shifts the generator)
     barkAt: null, // sim seconds of its last ambient bark
     talkingWith: [], // the ids of the players in conversation with it, sorted (docs/34): it stands and faces whoever spoke last while any is here
@@ -60,7 +67,7 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
     pokedAt: null, // sim milliseconds of the last poke that spoke; null for none (a poke at sim 0 is a poke)
     hurtTimer: 0,
     regenAt: 0, // sim seconds before which a hurt villager does not heal (a hit sets it)
-    cowerTimer: 0, // seconds of the cowering left (docs/43 section 7: an immune villager with the dead near; states cower, flee, wary)
+    cowerTimer: 0, // seconds of the cowering left (docs/43 section 7: an immune villager, so every one, with the dead near; states cower, flee, wary)
     cowerFrom: null, // [gx, gy]: where the dead one stood that it cowers from, and runs from
   };
   wardrobeInto(v, "village", wardrobe);
@@ -75,7 +82,7 @@ function regen(v, dt) {
 }
 
 // ---- the cowering (docs/43 section 7): the ground for the villagers who flee for real (docs/04) ----
-// An immune villager (the guide, a teacher) that sees one of the dead within `cowerRadius` cowers for `cowerSeconds`, arms up (the `cower`
+// An immune villager (every villager, Michael 2026-10-28) that sees one of the dead within `cowerRadius` cowers for `cowerSeconds`, arms up (the `cower`
 // pose on a villager's sheet), a "!" over its head as the visual twin; then it runs about `fleeTiles` away from the dead one at `fleeSpeed`
 // times its walk, stands wary there, and walks back to its spot once none of the dead is within `cowerClearRadius`. The states ride in the
 // villager's record (`state`, `anim`, `line`), so every client draws it; nothing here rolls the generator (the way out is chosen by angle).
@@ -234,9 +241,8 @@ export function updateVillager(v, dt, others, players = []) {
   advanceAnimation(v.anim, sheet, dt);
 }
 
-// A villager bitten (the dead hunt them when the setting says so, docs/19): the
-// flinch, and at zero health they are dead, to be turned by `turnVillager`.
-// Returns whether it killed.
+// A villager bitten: an immune one (every villager now) takes nothing; a mortal one (the kept path, `immune: false`) the
+// flinch, and at zero health it is dead, to be turned by `turnVillager`. Returns whether it killed.
 export function damageVillager(v, amount) {
   if (v.dead || v.immune) return false; // an immune villager takes no harm from anything
   floaters.damage(v, amount); // the red number over its head (#294)

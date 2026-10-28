@@ -55,7 +55,7 @@ export async function run(game) {
     row("the granaries' chests name those tables, and the barn's tool rack names a hoe", placedLoot(sets["Hollow Farm's granary"]).includes("granary_hollow") && placedLoot(sets["the mill's granary"]).includes("granary_mill") && placedLoot(sets["Hollow Farm's great barn"]).includes("barn_rack") && seedsIn("barn_rack").includes("hoe"), "tables named");
 
     // The mill.
-    row("the mill has its millstones, a wheel, and the miller alive and not immune", sets["the mill"].buildings.some((b) => (b.props || []).some((q) => q.sprite === "millstones")) && sets["the mill"].props.some((q) => q.sprite === "millwheel") && json.villagers.some((v) => v.name === "Miller" && !v.immune), "the mill");
+    row("the mill has its millstones, a wheel, and the miller, immune to the dead as every villager is (2026-10-28)", sets["the mill"].buildings.some((b) => (b.props || []).some((q) => q.sprite === "millstones")) && sets["the mill"].props.some((q) => q.sprite === "millwheel") && json.villagers.some((v) => v.name === "Miller" && v.immune !== false), "the mill");
     const rec = G.stations.recipe("flour");
     row("the millstones grind grain to flour with no fire", rec && rec.station === "millstones" && !rec.fire && rec.in[0].id === "grain" && rec.out.id === "flour", JSON.stringify(rec));
 
