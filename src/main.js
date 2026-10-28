@@ -1704,6 +1704,10 @@ async function boot() {
       }
       // A host's own drag into a chest marks its chunk, so a guest sees the chest change.
       handlers.changed = () => { if (!net.isGuest() && openBag && openBag.tiles && openBag.tiles[0]) map.markDirty(openBag.tiles[0][0], openBag.tiles[0][1]); };
+      // The opening of the container beside the bag, the same object while it stays open (a guest's grid refound by its address each frame
+      // keeps it), null once it closes, and null out of reach or behind a wall (#208) even before this step's check closes it: an item's
+      // menu opened with it goes with it, and its Store in or Take picked then does nothing (ui/inventory-panel.js).
+      handlers.openContainer = () => (openBag && canReach(client.me, openBag.tiles, openBag.closeDist || tuning.world.containerCloseDist) ? openBag : null);
       panel.initInventoryPanel(handlers);
       placement.init({ startAction: interact.startAction });
       mapPanel.initMapPanel();
