@@ -218,25 +218,55 @@ function runPlane(s, u) {
   const P = [s.low[0] + s.d[0] * u, s.low[1] + s.d[1] * u];
   return s.d[0] !== 0 ? planeX(P[0]) : planeY(P[1]);
 }
-function emitDrawnStair(s, sheet, name, bias) {
+// Where a stair's picture stands on screen: its frame's top-left, with the frame's size. The sheet's anchors are tile-centre anchors (the loader
+// turns the definition's top-vertex anchor, the artist's, into the tile's centre, 16 px lower), so the anchor goes on the centre of the low-end
+// tile (the review of #541, Michael's playtest: put on the top vertex, the picture stood half a tile up and across from its tiles, and the
+// walkable band ran over its near side).
+export function stairPicture(s, sheet, name) {
   const f = sheet.frames[name];
-  const uv = gl.frameUV(sheet, name);
-  if (!f || !uv) return false;
+  if (!f) return null;
   const anchor = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
   const [lx, ly] = s.tiles[0];
-  const A = iso.toScreen(lx - 0.5, ly - 0.5); // the low-end tile's top vertex, at the ground
-  const ax = Math.round(A.x);
-  const ay = Math.round(A.y);
-  const uvOf = ([X, Y]) => [uv[0] + anchor[0] + (X - ax), uv[1] + anchor[1] + (Y - ay)];
+  const A = iso.toScreen(lx, ly);
+  return { left: Math.round(A.x) - anchor[0], top: Math.round(A.y) - anchor[1], w: f[2], h: f[3] };
+}
+// A convex polygon clipped to an axis-aligned rectangle (Sutherland-Hodgman): a part laid over the picture never samples past its frame, where
+// the atlas holds the next frame (a column of the north-facing picture's outline drew a thin black line beside the west one's head post).
+function clipToRect(pts, x0, y0, x1, y1) {
+  let out = pts;
+  const edges = [[(p) => p[0] >= x0, (a, b) => [x0, a[1] + ((b[1] - a[1]) * (x0 - a[0])) / (b[0] - a[0])]], [(p) => p[0] <= x1, (a, b) => [x1, a[1] + ((b[1] - a[1]) * (x1 - a[0])) / (b[0] - a[0])]], [(p) => p[1] >= y0, (a, b) => [a[0] + ((b[0] - a[0]) * (y0 - a[1])) / (b[1] - a[1]), y0]], [(p) => p[1] <= y1, (a, b) => [a[0] + ((b[0] - a[0]) * (y1 - a[1])) / (b[1] - a[1]), y1]]];
+  for (const [inside, cut] of edges) {
+    const src = out;
+    out = [];
+    for (let i = 0; i < src.length; i++) {
+      const a = src[i];
+      const b = src[(i + 1) % src.length];
+      const ia = inside(a);
+      const ib = inside(b);
+      if (ia) out.push(a);
+      if (ia !== ib) out.push(cut(a, b));
+    }
+    if (out.length < 3) return null;
+  }
+  return out;
+}
+function emitDrawnStair(s, sheet, name, bias) {
+  const uv = gl.frameUV(sheet, name);
+  const pic = stairPicture(s, sheet, name);
+  if (!pic || !uv) return false;
+  const uvOf = ([X, Y]) => [uv[0] + (X - pic.left), uv[1] + (Y - pic.top)];
+  const quad = (pts, o) => {
+    const q = clipToRect(pts, pic.left, pic.top, pic.left + pic.w, pic.top + pic.h);
+    if (q) gl.texQuad(q, q.map(uvOf), o);
+  };
   const world = s.tiles[1];
   const opts = { world, page: uv[4] };
   const [dx, dy] = s.d;
   const P = (u, o) => [s.low[0] + dx * u + -dy * o, s.low[1] + dy * u + dx * o];
   const nearO = (dx !== 0 ? P(0, 0.5)[1] > P(0, -0.5)[1] : P(0, 0.5)[0] > P(0, -0.5)[0]) ? 0.5 : -0.5;
   // 1. The whole picture on its far side's plane.
-  const left = ax - anchor[0];
-  const top = ay - anchor[1];
-  const rect = [[left, top], [left + f[2], top], [left + f[2], top + f[3]], [left, top + f[3]]];
+  const { left, top } = pic;
+  const rect = [[left, top], [left + pic.w, top], [left + pic.w, top + pic.h], [left, top + pic.h]];
   gl.surface(sidePlane(s, -nearO), bias, 1);
   gl.texQuad(rect, rect.map(uvOf), opts);
   // 2. The treads' tops, each on the horizontal plane at its height, and the risers under their front edges.
@@ -249,14 +279,14 @@ function emitDrawnStair(s, sheet, name, bias) {
       const riser = [P(u0, -0.5), P(u0, 0.5)].map(([x, y]) => at(x, y));
       gl.surface(runPlane(s, u0), bias + 0.25, 1);
       const rq = [[riser[0][0], riser[0][1] - h], [riser[1][0], riser[1][1] - h], [riser[1][0], riser[1][1] - (h - 8)], [riser[0][0], riser[0][1] - (h - 8)]];
-      gl.texQuad(rq, rq.map(uvOf), { ...opts, heights: [h, h, h - 8, h - 8] });
+      quad(rq, { ...opts, heights: [h, h, h - 8, h - 8] });
     }
     const corners = [P(u0, -0.5), P(u1, -0.5), P(u1, 0.5), P(u0, 0.5)];
     const pts = corners.map(([x, y]) => at(x, y, h));
     withLift(h, () => {
       const o = iso.getOrigin();
       gl.surface({ A: 0, B: 2, C: -2 * o.y }, bias + 0.5, 1);
-      gl.texQuad(pts, pts.map(uvOf), opts);
+      quad(pts, opts);
     });
   }
   // 3. The near side: the newel, the stringer and panel under the treads' line, the post at the head.
@@ -267,7 +297,7 @@ function emitDrawnStair(s, sheet, name, bias) {
     [side(0.3, 0), side(2.7, 0), side(2.7, 2.7 * 32 + SIDE_OVER), side(0.3, 0.3 * 32 + SIDE_OVER)],
     [side(2.7, 0), side(3.25, 0), side(3.25, HEAD_POST_H), side(2.7, HEAD_POST_H)],
   ];
-  for (const q of pieces) gl.texQuad(q, q.map(uvOf), opts);
+  for (const q of pieces) quad(q, opts);
   return true;
 }
 // The stairs of layer L whose steps are among `tilesL`, as drawables: the drawn stair's picture, one drawable a stair (each of its
