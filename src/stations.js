@@ -244,7 +244,8 @@ export function setBodies(fn) {
 
 // Whether a body stands within `d` of any of these ground segments ([ax, ay, bx, by]): a ring never goes up through one (placement.js, docs/50).
 export function bodyNearSegments(segs, d = 0.45, layer = 0) {
-  return bodies().some((c) => c && (c.layer || 0) === layer && segs.some(([ax, ay, bx, by]) => {
+  // A body lying is no body to trap: a ring goes up over a corpse as a wall does (#553).
+  return bodies().some((c) => c && !c.corpse && (c.layer || 0) === layer && segs.some(([ax, ay, bx, by]) => {
     const vx = bx - ax;
     const vy = by - ay;
     const t = Math.max(0, Math.min(1, ((c.gx - ax) * vx + (c.gy - ay) * vy) / (vx * vx + vy * vy || 1)));
