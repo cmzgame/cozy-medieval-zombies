@@ -476,7 +476,7 @@ export async function run(game) {
       row("a Fireplace fits along a west wall (facing y, 1 by 2) and a north wall (facing x, 2 by 1), and is refused outdoors and in the open of a room", !!fits.y && !!fits.x && JSON.stringify(fits.y.footprint) === "[1,2]" && JSON.stringify(fits.x.footprint) === "[2,1]" && !!outside && !!openTile, `y ${fits.y ? `${fits.y.tx},${fits.y.ty}` : "none"}, x ${fits.x ? `${fits.x.tx},${fits.x.ty}` : "none"}; outdoors ${outside}; open floor ${openTile}`);
       if (fits.y) {
         const f = fits.y;
-        G.teleport(f.tx + 0.6, f.ty + 0.5);
+        G.teleport(f.tx + 0.85, f.ty + 0.5); // clear of its tiles: a body over one would be trapped in it (fix/overlap-traps)
         G.loop.advance(1 / 60);
         const st0 = G.inventory.countAll(me, "stone");
         G.inventory.addItem(sack, "stone", 6);

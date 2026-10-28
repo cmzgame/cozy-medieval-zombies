@@ -2788,7 +2788,7 @@ export function stairStep(body) {
         // Onto the landing at its full width (the recheck of #549): a body climbed the steps on its feet, as near a side as STAIR_FEET lets
         // it; on the landing it is all of it, so it is set in from the landing's sides as far as it is round, never arriving over a wall
         // or the void beside the landing.
-        const lim = Math.max(0, 0.5 - (body.radius || 0.3));
+        const lim = Math.max(0, 0.5 - (body.radius || 0.3) - 1e-6); // a hair inside, so rounding never sets it overlapping (map.moveCircle's overlap rule)
         if (Math.abs(off) > lim) {
           const by = (Math.sign(off) * lim - off);
           body.gx += -s.d[1] * by;
@@ -2926,8 +2926,9 @@ function doorOnColumn(col, y, layer = 0) {
 }
 
 // Move a circle by (dx, dy) with axis-separated resolution so it slides. If the
-// circle is already inside something blocked, movement is unrestricted so it can
-// walk out instead of being frozen. Same rule as the cozy parent.
+// circle already overlaps something, it may move only where it goes no deeper
+// into it (the recheck of #549; with its centre inside something it walks out
+// freely, as the cozy parent's rule had every overlap do).
 //
 // Door magnet: a doorway is one tile wide and a body is 0.6, so walking straight
 // at a door only fits when nearly centred. When a step into a wall is blocked
