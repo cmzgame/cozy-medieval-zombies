@@ -146,6 +146,53 @@ export async function run(game) {
     G.loop.advance(1 / 60);
     const down = walk([s.tiles[2], s.tiles[1], s.tiles[0], s.before], 260);
     row("down again: over the top edge onto the stair, the rise falling, off its foot on the ground", me.layer === 0 && (me.rise || 0) === 0 && down.some(([l, r]) => l === 0 && r > 60), `layer ${me.layer}, rise ${me.rise || 0}`);
+    // 7. Built in the open with Free building (docs/49 section 5): a stair, walked up by the auto-walk, a floor grown from its landing, a wall
+    // on it upstairs, each through the placement command a guest's click sends; Free building put back after.
+    const free0 = G.rules.rules.freeBuilding;
+    const P = G.placement;
+    const run = (cmd, secs) => { P.performPlacement(me, cmd); for (let i = 0; i < Math.round(60 * secs); i++) G.loop.advance(1 / 60); };
+    try {
+      G.rules.set({ freeBuilding: true });
+      // Open grass, 8 by 7, near where the player stood.
+      let at = null;
+      const cx0 = Math.round(saved.gx);
+      const cy0 = Math.round(saved.gy);
+      G.teleport(cx0, cy0);
+      me.layer = 0;
+      G.loop.advance(1 / 60);
+      for (let dy = -14; dy <= 14 && !at; dy++) for (let dx = -14; dx <= 14 && !at; dx++) {
+        const x = cx0 + dx;
+        const y = cy0 + dy;
+        let ok = true;
+        for (let ay = -1; ay <= 7 && ok; ay++) for (let ax = -1; ax <= 8 && ok; ax++) { const t = map.peekTile(x + ax, y + ay); ok = !!t && !t.prop && !t.rug && !t.n && !t.w && !(t.items && t.items.length) && map.isWalkableTile(x + ax, y + ay) && !map.stairAt(x + ax, y + ay, 0) && map.peekTile(x + ax, y + ay, 1) === null; }
+        if (ok) at = [x, y];
+      }
+      if (!at) row("built in the open: a stair, a floor grown from its landing, a wall on it", false, "no open ground near the player");
+      else {
+        const [x, y] = at;
+        G.teleport(x + 6.5, y + 3);
+        me.layer = 0;
+        me.rise = 0;
+        G.loop.advance(1 / 60);
+        run({ kind: "build", what: "stair_wood", tx: x + 5, ty: y + 3, dir: "w" }, 21);
+        const bs = map.stairs().find((q) => q.built && q.at[0] === x + 5 && q.at[1] === y + 3);
+        G.teleport(x + 6, y + 3);
+        me.layer = 0;
+        G.loop.advance(1 / 60);
+        if (bs) walk([...bs.tiles, bs.landing], 240);
+        const up1 = me.layer === 1;
+        run({ kind: "build", what: "floor_wood", tx: x, ty: y + 2, tx2: x + 1, ty2: y + 4 }, 8);
+        let grown = 0;
+        for (let yy = y + 2; yy <= y + 4; yy++) for (let xx = x; xx <= x + 1; xx++) if (map.peekTile(xx, yy, 1).floor === "floor_wood") grown++;
+        me.gx = x + 0.4;
+        me.gy = y + 4.1;
+        run({ kind: "build", what: "wall_oak", tx: x + 1, ty: y + 3, edge: "w" }, 4);
+        const wl = map.peekTile(x + 1, y + 3, 1).w;
+        row("built in the open: a stair (Free building), walked up, a floor grown tile by tile from its landing, a wall on it upstairs", !!bs && up1 && grown === 6 && !!wl, `stair ${bs ? bs.at + " " + bs.dir : "none"}, up ${up1}, ${grown} of 6 tiles grown, wall ${wl ? wl.kind : "none"}`);
+      }
+    } finally {
+      G.rules.set({ freeBuilding: free0 });
+    }
   } finally {
     scene.probe.skip = null;
     scene.probe.mark = null;

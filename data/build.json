@@ -154,5 +154,56 @@
     "tool": "build",
     "dev": true,
     "note": "docs/50: a round room, 5 or 7 across, by a drag from one corner of its square; stone only, shown and buildable only while Free building is on (Michael, 2026-10-27: \"A few on the map, buildable by dev settings, otherwise not in the game yet until we settle on cost, etc.\"); its cost is per edge of the outline (40 stone at 5, 56 at 7), a placeholder and Primary's default, never charged since Free building waives it; the seconds the builder's default (two fifths more at 7)"
+  },
+  "floor_wood": {
+    "label": "Plank floor",
+    "kind": "floor",
+    "sprite": "floor_wood",
+    "cost": {
+      "plank": 1
+    },
+    "seconds": 1,
+    "tool": "build",
+    "dev": true,
+    "note": "docs/49 section 5 (Michael, 2026-10-27, 02 \"Floors are built a tile at a time, with no physics\"): a tile at a time, by a drag for a rectangle; on the ground over the floor there (kept, and put back when it is taken up), on a storey wherever it touches a floor already walkable there; shown and buildable only while Free building is on until the floors are costed (Primary's default, as the round stone wall); 1 plank a tile, a placeholder and Primary's default, never charged while Free building is on; the seconds a tile the builder's default"
+  },
+  "floor_stone": {
+    "label": "Stone floor",
+    "kind": "floor",
+    "sprite": "floor_stone",
+    "cost": {
+      "stone": 1
+    },
+    "seconds": 1,
+    "tool": "build",
+    "dev": true,
+    "note": "as the Plank floor, in the stone floor the map already draws; 1 stone a tile (Primary's default)"
+  },
+  "stair_wood": {
+    "label": "Wood stair",
+    "kind": "stair",
+    "sprite": "stair_wood",
+    "material": "wood",
+    "cost": {
+      "plank": 10
+    },
+    "seconds": 20,
+    "tool": "build",
+    "dev": true,
+    "note": "docs/49 section 5: a stair three tiles long from the tile under the cursor, climbing on away from the player, its landing's planks laid on the storey above (one of its planks); north and west only for now (Primary's default: \"Stairs climb away from the camera\", Michael to confirm); the drawn stair (art round 8); never taken apart (ruled); Free building only for now; the cost docs/49 section 5's default, never charged while Free building is on; the seconds the builder's default"
+  },
+  "stair_stone": {
+    "label": "Stone stair",
+    "kind": "stair",
+    "sprite": "stair_stone",
+    "material": "stone",
+    "cost": {
+      "stone": 9,
+      "plank": 1
+    },
+    "seconds": 30,
+    "tool": "build",
+    "dev": true,
+    "note": "as the Wood stair, in stone (9 stone and a plank, docs/49 section 5's default); its landing a stone floor"
   }
 }

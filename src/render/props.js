@@ -87,6 +87,17 @@ export function emitGhost(ghost) {
     rings.emitRingGhost({ id: "ghost", x0: ghost.x0, y0: ghost.y0, n: ghost.n, layer: ghost.layer || 0, sprite: ghost.sprite }, tint, GHOST_FLAGS()); // a round room as it would stand (docs/50 section 5)
     return;
   }
+  if (ghost.kind === "floor") {
+    // A floor's drag (docs/49 section 5): each tile a diamond, green where it will be laid and red where not.
+    for (const [tx, ty, why] of ghost.tiles) emitGhostTile(tx, ty, 0, why ? GHOST_BAD : GHOST_OK);
+    return;
+  }
+  if (ghost.kind === "stair") {
+    // A stair (docs/49 section 5): its three tiles, each a step higher, and its landing a storey up.
+    ghost.tiles.forEach(([tx, ty], k) => emitGhostTile(tx, ty, (k + 1) * 32, tint));
+    emitGhostTile(ghost.landing[0], ghost.landing[1], map.STOREY, tint);
+    return;
+  }
   if (ghost.kind === "wall") {
     // A wall, door, or window as it would stand, drawn by the real wall code.
     const wall = map.createWall(ghost.wallType || ghost.wallKind, ghost.sprite);
@@ -113,6 +124,19 @@ export function emitGhost(ghost) {
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) cells.push([ghost.tx + dx, ghost.ty + dy, dy * w + dx]);
     emitPropCells(getSheet(ghost.prop.sprite, w * h), cells, ghost.ok, ghost.prop);
   }
+}
+
+// A tile's diamond `up` px over its ground, washed in `tint`, outlined: a floor's or a stair's ghost.
+function emitGhostTile(tx, ty, up, tint) {
+  const p = iso.toScreen(tx, ty);
+  const x = Math.round(p.x);
+  const y = Math.round(p.y) - up;
+  const O = [[x, y - iso.HH], [x + iso.HW, y], [x, y + iso.HH], [x - iso.HW, y]];
+  const flags = gl.FLAG_NOFOG | gl.FLAG_UNLIT;
+  gl.poly(O, [tint[0], tint[1], tint[2], 0.45], { world: [tx, ty], flags });
+  const k = 0.86;
+  const I = O.map(([px, py]) => [Math.round(x + (px - x) * k), Math.round(y + (py - y) * k)]);
+  for (let i = 0; i < 4; i++) gl.poly([O[i], O[(i + 1) % 4], I[(i + 1) % 4], I[i]], [tint[0], tint[1], tint[2], 0.9], { world: [tx, ty], flags });
 }
 
 // A clicked interactable sways: its base stays put and its top leans one way,

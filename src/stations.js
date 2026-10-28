@@ -254,8 +254,8 @@ export function bodyNearSegments(segs, d = 0.45, layer = 0) {
 
 // Whether a body (a player, a villager, one of the dead, an animal, a body lying) stands on any of these tiles: a built prop never goes up
 // over one (the review of #527: a 2 by 2 fire pit built within reach covered its builder, and could cover one of the dead).
-export function bodyOnTiles(tiles) {
-  return bodies().some((c) => c && tiles.some(([tx, ty]) => Math.hypot(c.gx - tx, c.gy - ty) < 0.7));
+export function bodyOnTiles(tiles, layer = null) {
+  return bodies().some((c) => c && (layer === null || (c.layer || 0) === layer) && tiles.some(([tx, ty]) => Math.hypot(c.gx - tx, c.gy - ty) < 0.7)); // on one storey when it is named (docs/49)
 }
 
 // Whether a made prop of this footprint may stand with its anchor at (x, y): every one of its tiles walkable, empty, bare of items, not
