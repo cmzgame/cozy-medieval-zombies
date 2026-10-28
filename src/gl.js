@@ -15,9 +15,9 @@
 // drawable set (`surface`): a vertical plane through true geometry, `depth = A * sx - sy + C` at screen point (sx, sy),
 // or a ridge, two such planes meeting at a column (a prop's two front faces, split at its footprint's front corner),
 // across which a quad is cut in two. `a_world` and `a_height` go on serving the light and are never the depth. Quads
-// go to four passes, drawn in this order: flat (the ground and what lies on it; no depth written or tested), opaque
+// go to five passes, drawn in this order: flat (the ground and what lies on it; no depth written or tested), opaque
 // (depth tested and written, alpha under a half discarded), translucent (tested, not written: a quad with a colour
-// alpha under 1, an occluder, or one from a soft sheet, per quad), and on top (no test: the ghosts, the marker, the hit
+// alpha under 1, an occluder, or one from a soft sheet, per quad), a faded storey (PASS_FADE, below), and on top (no test: the ghosts, the marker, the hit
 // shapes). Within a drawable each quad sits a small step nearer than the one emitted before it, so a drawable's own
 // layering (a cap over its face, a flame over its hearth, a held sword over the hand) stands; an outline's copies sit a
 // step behind their base.
@@ -36,6 +36,13 @@ export const PASS_FLAT = 0;
 export const PASS_STAND = 1;
 export const PASS_TRANS = 2;
 export const PASS_TOP = 3;
+// A faded storey (docs/49 section 6, "a storey you stand behind fades"): while `setFade` is on, a standing quad that would be opaque goes
+// here instead, drawn after the translucent pass twice: first its depth alone (the alpha test at a half, no colour), so each pixel keeps
+// the storey's nearest surface, then its colour where it is that nearest surface, at the fade's alpha, writing no more depth. The storey
+// is laid over what is behind it as one sheet at the near-wall fade's alpha, never its walls, floor, and caps stacked one through
+// another, and a body behind it, drawn opaque in pass 1, shows through. A quad of it that is translucent already goes to the translucent
+// pass with its alpha times the fade's.
+export const PASS_FADE = 4;
 
 // The depth range follows the camera (docs/51 section 5): a vertex stores its depth less the camera's own
 // ((cam.gx + cam.gy) * 32), and the clip z is 1 - 2 (depth - base) / 8192 with base the camera's depth less 4096,
@@ -58,14 +65,14 @@ const restoreHooks = [];
 let program = null;
 let vao = null;
 let vbo = null;
-// One vertex store per pass (PASS_FLAT, the opaque, the translucent, PASS_TOP), each in emit order; `verts` and `count` are the one being
+// One vertex store per pass (PASS_FLAT, the opaque, the translucent, PASS_TOP, PASS_FADE), each in emit order; `verts` and `count` are the one being
 // written, swapped in by `useBucket`. The ground's quads are the first of the flat store.
-const buckets = [0, 1, 2, 3].map(() => ({ verts: new Float32Array(1 << 15), count: 0 }));
+const buckets = [0, 1, 2, 3, 4].map(() => ({ verts: new Float32Array(1 << 15), count: 0 }));
 let cur = 0;
 let verts = buckets[0].verts;
 let count = 0; // floats written to the current store
-let upload = new Float32Array(1 << 17); // the four stores end to end, for the one buffer upload of a frame
-let lastPassCounts = [0, 0, 0, 0]; // vertices in each pass last frame (check("depth"), the cost row)
+let upload = new Float32Array(1 << 17); // the stores end to end, for the one buffer upload of a frame
+let lastPassCounts = [0, 0, 0, 0, 0]; // vertices in each pass last frame (check("depth"), the cost row)
 let lastRoomStep16 = 0; // the last frame's quads whose step would have passed their kind's room at 16 bits (check("depth"))
 
 // ---- the depth surface (docs/51 section 3) ----
@@ -91,6 +98,8 @@ let center = 0; // the camera's depth this frame: vertices store depth less it
 let frameNo = 0; // frames begun: what a per-frame cache keys on (render/walls.js's posts)
 let roomStep16 = 0; // quads this frame whose step would pass their kind's room at 16 bits' step (check("depth")): the layering's own need, unclamped
 const STEP_16 = (2 * 2 * DEPTH_HALF_RANGE) / 2 ** 16;
+let fadeA = 0; // > 0 while a faded storey emits (setFade): its alpha
+let fadeDraw = 1; // the alpha the fade pass is drawn at this frame
 let mark = null; // check("depth")'s probe: [r, g, b] every quad is drawn in, flat, unlit, and unfogged, its alpha and its pass kept
 let whiteUV = null;
 let emptyUV = null; // a transparent patch: what a sprite that could not be placed draws as (a last resort now: a sheet larger than a page, or a page the GPU refused)
@@ -317,6 +326,7 @@ uniform float u_minStanding;
 uniform float u_softLight;
 uniform int u_debug;
 uniform float u_alphaCut; // the opaque pass's alpha test (a half); the others' near-clear floor
+uniform float u_fade; // the faded storey's alpha in its colour draw (PASS_FADE); 1 otherwise
 
 // The player's own weak night vision: the cozy parent's gradient stops.
 float poolAt(vec2 p) {
@@ -373,7 +383,7 @@ void main() {
     float vis = upper ? texture(u_fog2, tileUV).r : texture(u_fog, tileUV).r;
     if (vis < 0.5) rgb = mix(rgb, u_fogColor, u_fogAlpha);
   }
-  o = vec4(rgb * a, a);
+  o = vec4(rgb * a, a) * u_fade;
 }`;
 
 function compile(type, src) {
@@ -434,7 +444,7 @@ function setup() {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);
-  for (const name of ["u_res", "u_texSize", "u_tex", "u_ground", "u_isGround", "u_light", "u_ambient", "u_fog", "u_light2", "u_ambient2", "u_fog2", "u_hasUpper", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_softLight", "u_debug", "u_depthHalf", "u_alphaCut"]) {
+  for (const name of ["u_res", "u_texSize", "u_tex", "u_ground", "u_isGround", "u_light", "u_ambient", "u_fog", "u_light2", "u_ambient2", "u_fog2", "u_hasUpper", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_softLight", "u_debug", "u_depthHalf", "u_alphaCut", "u_fade"]) {
     uniforms[name] = gl.getUniformLocation(program, name);
   }
   vao = gl.createVertexArray();
@@ -808,7 +818,14 @@ function keepBucket() {
 // figure's carried torch send their halos there and the rest of the wall or the figure stays opaque); else the opaque pass.
 function route(alpha, flags, soft) {
   if (pass === PASS_FLAT || pass === PASS_TOP) return pass;
-  return alpha < 1 || flags & FLAG_OCCLUDER || soft ? PASS_TRANS : PASS_STAND;
+  if (alpha < 1 || flags & FLAG_OCCLUDER || soft) return PASS_TRANS;
+  return fadeA ? PASS_FADE : PASS_STAND;
+}
+
+// A faded storey's quads follow (render/scene.js, docs/49 section 6): `alpha` the fade's (the near-wall fade's), 0 or null to stop.
+export function setFade(alpha) {
+  fadeA = alpha || 0;
+  if (fadeA) fadeDraw = fadeA;
 }
 
 // The probe's mark (scene.js `probe.mark`, check("depth")): while set, every quad that follows is drawn in this one colour, flat (its
@@ -929,6 +946,7 @@ function clipSide(P, n, X, left, out) {
 function emitPoly(P, n, pg, c, flags, soft) {
   flags |= extraFlags;
   const b = route(c[3], flags, soft);
+  if (fadeA && b === PASS_TRANS) c = [c[0], c[1], c[2], c[3] * fadeA]; // a faded storey's own translucent quad, fainter with it
   if (mark) {
     c = [mark[0], mark[1], mark[2], c[3]];
     flags |= FLAG_UNLIT | FLAG_NOFOG | FLAG_SOLID;
@@ -1205,7 +1223,7 @@ function uploadAtlas() {
 // Draw everything pushed since begin() with these uniforms.
 export function end(u) {
   keepBucket(); // the store being written keeps its count, whichever it is: a frame whose last quad lies flat (nothing standing in it) included
-  for (let b = 0; b < 4; b++) lastPassCounts[b] = buckets[b].count / STRIDE;
+  for (let b = 0; b < buckets.length; b++) lastPassCounts[b] = buckets[b].count / STRIDE;
   lastRoomStep16 = roomStep16;
   if (lost) return; // nothing to draw to; the batch is dropped
   uploadAtlas();
@@ -1241,6 +1259,7 @@ export function end(u) {
   gl.uniform1f(uniforms.u_minStanding, u.minStanding);
   gl.uniform1f(uniforms.u_softLight, u.softLight || 0);
   gl.uniform1i(uniforms.u_debug, u.debug);
+  gl.uniform1f(uniforms.u_fade, 1);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D_ARRAY, atlasTex);
   gl.activeTexture(gl.TEXTURE1);
@@ -1258,7 +1277,7 @@ export function end(u) {
   gl.uniform1i(uniforms.u_hasUpper, hasUpper);
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-  // The four passes' stores end to end in one upload.
+  // The passes' stores end to end in one upload.
   let total = 0;
   for (const b of buckets) total += b.count;
   if (upload.length < total) {
@@ -1299,6 +1318,18 @@ export function end(u) {
   gl.depthMask(false);
   gl.uniform1f(uniforms.u_alphaCut, ALPHA_FLOOR);
   if (span(PASS_TRANS)) gl.drawArrays(gl.TRIANGLES, first[PASS_TRANS], span(PASS_TRANS));
+  // A faded storey (PASS_FADE): its nearest surface's depth, then its colour there at the fade's alpha.
+  if (span(PASS_FADE)) {
+    gl.uniform1f(uniforms.u_alphaCut, ALPHA_TEST);
+    gl.colorMask(false, false, false, false);
+    gl.depthMask(true);
+    gl.drawArrays(gl.TRIANGLES, first[PASS_FADE], span(PASS_FADE));
+    gl.colorMask(true, true, true, true);
+    gl.depthMask(false);
+    gl.uniform1f(uniforms.u_fade, fadeDraw);
+    gl.drawArrays(gl.TRIANGLES, first[PASS_FADE], span(PASS_FADE));
+    gl.uniform1f(uniforms.u_fade, 1);
+  }
   // On top: the ghosts, the hit shapes, the marker; no test.
   gl.depthFunc(gl.ALWAYS);
   if (span(PASS_TOP)) gl.drawArrays(gl.TRIANGLES, first[PASS_TOP], span(PASS_TOP));

@@ -56,6 +56,66 @@ export function hiderFor(viewer) {
   return hide;
 }
 
+// ---- the fade (docs/49 section 6: "a storey you stand behind fades", a default Michael ordered built, 2026-10-27) ----
+// An upper storey of a building between the viewer and the camera, covering the viewer's body on screen, is drawn at the near-wall
+// fade's alpha (render/scene.js, gl.js PASS_FADE), so a player behind a two-storey house is not lost. "Covering" is the body's screen
+// rectangle against the storey's: the storey is the box over its footprint (to the walls' faces) from its floor to its walls' tops (and
+// the caps and posts over them); a body's point is covered when the line from it toward the camera passes through that box in front of
+// the body's own front, and the body is covered when any of a grid of points over its rectangle is. On the screen (origin 0) a grid
+// point (X, Y) at height Z is at x = (X - Y) HW, y = (X + Y) HH - Z, so the points drawn at one screen point are X + Y = m, X - Y = s,
+// Z = m HH - y for every m, nearer the camera the larger m: the box's three slabs each give a range of m, and the body's front is
+// m = gx + gy + 2 r (render/depth.js figure). Each client its own player's; nothing on the wire. A building the viewer stands in never
+// fades (its storeys above are hidden), nor a storey at or under the viewer's own layer; a storey a player builds outside the index is
+// left as it is until it has tiles of its own to be read by (docs/49 section 5).
+const FADE_HALF = 8; // px either side of a body's middle
+const FADE_ROWS = [4, 18, 32, 46]; // px over its feet: the legs to the crown (the head's centre is at 38, figure/rig.js)
+const FADE_EDGE = 0.15; // tiles a wall's face stands past its footprint's edge line (half the thickest wall)
+const FADE_OVER = 12; // px the caps and the posts' tops reach over the storey's 96
+const FADE_FRONT = 0.6; // a body's front, gx + gy + 2 r (render/depth.js figure)
+export function storeyCovers(body, r, L) {
+  if (!body || !r) return false;
+  const m0 = body.gx + body.gy;
+  const s0 = body.gx - body.gy;
+  const y0 = m0 * iso.HH - liftOf(body); // the feet on the screen, the origin 0
+  const X0 = r[0] - 0.5 - FADE_EDGE;
+  const X1 = r[0] + r[2] - 0.5 + FADE_EDGE;
+  const Y0 = r[1] - 0.5 - FADE_EDGE;
+  const Y1 = r[1] + r[3] - 0.5 + FADE_EDGE;
+  const Z0 = L * map.STOREY;
+  const Z1 = (L + 1) * map.STOREY + FADE_OVER;
+  for (const dx of [-FADE_HALF, 0, FADE_HALF]) {
+    const s = s0 + dx / iso.HW;
+    for (const z of FADE_ROWS) {
+      const y = y0 - z;
+      const lo = Math.max(2 * X0 - s, 2 * Y0 + s, (Z0 + y) / iso.HH, m0 + FADE_FRONT);
+      const hi = Math.min(2 * X1 - s, 2 * Y1 + s, (Z1 + y) / iso.HH);
+      if (lo < hi) return true;
+    }
+  }
+  return false;
+}
+// The test the fade puts on a tile of a layer: on a storey that covers `viewer`, its footprint and the row and column past its south and
+// east sides (their walls), as the hiding rule's. `sig` names what fades (a floor's picture is kept for it), `any` whether anything does.
+export function faderFor(viewer) {
+  const none = () => false;
+  none.sig = "";
+  none.any = false;
+  const VL = (viewer && viewer.layer) || 0;
+  if (!viewer || VL < 0) return none;
+  const own = map.buildingAt(Math.round(viewer.gx), Math.round(viewer.gy), VL);
+  const hits = [];
+  for (const b of map.buildings()) {
+    if (b === own) continue;
+    for (const L of b.layers) if (L > VL && L > 0 && storeyCovers(viewer, b.rects[L], L)) hits.push({ b, L, r: b.rects[L] });
+  }
+  if (!hits.length) return none;
+  const fade = (x, y, layer) => hits.some((h) => h.L === layer && x >= h.r[0] && y >= h.r[1] && x <= h.r[0] + h.r[2] && y <= h.r[1] + h.r[3]);
+  fade.sig = hits.map((h) => `${h.b.id}:${h.L}`).join(",");
+  fade.any = true;
+  fade.layers = new Set(hits.map((h) => h.L));
+  return fade;
+}
+
 // Whether `viewer` sees `body` at all by the hiding rule (its bars, bubbles, and name with it): a body on a storey hidden over the viewer's
 // building is not drawn, a cellar's body is seen only from that cellar, and from a cellar only its own bodies.
 export function shownTo(viewer, body, hide = hiderFor(viewer)) {
@@ -212,12 +272,13 @@ function emitDrawnStair(s, sheet, name, bias) {
 }
 // The stairs of layer L whose steps are among `tilesL`, as drawables: the drawn stair's picture, one drawable a stair (each of its
 // parts on its own plane); the dev art's twelve boxes where a material has no picture.
-export function stairDrawables(tilesL, L, bias, out) {
+export function stairDrawables(tilesL, L, bias, out, only = null) {
   const list = map.stairsOn(L);
   if (!list.length) return;
   const inView = new Set(tilesL.map(([x, y]) => `${x},${y}`));
   for (const { s, well } of list) {
     if (well) continue;
+    if (only && !only(s)) continue; // a faded storey's stairs, or the rest (by its middle step)
     if (!s.tiles.some(([tx, ty]) => inView.has(`${tx},${ty}`))) continue;
     let sheet = null;
     try { sheet = getSheet(`stair_${s.material || "wood"}`); } catch { sheet = null; }
@@ -281,20 +342,40 @@ function floorSheet(c) {
 export function forgetFloors() {
   bakes.clear();
   hiddenBakes.clear();
+  fadedBakes.clear();
 }
 map.onEvict((key) => {
   bakes.delete(key);
   hiddenBakes.delete(key); // the review of #534: kept for every chunk ever hidden, never dropped
+  fadedBakes.delete(key);
 });
 
 // The floors of layer L under the view, each chunk's one quad at its height: depth written and tested on the floor's own horizontal plane
 // (depth = X + Y + the storey, rising two units a screen pixel down), `bias` over the caps of the walls below it, which it meets at their
-// top. `hidden` leaves out the chunks wholly inside a hidden building (a chunk only partly so is drawn and its hidden tiles cleared).
-export function emitFloors(tilesL, L, bias, hidden) {
+// top. `hidden` leaves out the tiles of a hidden building, and `faded` those of a faded storey, which emitFadedFloors draws (a chunk
+// none of whose tiles either takes is its whole picture).
+export function emitFloors(tilesL, L, bias, hidden, faded = null) {
+  const out = faded && faded.any ? both(hidden, faded) : hidden;
+  eachFloorChunk(tilesL, L, bias, (c) => maskedSheet(c, out, false, hiddenBakes) || floorSheet(c));
+}
+
+// A faded storey's floor (docs/49 section 6): each chunk's picture of the faded tiles alone, its quad on the floor's plane as emitFloors'
+// (drawn under gl.setFade, so it is laid over what is under it at the fade's alpha and the body behind it shows).
+export function emitFadedFloors(tilesF, L, bias, faded) {
+  eachFloorChunk(tilesF, L, bias, (c) => maskedSheet(c, faded, true, fadedBakes));
+}
+
+function both(a, b) {
+  const f = (x, y, l) => a(x, y, l) || b(x, y, l);
+  f.sig = `${a.sig || ""}|${b.sig || ""}`;
+  return f;
+}
+
+function eachFloorChunk(tiles, L, bias, sheetOf) {
   const o = iso.getOrigin();
   gl.surface({ A: 0, B: 2, C: -2 * o.y }, bias, 0.5);
   const seen = new Set();
-  for (const [tx, ty] of tilesL) {
+  for (const [tx, ty] of tiles) {
     const cx = Math.floor(tx / map.CHUNK);
     const cy = Math.floor(ty / map.CHUNK);
     const k = map.chunkKey(cx, cy, L);
@@ -302,7 +383,8 @@ export function emitFloors(tilesL, L, bias, hidden) {
     seen.add(k);
     const c = map.getChunk(cx, cy, false, L);
     if (!c) continue;
-    const sheet = hiddenSheet(c, hidden) || floorSheet(c);
+    const sheet = sheetOf(c);
+    if (!sheet) continue;
     const p = iso.toScreen(cx * map.CHUNK, cy * map.CHUNK);
     const x = p.x - map.CHUNK * iso.HW - PAD;
     const y = p.y - iso.HH - PAD;
@@ -312,19 +394,21 @@ export function emitFloors(tilesL, L, bias, hidden) {
   }
 }
 
-// A chunk's picture with the hidden building's tiles cleared, or null when nothing of it is hidden (kept per chunk while the hiding
-// stays the same: the viewer's building and the chunk's version).
-const hiddenBakes = new Map(); // chunk key -> { sheet, v, sig }
-function hiddenSheet(c, hidden) {
-  if (!hidden) return null;
+// A chunk's picture with the tiles `test` takes cleared (`keep` false: null when it takes none, the whole picture serving), or with every
+// tile but those cleared (`keep` true: null when it takes none, nothing to draw), kept per chunk in `store` while the test's `sig` and the
+// chunk's version stay the same.
+const hiddenBakes = new Map(); // chunk key -> { sheet, v, sig }: the hidden (and faded) tiles cleared
+const fadedBakes = new Map(); // chunk key -> { sheet, v, sig }: the faded tiles alone
+function maskedSheet(c, test, keep, store) {
+  if (!test) return null;
   const C = map.CHUNK;
   let any = false;
-  for (let i = 0; i < C * C && !any; i++) if (hidden(c.cx * C + (i % C), c.cy * C + Math.floor(i / C), c.layer)) any = true;
+  for (let i = 0; i < C * C && !any; i++) if (test(c.cx * C + (i % C), c.cy * C + Math.floor(i / C), c.layer)) any = true;
   if (!any) return null;
   const base = floorSheet(c);
   const key = map.chunkKey(c.cx, c.cy, c.layer);
-  const sig = hidden.sig || "";
-  const had = hiddenBakes.get(key);
+  const sig = test.sig || "";
+  const had = store.get(key);
   if (had && had.v === c.lightVersion && had.sig === sig) return had.sheet;
   const canvas = had ? had.sheet.image : document.createElement("canvas");
   canvas.width = base.image.width;
@@ -332,24 +416,25 @@ function hiddenSheet(c, hidden) {
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(base.image, 0, 0);
-  ctx.globalCompositeOperation = "destination-out";
+  // Clearing: the tiles taken cut out. Keeping: everything but them cut out (the picture drawn in only where their diamonds are).
+  ctx.globalCompositeOperation = keep ? "destination-in" : "destination-out";
+  ctx.beginPath();
   for (let ly = 0; ly < C; ly++) {
     for (let lx = 0; lx < C; lx++) {
-      if (!hidden(c.cx * C + lx, c.cy * C + ly, c.layer)) continue;
+      if (!test(c.cx * C + lx, c.cy * C + ly, c.layer)) continue;
       const cx = (lx - ly) * iso.HW + C * iso.HW + PAD;
       const cy = (lx + ly) * iso.HH + iso.HH + PAD;
-      ctx.beginPath();
       ctx.moveTo(cx, cy - iso.HH - 1);
       ctx.lineTo(cx + iso.HW + 1, cy);
       ctx.lineTo(cx, cy + iso.HH + 1);
       ctx.lineTo(cx - iso.HW - 1, cy);
       ctx.closePath();
-      ctx.fill();
     }
   }
+  ctx.fill();
   ctx.globalCompositeOperation = "source-over";
   const sheet = had ? had.sheet : { image: canvas, frames: { all: [0, 0, canvas.width, canvas.height] }, anchor: [0, 0] };
   if (had) gl.redrawSheet(sheet);
-  hiddenBakes.set(key, { sheet, v: c.lightVersion, sig });
+  store.set(key, { sheet, v: c.lightVersion, sig });
   return sheet;
 }
