@@ -458,8 +458,10 @@ function nearestPrey(z, villagers) {
 // At night the dead see fire from far away (docs/02, 2026-10-09): the nearest
 // lit flame within T.flameRange scaled by how dark it is, with a clear line.
 // A carried torch is a sighting of the player; any other flame is a sighting
-// at the flame, and the memory rule does the rest.
-function nearestFlame(z) {
+// at the flame, and the memory rule does the rest. `carriedOnly` for one on a
+// player's trail (onPlayersTrail): a fixed flame never pulls it off the trail,
+// and a carried torch still leads it, as following it is following the trail.
+function nearestFlame(z, carriedOnly = false) {
   if (!rules.zombieAggro) return null;
   const nf = clock.nightFactor();
   if (nf <= 0) return null;
@@ -467,6 +469,7 @@ function nearestFlame(z) {
   let best = null;
   let bestD = Infinity;
   for (const s of light.allSources()) {
+    if (carriedOnly && !s.carried) continue;
     if ((s.layer || 0) !== (z.layer || 0)) continue; // a flame on another layer is behind a floor: seeing across storeys is docs/49 step 4's ray
     const d = Math.hypot(s.gx - z.gx, s.gy - z.gy);
     // A torch on the belt is a weaker flame (docs/02): seen from `beltLight` (0.6) as far.
@@ -478,10 +481,16 @@ function nearestFlame(z) {
   return best;
 }
 
-
-
-
-
+// Whether a fixed flame may not pull it (Michael, 2026-10-27: "Stay on window"; "Fire should not pull from where a zombie saw a player go
+// in ... They need to be persistent or the game will be too easy, and there will be no reason to build defenses"): it is on a player's
+// trail, hunting one first-hand or drawn in by a pull (`huntsPlayer`, cleared only by `giveUp`, so its search runs out by its own rule;
+// a search in the open too, on purpose, for the same persistence), holding a siege, or breaking an opening, a window's shutters or boards
+// or a door, whoever it is breaking in for (a breach ends by its own rules: the way open, a bite in reach, the goal gone from that room).
+// A torch a player carries still leads it (nearestFlame's `carriedOnly`). Only the dead with no player to follow go to any flame: idle,
+// wandering, or after a villager, or already walking to a flame.
+function onPlayersTrail(z) {
+  return !!(z.huntsPlayer || z.siege || z.breach);
+}
 
 // Walk toward a goal tile, repathing on the interval or when the goal moves.
 function moveToward(z, dt, goalTile, others) {
@@ -684,8 +693,9 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         }
       } else if (z.sincePlayer > T.flamePatience) {
         // A flame only takes over once the player has been out of sight a while,
-        // so a zombie you just pulled off a window does not turn straight back.
-        const f = nearestFlame(z);
+        // so a zombie you just pulled off a window does not turn straight back;
+        // and on a player's trail only a carried torch does (onPlayersTrail).
+        const f = nearestFlame(z, onPlayersTrail(z));
         if (f) {
           z.aggro = true;
           z.lastSeen = addr(f.gx, f.gy, f.layer || 0); // a carried flame is where its carrier stands (light.js: the source moves with them)
