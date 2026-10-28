@@ -19,7 +19,7 @@ import * as hl from "./highlight.js"; // Object Highlight (#301)
 import { emitRugs } from "./rugs.js"; // laid rugs, flat on the ground under everything (#327)
 import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/45 section 2)
-import { postDrawables, wallDrawables } from "./walls.js";
+import { postDrawables, setStoreyView, wallDrawables } from "./walls.js";
 import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
 import { emitFadedFloors, emitFloors, faderFor, hiderFor, layersFor, liftOf, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
@@ -246,6 +246,8 @@ export function renderScene(args) {
   // flights on it are drawn under gl.setFade, laid over what is behind them as one sheet at the near-wall fade's alpha (gl.js
   // PASS_FADE), so nothing on the storey is drawn opaque over its faded floor; the ground storey under it keeps its own rules.
   const faded = faderFor(storeyFade.on ? player : null);
+  const onStair = player && player.rise ? map.stairAt(Math.round(player.gx), Math.round(player.gy), VL) : null;
+  const viewerStair = onStair && !onStair.well ? onStair.s : null; // the stair under the viewer's feet (render/walls.js fades the walls along it)
   lastStats.faded = faded.sig;
   for (const L of layers) {
     gl.setExtraFlags(L === 0 ? 0 : L === upperL ? gl.FLAG_UPPER : gl.FLAG_SKY);
@@ -264,6 +266,9 @@ export function renderScene(args) {
         emitRugs(tilesL);
       }
       const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
+      // The walls' view of the storeys round this layer (render/walls.js): the storey above drawn over a tile (a wall under its floor draws no
+      // cap), and the stair the viewer stands on (the walls along it fade).
+      setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) && !(faded.any && faded.layers.has(L + 1) && faded(x, y, L + 1)) : null, viewerStair); // a fading storey is no floor over a wall (the review of #551)
       // The drawables standing on `tilesT`, and the bodies, stairs, and flights whose tile `mine` takes.
       const gather = (tilesT, mine) => {
         const drawables = [];
@@ -329,6 +334,7 @@ export function renderScene(args) {
     }));
   }
   gl.setExtraFlags(0);
+  setStoreyView(null, null);
   lastStats.drawables = count;
   lastStats.translucent = translucent;
   // On top, with no depth test (docs/51 section 4; Primary's recommendation, a default: a ghost hidden behind a wall is useless).

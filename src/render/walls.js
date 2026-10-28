@@ -128,6 +128,42 @@ function wallPartQuad(sheet, name, x, y, o) {
   gl.quad(x - a[0], y - a[1], f[2], f[3], gl.frameUV(sheet, name), { world: [o.wa, o.wb, o.wb, o.wa], heights: [f[3], f[3], 0, 0], color: o.tint, flags: o.flags });
 }
 
+// A convex polygon clipped to the side of the line through a and b that `keep` lies on.
+function clipBelow(pts, a, b, keep) {
+  const side = (p) => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+  const k = Math.sign(side(keep));
+  const out = [];
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    const q = pts[(i + 1) % pts.length];
+    const sp = side(p) * k;
+    const sq = side(q) * k;
+    if (sp >= 0) out.push(p);
+    if ((sp >= 0) !== (sq >= 0)) {
+      const t = sp / (sp - sq);
+      out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]);
+    }
+  }
+  return out.length >= 3 ? out : null;
+}
+// A part of a picture drawn without what stands over the line through a and b (its top: a wall's or a post's cap under a floor of the storey
+// above, the review of #551): the frame's rectangle cut along the line, on the face's own plane, its light read as the whole quad's.
+function partBelow(sheet, name, x, y, o, a, b) {
+  const f = sheet && sheet.frames[name];
+  if (!f) return;
+  const an = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
+  const L = x - an[0];
+  const T = y - an[1];
+  const q = clipBelow([[L, T], [L + f[2], T], [L + f[2], T + f[3]], [L, T + f[3]]], a, b, [L + f[2] / 2, T + f[3] + 1000]);
+  if (!q) return;
+  const uv = gl.frameUV(sheet, name);
+  const world = q.map(([px]) => {
+    const k = Math.max(0, Math.min(1, (px - L) / f[2]));
+    return [o.wa[0] + (o.wb[0] - o.wa[0]) * k, o.wa[1] + (o.wb[1] - o.wa[1]) * k];
+  });
+  gl.texQuad(q, q.map(([px, py]) => [uv[0] + (px - L), uv[1] + (py - T)]), { world, heights: q.map(([, py]) => Math.max(0, T + f[3] - py)), color: o.tint, flags: o.flags, page: uv[4] });
+}
+
 // The cap of a drawn wall, drawn again from the same picture with the sky's
 // light, so it is not lit by the room its face looks into (docs/17, ruling 3).
 // The cap is the wall's top, the edge pushed half the thickness either side,
@@ -205,7 +241,14 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   gl.layer(L_FACE); // translucent with the faded wall, which writes no depth: drawn in this order, under the face
   if (outside < 0 && o.faded) for (const p of leaves("_far")) leafQuad(p, true);
   if (o.faded && o.cuts && (o.cuts.near != null || o.cuts.far != null)) emitCutWall(sheet, name, edge, x, y, h, T, o, o.cuts);
-  else wallPartQuad(sheet, name, x, y, o);
+  else if (o.under) {
+    // Under a floor of the storey above: the picture without its cap, cut along its near face's top (the review of #551: the face stays on
+    // its own plane; it had been sunk in the depth buffer, and what stood just behind it drew over it).
+    const top = [x, y - iso.HH];
+    const at = (X, Y) => [top[0] + X - Y, top[1] + (X + Y) / 2 - h];
+    const [a, b] = edge === "n" ? [at(-CAP_MARGIN, T / 2), at(32 + CAP_MARGIN, T / 2)] : [at(T / 2, -CAP_MARGIN), at(T / 2, 32 + CAP_MARGIN)];
+    partBelow(sheet, name, x, y, o, a, b);
+  } else wallPartQuad(sheet, name, x, y, o);
   gl.layer(L_ON);
   if (!o.faded && !o.ghost && !o.covered) {
     // A margin of a ground pixel all round: the drawn cap's edges are stair
@@ -223,11 +266,31 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   else if (outside > 0) for (const p of leaves("")) leafQuad(p, false);
 }
 
+// What the scene tells the walls of the storeys round the layer being drawn (render/scene.js, each layer): whether the storey above is drawn
+// over a tile, and the stair the viewer is on, if any.
+let aboveDrawn = null; // (x, y) => true when the storey above this layer is drawn over the tile
+let viewerStair = null; // the stair under the viewer's feet (rise above 0), or null
+export function setStoreyView(above, stair) {
+  aboveDrawn = above;
+  viewerStair = stair;
+}
+// Whether the tile is the viewer's stair's: one of its steps on its own layer, or its stairwell on the layer above.
+function onViewerStair(x, y) {
+  const s = viewerStair;
+  if (!s) return false;
+  const L = map.drawLayerNow();
+  if (L !== s.layer && L !== s.layer + 1) return false;
+  return s.tiles.some(([sx, sy]) => sx === x && sy === y);
+}
+// A near wall fades (translucent): it stands between the camera and the viewer's room. On a stair (Michael's playtest, 2026-10-27: walls
+// built round a stair hid the body on it, both sides of them one room) the walls along the stair's sides on the camera's side fade too, on
+// the stair's layer and round its stairwell on the layer above.
 function isNearWall(tx, ty, edge, playerRoom) {
+  const far = edge === "n" ? [tx, ty - 1] : [tx - 1, ty];
+  if (viewerStair && onViewerStair(far[0], far[1]) && !onViewerStair(tx, ty)) return true;
   if (playerRoom <= 0) return false;
   const t = map.tileAt(tx, ty);
-  const far = edge === "n" ? map.tileAt(tx, ty - 1) : map.tileAt(tx - 1, ty);
-  return far.room === playerRoom && t.room !== playerRoom;
+  return map.tileAt(far[0], far[1]).room === playerRoom && t.room !== playerRoom;
 }
 
 // What stands at a vertex, the player's room aside, worked out once a frame (a wall reads the post at its camera-side end, the posts
@@ -282,7 +345,7 @@ export function postAt(tx, ty, playerRoom) {
   // where a near wall meets a far one the post stays solid with the far wall
   // (Michael's designer, 2026-10-12: a ghost post over a solid wall's end read
   // as a pale column).
-  const near = playerRoom > 0 && (!nE || isNearWall(tx, ty, "n", playerRoom)) && (!nW || isNearWall(tx - 1, ty, "n", playerRoom))
+  const near = (playerRoom > 0 || !!viewerStair) && (!nE || isNearWall(tx, ty, "n", playerRoom)) && (!nW || isNearWall(tx - 1, ty, "n", playerRoom))
     && (!wS || isNearWall(tx, ty, "w", playerRoom)) && (!wN || isNearWall(tx, ty - 1, "w", playerRoom));
   return { sheet: base.sheet, near, thin: base.thin };
 }
@@ -298,14 +361,32 @@ function wallOn(tx, ty, edge, layer) {
   const t = map.peekTile(tx, ty, layer);
   return t ? t[edge] || null : null;
 }
+// A wall under a floor of the storey above (Michael's playtest, 2026-10-27: from upstairs the ground floor's interior walls showed their
+// tops over the floor, and round the stairwell) draws no cap: its picture is cut along its near face's top (and a post's along its two near
+// faces' tops), the face kept on its own plane; at a stairwell's edge the floor on one side is enough, the wall's top meeting the floor's
+// edge flush. Only while that storey is drawn over it, and not fading: from inside below, or through a faded storey, it stands as it did.
+
+function floorOver(x, y) {
+  if (!aboveDrawn || !aboveDrawn(x, y)) return false;
+  const t = map.peekTile(x, y, map.drawLayerNow() + 1);
+  return !!t && !map.isEngineFloor(t.floor);
+}
 function stackOf(tx, ty, edge) {
   const L = map.drawLayerNow();
-  return { covered: !!wallOn(tx, ty, edge, L + 1), onWall: L !== 0 && !!wallOn(tx, ty, edge, L - 1) };
+  const above = !!wallOn(tx, ty, edge, L + 1);
+  // Floor over both its sides: no cap at all (the picture cut along its near face's top). Over one side only (a stairwell's edge): its top
+  // stays, flush with the floor at the storey's height, as the floor's edge, never redrawn on the sky over it.
+  const over = map.edgeTiles(tx, ty, edge).map(([x, y]) => floorOver(x, y));
+  const under = !above && over[0] && over[1];
+  return { covered: above || over[0] || over[1], onWall: L !== 0 && !!wallOn(tx, ty, edge, L - 1), under };
 }
 function postStack(tx, ty) {
   const L = map.drawLayerNow();
   const at = (l) => !!(wallOn(tx, ty, "n", l) || wallOn(tx - 1, ty, "n", l) || wallOn(tx, ty, "w", l) || wallOn(tx, ty - 1, "w", l));
-  return { covered: at(L + 1), onWall: L !== 0 && at(L - 1) };
+  const above = at(L + 1);
+  const over = [[tx, ty], [tx - 1, ty], [tx, ty - 1], [tx - 1, ty - 1]].map(([x, y]) => floorOver(x, y));
+  const under = !above && over.every(Boolean);
+  return { covered: above || over.some(Boolean), onWall: L !== 0 && at(L - 1), under };
 }
 
 // Corner posts.
@@ -414,6 +495,7 @@ function emitCutWall(sheet, name, edge, x, y, h, T, o, cuts) {
 function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
   const covered = !!(stack && stack.covered);
   const lift = stack && stack.onWall ? STACK_BIAS : 0;
+  const under = !!(stack && stack.under); // under a floor of the storey above: drawn without its cap
   const p = iso.toScreen(tx - 0.5, ty - 0.5);
   const x = Math.round(p.x);
   const y = Math.round(p.y);
@@ -466,6 +548,23 @@ function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
             band(0, cut, 0, cut);
             band(cut, cut + n, cut - n, cut);
             gl.holdOrder(false);
+          } else if (under) {
+            // Under a floor of the storey above (the review of #551): the post without its cap, its two halves cut along their near faces' tops
+            // (the cap's left and bottom corners, its bottom and right), on its own plane.
+            const uv = gl.frameUV(ps, "idle_0");
+            const X0 = x - ps.anchor[0];
+            const Y0 = y - ps.anchor[1];
+            const m = T / 2 + CAP_MARGIN + 1;
+            const left = [x - 2 * m, y - h];
+            const bottom = [x, y - h + m];
+            const right = [x + 2 * m, y - h];
+            gl.holdOrder(true);
+            for (const [xa, xb, a, b] of [[X0, x, left, bottom], [x, X0 + pf[2], bottom, right]]) {
+              if (xb <= xa) continue;
+              const q = clipBelow([[xa, Y0], [xb, Y0], [xb, Y0 + pf[3]], [xa, Y0 + pf[3]]], a, b, [(xa + xb) / 2, Y0 + pf[3] + 1000]);
+              if (q) gl.texQuad(q, q.map(([px, py]) => [uv[0] + (px - X0), uv[1] + (py - Y0)]), { world: [tx, ty], heights: q.map(([, py]) => Math.max(0, Y0 + pf[3] - py)), color: [1, 1, 1, alpha], flags, page: uv[4] });
+            }
+            gl.holdOrder(false);
           } else gl.quad(x - ps.anchor[0], y - ps.anchor[1], pf[2], pf[3], gl.frameUV(ps, "idle_0"), { world, heights: [pf[3], pf[3], 0, 0], color: [1, 1, 1, alpha], flags });
           if (!faded && !covered) {
             const uv = gl.frameUV(ps, "idle_0");
@@ -502,13 +601,13 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
     if (t.n && !map.drawnByRing(t.n)) {
       const far = map.tileAt(tx, ty - 1);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
-      const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
+      const stub = isNearWall(tx, ty, "n", playerRoom);
       out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
     }
     if (t.w && !map.drawnByRing(t.w)) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
-      const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
+      const stub = isNearWall(tx, ty, "w", playerRoom);
       out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
     }
   }
@@ -538,6 +637,7 @@ function shakeOffset(tx, ty, edge) {
 export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null, stack = null) {
   const covered = !!(stack && stack.covered);
   const lift = stack && stack.onWall ? STACK_BIAS : 0;
+  const under = !!(stack && stack.under); // under a floor of the storey above: drawn without its cap
   const sheet = sheetFor(wall); // the wall's own sheet, or its shut leaves recoloured and its open ones another wood's (#334)
   const variant = wallVariant(wall);
   const sortDepth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
@@ -586,11 +686,12 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
     kind: "wall",
     wall: { tx, ty, edge }, // check("depth") finds its drawable
     stack, // the storeys' seam (check("storeys") reads it)
+    faded: !!stub, // a near wall drawn translucent (check("storeys") reads it)
     emit() {
       gl.surface(face, lift, DEPTH_ROOM.wall);
       const tint = ghostTint || [1, 1, 1, alpha];
       if (sheet.wall) {
-        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts, face, covered });
+        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts, face, covered, under });
       } else {
       // Swung leaves only for a whole, open, unboarded leaf.
       const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
