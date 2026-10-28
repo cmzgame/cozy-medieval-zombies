@@ -76,4 +76,6 @@ The rule set from `15` stands: an authored surface covers its tiles, its ragged 
 
 ### The gloom road, for later
 
+*(2026-10-28: the waystone is the valley's first gate in `10-the-frame`; the zone beyond it is bounded by a frame, not grown as wild.)*
+
 The old road east is drawn in 1.0 exactly as the other roads, and the waystone at its end is a prop with a prompt ("The old road. Nobody goes this way now."). When the zone system comes (`05`), the zone boundary is a rect across that road a chunk past the bounds, and the wild beyond it grows the gloom zone. Nothing on the 1.0 map changes; the road just starts being true.

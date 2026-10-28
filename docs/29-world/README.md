@@ -22,6 +22,7 @@ A river runs down the middle of a wooded valley. On its east bank, in a bend of 
 | [06-the-forest.md](06-the-forest.md) | The forest as a place: belts and clearings, the small places in it, the wild beyond the bounds, the gloom hook. |
 | [08-the-loop.md](08-the-loop.md) | Density: what there is to do on every screen, where each resource comes from, where the dead are thick and thin, who the villagers are. |
 | [09-art-asks.md](09-art-asks.md) | Every asset this plan wants, grouped and prioritised, as paste-ready requests in the house style. |
+| [10-the-frame.md](10-the-frame.md) | How the bounded world lives in the engine: the map bounded full stop, a frame of river, thicket, or cliff round the valley and every region, passages and gates, a cliff as a wall and a floor, a big map loading only near players, mines and tunnels; a plan, not scheduled. |
 
 ## How to read the plans
 
