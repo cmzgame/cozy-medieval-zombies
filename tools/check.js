@@ -5606,6 +5606,129 @@ check("the storeys' playtest: the landing is walked onto from its three open sid
   }
   return res.join("; ");
 });
+// ---- built floors and stairs (docs/49 section 5; Michael, 2026-10-27: "Floors are built a tile at a time, with no physics") ----
+// Open grass near the valley's spawn, `w` by `h` tiles bare (no prop, wall, rug, or item), its corner.
+const openGrass = (w, h) => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  mapMod.ensureAround(me.gx, me.gy, 3);
+  for (let dy = -16; dy <= 16; dy++) for (let dx = -16; dx <= 16; dx++) {
+    const x = Math.round(me.gx) + dx;
+    const y = Math.round(me.gy) + dy;
+    let ok = true;
+    for (let ay = -1; ay <= h && ok; ay++) for (let ax = -1; ax <= w && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.rug && !t.n && !t.w && !(t.items && t.items.length) && mapMod.isWalkableTile(x + ax, y + ay); }
+    if (ok && !gameMod.state.zombies.concat(gameMod.state.villagers, gameMod.state.animals || []).some((c) => c.gx > x - 2 && c.gx < x + w + 1 && c.gy > y - 2 && c.gy < y + h + 1)) return [x, y];
+  }
+  return null;
+};
+check("built floors: laid on the ground by a drag (Free building only), the grass kept and put back by Take apart; refused on water, a stair, its landing, and its stairwell; the chunk's record carries it", () => {
+  const at = openGrass(4, 4);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  try {
+    rulesImport.rules.freeBuilding = false;
+    me.gx = x + 1.5; me.gy = y + 2.6; me.layer = 0;
+    placementImport.performPlacement(me, { kind: "build", what: "floor_wood", tx: x, ty: y, tx2: x + 1, ty2: y + 1 });
+    assert(mapMod.peekTile(x, y).floor === "floor_grass" && !placementImport.paletteKinds().some((k) => k.id === "floor_wood"), "a floor laid, or offered, with Free building off");
+    rulesImport.rules.freeBuilding = true;
+    assert(placementImport.paletteKinds().some((k) => k.id === "floor_wood") && placementImport.paletteKinds().some((k) => k.id === "floor_stone"), "the floors are not on the palette with Free building on");
+    const before = gameMod.syncParts().map;
+    placementImport.performPlacement(me, { kind: "build", what: "floor_wood", tx: x, ty: y, tx2: x + 1, ty2: y + 1 });
+    const laid = [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]].map(([a, b]) => mapMod.peekTile(a, b));
+    assert(laid.every((t) => t.floor === "floor_wood" && t.built && t.built.under === "floor_grass" && t.built.free), `the drag laid ${laid.map((t) => t.floor).join(",")}`);
+    assert(gameMod.syncParts().map !== before, "the sync check's map part did not move with a laid floor");
+    const c = mapMod.getChunk(Math.floor(x / mapMod.CHUNK), Math.floor(y / mapMod.CHUNK), false, 0);
+    const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(c)));
+    assert(rec.built && rec.built.some(([lx, ly, under]) => lx === x - c.cx * mapMod.CHUNK && ly === y - c.cy * mapMod.CHUNK && under === "floor_grass"), "the chunk's record has no built floor");
+    mapMod.installChunk(rec);
+    assert(mapMod.peekTile(x, y).built && mapMod.peekTile(x, y).floor === "floor_wood", "the record did not bring the floor back");
+    // Take apart: the grass back; nothing back for a floor laid free.
+    const t = { type: "floor", tx: x, ty: y, layer: 0 };
+    assert(placementImport.partsOf(t).back.length === 0, "a free floor gives something back");
+    me.gx = x + 0.5; me.gy = y + 1.6;
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "floor", tx: x, ty: y } });
+    assert(mapMod.peekTile(x, y).floor === "floor_grass" && !mapMod.peekTile(x, y).built && mapMod.peekTile(x + 1, y).floor === "floor_wood", "Take apart did not put the grass back (or took a neighbour)");
+    // Stone, over the plank: the grass is still what lies under it.
+    placementImport.performPlacement(me, { kind: "build", what: "floor_stone", tx: x + 1, ty: y, tx2: x + 1, ty2: y });
+    assert(mapMod.peekTile(x + 1, y).floor === "floor_stone" && mapMod.peekTile(x + 1, y).built.under === "floor_grass", "stone over plank lost the grass under it");
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+  }
+  // The refusals: water, the tall house's stair, its landing, its stairwell.
+  let water = null;
+  for (let dy = -40; dy <= 40 && !water; dy++) for (let dx = -40; dx <= 40 && !water; dx++) { const tt = mapMod.peekTile(x + dx, y + dy); if (tt && /water/.test(tt.floor)) water = [x + dx, y + dy]; }
+  const s = mapMod.stairs().find((q) => q.building && q.layer === 0);
+  const why = [water ? mapMod.floorBuildProblem(water[0], water[1], "floor_wood", 0) : "Not on water", mapMod.floorBuildProblem(s.tiles[1][0], s.tiles[1][1], "floor_wood", 0), mapMod.floorBuildProblem(s.landing[0], s.landing[1], "floor_stone", 1), mapMod.floorBuildProblem(s.tiles[1][0], s.tiles[1][1], "floor_wood", 1)];
+  assert(why[0] === "Not on water" && why[1] === "Not over a stair" && why[2] === "Not on a stair's landing" && why[3] === "Not over a stair", `refusals: ${why.join("; ")}`);
+  return `a 2 by 2 drag laid and its record kept; Take apart put the grass back; refused: ${why.join("; ")}`;
+});
+check("built stairs and floors upstairs: a stair built in the open climbing away from the camera, walked up, a floor grown from its landing tile by tile, refused away from it and over the stairwell, its open edge unwalkable, a wall built on it, kept by the save", () => {
+  const at = openGrass(8, 7);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const walk = (dx, dy, n) => { for (let i = 0; i < n; i++) { const m = mapMod.moveCircle(me.gx, me.gy, 0.3, dx, dy, me.layer || 0); me.gx = m.gx; me.gy = m.gy; mapMod.stairStep(me); } };
+  const res = [];
+  try {
+    rulesImport.rules.freeBuilding = true;
+    // The stair's foot at (x + 5, y + 3), climbing west: its steps x + 5 to x + 3, its landing (x + 2, y + 3) a storey up.
+    me.gx = x + 6.5; me.gy = y + 3; me.layer = 0; me.rise = 0;
+    const n0 = mapMod.stairs().length;
+    placementImport.performPlacement(me, { kind: "build", what: "stair_wood", tx: x + 3, ty: y + 3, dir: "e" });
+    assert(mapMod.stairs().length === n0 && mapMod.stairBuildProblem(x + 3, y + 3, "e", 0) === "Stairs climb away from the camera", "a stair climbing toward the camera was built");
+    placementImport.performPlacement(me, { kind: "build", what: "stair_wood", tx: x + 5, ty: y + 3, dir: "w" });
+    const s = mapMod.stairs().find((q) => q.built && q.at[0] === x + 5 && q.at[1] === y + 3);
+    assert(s && s.dir === "w" && mapMod.peekTile(x + 2, y + 3, 1).floor === "floor_wood" && [3, 4, 5].every((k) => mapMod.peekTile(x + k, y + 3, 1).floor === mapMod.VOID), `the stair: ${JSON.stringify(s && { at: s.at, dir: s.dir })}, landing ${mapMod.peekTile(x + 2, y + 3, 1) && mapMod.peekTile(x + 2, y + 3, 1).floor}`);
+    res.push(`stair ${s.at} ${s.dir}`);
+    // Up it.
+    me.gx = x + 6; me.gy = y + 3;
+    walk(-0.05, 0, 90);
+    assert(me.layer === 1 && Math.abs(me.gx - (x + 2)) < 0.6, `the climb ended at ${me.gx.toFixed(2)},${me.gy.toFixed(2)} on layer ${me.layer}`);
+    me.gx = x + 2; me.gy = y + 3;
+    // Not touching any floor: refused.
+    placementImport.performPlacement(me, { kind: "build", what: "floor_wood", tx: x, ty: y + 1, tx2: x, ty2: y + 1 });
+    assert(mapMod.peekTile(x, y + 1, 1).floor === mapMod.VOID, "a floor laid touching nothing");
+    // Over the stairwell: refused.
+    assert(mapMod.floorBuildProblem(x + 3, y + 3, "floor_wood", 1) === "Not over a stair", "a floor over the stairwell");
+    // A drag from the landing's side out: every tile grows from the landing, ring by ring.
+    placementImport.performPlacement(me, { kind: "build", what: "floor_wood", tx: x, ty: y + 2, tx2: x + 1, ty2: y + 4 });
+    const grown = [];
+    for (let yy = y + 2; yy <= y + 4; yy++) for (let xx = x; xx <= x + 1; xx++) grown.push(mapMod.peekTile(xx, yy, 1).floor);
+    assert(grown.every((f) => f === "floor_wood"), `the drag upstairs laid ${grown.join(",")}`);
+    res.push("six tiles grown from the landing");
+    // The open edge: walking west off the floor stops at its edge, never a fall.
+    me.gx = x + 0.2; me.gy = y + 3;
+    walk(-0.05, 0, 30);
+    assert(me.layer === 1 && me.gx > x - 0.35 && mapMod.isWalkableTile(x - 1, y + 3, 1) === false, `off the edge: ${me.gx.toFixed(2)} on layer ${me.layer}`);
+    // A wall on the built floor, from upstairs.
+    me.gx = x + 0.4; me.gy = y + 4.1;
+    placementImport.performPlacement(me, { kind: "build", what: "wall_oak", tx: x + 1, ty: y + 3, edge: "w" });
+    const wl = mapMod.peekTile(x + 1, y + 3, 1).w;
+    assert(wl && wl.kind === "wall" && !(mapMod.peekTile(x + 1, y + 3, 0).w), "no wall built on the upper floor, or it went on the ground");
+    // Take apart refused under the wall; the tile beside taken up, back to the void, its neighbours as they were.
+    assert(mapMod.floorTakeUpProblem(x + 1, y + 3, 1) === "A wall stands on it", "a floor under a wall comes up");
+    me.gx = x + 1; me.gy = y + 2.4;
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "floor", tx: x + 1, ty: y + 4 } });
+    assert(mapMod.peekTile(x + 1, y + 4, 1).floor === mapMod.VOID && mapMod.peekTile(x, y + 4, 1).floor === "floor_wood", "the upper tile was not taken up alone");
+    res.push("a wall on it; a tile taken up");
+    // The save keeps the stair and the floor: the chunks' records into a fresh world.
+    const recs = [0, 1].map((l) => JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(Math.floor((x + 3) / mapMod.CHUNK), Math.floor((y + 3) / mapMod.CHUNK), false, l)))));
+    assert(recs[0].stairs && recs[0].stairs.length === 1, "the stair's chunk has no stair record");
+    gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+    for (const r of recs) mapMod.installChunk(r);
+    const s2 = mapMod.stairs().find((q) => q.built && q.at[0] === x + 5 && q.at[1] === y + 3);
+    assert(s2 && mapMod.stairAt(x + 4, y + 3, 0) && mapMod.peekTile(x, y + 3, 1).floor === "floor_wood", "the stair or the floor did not come back from the records");
+    res.push("kept by the records");
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+    me.layer = 0;
+    me.rise = 0;
+  }
+  return res.join("; ");
+});
 const storeysMod = await import("../src/render/storeys.js");
 check("the drawn stair stands on its tiles: halfway up, the feet at either side limit of the walkable band land on the drawn tread, inside its stringers, in all four facings, wood and stone", () => {
   // Tread 6 (48 px, t 1.375 to 1.625) of each picture, its top's corners in the drawing's pixels (the artist's table, art round 8).
@@ -5663,6 +5786,179 @@ check("the drawn stair stands on its tiles: halfway up, the feet at either side 
   }
   assert(!out.some((l) => l.endsWith("OFF")), out.filter((l) => l.endsWith("OFF")).join("; "));
   return out.join("; ");
+});
+check("the review of #549: no wall, window, or door across a stair's run or its top, on either layer (its stairwell's sides held by the stair's own edges); a stair never built through a wall; a ford never paved", () => {
+  const s = tallHouse(); // the tall house's stair: steps (127..125, 217) climbing west, its landing (124, 217) upstairs
+  const [t0, t1, t2] = s.tiles;
+  const P = mapMod.stairEdgeProblem;
+  const why = {
+    between: P(t0[0], t0[1], "w", 0), // between its first two steps
+    top: P(t2[0], t2[1], "w", 0), // its top edge, on its own layer, under the landing
+    side: P(t1[0], t1[1], "n", 0), // along its side on its own layer: allowed
+    wellSide: P(t1[0], t1[1], "n", 1), // its stairwell's side upstairs: allowed, held by the stair's own edges (the recheck of #549)
+    wellTop: P(t2[0], t2[1], "w", 1), // its stairwell's top edge, against the landing
+  };
+  assert(why.between && why.top && !why.side && !why.wellSide && why.wellTop, JSON.stringify(why));
+  assert(!mapMod.canBuildWall(t2[0], t2[1], "w", "wall", 1) && !mapMod.canBuildWall(t2[0], t2[1], "w", "window", 1) && !mapMod.canBuildWall(t2[0], t2[1], "w", "door", 0) && mapMod.canBuildWall(t1[0], t1[1], "n", "wall", 0), "canBuildWall takes a wall, window, or door across a stair");
+  // Through a guest's command, from upstairs on the landing's side: a window across the stairwell's top is not built.
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  let through = null;
+  let ford = "none on the map";
+  try {
+    rulesImport.rules.freeBuilding = true;
+    me.gx = s.landing[0]; me.gy = s.landing[1] + 1.3; me.layer = 1;
+    placementImport.performPlacement(me, { kind: "build", what: "window", tx: t2[0], ty: t2[1], edge: "w" });
+    assert(!mapMod.peekTile(t2[0], t2[1], 1).w, "a window was built across the stairwell's top");
+    me.layer = 0;
+    // A stair aimed past a wall: refused by the line, though in reach by distance.
+    const at = openGrass(8, 7);
+    assert(at, "no open grass");
+    const [x, y] = at;
+    for (const xx of [x + 4, x + 5, x + 6, x + 7]) mapMod.buildWall(xx, y + 5, "n", "wall", "wall_wood", null, 0);
+    me.gx = x + 6.5; me.gy = y + 5.2; me.layer = 0;
+    const n0 = mapMod.stairs().length;
+    placementImport.performPlacement(me, { kind: "build", what: "stair_wood", tx: x + 5, ty: y + 3, dir: "w" });
+    through = mapMod.stairs().length !== n0;
+    assert(!through, "a stair was built through a wall");
+    // A ford (shallow water): never paved.
+    for (let dy = -60; dy <= 60 && ford === "none on the map"; dy++) for (let dx = -60; dx <= 60; dx++) {
+      const tt = mapMod.peekTile(x + dx, y + dy);
+      if (tt && tt.floor === "floor_water_shallow") { ford = mapMod.floorBuildProblem(x + dx, y + dy, "floor_wood", 0); break; }
+    }
+    assert(ford === "Not on water" || ford === "none on the map", `a ford: ${ford}`);
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+    me.layer = 0;
+  }
+  return `refused: ${why.between}; ${why.top}; ${why.wellTop}; a side on its own layer and the stairwell's side allowed; through a wall refused; a ford: ${ford}`;
+});
+check("the recheck of #549: a body climbing at either side limit arrives on the landing within it, and never passes a wall at the landing's side nor stands over the void beside it; the same coming down; the stairwell's sides hold a body upstairs", () => {
+  const res = [];
+  const climbAndPush = (s, off, push) => {
+    const [dx, dy] = s.d;
+    const b = { gx: s.before[0] - dy * off, gy: s.before[1] + dx * off, layer: s.layer, rise: 0, radius: 0.3 };
+    for (let i = 0; i < 100 && b.layer === s.layer; i++) {
+      const m = mapMod.moveCircle(b.gx, b.gy, 0.3, dx * 0.05, dy * 0.05, b.layer);
+      b.gx = m.gx; b.gy = m.gy;
+      mapMod.stairStep(b);
+    }
+    const up = b.layer === s.layer + 1;
+    // Then sideways off the landing, toward the side it climbed on, for two tiles' worth.
+    const side = Math.sign(off);
+    for (let i = 0; i < 40; i++) {
+      const m = mapMod.moveCircle(b.gx, b.gy, 0.3, -dy * side * 0.05 * push, dx * side * 0.05 * push, b.layer);
+      b.gx = m.gx; b.gy = m.gy;
+      mapMod.stairStep(b);
+    }
+    const o = mapMod.stairAlong(s, b.gx, b.gy).off;
+    return { up, off: o, b };
+  };
+  // The tall house: walls on both sides of its landing upstairs.
+  const s = tallHouse();
+  const [lx, ly] = s.landing;
+  mapMod.buildWall(lx, ly, "n", "wall", "wall_wood", null, 1);
+  mapMod.buildWall(lx, ly + 1, "n", "wall", "wall_wood", null, 1);
+  for (const off of [-0.34, 0.34]) {
+    const r = climbAndPush(s, off, 1);
+    res.push(`house ${off}: up ${r.up}, off ${r.off.toFixed(2)}`);
+    assert(r.up && Math.abs(r.off) <= 0.2 + 1e-6, res.join("; "));
+  }
+  // A stair built in the open: the void on both sides of its landing.
+  const at = openGrass(8, 7);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const b = mapMod.buildStair(x + 5, y + 3, "w", "wood", 0, { free: true });
+  assert(b, "no stair built in the open");
+  for (const off of [-0.34, 0.34]) {
+    const r = climbAndPush(b, off, 1);
+    const tx = Math.round(r.b.gx);
+    const ty = Math.round(r.b.gy);
+    res.push(`open ${off}: up ${r.up}, off ${r.off.toFixed(2)}, on ${tx},${ty} walkable ${mapMod.isWalkableTile(tx, ty, 1)}`);
+    assert(r.up && Math.abs(r.off) <= 0.2 + 1e-6 && mapMod.isWalkableTile(tx, ty, 1), res.join("; "));
+    // And down again from where it stands, at that side: over the top edge, down the steps, off the foot.
+    const d = r.b;
+    for (let i = 0; i < 100; i++) {
+      const m = mapMod.moveCircle(d.gx, d.gy, 0.3, -b.d[0] * 0.05, -b.d[1] * 0.05, d.layer);
+      d.gx = m.gx; d.gy = m.gy;
+      mapMod.stairStep(d);
+    }
+    res.push(`down: layer ${d.layer}, rise ${d.rise}`);
+    assert(d.layer === 0 && (d.rise || 0) === 0, res.join("; "));
+  }
+  // The stairwell's side upstairs, with a wall on it or not: a body walking at it from the floor beside it is held off the hole.
+  for (let yy = y + 2; yy <= y + 4; yy += 2) for (const xx of [x + 2, x + 3, x + 4, x + 5]) mapMod.buildFloor(xx, yy, "floor_wood", 1, { free: true });
+  for (let k = 0; k < 3; k++) for (const xx of [x + 2, x + 3, x + 4, x + 5]) { mapMod.buildFloor(xx, y + 2, "floor_wood", 1, { free: true }); mapMod.buildFloor(xx, y + 4, "floor_wood", 1, { free: true }); }
+  mapMod.buildWall(x + 4, y + 3, "n", "wall", "wall_wood", null, 1);
+  for (const [xx, wall] of [[x + 4, true], [x + 3, false]]) {
+    const q = { gx: xx, gy: y + 2.2, layer: 1, rise: 0 };
+    for (let i = 0; i < 30; i++) {
+      const m = mapMod.moveCircle(q.gx, q.gy, 0.3, 0, 0.05, 1);
+      q.gx = m.gx; q.gy = m.gy;
+      mapMod.stairStep(q);
+    }
+    res.push(`the stairwell's side${wall ? " (walled)" : ""}: y ${q.gy.toFixed(2)}, layer ${q.layer}`);
+    assert(q.layer === 1 && q.gy <= y + 2.5 - 0.3 + 1e-6, res.join("; "));
+  }
+  return res.join("; ");
+});
+check("Michael's stair nook: walls along both sides of a stair and a back wall a tile past its top end are all built; the nook under the landing is never reached from the stair nor the stair from it; a body still climbs and comes down, and walks through none of them", () => {
+  const s = tallHouse(); // steps (127..125, 217) climbing west; the tile under the landing (124, 217)
+  const [dx, dy] = s.d;
+  const [lx, ly] = s.landing;
+  // The layout: the run's two sides (the north edges of rows 217 and 218 along its three steps), and the back wall on the far edge of the
+  // tile under the landing (its west edge), each through the palette's rules.
+  const edges = [];
+  for (const [tx] of s.tiles) edges.push([tx, ly, "n"], [tx, ly + 1, "n"]);
+  edges.push([lx, ly, "w"]);
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const refused = [];
+  try {
+    rulesImport.rules.freeBuilding = true;
+    for (const [tx, ty, edge] of edges) {
+      const [mx, my] = mapMod.edgeMid(tx, ty, edge);
+      // Stand a little off the edge, on its side away from the stair, within reach.
+      me.layer = 0;
+      me.gx = edge === "w" ? mx - 0.9 : mx;
+      me.gy = edge === "n" ? (ty === ly ? my - 0.9 : my + 0.9) : my;
+      placementImport.performPlacement(me, { kind: "build", what: "wall_oak", tx, ty, edge });
+      if (!mapMod.peekTile(tx, ty, 0)[edge]) refused.push(`${tx},${ty},${edge}: ${mapMod.stairEdgeProblem(tx, ty, edge, 0) || (mapMod.canBuildWall(tx, ty, edge, "wall", 0) ? "built not" : "no room")}`);
+    }
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+    me.layer = 0;
+  }
+  assert(!refused.length, `refused: ${refused.join("; ")}`);
+  const walk = (b, mx, my, n) => {
+    for (let i = 0; i < n; i++) {
+      const m = mapMod.moveCircle(b.gx, b.gy, 0.3, mx, my, b.layer);
+      b.gx = m.gx;
+      b.gy = m.gy;
+      mapMod.stairStep(b);
+    }
+    return b;
+  };
+  // Up and down the middle of the run.
+  const b = walk({ gx: s.before[0], gy: s.before[1], layer: 0, rise: 0, radius: 0.3 }, dx * 0.05, dy * 0.05, 90);
+  assert(b.layer === 1, `the climb ended on layer ${b.layer} at ${b.gx.toFixed(2)},${b.gy.toFixed(2)}`);
+  walk(b, -dx * 0.05, -dy * 0.05, 90);
+  assert(b.layer === 0 && (b.rise || 0) === 0, `the way down ended on layer ${b.layer}, rise ${b.rise}`);
+  // From the top step, on into the nook: it goes up onto the landing instead, never under it.
+  const t = walk({ gx: s.tiles[2][0], gy: s.tiles[2][1], layer: 0, rise: 0, radius: 0.3 }, dx * 0.05, dy * 0.05, 40);
+  assert(!(t.layer === 0 && Math.round(t.gx) === lx && Math.round(t.gy) === ly), `a body stepped off the stair's top into the nook (layer ${t.layer} at ${t.gx.toFixed(2)},${t.gy.toFixed(2)})`);
+  // From the nook, toward the stair's end and its two sides: held at each.
+  const n1 = walk({ gx: lx, gy: ly, layer: 0, rise: 0, radius: 0.3 }, -dx * 0.05, -dy * 0.05, 30);
+  assert(n1.layer === 0 && (n1.rise || 0) === 0 && mapMod.stairAlong(s, n1.gx, n1.gy).t >= 3 + 0.3 - 1e-6, `from the nook onto the stair's end: ${n1.gx.toFixed(2)},${n1.gy.toFixed(2)} rise ${n1.rise}`);
+  const n2 = walk({ gx: lx, gy: ly, layer: 0, rise: 0, radius: 0.3 }, dx * 0.05, dy * 0.05, 30);
+  assert(n2.layer === 0 && Math.abs(n2.gx - lx) < 0.25, `through the back wall: ${n2.gx.toFixed(2)}`);
+  // On the stair, pushed at each side wall: held inside them.
+  for (const side of [-1, 1]) {
+    const q = walk({ gx: s.tiles[1][0], gy: s.tiles[1][1], layer: 0, rise: 0, radius: 0.3 }, -dy * side * 0.05, dx * side * 0.05, 40);
+    const off = mapMod.stairAlong(s, q.gx, q.gy).off;
+    assert(Math.abs(off) < 0.5, `through a side wall: off ${off.toFixed(2)}`);
+  }
+  return `built: ${edges.length} walls (the run's two sides, the back wall a tile past its top); the nook kept from the stair both ways; up and down the middle`;
 });
 check("upper floors, step 1: the sync check sees a replica on the wrong storey (the players' and the dead's parts and hashText hash layer and rise); the ground hashes as before", () => {
   towerHouse();
@@ -6086,7 +6382,7 @@ check("round rooms, step 1: the save and the wire carry a ring in its walls: res
   assert(mapMod.ringById(r.id) && mapMod.curveCrossed(3, 2), "a replica did not get the ring from its chunks");
   for (const d of without) mapMod.installChunk(d);
   assert(!mapMod.ringById(r.id) && !mapMod.curveCrossed(3, 2) && !mapMod.allRings(0).some((q) => q.x0 === 2 && q.y0 === 2), "a replica kept the ring its chunks came without");
-  assert(netMod.PROTOCOL === 25, `PROTOCOL ${netMod.PROTOCOL}`);
+  assert(netMod.PROTOCOL >= 25, `PROTOCOL ${netMod.PROTOCOL}`); // 25 brought the rings; 26 the built floors and stairs (docs/49 section 5)
   return `restored with its door and its record; a replica's ring from ${withRing.length} chunk record(s), and gone with them`;
 });
 check("round rooms, step 6: the round stone wall is in the palette only with Free building (Michael, 2026-10-27), built by a guest's command on its square's corner and size, and taken apart whole; an authored one never", () => {

@@ -1047,6 +1047,74 @@ export function setFloor(x, y, id, layer = 0) {
   if (!layer) groundChanged([[x, y]]);
 }
 
+// ---- built floors (docs/49 section 5; Michael, 2026-10-27, `02` "Floors are built a tile at a time, with no physics") ----
+// A floor a player laid carries `built: { under, free }` on its tile: the floor it replaced (on the ground the grass or the road there, off
+// it the void), put back when it is taken up, and whether it cost nothing (Free building: nothing back). It rides its chunk's record
+// (`built`), so the save, a guest's frame, and the sync check carry it. No physics: on a storey a tile is laid wherever it touches, by an
+// edge, a tile already walkable on that storey (a built or authored floor, or a stair's landing), and a floor's open edge is unwalkable.
+
+// The stair whose landing is (x, y) on `layer` (the stair a storey below), or null.
+export function landingAt(x, y, layer = 0) {
+  for (const { s, well } of stairsOnLayer.get(layer - 1) || []) if (!well && s.landing[0] === x && s.landing[1] === y) return s;
+  return null;
+}
+
+// Why floor `id` cannot be laid on (x, y) of `layer`, or "". `grows` (a Set of tileKey3 keys) names tiles of the same drag laid before this
+// one, which count as walkable for the touching rule, so a drag grows a floor out from its first tile.
+export function floorBuildProblem(x, y, id, layer = 0, grows = null) {
+  const t = peekTile(x, y, layer) || tileAt(x, y, layer);
+  if (stairAt(x, y, layer)) return "Not over a stair";
+  if (landingAt(x, y, layer)) return "Not on a stair's landing";
+  if (t.floor === EARTH || t.floor === HOLE) return "Not here";
+  if (!isEngineFloor(t.floor) && (floorRule(t.floor).walk === false || floorRule(t.floor).drink || /^floor_water/.test(t.floor))) return "Not on water"; // a ford is never paved (the review of #549)
+  if (t.floor === id) return "Already laid";
+  if (t.prop || t.rug) return "Something stands there";
+  if (layer !== 0 && t.floor === VOID) {
+    const touches = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => isWalkableTile(x + dx, y + dy, layer) || !!(grows && grows.has(tileKey3(x + dx, y + dy, layer))));
+    if (!touches) return "Build it out from a floor";
+  }
+  return "";
+}
+
+// Lay floor `id` on (x, y) of `layer`, keeping what it replaced. Returns false when it may not be laid.
+export function buildFloor(x, y, id, layer = 0, { free = false, grows = null } = {}) {
+  if (floorBuildProblem(x, y, id, layer, grows)) return false;
+  const t = growTile(x, y, layer);
+  const under = t.built ? t.built.under : t.floor;
+  t.floor = id;
+  t.built = free ? { under, free: true } : { under };
+  touch(x, y, layer);
+  if (!layer) groundChanged([[x, y]]);
+  roomsDirty = true;
+  return true;
+}
+
+// Why the built floor on (x, y) of `layer` cannot be taken up, or "" (a body on it is the caller's to say: the map keeps no bodies).
+export function floorTakeUpProblem(x, y, layer = 0) {
+  const t = peekTile(x, y, layer);
+  if (!t || !t.built) return "That floor is not one you laid";
+  const s = tileAt(x, y + 1, layer);
+  const e = tileAt(x + 1, y, layer);
+  if (t.n || t.w || s.n || e.w) return "A wall stands on it";
+  if (stairAt(x, y, layer) || landingAt(x, y, layer)) return "A stair stands on it";
+  if (t.prop || t.rug) return "Something stands on it";
+  if (t.items && t.items.length) return "Something lies on it";
+  return "";
+}
+
+// Take the built floor on (x, y) of `layer` up, the floor it replaced back (the void off the ground). Its neighbours stay as they are.
+export function takeUpFloor(x, y, layer = 0) {
+  if (floorTakeUpProblem(x, y, layer)) return null;
+  const t = growTile(x, y, layer);
+  const was = { floor: t.floor, free: !!t.built.free };
+  t.floor = t.built.under;
+  delete t.built;
+  touch(x, y, layer);
+  if (!layer) groundChanged([[x, y]]);
+  roomsDirty = true;
+  return was;
+}
+
 // The zone a tile belongs to: inside the bounds the first scatter rule whose
 // rect holds it, beyond them the wild rule's, else "harvest".
 export function zoneAt(x, y) {
@@ -1100,8 +1168,26 @@ export function canStampOver(existing, kind) {
 // Whether a wall of this kind may be built on the edge: nothing there yet (or a plain wall or a broken opening a door or a
 // window may stand in, `canStampOver`), no solid prop whose footprint spans it, and a door needs both its tiles to be
 // walkable and clear so it can be walked through and stood at.
+// Why no wall, door, or window may stand on an edge for a stair's sake, or "" (the review of #549: the cell law and "nobody climbs through a
+// window"): none between two of its steps, none across its top edge on its own layer (a body crosses there to the landing), and none on an
+// edge of its stairwell on the layer above (a body going down crosses the top edge into the stairwell, whose tiles the collision passes
+// whole). Along a stair's sides on its own layer a wall may stand (its sides hold bodies anyway).
+export function stairEdgeProblem(tx, ty, edge, layer = 0) {
+  if (!stairIndex.size) return "";
+  const [a, b] = edgeTiles(tx, ty, edge);
+  const ha = stairIndex.get(tileKey3(a[0], a[1], layer));
+  const hb = stairIndex.get(tileKey3(b[0], b[1], layer));
+  // Across its top, on its own layer or on the storey above (the stairwell's top step against the landing): a body crosses there, and the
+  // collision passes a stairwell's tiles whole. The stairwell's sides and its foot end are held by the stair's own edges (stairBlocks), so a
+  // wall may stand there, an upper wall running on over a stair along a ground wall (the recheck of #549).
+  for (const [h, o] of [[ha, b], [hb, a]]) if (h && h.k === 2 && h.s.landing[0] === o[0] && h.s.landing[1] === o[1]) return "Not across a stair's top";
+  if (ha && hb && !ha.well && !hb.well) return "Not across a stair";
+  return "";
+}
+
 export function canBuildWall(tx, ty, edge, kind = "wall", layer = 0) {
   if (!canStampOver(tileAt(tx, ty, layer)[edge], kind)) return false;
+  if (stairEdgeProblem(tx, ty, edge, layer)) return false; // a stair's run, its top, and its stairwell (the review of #549)
   if (ringWallProblem(tx, ty, edge, kind, layer)) return false; // a ring's rules (docs/50 section 5)
   const [a, b] = edgeTiles(tx, ty, edge);
   const pa = tileAt(a[0], a[1], layer).prop;
@@ -1474,6 +1560,8 @@ export function ringProblem(x0, y0, n, layer = 0) {
     if (round.isStepped(x0, y0, n, x - 1, y) && t.w) return "A wall is in the way";
   }
   for (const [tx, ty, edge] of s.outline) {
+    const stairWhy = stairEdgeProblem(tx, ty, edge, layer); // never across a stair's run or top (the recheck of #549)
+    if (stairWhy) return stairWhy;
     const w = peekTile(tx, ty, layer) ? peekTile(tx, ty, layer)[edge] : null;
     if (!w) continue;
     if (w.round || w.underRound) return "Another round room is there";
@@ -1929,6 +2017,8 @@ export function serializeChunk(c) {
   const props = [];
   const items = [];
   const parts = []; // [lx, ly, id]: a tile holding part of a prop anchored in another chunk (#341)
+  const built = []; // [lx, ly, under, free?]: a floor a player laid (docs/49 section 5)
+  const stairsHere = []; // [lx, ly, dir, material, free?]: a stair a player built, by its low tile
   let last = null;
   for (let i = 0; i < CHUNK * CHUNK; i++) {
     const t = c.tiles[i];
@@ -1945,12 +2035,20 @@ export function serializeChunk(c) {
       } else parts.push([lx, ly, pr.id]);
     }
     if (t.items && t.items.length) items.push([lx, ly, t.items]);
+    if (t.built) built.push(t.built.free ? [lx, ly, t.built.under, 1] : [lx, ly, t.built.under]);
+  }
+  // The stairs a player built whose foot is here (docs/49 section 5): the stair's record rides the chunk of its low tile.
+  for (const s of stairList) {
+    if (!s.built || s.layer !== c.layer || !inChunkTile(c, s.tiles[0][0], s.tiles[0][1])) continue;
+    stairsHere.push(s.free ? [s.at[0] - c.cx * CHUNK, s.at[1] - c.cy * CHUNK, s.dir, s.material, 1] : [s.at[0] - c.cx * CHUNK, s.at[1] - c.cy * CHUNK, s.dir, s.material]);
   }
   // A prop is recorded whole with its anchor's chunk; a tile of it on this chunk is named here by the prop's id, so this chunk installed
   // alone (a guest's frame) stands it again from the registry, and the sync check's map part sees a tile that lost it (#341). Only when
   // there are any: a chunk with none has the record it always had.
   const out = { cx: c.cx, cy: c.cy, layer: c.layer, wild: !!c.wild, dirty: !!c.dirty, floors, walls, props, items };
   if (parts.length) out.parts = parts;
+  if (built.length) out.built = built;
+  if (stairsHere.length) out.stairs = stairsHere;
   return out;
 }
 
@@ -2014,6 +2112,7 @@ export function installChunk(d) {
   for (const [floor, n] of d.floors) for (let j = 0; j < n; j++) tiles[i++] = createTile(floor);
   for (const [lx, ly, edge, w] of d.walls) tiles[ly * CHUNK + lx][edge] = { ...w, at: addr(cx * CHUNK + lx, cy * CHUNK + ly, layer) };
   for (const [lx, ly, list] of d.items) tiles[ly * CHUNK + lx].items = list;
+  for (const [lx, ly, under, free] of d.built || []) tiles[ly * CHUNK + lx].built = free ? { under, free: true } : { under }; // a laid floor (docs/49 section 5)
   // The tiles of props anchored on a neighbour (#341): stood again from the registry when the prop is there and still covers the tile. A prop not
   // in it yet (its anchor's chunk comes later in a restore or a frame) stands on this tile when that chunk's installProp runs.
   for (const [lx, ly, id] of d.parts || []) {
@@ -2027,6 +2126,16 @@ export function installChunk(d) {
   lastChunk = null;
   roomsDirty = true;
   settleRings(c); // a ring built or taken apart on the host, or kept by the save: its record follows its edges (docs/50 section 6)
+  // A built stair's record from its chunk (docs/49 section 5): its tiles, its landing, and its stairwell came in their own chunks' floors.
+  let added = false;
+  for (const [lx, ly, dir, material, free] of d.stairs || []) {
+    const rec = builtStairRecord(cx * CHUNK + lx, cy * CHUNK + ly, dir, material, layer, !!free);
+    if (rec && !stairList.some((s) => s.id === rec.id)) {
+      stairList.push(rec);
+      added = true;
+    }
+  }
+  if (added) indexStairs();
   return c;
 }
 
@@ -2532,6 +2641,66 @@ export function stairAt(x, y, layer = 0) {
 export function stairsOn(layer = 0) {
   return stairsOnLayer.get(layer) || [];
 }
+// ---- built stairs (docs/49 section 5): a palette entry in wood and in stone, Free building only for now ----
+const BUILT_STAIR_DIRS = { n: [0, -1], w: [-1, 0], s: [0, 1], e: [1, 0] };
+function builtStairRecord(x0, y0, dir, material, layer, free) {
+  const d = BUILT_STAIR_DIRS[dir];
+  if (!d || !Number.isInteger(x0) || !Number.isInteger(y0) || !Number.isInteger(layer)) return null;
+  const tiles = [0, 1, 2].map((k) => [x0 + d[0] * k, y0 + d[1] * k]);
+  return { id: `bstair_${x0}_${y0}_${layer}`, layer, at: [x0, y0], dir, material: material === "stone" ? "stone" : "wood", tiles, landing: [x0 + d[0] * 3, y0 + d[1] * 3], before: [x0 - d[0], y0 - d[1]], building: null, built: true, ...(free ? { free: true } : {}) };
+}
+
+// Why a stair cannot be built with its low tile at (x0, y0) climbing `dir` from `layer`, or "": its three tiles walkable and clear (no wall
+// across its run, no prop, rug, or item), the tile before its foot walkable, its landing above open (the void, or a floor a player laid)
+// with nothing on it, and its stairwell void. Stairs climb away from the camera (Primary's default, Michael to confirm: climbing east or
+// south the treads fold onto one line on screen).
+export function stairBuildProblem(x0, y0, dir, layer = 0) {
+  if (dir === "e" || dir === "s") return "Stairs climb away from the camera";
+  const rec = builtStairRecord(x0, y0, dir, "wood", layer, false);
+  if (!rec) return "Not here";
+  if (layer < 0) return "Not here";
+  const up = layer + 1;
+  const [bx, by] = rec.before;
+  if (!isWalkableTile(bx, by, layer) || stairAt(bx, by, layer)) return "Its foot needs a floor to step from";
+  for (const [x, y] of rec.tiles) {
+    const t = tileAt(x, y, layer);
+    if (!isWalkableTile(x, y, layer) || stairAt(x, y, layer) || landingAt(x, y, layer)) return "Not here";
+    if (t.prop || t.rug || (t.items && t.items.length)) return "Something is in the way";
+    if (tileAt(x, y, up).floor !== VOID) return "A floor is over it";
+    if (stairAt(x, y, up)) return "Another stair is over it";
+  }
+  const chain = [rec.before, ...rec.tiles];
+  for (let i = 1; i < chain.length; i++) if (wallBetween(chain[i - 1][0], chain[i - 1][1], chain[i][0], chain[i][1], layer)) return "A wall is in the way";
+  if (wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], layer)) return "A wall is in the way"; // its top edge on its own layer
+  // No wall across the stairwell's top to be, against its landing (a body going down crosses it into the stairwell, whose tiles' walls the
+  // collision passes whole: the review of #549), and no ring's curve over its stairwell or its landing.
+  if (wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], up)) return "A wall is over it";
+  if ([...rec.tiles, rec.landing].some(([x, y]) => curveCrossed(x, y, up) || unreachableAt(x, y, up))) return "A round wall is over it";
+  const lt = tileAt(rec.landing[0], rec.landing[1], up);
+  if (!(lt.floor === VOID || lt.built) || stairAt(rec.landing[0], rec.landing[1], up) || landingAt(rec.landing[0], rec.landing[1], up)) return "Its landing must be open";
+  if (lt.prop || lt.rug || (lt.items && lt.items.length)) return "Something is on its landing";
+  return "";
+}
+
+// Build it: its landing's planks laid on the storey above (part of its cost, never taken up), the stairwell over its three tiles left void,
+// its record kept on its low tile's chunk. A built stair never comes up (ruled). Returns the stair, or null.
+export function buildStair(x0, y0, dir, material, layer = 0, { free = false } = {}) {
+  if (stairBuildProblem(x0, y0, dir, layer)) return null;
+  const rec = builtStairRecord(x0, y0, dir, material, layer, free);
+  const up = layer + 1;
+  const land = growTile(rec.landing[0], rec.landing[1], up);
+  if (land.floor === VOID) land.floor = rec.material === "stone" ? "floor_stone" : "floor_wood";
+  for (const [x, y] of rec.tiles) growTile(x, y, up).floor = VOID; // the stairwell, already void (stairBuildProblem)
+  stairList.push(rec);
+  indexStairs();
+  for (const [x, y] of [...rec.tiles, rec.landing]) touch(x, y, layer);
+  touch(rec.landing[0], rec.landing[1], up);
+  for (const [x, y] of rec.tiles) touch(x, y, up);
+  markDirty(rec.tiles[0][0], rec.tiles[0][1], layer);
+  roomsDirty = true;
+  return rec;
+}
+
 // One tile-to-tile step against the stairs (canStep's): onto, along, and off a stair only by its line, from the tile before it up to its
 // top step; never off its top step onto the tile beyond it on its own layer (that is the landing's, a storey up), and never sideways.
 function stairStepOk(x0, y0, x1, y1, layer) {
@@ -2565,7 +2734,7 @@ function stairBlocks(gx, gy, r2, layer, sOn) {
     const sr2 = well || Math.abs(off) >= 0.5 ? r2 : Math.min(r2, STAIR_FEET * STAIR_FEET); // from beside it, the whole body is held off the side
     if (seg(0, 0.5, 3, 0.5, sr2) || seg(0, -0.5, 3, -0.5, sr2)) return true;
     if (well && seg(0, -0.5, 0, 0.5)) return true; // the stairwell's bottom end, over the stair's foot
-    if (!well && sOn !== s && seg(3, -0.5, 3, 0.5, sr2)) return true; // the top edge, to a body not on the stair
+    if (!well && sOn !== s && seg(3, -0.5, 3, 0.5)) return true; // the top edge, to a body not on the stair, its whole body (Michael's nook under the landing)
   }
   return false;
 }
@@ -2616,6 +2785,15 @@ export function stairStep(body) {
       const { t, off } = stairAlong(s, body.gx, body.gy);
       if (t >= 3 && t < 3.6 && Math.abs(off) <= 0.6) {
         body.layer = s.layer + 1;
+        // Onto the landing at its full width (the recheck of #549): a body climbed the steps on its feet, as near a side as STAIR_FEET lets
+        // it; on the landing it is all of it, so it is set in from the landing's sides as far as it is round, never arriving over a wall
+        // or the void beside the landing.
+        const lim = Math.max(0, 0.5 - (body.radius || 0.3));
+        if (Math.abs(off) > lim) {
+          const by = (Math.sign(off) * lim - off);
+          body.gx += -s.d[1] * by;
+          body.gy += s.d[0] * by;
+        }
         break;
       }
     }
@@ -2780,7 +2958,24 @@ function roundBlockerAt(gx, gy, r, layer = 0) {
 
 export function moveCircle(gx, gy, r, dx, dy, layer = 0) {
   const sFrom = stairIndex.size ? stairUnder(gx, gy, layer, 3) : null; // on a stair only if its centre is over its three tiles now
-  if (circleBlocked(gx, gy, r, layer, sFrom)) return { gx: gx + dx, gy: gy + dy };
+  if (circleBlocked(gx, gy, r, layer, sFrom)) {
+    // Already overlapping something (a door shut on it, a prop set down over it, a storey changed under it): it may move, but never deeper
+    // into what it overlaps (the recheck of #549: a body walked out of an overlap straight through a wall, or out over the void). Its
+    // clearance now is the largest circle free where it stands; a move is taken whole or along one axis if that circle is free there too.
+    // With its centre inside something, it walks out freely, as before.
+    if (circleBlocked(gx, gy, 0.02, layer, sFrom)) return { gx: gx + dx, gy: gy + dy };
+    let lo = 0.02;
+    let hi = r;
+    for (let i = 0; i < 7; i++) {
+      const mid = (lo + hi) / 2;
+      if (circleBlocked(gx, gy, mid, layer, sFrom)) hi = mid;
+      else lo = mid;
+    }
+    if (!circleBlocked(gx + dx, gy + dy, lo, layer, sFrom)) return { gx: gx + dx, gy: gy + dy };
+    if (dx && !circleBlocked(gx + dx, gy, lo, layer, sFrom)) return { gx: gx + dx, gy };
+    if (dy && !circleBlocked(gx, gy + dy, lo, layer, sFrom)) return { gx, gy: gy + dy };
+    return { gx, gy };
+  }
   // Round things deflect: a step that would hit a trunk slides along its
   // tangent instead of stopping, so two trunks a tile apart funnel you into
   // the gap between them rather than catching you at the edge.

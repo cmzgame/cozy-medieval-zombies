@@ -210,6 +210,217 @@ function ringParts(ring) {
   return { back: Object.entries(total).filter(([, k]) => k > 0).map(([id, count]) => ({ id, count })), tool: (what && buildData[what].tool) || tuning.world.boardTool };
 }
 
+// ---- the storeys in building (docs/49 sections 5 and 6) ----
+// What is built goes on the builder's own storey: the cursor is read on that floor (its storeys lifted on screen, as the renderer draws it),
+// and every read and write of the map names the layer.
+const layerOf = (player) => (player && player.layer) || 0;
+const NOT_UPSTAIRS = "Not upstairs yet"; // what is read on the ground's tiles alone (a rug, a painting, a set-down, a torch on a wall, a palette prop)
+function cursorGrid(player) {
+  const m = input.getMouse();
+  return iso.toGrid(m.x, m.y + layerOf(player) * map.STOREY);
+}
+
+// ---- floors (docs/49 section 5; Michael, 2026-10-27, `02` "Floors are built a tile at a time, with no physics") ----
+// A palette entry of `kind` floor lays its `sprite` a tile at a time: a drag lays the rectangle from the press to the release, each tile its
+// own build with its own refusal (map.floorBuildProblem), the ghost each tile green or red. On a storey a tile touching a floor already there,
+// or one laid earlier in the same drag, may be laid, so a floor grows out from a lone landing.
+export const isFloorBuild = (what) => !!(buildData[what] && buildData[what].kind === "floor");
+export const isStairBuild = (what) => !!(buildData[what] && buildData[what].kind === "stair");
+const MAX_DRAG = 12; // tiles a side of a floor's drag
+
+// The rectangle's tiles, each [x, y, reason]: laid in rings out from what is walkable already, so a tile's neighbour laid earlier counts.
+function floorPlan(player, what, x0, y0, x1, y1) {
+  const L = layerOf(player);
+  const id = buildData[what].sprite;
+  const xa = Math.min(x0, x1);
+  const ya = Math.min(y0, y1);
+  const xb = Math.min(Math.max(x0, x1), xa + MAX_DRAG - 1);
+  const yb = Math.min(Math.max(y0, y1), ya + MAX_DRAG - 1);
+  const todo = [];
+  for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) todo.push([x, y]);
+  // Within reach by distance and a clear line from where the player stands (reach.js; the review of #549: never through a wall).
+  const farMemo = new Map();
+  const far = (x, y) => {
+    const k = `${x},${y}`;
+    if (!farMemo.has(k)) farMemo.set(k, reachProblem(player, [[x, y]], BUILD_REACH + 0.5, L) || "");
+    return farMemo.get(k);
+  };
+  const grows = new Set();
+  const key = (x, y) => L * 4294967296 + (x + 32768) * 65536 + (y + 32768); // as map.js tileKey3
+  const ok = new Set();
+  let more = true;
+  while (more) {
+    more = false;
+    for (const [x, y] of todo) {
+      if (ok.has(key(x, y)) || far(x, y)) continue;
+      if (!map.floorBuildProblem(x, y, id, L, grows)) {
+        ok.add(key(x, y));
+        grows.add(key(x, y));
+        more = true;
+      }
+    }
+  }
+  // What it costs: a tile's cost each, the tiles that cannot be paid for refused.
+  const per = costOf(what);
+  let afford = Infinity;
+  for (const [item, k] of Object.entries(per)) afford = Math.min(afford, Math.floor(inventory.countAll(player, item) / k));
+  const tool = buildData[what].tool ? toolProblem(player, buildData[what].tool) : null;
+  const notYet = buildData[what].dev && !rules.freeBuilding ? "Floors are not in the game yet" : ""; // Free building only for now (as the round stone wall)
+  let paid = 0;
+  return todo.map(([x, y]) => {
+    if (notYet) return [x, y, notYet];
+    if (far(x, y)) return [x, y, far(x, y) === TOO_FAR ? "Too far" : "A wall is in the way"];
+    if (!ok.has(key(x, y))) return [x, y, map.floorBuildProblem(x, y, id, L, grows) || "Build it out from a floor"];
+    if (tool) return [x, y, tool];
+    if (paid >= afford) return [x, y, `Need ${Object.entries(per).map(([i, k]) => `${k} ${noun(i, k)}`).join(", ")}`];
+    paid++;
+    return [x, y, ""];
+  });
+}
+
+let floorMemo = { key: "", tiles: null }; // the last plan, kept while nothing it reads has changed (the review of #549: not every frame)
+function floorGhost(player, what) {
+  if (!input.getMouse().inside) return null;
+  const g = cursorGrid(player);
+  const cur = [Math.round(g.gx), Math.round(g.gy)];
+  const from = state.build.from || cur;
+  const bag = Object.keys((buildData[what] && buildData[what].cost) || {}).map((id) => inventory.countAll(player, id)).join(","); // what the player holds, for the plan's shortfall
+  const key = `${what}|${from}|${cur}|${layerOf(player)}|${Math.round(player.gx * 4)},${Math.round(player.gy * 4)}|${map.worldVersion}|${rules.freeBuilding}|${bag}`;
+  if (floorMemo.key !== key) floorMemo = { key, tiles: floorPlan(player, what, from[0], from[1], cur[0], cur[1]) };
+  const tiles = floorMemo.tiles;
+  const good = tiles.filter((t) => !t[2]).length;
+  const first = tiles.find((t) => t[2]);
+  return { kind: "floor", what, sprite: buildData[what].sprite, layer: layerOf(player), tiles, x0: from[0], y0: from[1], x1: cur[0], y1: cur[1], ok: good > 0, reason: good ? "" : first ? first[2] : "Not here", good, dragging: !!state.build.from };
+}
+
+// The drag's tiles laid, timed as a wall is (each tile's seconds), everything checked again when the bar completes.
+function startFloorBuild(player, what, x0, y0, x1, y1) {
+  const d = buildData[what];
+  const plan = floorPlan(player, what, x0, y0, x1, y1).filter((t) => !t[2]);
+  if (!plan.length) return false;
+  const near = plan.reduce((a, b) => (Math.hypot(player.gx - a[0], player.gy - a[1]) <= Math.hypot(player.gx - b[0], player.gy - b[1]) ? a : b));
+  const action = {
+    kind: "build",
+    label: `Laying ${d.label.toLowerCase()}`,
+    tiles: [[near[0], near[1]]],
+    mx: near[0],
+    my: near[1],
+    range: BUILD_REACH + 0.6,
+    duration: (d.seconds || 0) * plan.length,
+    enabled: true,
+    simple: false,
+    perform() {
+      const L = layerOf(player);
+      const now = floorPlan(player, what, x0, y0, x1, y1);
+      const grows = new Set();
+      let laid = 0;
+      // Out from what is walkable, ring by ring, as the plan was made.
+      let more = true;
+      const left = now.filter((t) => !t[2]);
+      while (more) {
+        more = false;
+        for (const t of left) {
+          if (t.done) continue;
+          const was = map.peekTile(t[0], t[1], L);
+          const over = was && was.built && !was.built.free ? floorEntryOf(was.floor) : null; // a laid floor under it: half of it back, as Take apart gives (the review of #549)
+          if (map.buildFloor(t[0], t[1], d.sprite, L, { free: !!rules.freeBuilding, grows })) {
+            for (const [item, k] of Object.entries(costOf(what))) inventory.takeAll(player, item, k);
+            if (over) {
+              const bag = inventory.bagOf(player);
+              for (const [item, n] of Object.entries(over.cost || {})) {
+                const back = Math.floor(n / 2);
+                const added = back > 0 && bag ? inventory.addItem(bag, item, back) : 0;
+                if (back - added > 0) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(item, back - added), L);
+              }
+            }
+            t.done = true;
+            laid++;
+            more = true;
+          }
+        }
+      }
+      if (!laid) showMessage((now.find((t) => t[2]) || [0, 0, "Not here"])[2]);
+      return laid > 0;
+    },
+  };
+  if (startAction) startAction(player, action);
+  else action.perform();
+  return true;
+}
+
+function finishFloor(player) {
+  const g = state.ghost;
+  state.build.from = null;
+  if (!g || g.kind !== "floor") return;
+  if (!g.ok) {
+    showMessage(g.reason);
+    return;
+  }
+  if (sender) sender({ kind: "build", what: g.what, tx: g.x0, ty: g.y0, tx2: g.x1, ty2: g.y1 });
+  else startFloorBuild(player, g.what, g.x0, g.y0, g.x1, g.y1);
+}
+
+// ---- stairs (docs/49 section 5): a stair three tiles long from the tile under the cursor, climbing on in the direction from the player to
+// it; only north and west for now (Primary's default: the treads show only on a stair climbing away from the camera) ----
+function stairDirFrom(player, x, y) {
+  const dx = x - player.gx;
+  const dy = y - player.gy;
+  return Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? "w" : "e") : dy < 0 ? "n" : "s";
+}
+function stairTilesOf(x, y, dir) {
+  const d = { n: [0, -1], w: [-1, 0], s: [0, 1], e: [1, 0] }[dir];
+  return { tiles: [0, 1, 2].map((k) => [x + d[0] * k, y + d[1] * k]), landing: [x + d[0] * 3, y + d[1] * 3], before: [x - d[0], y - d[1]] };
+}
+function stairBlock(player, what, x, y, dir) {
+  if (buildData[what].dev && !rules.freeBuilding) return "Stairs are not in the game yet"; // Free building only for now
+  const L = layerOf(player);
+  const why = map.stairBuildProblem(x, y, dir, L);
+  if (why) return why;
+  const { tiles } = stairTilesOf(x, y, dir);
+  if (stations.bodyOnTiles(tiles, L)) return "Someone is in the way";
+  return shortfall(player, what);
+}
+function stairReason(player, what, x, y, dir) {
+  const why = reachProblem(player, [[x, y]], BUILD_REACH + 0.5, layerOf(player)); // by distance and a clear line: never built through a wall (the review of #549)
+  if (why) return why === TOO_FAR ? "Too far" : why;
+  return stairBlock(player, what, x, y, dir);
+}
+function stairGhost(player, what) {
+  if (!input.getMouse().inside) return null;
+  const g = cursorGrid(player);
+  const x = Math.round(g.gx);
+  const y = Math.round(g.gy);
+  const dir = stairDirFrom(player, x, y);
+  const reason = stairReason(player, what, x, y, dir);
+  const { tiles, landing } = stairTilesOf(x, y, dir);
+  return { kind: "stair", what, material: buildData[what].material || "wood", x, y, dir, tiles, landing, layer: layerOf(player), ok: reason === "", reason };
+}
+function startStairBuild(player, what, x, y, dir) {
+  const d = buildData[what];
+  const action = {
+    kind: "build",
+    label: `Building ${d.label.toLowerCase()}`,
+    tiles: [[x, y]],
+    mx: x,
+    my: y,
+    range: BUILD_REACH + 0.6,
+    duration: d.seconds || 0,
+    enabled: true,
+    simple: false,
+    perform() {
+      const why = stairBlock(player, what, x, y, dir);
+      if (why) {
+        showMessage(why);
+        return false;
+      }
+      spend(player, what);
+      return !!map.buildStair(x, y, dir, d.material || "wood", layerOf(player), { free: !!rules.freeBuilding });
+    },
+  };
+  if (startAction) startAction(player, action);
+  else action.perform();
+}
+
 // A door or a window may be of another wood than the wall it goes into (#334): the entries of kind door or window that are not a fence's gate.
 export const takesLeaf = (what) => ["door", "window"].includes(wallKindOf(what)) && !(buildData[what] && buildData[what].over);
 
@@ -274,13 +485,15 @@ export function canPutDown(player, tx, ty) {
     for (let dx = 0; dx < w; dx++) {
       const x = tx + dx;
       const y = ty + dy;
-      const t = map.tileAt(x, y);
-      if (t.prop || !map.isWalkableTile(x, y)) return false;
-      if (map.besideDoor(x, y)) return false; // a door's two tiles stay clear: the dead go for it and need to stand there (#134)
-      if (map.curveCrossed(x, y, player.layer || 0)) return false; // no furniture where a ring's curve crosses (Michael, 2026-10-26, docs/50)
+      const L = layerOf(player); // on the player's own storey (docs/49)
+      const t = map.tileAt(x, y, L);
+      if (t.prop || !map.isWalkableTile(x, y, L)) return false;
+      if (map.stairAt(x, y, L) || map.landingAt(x, y, L)) return false; // never on a stair's step or its landing (the review of #549)
+      if (map.besideDoor(x, y, L)) return false; // a door's two tiles stay clear: the dead go for it and need to stand there (#134)
+      if (map.curveCrossed(x, y, L)) return false; // no furniture where a ring's curve crosses (Michael, 2026-10-26, docs/50)
       if (Math.hypot(player.gx - x, player.gy - y) < 0.7) return false;
-      if (dx > 0 && map.wallBetween(x - 1, y, x, y)) return false;
-      if (dy > 0 && map.wallBetween(x, y - 1, x, y)) return false;
+      if (dx > 0 && map.wallBetween(x - 1, y, x, y, L)) return false;
+      if (dy > 0 && map.wallBetween(x, y - 1, x, y, L)) return false;
     }
   }
   return true;
@@ -399,25 +612,31 @@ function fitReach(player, f) {
 
 // Why a prop build cannot go on (tx, ty), or "": its own rule for where it stands, then the cost.
 function propBuildBlock(player, what, tx, ty) {
+  if (layerOf(player)) return "Not upstairs yet"; // a palette prop (the Fireplace, the fire pit, the trough) reads the ground's rules alone: not wired for a storey yet
   const f = propBuildFit(what, tx, ty);
   return f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
 function propBuildReason(player, what, tx, ty) {
+  if (layerOf(player)) return "Not upstairs yet";
   const f = propBuildFit(what, tx, ty);
   return fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
 function buildBlock(player, what, tx, ty, edge, leaf = "") {
-  const existing = map.tileAt(tx, ty)[edge];
+  const L = layerOf(player);
+  const existing = map.tileAt(tx, ty, L)[edge];
   const kind = wallKindOf(what);
   const over = buildData[what] && buildData[what].over;
   if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
   if (existing && over && existing.sprite !== over) return "Only in a fence";
   if (existing && !map.canStampOver(existing, kind)) return "Already a wall";
-  const ringWhy = map.ringWallProblem(tx, ty, edge, kind); // a door or a window only at a ring's door points, no wall inside one (docs/50)
+  const stairWhy = map.stairEdgeProblem(tx, ty, edge, L); // never across a stair's run or top, nor round its stairwell (the review of #549)
+  if (stairWhy) return stairWhy;
+  const ringWhy = map.ringWallProblem(tx, ty, edge, kind, L); // a door or a window only at a ring's door points, no wall inside one (docs/50)
   if (ringWhy) return ringWhy;
-  if (!map.canBuildWall(tx, ty, edge, kind)) return "No room";
+  if (L && map.edgeTiles(tx, ty, edge).every(([x, y]) => !map.isWalkableTile(x, y, L))) return "No floor there"; // a storey's wall stands by a floor (docs/49 section 5)
+  if (!map.canBuildWall(tx, ty, edge, kind, L)) return "No room";
   if (leaf) {
     // The wood of its leaves (#334): only for a door or a window, in a wall of a wood (its own sprite when it is stamped over one).
     const sprite = existing && map.canStampOver(existing, kind) ? existing.sprite : buildData[what].sprite;
@@ -597,6 +816,10 @@ export function update(player) {
   }
   if (state.kind === "build" && takesLeaf(state.build.what) && input.wasPressed("KeyR")) state.build.leaf = nextLeaf(state.build.leaf || ""); // the leaf wood (#334)
   if (state.kind === "prop") state.ghost = propGhost(player);
+  else if (state.kind === "build" && isFloorBuild(state.build.what)) {
+    state.ghost = floorGhost(player, state.build.what);
+    if (state.build.from && !input.mouseLeftDown()) finishFloor(player); // a floor's drag released: lay what the ghost shows
+  }
   else if (state.kind === "rug") state.ghost = rugGhost(player);
   else if (state.kind === "painting") state.ghost = paintingGhost(player);
   else if (state.kind === "setdown") state.ghost = setdownGhost(player);
@@ -607,6 +830,7 @@ export function update(player) {
   }
   else if (state.kind === "remove") state.ghost = removeGhost(player);
   else state.ghost = null;
+  if (state.ghost && state.ghost.layer == null) state.ghost.layer = layerOf(player); // drawn on the builder's storey (render/scene.js)
 }
 
 // ---- removal ----
@@ -647,7 +871,14 @@ function wallFace(tx, ty, edge, wall) {
 // carried somewhere else) and authored walls never highlight (Michael,
 // 2026-10-15, the wiki census: X took the village's chests and beds, and could
 // never take a crafted workbench).
-export function removalTarget(sx, sy) {
+export function removalTarget(sx, sy, layer = 0) {
+  if (layer) {
+    // On a storey: the cursor read on that floor, and the map there (docs/49 section 6).
+    return map.withDrawLayer(layer, () => removalTargetHere(sx, sy + layer * map.STOREY, layer));
+  }
+  return removalTargetHere(sx, sy, 0);
+}
+function removalTargetHere(sx, sy, layer) {
   let best = null;
   const consider = (t, depth) => {
     if (!best || depth > best.depth) best = { ...t, depth };
@@ -681,7 +912,7 @@ export function removalTarget(sx, sy) {
           if (!wall || !wall.built || walls.has(wall)) continue;
           if (!pointInQuad(sx, sy, wallFace(tx, ty, edge, wall))) continue;
           walls.add(wall);
-          consider({ type: "wall", tx, ty, edge, wall }, tx + ty - 0.5);
+          consider({ type: "wall", tx, ty, edge, wall, layer }, tx + ty - 0.5);
         }
       }
     }
@@ -689,7 +920,12 @@ export function removalTarget(sx, sy) {
   // The edge on the ground under the cursor, as building picks it, a little behind a face hit.
   const e = pickEdge(g0.gx, g0.gy);
   const ew = map.tileAt(e.tx, e.ty)[e.edge];
-  if (ew && ew.built && !walls.has(ew)) consider({ type: "wall", tx: e.tx, ty: e.ty, edge: e.edge, wall: ew }, e.tx + e.ty - 0.75);
+  if (ew && ew.built && !walls.has(ew)) consider({ type: "wall", tx: e.tx, ty: e.ty, edge: e.edge, wall: ew, layer }, e.tx + e.ty - 0.75);
+  // A floor a player laid (docs/49 section 5), under all else: what stands on it is taken first.
+  if (!best) {
+    const ft = map.peekTile(cx, cy, layer);
+    if (ft && ft.built) best = { type: "floor", tx: cx, ty: cy, layer, depth: cx + cy - 1 };
+  }
   // A ring's edge is the whole ring (docs/50 section 5: taken apart at once; a single edge never alone).
   if (best && best.type === "wall" && map.isRingWall(best.wall)) {
     const ring = map.ringOfWall(best.wall);
@@ -700,6 +936,7 @@ export function removalTarget(sx, sy) {
 
 function targetReach(player, t) {
   if (t.type === "round") return nearestOutline(player, t.ring.x0, t.ring.y0, t.ring.n).d;
+  if (t.type === "floor") return Math.hypot(player.gx - t.tx, player.gy - t.ty);
   if (t.type === "wall") {
     const [mx, my] = map.edgeMid(t.tx, t.ty, t.edge);
     return Math.hypot(player.gx - mx, player.gy - my);
@@ -710,7 +947,7 @@ function targetReach(player, t) {
 // Why a removal is out of reach, or "": a wall you built by distance alone (Michael, 2026-10-18: removing a wall is fine from either side of it);
 // a made prop by distance and a clear line, so a chest or a station cannot be taken down through a wall (#227).
 function removeReachProblem(player, t) {
-  if (t.type === "wall" || t.type === "round") return targetReach(player, t) > REMOVE_REACH ? "Too far" : "";
+  if (t.type === "wall" || t.type === "round" || t.type === "floor") return targetReach(player, t) > REMOVE_REACH ? "Too far" : "";
   const why = reachProblem(player, t.prop.tiles, REMOVE_REACH, t.prop.layer || 0);
   return why === TOO_FAR ? "Too far" : why || "";
 }
@@ -724,7 +961,7 @@ function putDownReach(player, tx, ty) {
 function removeGhost(player) {
   const m = input.getMouse();
   if (!m.inside) return null;
-  const target = removalTarget(m.x, m.y);
+  const target = removalTarget(m.x, m.y, layerOf(player));
   if (!target) return null;
   const why = takeApartProblem(player, target);
   return { kind: "remove", target, ok: !why, reason: why };
@@ -737,8 +974,17 @@ function buildEntryOf(wall) {
   return buildData[id] || buildData[wall.kind] || null;
 }
 
+function floorEntryOf(sprite) {
+  const id = Object.keys(buildData).find((k) => isFloorBuild(k) && buildData[k].sprite === sprite);
+  return id ? buildData[id] : null;
+}
 function targetName(t) {
   if (t.type === "prop") return propName(t.prop.sprite);
+  if (t.type === "floor") {
+    const ft = map.peekTile(t.tx, t.ty, t.layer || 0);
+    const d = ft && floorEntryOf(ft.floor);
+    return d ? d.label.toLowerCase() : "floor";
+  }
   if (t.type === "round") {
     const what = Object.keys(buildData).find((k) => isRoundBuild(k) && buildData[k].sprite === t.ring.sprite);
     return what ? buildData[what].label.toLowerCase() : "round wall";
@@ -759,6 +1005,12 @@ function targetName(t) {
 // cloth) gives nothing back: which item it was is not kept.
 export function partsOf(t) {
   if (t.type === "round") return ringParts(t.ring);
+  if (t.type === "floor") {
+    const ft = map.peekTile(t.tx, t.ty, t.layer || 0);
+    const d = ft && floorEntryOf(ft.floor);
+    const back = !d || !ft.built || ft.built.free ? [] : Object.entries(d.cost || {}).map(([id, n]) => ({ id, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
+    return { back, tool: (d && d.tool) || tuning.world.boardTool };
+  }
   if (t.type === "prop") {
     // A prop set down from an item is taken apart by the item's recipe: the item its definition names (a torch post: docs/43, section 4), or
     // the item whose Place sets it down (the campfire, made at the workbench since 2026-10-27).
@@ -808,6 +1060,13 @@ function asRing(t) {
 // Why this player may not take it apart now, or "": what it holds, the tool, the reach.
 export function takeApartProblem(player, t) {
   t = asRing(t);
+  if (t && t.type === "floor") {
+    if ((t.layer || 0) !== layerOf(player)) return "There is nothing there.";
+    const why = map.floorTakeUpProblem(t.tx, t.ty, t.layer || 0) || (stations.bodyOnTiles([[t.tx, t.ty]], t.layer || 0) ? "Someone is standing on it" : "");
+    if (why) return why;
+    const tool = partsOf(t).tool;
+    return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);
+  }
   if (t && t.type === "round") {
     // A ring the player built, whole (never the map's: players remove no authored wall, docs/50 section 5).
     if (!t.ring || map.ringById(t.ring.id) !== t.ring) return "There is nothing there.";
@@ -851,6 +1110,10 @@ export function takeApart(player, t) {
 
 // Destroy it. A container spills what it held onto the floor; a wall takes its boards with it.
 function destroy(t) {
+  if (t.type === "floor") {
+    map.takeUpFloor(t.tx, t.ty, t.layer || 0); // the floor it replaced back; its neighbours as they are (docs/49 section 5)
+    return;
+  }
   if (t.type === "round") {
     map.removeRing(t.ring.id); // its doors first, then every edge (docs/50 section 5)
     return;
@@ -868,7 +1131,7 @@ function destroy(t) {
     // put in it went with the prop; a guest's finds its container again by id and closes by itself).
     if (bags.length) emit("containerGone", { bags });
   } else {
-    map.destroyWall(t.tx, t.ty, t.edge, true); // a door or a window stamped into a wall leaves the wall again
+    map.destroyWall(t.tx, t.ty, t.edge, true, t.layer || 0); // a door or a window stamped into a wall leaves the wall again
   }
 }
 
@@ -876,7 +1139,7 @@ function propGhost(player) {
   const prop = state.prop;
   const m = input.getMouse();
   if (!m.inside) return null;
-  const g = iso.toGrid(m.x, m.y);
+  const g = cursorGrid(player); // on the player's own floor (the review of #549)
   const [w, h] = prop.footprint;
   // The footprint is centred on the cursor: its centre is the anchor plus half its extent.
   const tx = Math.round(g.gx - (w - 1) / 2);
@@ -898,7 +1161,7 @@ function rugGhost(player) {
   const [w, h] = rugs.footprintFor(r.sprite, r.facing);
   const tx = Math.round(g.gx - (w - 1) / 2);
   const ty = Math.round(g.gy - (h - 1) / 2);
-  const reason = rugs.reachFor(player, r.sprite, r.facing, tx, ty) || rugs.fitProblem(r.sprite, r.facing, tx, ty);
+  const reason = (layerOf(player) ? NOT_UPSTAIRS : "") || rugs.reachFor(player, r.sprite, r.facing, tx, ty) || rugs.fitProblem(r.sprite, r.facing, tx, ty);
   return { kind: "rug", prop: { sprite: r.sprite, facing: r.facing, footprint: [w, h] }, tx, ty, footprint: [w, h], ok: reason === "", reason, rug: { uid: r.uid, facing: r.facing } };
 }
 
@@ -909,6 +1172,7 @@ function paintingGhost(player) {
   if (!p) return null;
   const m = input.getMouse();
   if (!m.inside) return null;
+  if (layerOf(player)) return { kind: "painting", item: p.id, tx: 0, ty: 0, edge: "n", ok: false, reason: NOT_UPSTAIRS, none: true, painting: { uid: p.uid } };
   const at = paintings.targetAt(p.id, m.x, m.y, player);
   if (!at) return { kind: "painting", item: p.id, tx: 0, ty: 0, edge: "n", ok: false, reason: "Aim at a wall", none: true, painting: { uid: p.uid } };
   const reason = at.problem || paintings.reachFor(player, p.id, at.tx, at.ty, at.edge);
@@ -921,10 +1185,10 @@ function setdownGhost(player) {
   if (!c) return null;
   const m = input.getMouse();
   if (!m.inside) return null;
-  const g = iso.toGrid(m.x, m.y);
+  const g = cursorGrid(player); // on the player's own floor (the review of #549)
   const tx = Math.round(g.gx);
   const ty = Math.round(g.gy);
-  const reason = setdown.reachFor(player, tx, ty) || setdown.standProblem(c.stand, tx, ty, player.layer || 0);
+  const reason = (layerOf(player) ? NOT_UPSTAIRS : "") || setdown.reachFor(player, tx, ty) || setdown.standProblem(c.stand, tx, ty, player.layer || 0);
   const label = c.decoration ? `Click to set the ${c.name} down as decoration · Esc cancel` : `Click to set the ${c.campfire ? "campfire" : c.name} down · Esc cancel`;
   return { kind: "prop", prop: { sprite: c.sprite }, tx, ty, footprint: [1, 1], ok: reason === "", reason, setdown: { uid: c.uid }, label };
 }
@@ -938,6 +1202,7 @@ function torchGhost(player) {
   if (!m.inside) return null;
   const entry = setdown.torchOf(player, c.uid);
   const torch = { uid: c.uid, lit: !!(entry && entry.lit) };
+  if (layerOf(player)) return { kind: "torch", tx: 0, ty: 0, edge: "n", ok: false, reason: NOT_UPSTAIRS, none: true, torch };
   let first = null;
   for (const f of paintings.facesAt(m.x, m.y)) {
     const reason = setdown.mountProblem(f.tx, f.ty, f.edge) || setdown.mountReach(player, f.tx, f.ty);
@@ -950,9 +1215,10 @@ function torchGhost(player) {
 function buildGhost(player) {
   const m = input.getMouse();
   if (!m.inside) return null;
-  const g = iso.toGrid(m.x, m.y);
+  const g = cursorGrid(player);
   const what = state.build.what;
   if (isRoundBuild(what)) return roundGhost(player, what);
+  if (isStairBuild(what)) return stairGhost(player, what);
   if (isPropBuild(what)) {
     // A prop on the tiles under the cursor (the Fireplace along the wall it backs onto, its facing from that wall; the fire pit centred on the
     // cursor), drawn as the carried prop's ghost is, with its own line.
@@ -964,7 +1230,7 @@ function buildGhost(player) {
   const { tx, ty, edge } = pickEdge(g.gx, g.gy);
   const leaf = takesLeaf(what) ? state.build.leaf || "" : "";
   const reason = buildReason(player, what, tx, ty, edge, leaf);
-  const existing = map.tileAt(tx, ty)[edge];
+  const existing = map.tileAt(tx, ty, layerOf(player))[edge];
   const kind = wallKindOf(what);
   // As it would stand: a door stamped into a wall takes the wall's material (map.buildWall), so the ghost does too, and its leaf wood.
   const sprite = existing && map.canStampOver(existing, kind) ? existing.sprite : buildData[what].sprite;
@@ -1080,13 +1346,21 @@ export function tryConfirm(player) {
     const g = state.ghost;
     if (!g) return false;
     if (player.action) return true; // one build at a time
-    if (g.kind === "round") {
-      // A ring: the press starts the drag at the tile under the cursor; the release builds what the ghost shows then (update).
+    if (g.kind === "round" || g.kind === "floor") {
+      // A ring, or a floor's rectangle: the press starts the drag at the tile under the cursor; the release builds what the ghost shows then (update).
       if (!state.build.from) {
-        const m = input.getMouse();
-        const at = iso.toGrid(m.x, m.y);
+        const at = cursorGrid(player);
         state.build.from = [Math.round(at.gx), Math.round(at.gy)];
       }
+      return true;
+    }
+    if (g.kind === "stair") {
+      if (!g.ok) {
+        showMessage(g.reason);
+        return true;
+      }
+      if (sender) sender({ kind: "build", what: g.what, tx: g.x, ty: g.y, dir: g.dir });
+      else startStairBuild(player, g.what, g.x, g.y, g.dir);
       return true;
     }
     if (!g.ok) {
@@ -1126,6 +1400,7 @@ function finishRound(player) {
 // A removal target as an address: a prop by id, a wall by its edge.
 function addressOf(t) {
   if (t.type === "round") return { type: "round", id: t.ring.id };
+  if (t.type === "floor") return { type: "floor", tx: t.tx, ty: t.ty };
   return t.type === "prop" ? { type: "prop", id: t.prop.id } : { type: "wall", tx: t.tx, ty: t.ty, edge: t.edge };
 }
 
@@ -1133,6 +1408,10 @@ function addressOf(t) {
 // checked here against the guest's player, the refusal said to it through the acting player.
 export function performPlacement(player, cmd) {
   if (!player || !cmd) return false;
+  if (layerOf(player) && ["rug", "painting", "campfire", "setdown", "torch"].includes(cmd.kind)) {
+    showMessage(NOT_UPSTAIRS); // read on the ground's tiles alone: not wired for a storey yet (the review of #549)
+    return true;
+  }
   if (cmd.kind === "rug") {
     // A guest laying a rug from its bag (the host's own click calls placeRug directly): the same reach and fit, the refusal said through the acting player.
     rugs.placeRug(player, cmd.uid, cmd.tx, cmd.ty, cmd.facing);
@@ -1183,6 +1462,29 @@ export function performPlacement(player, cmd) {
     // A guest putting a torch it carries on a wall's face (Place torch, #523), by the torch's uid and the face's address: the same reach
     // and face rules as the host's own click.
     setdown.mountTorch(player, cmd.uid, cmd.tx, cmd.ty, cmd.edge);
+    return true;
+  }
+  if (cmd.kind === "build" && typeof cmd.what === "string" && isFloorBuild(cmd.what)) {
+    // A floor's rectangle (docs/49 section 5): its two corners on the player's storey, each tile by the rules the host's own release meets.
+    const [x0, y0, x1, y1] = [cmd.tx, cmd.ty, cmd.tx2, cmd.ty2].map((v) => Math.round(Number(v)));
+    if (![x0, y0, x1, y1].every(Number.isFinite) || Math.abs(x1 - x0) >= MAX_DRAG || Math.abs(y1 - y0) >= MAX_DRAG) return false;
+    if (player.action) return true;
+    if (!startFloorBuild(player, cmd.what, x0, y0, x1, y1)) showMessage((floorPlan(player, cmd.what, x0, y0, x1, y1).find((t) => t[2]) || [0, 0, "Not here"])[2]);
+    return true;
+  }
+  if (cmd.kind === "build" && typeof cmd.what === "string" && isStairBuild(cmd.what)) {
+    // A stair (docs/49 section 5): its low tile and its direction, on the player's storey.
+    const tx = Math.round(Number(cmd.tx));
+    const ty = Math.round(Number(cmd.ty));
+    const dir = ["n", "w", "s", "e"].includes(cmd.dir) ? cmd.dir : null;
+    if (!dir || !Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    if (player.action) return true;
+    const why = stairReason(player, cmd.what, tx, ty, dir);
+    if (why) {
+      showMessage(why);
+      return true;
+    }
+    startStairBuild(player, cmd.what, tx, ty, dir);
     return true;
   }
   if (cmd.kind === "build" && typeof cmd.what === "string" && isRoundBuild(cmd.what)) {
@@ -1238,12 +1540,16 @@ export function performPlacement(player, cmd) {
       if (ring && (ring.layer || 0) === (player.layer || 0)) t = { type: "round", ring };
     } else if (a.type === "prop") {
       const prop = typeof a.id === "string" ? map.propById(a.id) : null;
-      if (prop && prop.made && map.tileAt(prop.tile[0], prop.tile[1]).prop === prop) t = { type: "prop", prop };
+      if (prop && prop.made && (prop.layer || 0) === layerOf(player) && map.tileAt(prop.tile[0], prop.tile[1], prop.layer || 0).prop === prop) t = { type: "prop", prop }; // on the player's own storey (the review of #549)
     } else if (a.type === "wall" && (a.edge === "n" || a.edge === "w")) {
       const tx = Math.round(Number(a.tx));
       const ty = Math.round(Number(a.ty));
-      const wall = Number.isFinite(tx) && Number.isFinite(ty) ? map.tileAt(tx, ty)[a.edge] : null;
-      if (wall && wall.built) t = { type: "wall", tx, ty, edge: a.edge, wall };
+      const wall = Number.isFinite(tx) && Number.isFinite(ty) ? map.tileAt(tx, ty, layerOf(player))[a.edge] : null;
+      if (wall && wall.built) t = { type: "wall", tx, ty, edge: a.edge, wall, layer: layerOf(player) };
+    } else if (a.type === "floor") {
+      const tx = Math.round(Number(a.tx));
+      const ty = Math.round(Number(a.ty));
+      if (Number.isFinite(tx) && Number.isFinite(ty)) t = { type: "floor", tx, ty, layer: layerOf(player) };
     }
     if (!t) return false;
     takeApart(player, t); // the one rule, its refusal said to the acting player
@@ -1312,8 +1618,9 @@ function startBuild(player, g) {
         return false;
       }
       spend(player, what);
-      const built = map.buildWall(g.tx, g.ty, g.edge, wallKindOf(what), d.sprite, g.chosenLeaf || null);
-      if (built && rules.freeBuilding) map.tileAt(g.tx, g.ty)[g.edge].free = true; // it cost nothing, so taking it apart gives nothing back (docs/43, section 2)
+      const L = layerOf(player);
+      const built = map.buildWall(g.tx, g.ty, g.edge, wallKindOf(what), d.sprite, g.chosenLeaf || null, L); // on the builder's storey (docs/49)
+      if (built && rules.freeBuilding) map.tileAt(g.tx, g.ty, L)[g.edge].free = true; // it cost nothing, so taking it apart gives nothing back (docs/43, section 2)
       return built;
     },
   };
@@ -1353,6 +1660,16 @@ export function prompt() {
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
     const { back } = partsOf(t);
     return { label: `Click to take apart ${targetName(t)}${back.length ? ` (${partsText(back)} back)` : ""} · Esc cancel`, mx, my, progress: null, enabled: true };
+  }
+  if (g.kind === "floor") {
+    const [mx, my] = [(g.x0 + g.x1) / 2, (g.y0 + g.y1) / 2];
+    if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
+    const n = g.tiles.length;
+    return { label: g.dragging ? `Release to lay ${g.good} of ${n} (${costText(g.what)} a tile) · Esc cancel` : `Click to lay (${costText(g.what)}) · drag for more · Esc cancel`, mx, my, progress: null, enabled: true };
+  }
+  if (g.kind === "stair") {
+    if (!g.ok) return { label: g.reason, mx: g.x, my: g.y, progress: null, enabled: false };
+    return { label: `Click to build (${costText(g.what)}) · Esc cancel`, mx: g.x, my: g.y, progress: null, enabled: true };
   }
   if (g.kind === "round") {
     const [mx, my] = [g.x0 + (g.n - 1) / 2, g.y0 + (g.n - 1) / 2];

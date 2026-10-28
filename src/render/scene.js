@@ -333,7 +333,7 @@ export function renderScene(args) {
   lastStats.translucent = translucent;
   // On top, with no depth test (docs/51 section 4; Primary's recommendation, a default: a ghost hidden behind a wall is useless).
   gl.setPass(gl.PASS_TOP);
-  if (ghost) emitGhost(ghost);
+  if (ghost) withLift((ghost.layer || 0) * map.STOREY, () => map.withDrawLayer(ghost.layer || 0, () => emitGhost(ghost))); // on the builder's storey (docs/49 section 5)
   if (hitShapes) emitHitShapes(hitShapes);
   if (marker) emitMarker(marker);
 

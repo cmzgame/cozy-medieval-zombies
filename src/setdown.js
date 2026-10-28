@@ -36,6 +36,7 @@ export function standProblem(rule, tx, ty, layer = undefined) {
   if (rule === "natural") return trees.standProblem(tx, ty); // a sapling: open grass outdoors, no wall beside it (docs/46 step 3)
   const t = map.peekTile(tx, ty);
   if (!t || !map.isWalkableTile(tx, ty) || t.prop || t.rug) return "No room";
+  if (map.stairAt(tx, ty, layer || 0) || map.landingAt(tx, ty, layer || 0)) return "No room"; // never on a stair's step or its landing (the review of #549)
   const curve = map.ringFurnitureProblem(tx, ty, layer); // on the setter's floor when named (docs/49); a tile a ring's curve crosses holds no furniture (Michael, 2026-10-26, docs/50)
   if (curve) return curve;
   if (rule === "outdoors" && t.room > 0) return "Outdoors only";

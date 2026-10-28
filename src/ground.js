@@ -44,6 +44,7 @@
 import * as map from "./map.js";
 import * as gl from "./gl.js";
 import * as assets from "./assets.js";
+import * as round from "./round.js"; // a laid floor on a tile a ring's curve crosses, drawn inside the curve alone (docs/49 section 5)
 
 export const W = 1024; // a chunk's diamond's bounding box, in world pixels
 export const H = 512;
@@ -605,6 +606,8 @@ export function bakeImage(cx, cy, kindsOut = null) {
   const flip = new Uint8Array(C * C);
   const base = new Array(C * C);
   const top = new Array(C * C); // per tile: a laid floor's frame, or null
+  const clip = new Array(C * C); // per tile: [cx, cy, R²] of the ring whose curve crosses it, where a player laid the floor (docs/49 section 5)
+  const underTop = new Array(C * C); // and the frame of the floor it replaced, drawn outside the curve when that is a laid floor
   const earthNear = new Uint8Array(C * C); // per tile: a blended kind in it or around it
   // Per tile, for each kind laid from floor sheets: the frame its pixels read,
   // from the tile's own floor if it is one of the kind's, else a neighbour's
@@ -620,11 +623,25 @@ export function bakeImage(cx, cy, kindsOut = null) {
       grass[o] = b.grass[Math.floor(map.hash2(x, y, seed + 10) * b.grass.length)];
       flip[o] = map.hash2(x, y, seed + 11) < 0.5 ? 1 : 0;
       base[o] = b.base;
-      const floor = map.tileAt(x, y).floor;
+      const tt = map.tileAt(x, y);
+      const floor = tt.floor;
       if (kindOf(floor) === "laid") {
         const names = frameNames(floor);
         top[o] = frameOf(floor, names[Math.floor(map.hash2(x, y, seed + 12) * names.length)]);
       } else top[o] = null;
+      clip[o] = null;
+      const r = tt.built ? map.ringAt(x, y, 0) : null;
+      if (r) {
+        // A floor a player laid in a ring's square where the curve runs over the tile or between it and the stepped walls: inside the curve
+        // alone, the inside skirt over the seam (docs/49 section 5).
+        const s = round.shape(r.x0, r.y0, r.n);
+        const far = Math.hypot(Math.abs(x - s.cx) + 0.5, Math.abs(y - s.cy) + 0.5);
+        if (far > s.R) {
+          clip[o] = [s.cx, s.cy, s.R * s.R];
+          const u = tt.built.under;
+          underTop[o] = kindOf(u) === "laid" ? frameOf(u, frameNames(u)[Math.floor(map.hash2(x, y, seed + 12) * frameNames(u).length)]) : null;
+        }
+      }
       for (let ti = 0; ti < terrain.length; ti++) {
         const T = terrain[ti];
         if (!T.sheets) continue;
@@ -666,7 +683,15 @@ export function bakeImage(cx, cy, kindsOut = null) {
       const fx = FX[i];
       const fy = FY[i];
       const k = i * 4;
-      const t = top[o];
+      let t = top[o];
+      const cl = clip[o];
+      if (t && cl) {
+        const wx = canvasLeft + px;
+        const wy = canvasTop + py;
+        const gx = (wx / 32 + wy / 16) / 2 - cl[0];
+        const gy = (wy / 16 - wx / 32) / 2 - cl[1];
+        if (gx * gx + gy * gy > cl[2]) t = underTop[o]; // outside the curve: the floor it was laid over
+      }
       if (t) {
         const col = fx - t.ox;
         const row = fy - t.oy;
