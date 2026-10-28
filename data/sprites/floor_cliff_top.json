@@ -1,0 +1,14 @@
+{
+ "images": {
+  "idle_0": "data/art/cliffs/floor_cliff_top_0.png",
+  "idle_1": "data/art/cliffs/floor_cliff_top_1.png",
+  "idle_2": "data/art/cliffs/floor_cliff_top_2.png",
+  "idle_3": "data/art/cliffs/floor_cliff_top_3.png"
+ },
+ "anchor": [
+  32,
+  16
+ ],
+ "note": "the cliff top (art round 10): bare rock with slab cracks, scree, sparse grass and lichen; patterned in world space, any frame meets any other; laid on layer 1 over cliff walls, it needs no edge of its own (the wall's lip carries the rounding)",
+ "mapColor": "#968f88"
+}

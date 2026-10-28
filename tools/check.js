@@ -5756,6 +5756,227 @@ check("built stairs and floors upstairs: a stair built in the open climbing away
   }
   return res.join("; ");
 });
+// ---- the cliffs (art round 10, Michael 2026-10-28: "wire that cliff art for testing"; Free building's pieces) ----
+const cliffsMod = await import("../src/cliffs.js");
+const CLIFF_IDS = ["wall_cliff", "wall_cliff_grass", "floor_cliff_top", "floor_cliff_grass", "stair_ramp_stone"];
+check("the cliffs on the palette: a cliff wall and a grassy one, a cliff top and a grassy one, and the stone ramp, each `dev` (Free building only): hidden and refused with it off (the command a guest sends too), built with it on", () => {
+  const at = openGrass(6, 6);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  try {
+    rulesImport.rules.freeBuilding = false;
+    const off = placementImport.paletteKinds().filter((k) => CLIFF_IDS.includes(k.id)).length;
+    me.gx = x + 1.5; me.gy = y + 1.6; me.layer = 0;
+    placementImport.performPlacement(me, { kind: "build", what: "wall_cliff", tx: x + 1, ty: y + 1, edge: "n" });
+    placementImport.performPlacement(me, { kind: "build", what: "floor_cliff_top", tx: x, ty: y + 2, tx2: x, ty2: y + 2 });
+    const refusedOff = !mapMod.peekTile(x + 1, y + 1).n && mapMod.peekTile(x, y + 2).floor === "floor_grass";
+    rulesImport.rules.freeBuilding = true;
+    const on = placementImport.paletteKinds().filter((k) => CLIFF_IDS.includes(k.id)).map((k) => k.id);
+    placementImport.performPlacement(me, { kind: "build", what: "wall_cliff", tx: x + 1, ty: y + 1, edge: "n" });
+    placementImport.performPlacement(me, { kind: "build", what: "floor_cliff_grass", tx: x, ty: y + 2, tx2: x, ty2: y + 2 });
+    const w = mapMod.peekTile(x + 1, y + 1).n;
+    assert(off === 0 && refusedOff, `with Free building off: ${off} on the palette, built ${!refusedOff}`);
+    assert(CLIFF_IDS.every((id) => on.includes(id)), `with it on the palette lacks ${CLIFF_IDS.filter((id) => !on.includes(id)).join(", ")}`);
+    assert(w && w.kind === "wall" && w.sprite === "wall_cliff" && w.built && w.free && mapMod.peekTile(x, y + 2).floor === "floor_cliff_grass", `built: ${w ? w.sprite : "no wall"}, floor ${mapMod.peekTile(x, y + 2).floor}`);
+    // A cliff is a wall as stone is: it blocks bodies and sight, and bounds a room.
+    assert(mapMod.blocksMove(w) && !mapMod.wallRule("wall_cliff").seeThrough && mapMod.wallRule("wall_cliff").cliff && !mapMod.wallRule("wall_stone").cliff, "a cliff does not block as a wall");
+    mapMod.destroyWall(x + 1, y + 1, "n");
+    mapMod.takeUpFloor(x, y + 2, 0);
+    return `off: none offered, none built; on: ${on.join(", ")}; a built cliff wall blocks bodies and sight`;
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+  }
+});
+check("a cliff takes no door or window (\"Not in a cliff\", the command a guest sends refused), no painting and no torch (\"Not on a cliff\"), and comes apart only while Free building is on", () => {
+  const at = openGrass(6, 6);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  try {
+    rulesImport.rules.freeBuilding = true;
+    me.gx = x + 1.5; me.gy = y + 1.6; me.layer = 0;
+    placementImport.performPlacement(me, { kind: "build", what: "wall_cliff_grass", tx: x + 1, ty: y + 1, edge: "n" });
+    const w = mapMod.peekTile(x + 1, y + 1).n;
+    assert(w && w.sprite === "wall_cliff_grass", "no cliff built");
+    placementImport.performPlacement(me, { kind: "build", what: "door", tx: x + 1, ty: y + 1, edge: "n" });
+    placementImport.performPlacement(me, { kind: "build", what: "window", tx: x + 1, ty: y + 1, edge: "n" });
+    const still = mapMod.peekTile(x + 1, y + 1).n;
+    assert(still === w && still.kind === "wall", `the cliff became a ${still && still.kind}`);
+    assert(!mapMod.canStampOver(w, "door") && !mapMod.canStampOver(w, "window"), "canStampOver takes an opening into a cliff");
+    const hang = paintingsMod.segmentProblem(x + 1, y + 1, "n");
+    const torch = setdownMod.mountProblem(x + 1, y + 1, "n");
+    assert(hang === "Not on a cliff" && torch === "Not on a cliff", `painting: ${hang}; torch: ${torch}`);
+    const t = { type: "wall", tx: x + 1, ty: y + 1, edge: "n", wall: w, layer: 0 };
+    rulesImport.rules.freeBuilding = false;
+    const offWhy = placementImport.takeApartProblem(me, t);
+    rulesImport.rules.freeBuilding = true;
+    const onWhy = placementImport.takeApartProblem(me, t);
+    assert(offWhy === "Cliffs come apart only in Free building" && onWhy === "", `Take apart: off "${offWhy}", on "${onWhy}"`);
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "wall", tx: x + 1, ty: y + 1, edge: "n" } });
+    assert(!mapMod.peekTile(x + 1, y + 1).n, "Take apart left the cliff");
+    return `door and window refused; ${hang}; Take apart: "${offWhy}" off, allowed on`;
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+  }
+});
+// The artist's hill (tools/art-gen/round10/cliffs/gen.py HILL): an L with a two-wide notch, a step each side of it, a back L, a step on the
+// right, its plateau a floor on layer 1, a stone ramp climbing north to the landing 'L'. Laid on open grass at (x, y).
+const CLIFF_HILL = ["............", "......####..", "..########..", "..########..", "..#########.", "..#L#..####."];
+const cliffHillEdges = (P) => {
+  const isP = (a, b) => P.has(`${a},${b}`);
+  const edges = new Set();
+  for (const k of P) {
+    const [a, b] = k.split(",").map(Number);
+    for (const [e, ex, ey] of [["n", a, b], ["n", a, b + 1], ["w", a, b], ["w", a + 1, b]]) {
+      const [p, q] = e === "n" ? [[ex, ey], [ex, ey - 1]] : [[ex, ey], [ex - 1, ey]];
+      if (isP(...p) !== isP(...q)) edges.add(`${e},${ex},${ey}`);
+    }
+  }
+  edges.delete("n,3,6"); // the ramp's head
+  return edges;
+};
+// The artist's own rule for the corners (gen.py build_hill), written again from the plan alone: a vertex with one plateau quadrant or three,
+// whose two edges are cliff edges, named by the quadrant; an edge two corners claim takes each one's half.
+const cliffHillCorners = (P, edges) => {
+  const isP = (a, b) => P.has(`${a},${b}`);
+  const outn = { "-1,-1": "outer_s", "1,-1": "outer_w", "-1,1": "outer_e", "1,1": "outer_n" };
+  const inn = { "1,1": "inner_n", "-1,1": "inner_e", "1,-1": "inner_w", "-1,-1": "inner_s" };
+  const list = [];
+  const claims = {};
+  for (let vy = -1; vy <= 8; vy++) for (let vx = -1; vx <= 14; vx++) {
+    const q = { "-1,-1": isP(vx - 1, vy - 1), "1,-1": isP(vx, vy - 1), "-1,1": isP(vx - 1, vy), "1,1": isP(vx, vy) };
+    const c = Object.values(q).filter(Boolean).length;
+    if (c !== 1 && c !== 3) continue;
+    const s = Object.keys(q).find((k) => q[k] === (c === 1));
+    const [sx, sy] = s.split(",").map(Number);
+    const ce = [`n,${sx > 0 ? vx : vx - 1},${vy}`, `w,${vx},${sy > 0 ? vy : vy - 1}`];
+    if (!ce.every((e) => edges.has(e))) continue;
+    list.push({ vx, vy, name: (c === 1 ? outn : inn)[s], ce });
+    for (const e of ce) (claims[e] = claims[e] || []).push(`${vx},${vy}`);
+  }
+  return list.map((k) => {
+    const h = k.ce.map((e, i) => (claims[e].length > 1 ? "nw"[i] : "")).join("");
+    return { ...k, frame: `${k.name}${h ? `_h${h}` : ""}` };
+  });
+};
+check("the cliffs' corners: the artist's hill built by the commands a guest sends (its walls, the stone ramp, its plateau grown from the ramp's landing), and at every vertex the corner the artist's rule names, outer and inner, halved where a step is one tile long; each straight edge's face or back", () => {
+  // The valley's open meadow north-east of the spawn (the pane's test of the same hill stood there), checked open first.
+  const X0 = 146;
+  const Y0 = 138;
+  mapMod.ensureAround(X0 + 6, Y0 + 5, 3);
+  for (let b = -1; b <= 11; b++) for (let a = 0; a <= 12; a++) { const t = mapMod.peekTile(X0 + a, Y0 + b); assert(t && !t.prop && !t.n && !t.w && !t.rug && mapMod.isWalkableTile(X0 + a, Y0 + b) && !mapMod.stairAt(X0 + a, Y0 + b, 0), `the meadow is not open at ${X0 + a},${Y0 + b}`); }
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const P = new Set();
+  CLIFF_HILL.forEach((row, b) => [...row].forEach((ch, a) => { if (ch === "#" || ch === "L") P.add(`${a},${b}`); }));
+  const edges = cliffHillEdges(P);
+  try {
+    rulesImport.rules.freeBuilding = true;
+    for (const e of edges) {
+      const [k, a, b] = e.split(",");
+      const ex = Number(a);
+      const ey = Number(b);
+      const [p, q] = k === "n" ? [[ex, ey], [ex, ey - 1]] : [[ex, ey], [ex - 1, ey]];
+      const out = P.has(`${p[0]},${p[1]}`) ? q : p;
+      me.gx = X0 + out[0]; me.gy = Y0 + out[1]; me.layer = 0;
+      placementImport.performPlacement(me, { kind: "build", what: "wall_cliff_grass", tx: X0 + ex, ty: Y0 + ey, edge: k });
+    }
+    const built = [...edges].filter((e) => { const [k, a, b] = e.split(","); const w = mapMod.peekTile(X0 + Number(a), Y0 + Number(b), 0)[k]; return w && w.sprite === "wall_cliff_grass"; }).length;
+    assert(built === edges.size, `${built} of ${edges.size} cliff walls built`);
+    me.gx = X0 + 3; me.gy = Y0 + 9.6; me.layer = 0;
+    placementImport.performPlacement(me, { kind: "build", what: "stair_ramp_stone", tx: X0 + 3, ty: Y0 + 8, dir: "n" });
+    const s = mapMod.stairs().find((q) => q.built && q.at[0] === X0 + 3 && q.at[1] === Y0 + 8);
+    assert(s && s.material === "ramp_stone" && mapMod.peekTile(X0 + 3, Y0 + 5, 1).floor === "floor_cliff_top", `the ramp: ${s ? s.material : "none"}, landing ${mapMod.peekTile(X0 + 3, Y0 + 5, 1) && mapMod.peekTile(X0 + 3, Y0 + 5, 1).floor}`);
+    const laid = new Set(["3,5"]);
+    let more = true;
+    while (more) {
+      more = false;
+      for (const k of P) {
+        if (laid.has(k)) continue;
+        const [a, b] = k.split(",").map(Number);
+        const from = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [a + dx, b + dy]).find(([c, d]) => laid.has(`${c},${d}`));
+        if (!from) continue;
+        me.gx = X0 + from[0]; me.gy = Y0 + from[1]; me.layer = 1;
+        placementImport.performPlacement(me, { kind: "build", what: "floor_cliff_grass", tx: X0 + a, ty: Y0 + b, tx2: X0 + a, ty2: Y0 + b });
+        if (mapMod.peekTile(X0 + a, Y0 + b, 1).floor === "floor_cliff_grass") { laid.add(k); more = true; }
+      }
+    }
+    assert(laid.size === P.size, `${laid.size} of ${P.size} plateau tiles laid`);
+    // The corners, against the artist's rule.
+    const want = cliffHillCorners(P, edges);
+    const got = [];
+    for (let vy = -1; vy <= 8; vy++) for (let vx = -1; vx <= 14; vx++) {
+      const c = cliffsMod.cornerAt(X0 + vx, Y0 + vy, 0);
+      if (c) got.push(`${vx},${vy}:${c.frame}`);
+    }
+    const wantS = want.map((k) => `${k.vx},${k.vy}:${k.frame}`).sort();
+    got.sort();
+    assert(JSON.stringify(got) === JSON.stringify(wantS), `corners: got ${got.join(" ")}; the artist's rule ${wantS.join(" ")}`);
+    const kinds = new Set(want.map((k) => k.name));
+    assert(["outer_s", "outer_w", "outer_e", "outer_n", "inner_n", "inner_e", "inner_w", "inner_s"].every((k) => kinds.has(k)) && want.some((k) => /_h/.test(k.frame)), `not every kind or no half: ${[...kinds].join(", ")}`);
+    // Every frame exists in the corners' sheet; a straight edge whose own tile is plateau takes its back, the rest a face variant.
+    const cs = read("data/sprites/wall_cliff_grass_corners.json");
+    assert(want.every((k) => cs.images[k.frame]), `a corner frame missing: ${want.filter((k) => !cs.images[k.frame]).map((k) => k.frame).join(", ")}`);
+    const def = getDef("wall_cliff_grass");
+    let backs = 0;
+    let faces = 0;
+    for (const e of edges) {
+      const [k, a, b] = e.split(",");
+      const f = cliffsMod.edgeFrame(def, X0 + Number(a), Y0 + Number(b), k, 0);
+      if (f.back) backs++;
+      else faces++;
+      const own = P.has(`${a},${b}`);
+      assert(f.back === own && (own ? f.name.endsWith("_back") : /_plain(_\d)?$/.test(f.name)), `edge ${e}: ${f.name}`);
+    }
+    // A corner's edges are drawn by it: claimed; the other edges not.
+    const claimed = [...edges].filter((e) => { const [k, a, b] = e.split(","); const w = mapMod.peekTile(X0 + Number(a), Y0 + Number(b), 0)[k]; return cliffsMod.claimedByCorner(X0 + Number(a), Y0 + Number(b), k, w, 0); }).length;
+    const owned = new Set(want.flatMap((k) => k.ce)).size;
+    assert(claimed === owned, `${claimed} edges claimed by corners, the rule owns ${owned}`);
+    return `${edges.size} walls, the ramp, ${laid.size} plateau tiles; ${want.length} corners as the artist's rule (${[...kinds].sort().join(", ")}; ${want.filter((k) => /_h/.test(k.frame)).length} halved); ${claimed} edges by corners, ${backs} backs, ${faces} faces`;
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+    me.layer = 0;
+    me.rise = 0;
+  }
+});
+check("the stone ramp: a stair of its own material (north and west only), walked at 32 px a tile with no treads (map.riseOn), onto its landing a storey up; its record kept by the chunk's record", () => {
+  const at = openGrass(8, 7);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const walk = (dx, dy, n) => { for (let i = 0; i < n; i++) { const m = mapMod.moveCircle(me.gx, me.gy, 0.3, dx, dy, me.layer || 0); me.gx = m.gx; me.gy = m.gy; mapMod.stairStep(me); } };
+  try {
+    rulesImport.rules.freeBuilding = true;
+    me.gx = x + 6.5; me.gy = y + 3; me.layer = 0; me.rise = 0;
+    const n0 = mapMod.stairs().length;
+    placementImport.performPlacement(me, { kind: "build", what: "stair_ramp_stone", tx: x + 3, ty: y + 3, dir: "e" });
+    assert(mapMod.stairs().length === n0, "a ramp climbing toward the camera was built");
+    placementImport.performPlacement(me, { kind: "build", what: "stair_ramp_stone", tx: x + 5, ty: y + 3, dir: "w" });
+    const s = mapMod.stairs().find((q) => q.built && q.at[0] === x + 5 && q.at[1] === y + 3);
+    assert(s && s.material === "ramp_stone" && mapMod.stairKind(s.material).ramp && mapMod.peekTile(x + 2, y + 3, 1).floor === "floor_cliff_top", `the ramp: ${s && s.material}, landing ${mapMod.peekTile(x + 2, y + 3, 1) && mapMod.peekTile(x + 2, y + 3, 1).floor}`);
+    assert(mapMod.riseOn(s, 1.5) === 48 && mapMod.riseOn(s, 0.4) === 13 && mapMod.riseOn(s, 3) === 96 && mapMod.stairRise(0.4) === 16, `rise: ${mapMod.riseOn(s, 0.4)} at 0.4 (a stair's ${mapMod.stairRise(0.4)})`);
+    // Up it, the rise climbing by a pixel or two a step.
+    me.gx = x + 6; me.gy = y + 3;
+    let prev = 0;
+    let jump = 0;
+    for (let i = 0; i < 90; i++) { walk(-0.05, 0, 1); const r = (me.layer || 0) * 96 + (me.rise || 0); jump = Math.max(jump, Math.abs(r - prev)); prev = r; }
+    assert(me.layer === 1 && Math.abs(me.gx - (x + 2)) < 0.6 && jump <= 3, `the climb: ${me.gx.toFixed(2)} on layer ${me.layer}, the largest step in height ${jump}`);
+    // Its record and the chunk's: a fresh install brings back a ramp, never a wooden stair.
+    const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(Math.floor((x + 5) / mapMod.CHUNK), Math.floor((y + 3) / mapMod.CHUNK), false, 0))));
+    const st = (rec.stairs || []).find((q) => q[2] === "w" && q[3] === "ramp_stone");
+    assert(st, `the chunk's record: ${JSON.stringify(rec.stairs)}`);
+    assert(mapMod.stairKind("glass").material === "wood" && mapMod.stairKind("stone").material === "stone" && !mapMod.stairKind("stone").ramp, "an unknown material is not wood, or stone is a ramp");
+    return `refused climbing east; built climbing west, its landing a cliff top; up it to layer 1, a step at most ${jump} px; its record says ramp_stone`;
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+    me.layer = 0;
+    me.rise = 0;
+  }
+});
 const storeysMod = await import("../src/render/storeys.js");
 check("the drawn stair stands on its tiles: halfway up, the feet at either side limit of the walkable band land on the drawn tread, inside its stringers, in all four facings, wood and stone", () => {
   // Tread 6 (48 px, t 1.375 to 1.625) of each picture, its top's corners in the drawing's pixels (the artist's table, art round 8).

@@ -1,0 +1,1110 @@
+{
+ "round": 10,
+ "date": "2026-10-28",
+ "files": [
+  {
+   "file": "out/wall_cliff_north_plain.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_north_plain_1.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_north_plain_2.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_north_back.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "what": "wall, plateau on the camera's side"
+  },
+  {
+   "file": "out/wall_cliff_west_plain.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_west_plain_1.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_west_plain_2.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_west_back.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "what": "wall, plateau on the camera's side"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_s.png",
+   "size": [
+    75,
+    117
+   ],
+   "anchor": [
+    37,
+    116
+   ],
+   "what": "corner piece outer_s, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_s_hn.png",
+   "size": [
+    59,
+    117
+   ],
+   "anchor": [
+    21,
+    116
+   ],
+   "what": "corner piece outer_s_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_s_hw.png",
+   "size": [
+    59,
+    117
+   ],
+   "anchor": [
+    37,
+    116
+   ],
+   "what": "corner piece outer_s_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_s_hnw.png",
+   "size": [
+    43,
+    109
+   ],
+   "anchor": [
+    21,
+    108
+   ],
+   "what": "corner piece outer_s_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_w.png",
+   "size": [
+    41,
+    131
+   ],
+   "anchor": [
+    1,
+    112
+   ],
+   "what": "corner piece outer_w, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_w_hn.png",
+   "size": [
+    41,
+    123
+   ],
+   "anchor": [
+    1,
+    112
+   ],
+   "what": "corner piece outer_w_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_w_hw.png",
+   "size": [
+    41,
+    123
+   ],
+   "anchor": [
+    1,
+    104
+   ],
+   "what": "corner piece outer_w_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_w_hnw.png",
+   "size": [
+    25,
+    115
+   ],
+   "anchor": [
+    1,
+    104
+   ],
+   "what": "corner piece outer_w_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_e.png",
+   "size": [
+    41,
+    131
+   ],
+   "anchor": [
+    40,
+    112
+   ],
+   "what": "corner piece outer_e, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_e_hn.png",
+   "size": [
+    41,
+    123
+   ],
+   "anchor": [
+    40,
+    104
+   ],
+   "what": "corner piece outer_e_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_e_hw.png",
+   "size": [
+    41,
+    123
+   ],
+   "anchor": [
+    40,
+    112
+   ],
+   "what": "corner piece outer_e_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_e_hnw.png",
+   "size": [
+    25,
+    115
+   ],
+   "anchor": [
+    24,
+    104
+   ],
+   "what": "corner piece outer_e_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_n.png",
+   "size": [
+    75,
+    113
+   ],
+   "anchor": [
+    37,
+    93
+   ],
+   "what": "corner piece outer_n, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_n_hn.png",
+   "size": [
+    59,
+    113
+   ],
+   "anchor": [
+    37,
+    93
+   ],
+   "what": "corner piece outer_n_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_n_hw.png",
+   "size": [
+    59,
+    113
+   ],
+   "anchor": [
+    21,
+    93
+   ],
+   "what": "corner piece outer_n_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_outer_n_hnw.png",
+   "size": [
+    43,
+    105
+   ],
+   "anchor": [
+    21,
+    93
+   ],
+   "what": "corner piece outer_n_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_n.png",
+   "size": [
+    80,
+    123
+   ],
+   "anchor": [
+    40,
+    104
+   ],
+   "what": "corner piece inner_n, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_n_hn.png",
+   "size": [
+    64,
+    123
+   ],
+   "anchor": [
+    40,
+    104
+   ],
+   "what": "corner piece inner_n_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_n_hw.png",
+   "size": [
+    64,
+    123
+   ],
+   "anchor": [
+    24,
+    104
+   ],
+   "what": "corner piece inner_n_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_n_hnw.png",
+   "size": [
+    48,
+    115
+   ],
+   "anchor": [
+    24,
+    104
+   ],
+   "what": "corner piece inner_n_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_e.png",
+   "size": [
+    53,
+    136
+   ],
+   "anchor": [
+    37,
+    116
+   ],
+   "what": "corner piece inner_e, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_e_hn.png",
+   "size": [
+    53,
+    128
+   ],
+   "anchor": [
+    37,
+    108
+   ],
+   "what": "corner piece inner_e_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_e_hw.png",
+   "size": [
+    53,
+    128
+   ],
+   "anchor": [
+    37,
+    116
+   ],
+   "what": "corner piece inner_e_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_e_hnw.png",
+   "size": [
+    38,
+    120
+   ],
+   "anchor": [
+    22,
+    108
+   ],
+   "what": "corner piece inner_e_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_w.png",
+   "size": [
+    54,
+    136
+   ],
+   "anchor": [
+    16,
+    116
+   ],
+   "what": "corner piece inner_w, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_w_hn.png",
+   "size": [
+    54,
+    128
+   ],
+   "anchor": [
+    16,
+    116
+   ],
+   "what": "corner piece inner_w_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_w_hw.png",
+   "size": [
+    54,
+    128
+   ],
+   "anchor": [
+    16,
+    108
+   ],
+   "what": "corner piece inner_w_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_w_hnw.png",
+   "size": [
+    39,
+    120
+   ],
+   "anchor": [
+    16,
+    108
+   ],
+   "what": "corner piece inner_w_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_s.png",
+   "size": [
+    80,
+    120
+   ],
+   "anchor": [
+    40,
+    112
+   ],
+   "what": "corner piece inner_s, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_s_hn.png",
+   "size": [
+    64,
+    120
+   ],
+   "anchor": [
+    24,
+    112
+   ],
+   "what": "corner piece inner_s_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_s_hw.png",
+   "size": [
+    64,
+    120
+   ],
+   "anchor": [
+    40,
+    112
+   ],
+   "what": "corner piece inner_s_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_corner_inner_s_hnw.png",
+   "size": [
+    48,
+    112
+   ],
+   "anchor": [
+    24,
+    104
+   ],
+   "what": "corner piece inner_s_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/post_cliff.png",
+   "size": [
+    20,
+    102
+   ],
+   "anchor": [
+    10,
+    97
+   ],
+   "what": "post: a round rock column on a vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_north_plain.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_grass_north_plain_1.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_grass_north_plain_2.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_grass_north_back.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "what": "wall, plateau on the camera's side"
+  },
+  {
+   "file": "out/wall_cliff_grass_west_plain.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_grass_west_plain_1.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_grass_west_plain_2.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "what": "wall face"
+  },
+  {
+   "file": "out/wall_cliff_grass_west_back.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "what": "wall, plateau on the camera's side"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_s.png",
+   "size": [
+    75,
+    117
+   ],
+   "anchor": [
+    37,
+    116
+   ],
+   "what": "corner piece outer_s, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_s_hn.png",
+   "size": [
+    59,
+    117
+   ],
+   "anchor": [
+    21,
+    116
+   ],
+   "what": "corner piece outer_s_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_s_hw.png",
+   "size": [
+    59,
+    117
+   ],
+   "anchor": [
+    37,
+    116
+   ],
+   "what": "corner piece outer_s_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_s_hnw.png",
+   "size": [
+    43,
+    109
+   ],
+   "anchor": [
+    21,
+    108
+   ],
+   "what": "corner piece outer_s_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_w.png",
+   "size": [
+    41,
+    131
+   ],
+   "anchor": [
+    1,
+    112
+   ],
+   "what": "corner piece outer_w, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_w_hn.png",
+   "size": [
+    41,
+    123
+   ],
+   "anchor": [
+    1,
+    112
+   ],
+   "what": "corner piece outer_w_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_w_hw.png",
+   "size": [
+    41,
+    123
+   ],
+   "anchor": [
+    1,
+    104
+   ],
+   "what": "corner piece outer_w_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_w_hnw.png",
+   "size": [
+    25,
+    115
+   ],
+   "anchor": [
+    1,
+    104
+   ],
+   "what": "corner piece outer_w_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_e.png",
+   "size": [
+    41,
+    131
+   ],
+   "anchor": [
+    40,
+    112
+   ],
+   "what": "corner piece outer_e, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_e_hn.png",
+   "size": [
+    41,
+    123
+   ],
+   "anchor": [
+    40,
+    104
+   ],
+   "what": "corner piece outer_e_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_e_hw.png",
+   "size": [
+    41,
+    123
+   ],
+   "anchor": [
+    40,
+    112
+   ],
+   "what": "corner piece outer_e_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_e_hnw.png",
+   "size": [
+    25,
+    115
+   ],
+   "anchor": [
+    24,
+    104
+   ],
+   "what": "corner piece outer_e_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_n.png",
+   "size": [
+    75,
+    113
+   ],
+   "anchor": [
+    37,
+    93
+   ],
+   "what": "corner piece outer_n, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_n_hn.png",
+   "size": [
+    59,
+    113
+   ],
+   "anchor": [
+    37,
+    93
+   ],
+   "what": "corner piece outer_n_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_n_hw.png",
+   "size": [
+    59,
+    113
+   ],
+   "anchor": [
+    21,
+    93
+   ],
+   "what": "corner piece outer_n_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_outer_n_hnw.png",
+   "size": [
+    43,
+    105
+   ],
+   "anchor": [
+    21,
+    93
+   ],
+   "what": "corner piece outer_n_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_n.png",
+   "size": [
+    80,
+    123
+   ],
+   "anchor": [
+    40,
+    104
+   ],
+   "what": "corner piece inner_n, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_n_hn.png",
+   "size": [
+    64,
+    123
+   ],
+   "anchor": [
+    40,
+    104
+   ],
+   "what": "corner piece inner_n_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_n_hw.png",
+   "size": [
+    64,
+    123
+   ],
+   "anchor": [
+    24,
+    104
+   ],
+   "what": "corner piece inner_n_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_n_hnw.png",
+   "size": [
+    48,
+    115
+   ],
+   "anchor": [
+    24,
+    104
+   ],
+   "what": "corner piece inner_n_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_e.png",
+   "size": [
+    53,
+    136
+   ],
+   "anchor": [
+    37,
+    116
+   ],
+   "what": "corner piece inner_e, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_e_hn.png",
+   "size": [
+    53,
+    128
+   ],
+   "anchor": [
+    37,
+    108
+   ],
+   "what": "corner piece inner_e_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_e_hw.png",
+   "size": [
+    53,
+    128
+   ],
+   "anchor": [
+    37,
+    116
+   ],
+   "what": "corner piece inner_e_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_e_hnw.png",
+   "size": [
+    38,
+    120
+   ],
+   "anchor": [
+    22,
+    108
+   ],
+   "what": "corner piece inner_e_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_w.png",
+   "size": [
+    54,
+    136
+   ],
+   "anchor": [
+    16,
+    116
+   ],
+   "what": "corner piece inner_w, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_w_hn.png",
+   "size": [
+    54,
+    128
+   ],
+   "anchor": [
+    16,
+    116
+   ],
+   "what": "corner piece inner_w_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_w_hw.png",
+   "size": [
+    54,
+    128
+   ],
+   "anchor": [
+    16,
+    108
+   ],
+   "what": "corner piece inner_w_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_w_hnw.png",
+   "size": [
+    39,
+    120
+   ],
+   "anchor": [
+    16,
+    108
+   ],
+   "what": "corner piece inner_w_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_s.png",
+   "size": [
+    80,
+    120
+   ],
+   "anchor": [
+    40,
+    112
+   ],
+   "what": "corner piece inner_s, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_s_hn.png",
+   "size": [
+    64,
+    120
+   ],
+   "anchor": [
+    24,
+    112
+   ],
+   "what": "corner piece inner_s_hn, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_s_hw.png",
+   "size": [
+    64,
+    120
+   ],
+   "anchor": [
+    40,
+    112
+   ],
+   "what": "corner piece inner_s_hw, anchored on its vertex"
+  },
+  {
+   "file": "out/wall_cliff_grass_corner_inner_s_hnw.png",
+   "size": [
+    48,
+    112
+   ],
+   "anchor": [
+    24,
+    104
+   ],
+   "what": "corner piece inner_s_hnw, anchored on its vertex"
+  },
+  {
+   "file": "out/post_cliff_grass.png",
+   "size": [
+    20,
+    102
+   ],
+   "anchor": [
+    10,
+    97
+   ],
+   "what": "post: a round rock column on a vertex"
+  },
+  {
+   "file": "out/floor_cliff_top_0.png",
+   "size": [
+    64,
+    32
+   ],
+   "anchor": [
+    32,
+    16
+   ],
+   "what": "floor, anchor the tile's centre"
+  },
+  {
+   "file": "out/floor_cliff_top_1.png",
+   "size": [
+    64,
+    32
+   ],
+   "anchor": [
+    32,
+    16
+   ],
+   "what": "floor, anchor the tile's centre"
+  },
+  {
+   "file": "out/floor_cliff_top_2.png",
+   "size": [
+    64,
+    32
+   ],
+   "anchor": [
+    32,
+    16
+   ],
+   "what": "floor, anchor the tile's centre"
+  },
+  {
+   "file": "out/floor_cliff_top_3.png",
+   "size": [
+    64,
+    32
+   ],
+   "anchor": [
+    32,
+    16
+   ],
+   "what": "floor, anchor the tile's centre"
+  },
+  {
+   "file": "out/floor_cliff_grass_0.png",
+   "size": [
+    64,
+    32
+   ],
+   "anchor": [
+    32,
+    16
+   ],
+   "what": "floor, anchor the tile's centre"
+  },
+  {
+   "file": "out/floor_cliff_grass_1.png",
+   "size": [
+    64,
+    32
+   ],
+   "anchor": [
+    32,
+    16
+   ],
+   "what": "floor, anchor the tile's centre"
+  },
+  {
+   "file": "out/floor_cliff_grass_2.png",
+   "size": [
+    64,
+    32
+   ],
+   "anchor": [
+    32,
+    16
+   ],
+   "what": "floor, anchor the tile's centre"
+  },
+  {
+   "file": "out/floor_cliff_grass_3.png",
+   "size": [
+    64,
+    32
+   ],
+   "anchor": [
+    32,
+    16
+   ],
+   "what": "floor, anchor the tile's centre"
+  },
+  {
+   "file": "out/stair_ramp_stone_n.png",
+   "size": [
+    127,
+    158
+   ],
+   "anchor": [
+    29,
+    127
+   ],
+   "what": "stone ramp climbing n, anchor the low-end tile's top vertex"
+  },
+  {
+   "file": "out/stair_ramp_stone_w.png",
+   "size": [
+    126,
+    158
+   ],
+   "anchor": [
+    97,
+    127
+   ],
+   "what": "stone ramp climbing w, anchor the low-end tile's top vertex"
+  }
+ ]
+}

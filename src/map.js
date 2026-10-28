@@ -1161,6 +1161,7 @@ export function edgeMid(tx, ty, edge) {
 export function canStampOver(existing, kind) {
   if (!existing) return true;
   if (kind !== "door" && kind !== "window") return false;
+  if (existing.kind === "wall" && wallRule(existing.sprite).cliff) return false; // no door or window in a cliff (art round 10, Free building's)
   if (existing.kind === "wall") return kind === "door" || !wallRule(existing.sprite).seeThrough; // a window is no use in a fence or bars
   return existing.kind === kind && !!existing.broken;
 }
@@ -2539,7 +2540,7 @@ export function wallRule(sprite) {
   let def = null;
   try { def = getDef(sprite); } catch { def = null; }
   const w = (def && def.wall) || {};
-  r = { seeThrough: !!w.seeThrough, fence: !!w.fence };
+  r = { seeThrough: !!w.seeThrough, fence: !!w.fence, cliff: !!w.cliff }; // a cliff (art round 10): bare rock, no opening stamped in it, nothing hung on it
   wallRules.set(sprite, r);
   return r;
 }
@@ -2643,11 +2644,27 @@ export function stairsOn(layer = 0) {
 }
 // ---- built stairs (docs/49 section 5): a palette entry in wood and in stone, Free building only for now ----
 const BUILT_STAIR_DIRS = { n: [0, -1], w: [-1, 0], s: [0, 1], e: [1, 0] };
+// A stair's material: wood, stone, or another whose definition `stair_<material>` is drawn (the stone ramp, art round 10: `ramp_stone`,
+// a sloped slab whose definition has a `ramp` table, walked at 32 px a tile with no treads; its landing the floor its `landing` names).
+// Anything else is wood. Pure but for the definitions, read once each.
+const stairKinds = new Map();
+export function stairKind(material) {
+  let k = stairKinds.get(material);
+  if (k) return k;
+  let def = null;
+  if (material !== "wood" && material !== "stone" && typeof material === "string") {
+    try { def = getDef(`stair_${material}`); } catch { def = null; }
+  }
+  const m = material === "stone" || def ? material : "wood";
+  k = { material: m, ramp: !!(def && def.ramp), landing: (def && def.landing) || (m === "stone" ? "floor_stone" : "floor_wood") };
+  stairKinds.set(material, k);
+  return k;
+}
 function builtStairRecord(x0, y0, dir, material, layer, free) {
   const d = BUILT_STAIR_DIRS[dir];
   if (!d || !Number.isInteger(x0) || !Number.isInteger(y0) || !Number.isInteger(layer)) return null;
   const tiles = [0, 1, 2].map((k) => [x0 + d[0] * k, y0 + d[1] * k]);
-  return { id: `bstair_${x0}_${y0}_${layer}`, layer, at: [x0, y0], dir, material: material === "stone" ? "stone" : "wood", tiles, landing: [x0 + d[0] * 3, y0 + d[1] * 3], before: [x0 - d[0], y0 - d[1]], building: null, built: true, ...(free ? { free: true } : {}) };
+  return { id: `bstair_${x0}_${y0}_${layer}`, layer, at: [x0, y0], dir, material: stairKind(material).material, tiles, landing: [x0 + d[0] * 3, y0 + d[1] * 3], before: [x0 - d[0], y0 - d[1]], building: null, built: true, ...(free ? { free: true } : {}) };
 }
 
 // Why a stair cannot be built with its low tile at (x0, y0) climbing `dir` from `layer`, or "": its three tiles walkable and clear (no wall
@@ -2689,7 +2706,7 @@ export function buildStair(x0, y0, dir, material, layer = 0, { free = false } = 
   const rec = builtStairRecord(x0, y0, dir, material, layer, free);
   const up = layer + 1;
   const land = growTile(rec.landing[0], rec.landing[1], up);
-  if (land.floor === VOID) land.floor = rec.material === "stone" ? "floor_stone" : "floor_wood";
+  if (land.floor === VOID) land.floor = stairKind(rec.material).landing;
   for (const [x, y] of rec.tiles) growTile(x, y, up).floor = VOID; // the stairwell, already void (stairBuildProblem)
   stairList.push(rec);
   indexStairs();
@@ -2747,6 +2764,11 @@ export const STAIR_TREADS = 12;
 export function stairRise(t) {
   return Math.max(0, Math.min(STAIR_TREADS, Math.round(Math.max(0, Math.min(3, t)) * 4))) * 8;
 }
+// A body's rise on stair `s` at `t` tiles up: a ramp's (art round 10, the stone ramp) its slab's line, 32 px a tile to the whole pixel (its
+// three worn steps lie 3 px under that line at most); a stair's the tread under its feet.
+export function riseOn(s, t) {
+  return stairKind(s.material).ramp ? Math.round(Math.max(0, Math.min(3, t)) * 32) : stairRise(t);
+}
 // The stair a body at (gx, gy) on `layer` is on (its centre over its three tiles, or just past its top edge, where it is crossing to the
 // landing this step), or null.
 function stairUnder(gx, gy, layer, tMax = 3.35) {
@@ -2770,12 +2792,12 @@ export function stairStep(body) {
     // From the landing back over the top edge: on the stair below.
     const { t } = stairAlong(hit.s, body.gx, body.gy);
     body.layer = hit.s.layer;
-    body.rise = stairRise(t);
+    body.rise = riseOn(hit.s, t);
     return;
   }
   if (hit) {
     const { t } = stairAlong(hit.s, body.gx, body.gy);
-    body.rise = stairRise(t);
+    body.rise = riseOn(hit.s, t);
     return;
   }
   if (body.rise) {
@@ -3506,7 +3528,7 @@ export function loadMap(json, options = {}) {
       if (t.floor === EARTH || t.floor === VOID) t.floor = s.floor || (layer < 0 ? "floor_dirt" : "floor_wood"); // a cellar's stair is cut out of the earth
       getL(x, y, up).floor = up === 0 ? HOLE : VOID; // the stairwell
     }
-    stairList.push({ id: `stair_${stairList.length}`, layer, at: [x0, y0], dir: s.dir, material: s.material === "stone" ? "stone" : "wood", tiles, landing, before, building: building.id });
+    stairList.push({ id: `stair_${stairList.length}`, layer, at: [x0, y0], dir: s.dir, material: stairKind(s.material).material, tiles, landing, before, building: building.id });
     return 0;
   };
   // placeProp above the map's `placeProp` export: the sheet's slices need the prop placed before the tiles exist.

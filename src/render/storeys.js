@@ -270,6 +270,66 @@ function clipHalf(pts, inside, a, b) {
   }
   return out.length >= 3 ? out : null;
 }
+// ---- the stone ramp (art round 10, Michael's approval 2026-10-28: data/sprites/stair_ramp_stone.json) ----
+// A stair whose material's definition has a `ramp` table (map.stairKind): a sloped slab of the cliff's rock, walked at 32 px a tile
+// (map.riseOn). Its picture laid as a stair's is: first the whole of it on the plane of its far side; then the slab's top, the run's
+// rectangle at 32 px a tile, on its one sloped plane (depth X + Y + Z along the slope, linear on the screen: the three corners' depths
+// solved for it); then its near side, the triangle under the slab's near edge, on that side's plane, so it covers the feet of a body
+// beside it. The head cut as a stair's.
+function slopePlane(pts) {
+  // pts: three [gx, gy, z] on the slope: the plane depth = A sx + B sy + C through their screen points and depths.
+  const q = pts.map(([gx, gy, z]) => { const p = iso.toScreen(gx, gy); return [p.x, p.y - z, (gx + gy) * 32 + z]; });
+  const [[x1, y1, d1], [x2, y2, d2], [x3, y3, d3]] = q;
+  const det = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1);
+  const A = ((d2 - d1) * (y3 - y1) - (d3 - d1) * (y2 - y1)) / det;
+  const B = ((x2 - x1) * (d3 - d1) - (x3 - x1) * (d2 - d1)) / det;
+  return { A, B, C: d1 - A * x1 - B * y1 };
+}
+function emitRamp(s, sheet, name, bias) {
+  const st = stairParts(s, sheet, name);
+  if (!st) return false;
+  const { P, quad, opts, nearO, rect } = st;
+  const H = map.STOREY;
+  gl.surface(sidePlane(s, -nearO), bias, 1);
+  quad(rect, opts);
+  const top = [P(0, -0.5), P(3, -0.5), P(3, 0.5), P(0, 0.5)];
+  const zs = [0, H, H, 0];
+  gl.surface(slopePlane([[...top[0], 0], [...top[1], H], [...top[3], 0]]), bias + 0.5, 1);
+  quad(top.map(([x, y], i) => at(x, y, zs[i])), { ...opts, heights: zs });
+  gl.surface(sidePlane(s, nearO), bias + 0.6, 1);
+  quad([at(...P(0, nearO), 0), at(...P(3, nearO), H), at(...P(3, nearO), 0)], opts);
+  return true;
+}
+// What a drawn stair's and a ramp's emit share: the picture's place, the grid along its run, the quad cut to the frame (and at its head where
+// something stands beside it), its options, and its near side.
+function stairParts(s, sheet, name) {
+  const uv = gl.frameUV(sheet, name);
+  const pic = stairPicture(s, sheet, name);
+  if (!pic || !uv) return null;
+  const uvOf = ([X, Y]) => [uv[0] + (X - pic.left), uv[1] + (Y - pic.top)];
+  const [dx, dy] = s.d;
+  const P = (u, o) => [s.low[0] + dx * u + -dy * o, s.low[1] + dy * u + dx * o];
+  const [px, py] = [-dy, dx];
+  const beside = (x, y) => [[x + px, y + py], [x - px, y - py]];
+  const heads = [s.tiles[2], s.landing];
+  const wallBy = heads.some(([x, y]) => beside(x, y).some(([a, b]) => map.wallBetween(x, y, a, b, s.layer)));
+  const floorBy = heads.some(([x, y]) => beside(x, y).some(([a, b]) => { const t = map.peekTile(a, b, s.layer + 1); return !!t && !map.isEngineFloor(t.floor); }));
+  const cutHead = wallBy || floorBy;
+  const H1 = at(...P(3, -1), map.STOREY);
+  const H2 = at(...P(3, 1), map.STOREY);
+  const side0 = (p) => (H2[0] - H1[0]) * (p[1] - H1[1]) - (H2[1] - H1[1]) * (p[0] - H1[0]);
+  const footSide = Math.sign(side0(at(...P(0, 0), 0)));
+  const quad = (pts, o) => {
+    let q = clipToRect(pts, pic.left, pic.top, pic.left + pic.w, pic.top + pic.h);
+    if (q && cutHead) q = clipHalf(q, (p) => side0(p) * footSide >= 0, H1, H2);
+    if (q) gl.texQuad(q, q.map(uvOf), o);
+  };
+  const opts = { world: s.tiles[1], page: uv[4] };
+  const nearO = (dx !== 0 ? P(0, 0.5)[1] > P(0, -0.5)[1] : P(0, 0.5)[0] > P(0, -0.5)[0]) ? 0.5 : -0.5;
+  const rect = [[pic.left, pic.top], [pic.left + pic.w, pic.top], [pic.left + pic.w, pic.top + pic.h], [pic.left, pic.top + pic.h]];
+  return { P, quad, opts, nearO, rect };
+}
+
 function emitDrawnStair(s, sheet, name, bias) {
   const uv = gl.frameUV(sheet, name);
   const pic = stairPicture(s, sheet, name);
@@ -350,7 +410,8 @@ export function stairDrawables(tilesL, L, bias, out, only = null) {
     const name = `idle_${s.dir}_0`;
     if (sheet && sheet.frames && sheet.frames[name]) {
       const [mx, my] = s.tiles[1];
-      out.push({ key: (mx + my) * 1000 + 0.9, kind: "stair", vis: true, rect: null, canOcclude: false, occluder: false, emit: () => emitDrawnStair(s, sheet, name, bias) });
+      const emit = map.stairKind(s.material).ramp ? () => emitRamp(s, sheet, name, bias) : () => emitDrawnStair(s, sheet, name, bias);
+      out.push({ key: (mx + my) * 1000 + 0.9, kind: "stair", ramp: map.stairKind(s.material).ramp, vis: true, rect: null, canOcclude: false, occluder: false, emit });
       continue;
     }
     s.tiles.forEach(([tx, ty], i) => {

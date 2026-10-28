@@ -1,0 +1,74 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "north_plain": "data/art/cliffs/wall_cliff_grass_north_plain.png",
+  "north_plain_1": "data/art/cliffs/wall_cliff_grass_north_plain_1.png",
+  "north_plain_2": "data/art/cliffs/wall_cliff_grass_north_plain_2.png",
+  "north_back": "data/art/cliffs/wall_cliff_grass_north_back.png",
+  "west_plain": "data/art/cliffs/wall_cliff_grass_west_plain.png",
+  "west_plain_1": "data/art/cliffs/wall_cliff_grass_west_plain_1.png",
+  "west_plain_2": "data/art/cliffs/wall_cliff_grass_west_plain_2.png",
+  "west_back": "data/art/cliffs/wall_cliff_grass_west_back.png"
+ },
+ "anchors": {
+  "north_plain": [
+   8,
+   100
+  ],
+  "north_plain_1": [
+   8,
+   100
+  ],
+  "north_plain_2": [
+   8,
+   100
+  ],
+  "north_back": [
+   8,
+   100
+  ],
+  "west_plain": [
+   40,
+   100
+  ],
+  "west_plain_1": [
+   40,
+   100
+  ],
+  "west_plain_2": [
+   40,
+   100
+  ],
+  "west_back": [
+   40,
+   100
+  ]
+ },
+ "wall": {
+  "height": 96,
+  "thickness": 16,
+  "color": "#6e6a66",
+  "material": "stone",
+  "post": "post_cliff_grass",
+  "corners": "wall_cliff_grass_corners",
+  "name": "cliff",
+  "cliff": true
+ },
+ "faces": {
+  "north": [
+   "north_plain",
+   "north_plain_1",
+   "north_plain_2"
+  ],
+  "west": [
+   "west_plain",
+   "west_plain_1",
+   "west_plain_2"
+  ]
+ },
+ "back": {
+  "north": "north_back",
+  "west": "west_back"
+ },
+ "note": "a cliff face (art round 10): bare stratified rock, 96 tall, 16 thick, centred on the edge, its top rounding over (a lip of radius 8) from the edge line to the face; no openings. `faces` are variants of the plain face, any of which meets any other (pick by a hash of the edge); `back` is the picture for an edge whose plateau is on the camera's side (its face looks away); anchors at the tile's top vertex, as wall_stone's; the grass-lipped set: the turf rolls over the lip"
+}
