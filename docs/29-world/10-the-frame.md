@@ -1,6 +1,6 @@
 # 29/10 — The frame: a bounded world in an endless engine
 
-**Status, 2026-10-28: a plan, Michael's rulings logged in `02` (2026-10-28, The world is bounded), nothing built.** Written from `origin/main` at e4aa2edf after the talk of 2026-10-28. It answers one question: how a hand-designed world of a valley and a few regions lives in an engine that grows forest chunks forever. A **default** is the Secondary's own, Michael's to overrule; section 10 lists them. Nothing here is urgent ("not mega high priority"); it exists so the map tools are designed with it in mind.
+**Status, 2026-10-28: a plan, Michael's rulings logged in `02` (2026-10-28, The world is bounded), nothing built.** Written from `origin/main` at e4aa2edf after the talk of 2026-10-28, with `49`'s storeys and stairs already built there (#533, #534, #549) and its ladders, cellars, and the valley's upper floors not. It answers one question: how a hand-designed world of a valley and a few regions lives in an engine that grows forest chunks forever. A **default** is the Secondary's own, Michael's to overrule; section 10 lists them. Nothing here is urgent ("not mega high priority"); it exists so the map tools are designed with it in mind.
 
 ## 1. The conflict, in Michael's words
 
@@ -25,8 +25,8 @@ Michael likes all three about equally; the frame is chosen **per stretch of edge
 | Blocks bodies | yes: `walk: false` for every walker, the dead included; nobody swims | yes: a solid prop a tile, two tiles deep so no canopy gap is a path | yes: a wall edge |
 | Blocks sight | no | no (trunks do not cut sight; only the canopy's soft hole) | yes, opaque |
 | Blocks arrows | no (a flight crosses water; the bow's `range` is 22 tiles) | low flights hit trunks (`trunkHeight` 40); a lobbed arrow clears | yes, to its height |
-| Its passage | a **bridge** (built by mapgen today) or a **ford** (shallow water, built today) | a **road through the thicket**: a gap two tiles wide | a **gorge** (a gap in the cliff line) or a **slope** (a stair with slope art, `49`) |
-| New engine | none | none | `49` built to its step 3 (storeys, stairs) |
+| Its passage | a **bridge** (built by mapgen today) or a **ford** (shallow water, built today) | a **road through the thicket**: a gap two tiles wide | a **gorge** (a gap in the cliff line) or a **slope** (a stair with slope art; as built, a stair climbs north or west, #549, so a hill is climbed from its south or east foot) |
+| New engine | none | none | none beyond `49`'s storeys and stairs, built (#533, #534, #549); only the `rock` material and `plateau()` |
 | New art | none (`29/09` has the river and bridge) | one unfellable tree kind per register (a thorn thicket; dense conifers for a snow region) | a `rock` wall material with its brow, its rounded corner (`50`'s quarter), slope art for the stair, `ground_rock` |
 | Suits | most borders; the valley's south and north (the river already runs top to bottom) | the snow region (Michael: "maybe trees for the snow region, TBD"); the valley's west | wherever height is wanted: looking down into the valley, or up at a region |
 
@@ -93,6 +93,6 @@ One continuous map and no scene transitions (`00`); never harder on a clock (`00
 3. **Passages and gates:** the gate as a door variant with a key, the waystone's gate, the ford as the south passage; a guest sees the gate open; the sync check.
 4. **Zones per region:** ambient, fog, and the sound bed by zone with the crossfade; the valley's zone unchanged.
 5. **The first region file,** stitched by offset; the mapgen split; a region built by a Secondary without touching `valley.py`.
-6. **Plateaus and slopes** (after `49` step 3): `plateau()`, the `rock` material with its brow, the rounded corners, slope art on the stair; the north edge rebuilt in storeys.
-7. **Tunnels and mines** (after `49`'s cellars): the rock faces from a floor outline, earth as rock mass, the mine mouth's stair.
+6. **Plateaus and slopes** (`49`'s storeys and stairs are built): `plateau()`, the `rock` material with its brow, the rounded corners, slope art on the stair; the north edge rebuilt in storeys.
+7. **Tunnels and mines** (after `49`'s cellars, step 3b, not built): the rock faces from a floor outline, earth as rock mass, the mine mouth's stair.
 8. **Later, not now:** a per-layer chart; a slope wider than a tile; a flooded ford as a gate; weather by zone; the inside of a hill marked void; a boat (never, probably: water is a wall).
