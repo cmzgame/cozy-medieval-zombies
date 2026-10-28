@@ -449,42 +449,42 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 ### Villagers placed now [built]
 
-- **Wyn, the guide:** outside your cottage's door; immune; talks every system, with wiki links; the first day's optional tutorial [open #123].
-- **The Innkeeper:** the inn; immune.
-- **The Priest:** the chapel; immune.
-- **The Guest:** the inn; at risk.
-- **The Child:** the inn; at risk; no line.
-- **The Reeve:** in his house on the lane; at risk.
-- **The Apprentice:** the merchant's storehouse; at risk.
-- **The Neighbour:** the shut cottage; at risk.
-- **The Miller:** the mill; at risk; his map line only, no talk file.
+Every one immune to the dead, as every villager is (ruled 2026-10-28).
+
+- **Wyn, the guide:** outside your cottage's door; talks every system, with wiki links; the first day's optional tutorial [open #123].
+- **The Innkeeper:** the inn.
+- **The Priest:** the chapel.
+- **The Guest:** the inn.
+- **The Child:** the inn; no line.
+- **The Reeve:** in his house on the lane.
+- **The Apprentice:** the merchant's storehouse.
+- **The Neighbour:** the shut cottage.
+- **The Miller:** the mill; his map line only, no talk file.
 
 ### Villagers to place [to build]
 
-- **The wizard** (#181): friendly, robes and hat, a beard (Michael's art); alive, immune; teaches Magic (ruled; Potions is the witch's, 2026-10-19); gives the Staff of Fire, the Book of Fire, or one [open #181]; where he lives [open #181].
+- **The wizard** (#181): friendly, robes and hat, a beard (Michael's art); alive; teaches Magic (ruled; Potions is the witch's, 2026-10-19); gives the Staff of Fire, the Book of Fire, or one [open #181]; where he lives [open #181].
 - **The witch** at the mere: keeps the cauldron and the herb garden (`docs/30`, `docs/29-world/06`).
 - **The shepherd** at the croft; **two woodcutters** at their camp; **the hunter** at his lodge; **the bandits' prisoner** in the cage (`docs/29-world/08`).
 - **Names for all** [open #92].
 
 ### Teachers
 
-One per skill, immune, teaching recipes and unlocks as you level [to build]; which villager teaches what is wrapped into the final valley design (Michael, 2026-10-23: the map as it stands is a testing map; #92); Learn is the teacher's own screen, what you can learn now and what the next level gives, with a button to learn each (ruled 2026-10-23) [to build]. Only the wizard (Magic) and the witch (Potions) are named as teachers; the places and villagers below are where the sources point, not teachers named:
+One per skill, teaching recipes and unlocks as you level [to build]; which villager teaches what is wrapped into the final valley design (Michael, 2026-10-23: the map as it stands is a testing map; #92); Learn is the teacher's own screen, what you can learn now and what the next level gives, with a button to learn each (ruled 2026-10-23) [to build]. Only the wizard (Magic) and the witch (Potions) are named as teachers; the places and villagers below are where the sources point, not teachers named:
 - **Magic:** the wizard (ruled).
 - **Potions:** the witch, at her cauldron (ruled 2026-10-19).
 - **Herbalism:** the witch's garden (`docs/29-world/06`) [open #92].
 - **Faith:** the Priest, at the chapel's altar [open #92].
-- **Farming:** none named; the Miller is not immune because "he teaches nothing yet" [open #92].
+- **Farming:** none named [open #92].
 - **Woodcutting:** the woodcutters [open #92].
 - **Ranged, Beastlore:** the hunter; the shepherd for sheep [open #92].
 - **Melee, Mining, Fishing, Cooking, Blacksmithing, Crafting:** none named [open #92].
 
 ### Immunity and behaviour
 
-- **Immune by a flag on each villager** [built]: the guide and every teacher (ruled); the dead neither target nor harm them.
-- **Some villagers at risk** [built]: the rest; the dead hunt them only with the rule "Zombies attack villagers" on (off by default).
-- **Every villager immune, the OSRS model** [open #103]: Michael's leaning; then whether villagers follow or stay at all.
-- **As built:** idle, wander on a tether, answer a poke with a bark, bark unprompted, talk in a click-only panel, stop and face the talker, heal slowly when hurt; a bitten one dies and turns in its clothes; a dead one is a container [built].
-- **Reacting to the dead:** cowering, hiding, or fleeing indoors, with a bark [open #103].
+- **Every villager immune to the dead** [built] (ruled 2026-10-28, `docs/02`: "the game needs them to be there"): the dead never target, hunt, or bite one, so none pulls one of the dead off a player, a window, a door, or a siege; no setting. Immune for now, changeable later: the attackable path is kept in the code, off by data (`immune: false` on a map entry). Whether villagers follow or stay at all [open #103].
+- **As built:** idle, wander on a tether, answer a poke with a bark, bark unprompted, talk in a click-only panel, stop and face the talker [built].
+- **Reacting to the dead:** cowering, arms up with a "!", then a short run, standing wary, and the walk back (`docs/43` section 7) [built]; hiding or fleeing indoors, with a bark [open #103].
 - **Routines** (a bed at night, a station by day) [to build, #103].
 - **Follow and stay** [open #103]: kept as the companion's commands (#289).
 - **Bags** [to build, #103].
@@ -1004,7 +1004,7 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **#217:** the basic lore, the story's spine and the world's names, paired with #92 and taken first.
 - **The rucksack has no source**: leather and woollen cloth are made since #445, and the rucksack's own recipe (`docs/39` above: four leather, four woollen cloth, two spruce planks, the satchel) waits for its build with the skills (#260's ruling; the satchel and a set-down bag are #400).
 - **#92:** the map redrawn (the map as it stands is a testing map) and roomier interiors; the names; how many villagers; the gloom's door; which villager teaches which skill (from #275).
-- **#103:** every villager immune; reactions to the dead; follow and stay.
+- **#103:** reactions to the dead beyond the cowering; follow and stay (every villager immune is ruled, 2026-10-28).
 - **#106:** scripting and in-world cutscenes.
 - **#123:** a dead-free first day and the curve; whether the dead stay slow; the infection's effects.
 - **#133:** armour, resistances, the bite, max health from gear, the difficulty numbers.

@@ -46,7 +46,7 @@ import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, setSiegeQu
 import { canPutDown } from "./placement.js";
 import { playAnimation } from "./sprites.js";
 import { createZombie, updateZombie, siegeHeldOn } from "./entities/zombie.js";
-import { createVillager, updateVillager, turnVillager, damageVillager, setTalkWorld, talkIdOf } from "./entities/villager.js";
+import { createVillager, updateVillager, turnVillager, damageVillager, setTalkWorld, talkIdOf, immuneOf } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
 import * as animal from "./entities/animal.js"; // the valley's game and livestock (docs/45)
 import { handedOf } from "./handed.js"; // right- or left-handed (Michael, 2026-10-25): stamped on a player from the identity
@@ -125,7 +125,7 @@ export function create({ json, look = null, name = null, handed = null, devChest
   giveStarterKit(S.player);
   S.zombies = placeAuthoredDead(info.zombies).map(([x, y]) => createZombie(x, y));
   S.corpses = [];
-  S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i, immune: !!v.immune, talk: talkIdOf(v), guide: !!v.guide }));
+  S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i, immune: immuneOf(v), talk: talkIdOf(v), guide: !!v.guide }));
   S.animalHomes = animal.homesFrom(info.animals); // the herds, the flocks, and the pens' stock where the map put them (docs/45)
   S.animals = animal.populate(S.animalHomes);
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
@@ -345,6 +345,13 @@ export function restore(saved, json) {
   S.zombies = bring(save.characters.zombies);
   S.corpses = bring(save.characters.corpses);
   S.villagers = bring(save.characters.villagers);
+  // A villager's immunity is the map's (data, never the save's): a save from before every villager was immune (Michael, 2026-10-28) holds
+  // `immune: false` on some, and would make them mortal again; each one the map placed reads its flag from its map entry afresh.
+  for (const v of S.villagers) {
+    const m = /^v(\d+)$/.exec(String(v.id));
+    const spec = m && (S.info.villagers || [])[Number(m[1])];
+    if (spec && spec.name === v.name) v.immune = immuneOf(spec);
+  }
   S.animals = (save.characters.animals || []).map(animal.restoreAnimal);
   S.animalHomes = save.animalHomes || animal.homesFrom(S.info.animals);
   S.others = [];

@@ -23,7 +23,7 @@ The demo is **a scenario with its own rules**, not a world of the game. The cloc
 Everything a tuner would change is a number in this file:
 
 - **`map`:** `"homestead"` (below).
-- **`rules`:** overrides on the world's rules for this scenario, winning over the browser's settings: [zombieAggro on, survival on, zombiesAttackVillagers on, freeBuilding off, devChest off, trees on, population standard; multiHit as the player's setting]. Plus scenario-only switches: [`sleep: false` (beds refuse: "Not tonight."), `tiredness: false`, `save: false`].
+- **`rules`:** overrides on the world's rules for this scenario, winning over the browser's settings: [zombieAggro on, survival on, freeBuilding off, devChest off, trees on, population standard; multiHit as the player's setting]. Plus scenario-only switches: [`sleep: false` (beds refuse: "Not tonight."), `tiredness: false`, `save: false`].
 - **`kit`:** what the player starts with (the starter kit, plus [a bandage and a waterskin]); what the chests and the rack hold is in the map.
 - **`schedule`:** the horde's curve: the quiet start, the first spawn, the growth, the ceiling, and the stages past it (below). **Every time in this file is in seconds of simulation** (`loop.simTime()`, which is real seconds at the world's normal speed), never the clock's hours: a game day is 720 real seconds, so an in-game minute is half a real second, and a number written in clock minutes would be off by a factor of a hundred and twenty.
 - **`loot`:** the dead's pockets for the scenario [the ordinary `body` table: a little, not a supply line].

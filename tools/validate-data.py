@@ -881,7 +881,7 @@ for mp in sorted(glob.glob("data/maps/*.json")):
             tid = v.get("talk") or str(v.get("name", "")).lower()
             if tid not in talk_files:
                 fail(f"{mp}: the guide {v.get('name')!r} has no talk file {tid!r}")
-            if not v.get("immune"):
+            if v.get("immune", True) is False:
                 fail(f"{mp}: the guide {v.get('name')!r} is not immune to the dead")
 
 # The gatherables law (CLAUDE.md, Michael 2026-10-11): an interactable thing on a dev box has the dark outline all the way round (`placeholder.outline: true`).

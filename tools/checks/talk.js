@@ -66,7 +66,7 @@ export async function run(game) {
     row("the valley has exactly one guide, immune to the dead, who stands within 3 tiles of the spawn", guides.length === 1 && g.immune && Math.hypot(g.home[0] - S.info.spawn[0], g.home[1] - S.info.spawn[1]) <= 3 && talk.has(g.talk), g ? `${g.name} at ${g.home}, spawn ${S.info.spawn}` : "no guide");
     const staging = await (await fetch("/data/maps/staging.json")).json();
     const sg = staging.villagers.filter((v) => v.guide);
-    row("so does the staging map", sg.length === 1 && sg[0].immune && Math.hypot(sg[0].tile[0] - staging.spawn[0], sg[0].tile[1] - staging.spawn[1]) <= 3 && talk.has(sg[0].talk || String(sg[0].name).toLowerCase()), sg[0] ? `${sg[0].name} at ${sg[0].tile}, spawn ${staging.spawn}` : "no guide");
+    row("so does the staging map", sg.length === 1 && sg[0].immune !== false && Math.hypot(sg[0].tile[0] - staging.spawn[0], sg[0].tile[1] - staging.spawn[1]) <= 3 && talk.has(sg[0].talk || String(sg[0].name).toLowerCase()), sg[0] ? `${sg[0].name} at ${sg[0].tile}, spawn ${staging.spawn}` : "no guide");
     const topics = talk.get("guide").nodes.hello.options.filter((o) => o.wiki).length;
     row("the guide's questions each carry a wiki link, and a topic exists for every system a new player meets", topics >= 12, `${topics} topics with a link`);
 

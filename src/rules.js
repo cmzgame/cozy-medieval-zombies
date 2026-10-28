@@ -10,9 +10,10 @@ import * as settings from "./settings.js";
 
 // What a world plays by when nothing says otherwise: the settings' own defaults (a save from before the
 // rules rode in it gains these, save.js's upgrade; item 5's second step, 2026-10-14).
+// No rule for the villagers: every one is immune to the dead by its own flag, data (Michael, 2026-10-28; docs/02), so "Zombies attack
+// villagers" is gone, and an older save's or server world's value of it is dropped by `set` and `refresh` as any unknown key is.
 export const DEFAULTS = {
   zombieAggro: !!settings.DEFAULTS.zombieAggro, // the dead hunt the player
-  zombiesAttackVillagers: !!settings.DEFAULTS.zombiesAttackVillagers, // and villagers
   multiHit: !!settings.DEFAULTS.multiHit, // a swing hits everyone in its wedge, or the nearest
   survival: !!settings.DEFAULTS.survival, // hunger and thirst drain
   freeBuilding: !!settings.DEFAULTS.freeBuilding, // building costs nothing

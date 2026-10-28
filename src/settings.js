@@ -10,7 +10,6 @@ export const DEFAULTS = {
   worldScale: "auto", // the zoom: "auto" or one of view.ZOOM_LEVELS
   debugCorner: true, // the text in the top-left corner
   zombieAggro: true, // on by default since 2026-10-15 (Michael: a sandbox setting, the dead hunt unless you turn them off); off they wander and ignore you (2026-10-10). A browser that saved its settings keeps its own
-  zombiesAttackVillagers: false, // on: the dead hunt villagers, whatever aggro says; with aggro on, the player first when both are in sight (two knobs on purpose, Michael 2026-10-15; docs/19)
   swingTimer: true, // a bar at the bottom centre of the screen while a swing recovers (World of Warcraft's swing timer; docs/21)
   aimGuide: true, // the landing marker and dotted line while you draw a bow, wind up a throw, or cast (docs/20); on by default since 2026-10-24 (Michael, #385: "the little marker zipping down the line ... is like a loading bar"), off for the challenge; it was off from 2026-10-16. A browser that saved its settings keeps its own
   showSwingTargets: true, // outline the zombies the next swing would hit (docs/14): on by default since docs/41 step 1 (green means the swing lands)
@@ -71,7 +70,6 @@ export const REGISTRY = [
   { key: "soundOn", group: "sound", label: "Sound", help: "Every sound in the game. Nothing sounds until the page has been clicked once.", choices: ON_OFF },
   { key: "soundVolume", group: "sound", label: "Volume", help: "How loud the game is.", choices: [[0, "Off"], [0.25, "25%"], [0.5, "50%"], [0.75, "75%"], [1, "100%"]] },
   { key: "zombieAggro", group: "rules", label: "Zombie aggro", help: "On, the dead hunt you. Off, they wander and ignore you.", choices: ON_OFF },
-  { key: "zombiesAttackVillagers", group: "rules", label: "Zombies attack villagers", help: "On, the dead hunt villagers whatever aggro says; with aggro on, you first.", choices: ON_OFF }, // two knobs on purpose (Michael, 2026-10-15)
   { key: "survival", group: "rules", label: "Survival", help: "Hunger, thirst, and tiredness. Off, the body has no needs.", choices: ON_OFF },
   { key: "freeBuilding", group: "rules", label: "Free building", help: "Building costs nothing, and the hammer and hatchet are not asked for, for trying out structures. Boards still want planks and a hammer.", choices: ON_OFF },
   { key: "multiHit", group: "rules", label: "Multi-hit", help: "A blow reaches everything in its wedge: the easy button. Off, only the nearest: the intended way.", choices: ON_OFF },
