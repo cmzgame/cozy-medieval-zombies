@@ -1666,7 +1666,7 @@ export function prompt() {
   }
   if (g.kind === "remove") {
     const t = g.target;
-    const [mx, my] = t.type === "wall" || t.type === "round" ? map.edgeMid(t.tx, t.ty, t.edge) : t.prop.tile;
+    const [mx, my] = t.type === "wall" || t.type === "round" ? map.edgeMid(t.tx, t.ty, t.edge) : t.type === "floor" ? [t.tx, t.ty] : t.prop.tile; // a laid floor tile (#549) has no prop
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
     const { back } = partsOf(t);
     return { label: `Click to take apart ${targetName(t)}${back.length ? ` (${partsText(back)} back)` : ""} · Esc cancel`, mx, my, progress: null, enabled: true };

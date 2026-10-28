@@ -78,7 +78,9 @@ export function emitGhost(ghost) {
     } else if (t.type === "wall") {
       const shut = { ...t.wall, open: false, shutter: t.wall.kind === "window" ? "closed" : null };
       makeWall(shut, t.edge, t.tx, t.ty, true, false, tint).emit();
-    } else {
+    } else if (t.type === "floor") {
+      emitGhostTile(t.tx, t.ty, 0, tint); // a laid floor tile (docs/49 section 5, #549), drawn as the floor's own ghost is, on the player's floor
+    } else if (t.prop) {
       emitPropCells(getSheet(t.prop.sprite, t.prop.tiles.length), t.prop.tiles.map(([x, y], i) => [x, y, i]), ghost.ok, t.prop);
     }
     return;
