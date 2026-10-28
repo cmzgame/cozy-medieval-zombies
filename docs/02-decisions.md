@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- The world is bounded: a frame of river, tree wall, or rock cliff, chosen per stretch, round the valley and every region, passages the only gaps and a boss's gate in each; the endless wild beyond it is decoration nobody reaches; no invisible walls; cliffs are `49`'s storeys in a rock material; earth is layer −1's; ore stays on the ground (2026-10-28, The world is bounded)
 - A fixed flame never pulls one of the dead off a player's trail: one hunting a player, holding a siege, or battering a window or a door stays on it; a carried torch still leads a hunter; a fixed flame takes only the dead with no player to follow (2026-10-27, A flame never pulls the dead off a player's trail)
 - Floors are built in plank and stone, anywhere, one tile at a time; no physics: an upper floor's tile is built wherever it touches a walkable tile of its own floor, and a floor's open edge is unwalkable, never a fall (2026-10-27, Floors are built a tile at a time, with no physics)
 - Round walls are stone only for now: a few on the map, built only with Free building until their cost is settled (2026-10-27, Round walls are stone only, a few on the map)
@@ -323,6 +324,16 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-28 — The world is bounded: a frame of river, trees, or rock round the valley and every region, passages the only gaps (Michael)
+
+Michael named a conflict that had been nagging him: "The current game is a chunked world that right now builds out infinite chunks of woods with 2 zombies lol. The vision for the post-demo, post-valley game however is a valley-as-starting-zone with 4ish outlaying regions, accessible through some kind of passage, with their own borders, and therefore the valley needs borders else you could like wander around the back of the regions. ... How do we square this circle? How do we handle transition from valley to adjacent region? Invisible walls? We also have no elevation right now." The Secondary's answer: one continuous authored world closed by a frame of things that block, with passages as the only gaps and the endless wild kept outside as scenery; no invisible walls; cliffs as `49`'s storeys with a material nobody can touch. He agreed, and ruled:
+
+- **"the whole area would be fully bounded on the outside too, so even if we leave the ground flat around the outside, we will river or tree or stone if off. There may be forest outside for a smidge but it's just decoration."** The explored world is finite.
+- **"I liked all 3 options (wall of trees, actual rock elevation, and rivers) just about equally, especially rivers because we already have bridges in the game so we can separate all of them by water if needed, maybe trees for the snow region, TBD."** The frame's material is chosen per stretch.
+- **Cliffs are stacked storeys:** "is it possible to build wall and floor pieces that are bare solid rock and cannot be mined ... with those tools you could theoretically build multistory cliffs, right? It's just a multistory house with none of it being buildable, destroyable, pass-throuable, etc. You never have to worry about opacity because nothing is ever behind them. Then when you don't want the player to go higher, no more stairs. Done." And when the Secondary reached for earth above ground: "This is more complicated than I was imagining. Earth always 0 is fine. What I meant by nothing is behind them is nothing the player can ever see. If they could teleport, probably a big empty dark space. That is fine with me. As long as the drawn pieces tile together cleanly ... Like what is level 0 floor, to wall, to level 1 floor, to level 1 wall, to level 2 floor, etc but like a strip mine with ramps."
+- **Ore stays on the ground:** "I didn't mean ore veins on the walls, still only on the ground, so no change there."
+- "This is not mega high priority to me but I am trying to think through if it is technically feasible?" It is; the plan is `29-world/10`, its defaults his to overrule, nothing scheduled.
 
 ### 2026-10-27 — A flame never pulls the dead off a player's trail (Michael)
 

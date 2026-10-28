@@ -10,7 +10,7 @@ Michael's first rulings on the forest still stand (`02`, 2026-10-09): more fores
 - **Clearings by rule and by hand.** The scatter's noise already makes thin patches; a few authored clearings (a `reserve` rect of grass with no scatter, or a low-density scatter rect) hold the small places and give the forest rooms: the woodcutters' felled ground full of stumps, the charcoal burners' black circle, the stones' ring, the mere's shore.
 - **Rides.** The roads through the forest get a one-tile verge on each side with no trees (a reserve beside each road feature), so a road reads as a cut through the wood and the canopy does not close over it. Off the roads, paths one tile wide get no verge: the trees close over them and a path through the thick is the spooky walk.
 - **Kinds by place.** The harvest mix stays everywhere (`square.json`'s zone), with authored leanings: spires thicker in the north woods (the quarry's conifer slope), oaks and reds round the village, yellows along the river banks, the one yew in the graveyard (a green spire), the willow at the pond and the mere, apple trees only in orchards. A leaning is a second scatter rule with its own weights over a rect; nothing new.
-- **The wild beyond the bounds** stays exactly as now: harvest forest by hash, the odd big rock, zero to two of the dead per chunk, forever.
+- **The wild beyond the bounds** stays exactly as now: harvest forest by hash, the odd big rock, zero to two of the dead per chunk, forever. *(2026-10-28: beyond the frame of `10-the-frame` it becomes scenery nobody reaches, with no dead; inside the frame, as here.)*
 
 ## The small places
 

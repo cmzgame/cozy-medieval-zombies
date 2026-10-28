@@ -117,6 +117,8 @@ The dead walk at one tile a second: a zombie that sees you at the castle gate ta
 
 ## What the edges promise
 
+*(2026-10-28: how each edge is closed, and what lies beyond, is `10-the-frame`; the valley's four edges are answered there by material as defaults. The nine "regions" below are the valley's districts; "region" is the word for a place beyond the valley, `02`.)*
+
 - **East, the old road:** past the woodcutters the dirt road thins to a track, the trees close in, and a waystone stands where the authored bounds end (`06`). That is the gloom's door for 1.1: the zone system (`05`, "Zones") puts the blue and purple trees, the plague doctor, and the rest past it. In 1.0 the track continues as the ordinary wild.
 - **South, the drove:** past the croft the drove leaves the map toward "the next village", which is the travel of 1.1 or 2.0.
 - **West, the old way:** past the standing stones, a path that peters out. Nothing promised.
