@@ -263,8 +263,19 @@ export function touchesTile(c, tx, ty) {
   const ny = Math.max(ty - 0.5, Math.min(c.gy, ty + 0.5));
   return Math.hypot(c.gx - nx, c.gy - ny) < r;
 }
-export function bodyOnTiles(tiles, layer = null) {
-  return bodies().some((c) => c && (layer === null || (c.layer || 0) === layer) && tiles.some(([tx, ty]) => touchesTile(c, tx, ty))); // on one storey when it is named (docs/49)
+// A corpse is no body to trap (the review of #553: one lying in a doorway blocked a wall until it was burned): left out unless `corpses`.
+export function bodyOnTiles(tiles, layer = null, corpses = false) {
+  return bodies().some((c) => c && (corpses || !c.corpse) && (layer === null || (c.layer || 0) === layer) && tiles.some(([tx, ty]) => touchesTile(c, tx, ty))); // on one storey when it is named (docs/49)
+}
+// Whether a living body stands across one of these segments (its centre nearer than its own radius, and a hair): a wall, door, or window
+// built there would trap it (fix/overlap-traps; each body its own size, a cow's 0.35 as a person's 0.3; a corpse is none).
+export function bodyAcrossSegments(segs, layer = 0) {
+  return bodies().some((c) => c && !c.corpse && (c.layer || 0) === layer && segs.some(([ax, ay, bx, by]) => {
+    const vx = bx - ax;
+    const vy = by - ay;
+    const t = Math.max(0, Math.min(1, ((c.gx - ax) * vx + (c.gy - ay) * vy) / (vx * vx + vy * vy || 1)));
+    return Math.hypot(c.gx - ax - vx * t, c.gy - ay - vy * t) < (c.radius || 0.3) + 0.01;
+  }));
 }
 
 // Whether a made prop of this footprint may stand with its anchor at (x, y): every one of its tiles walkable, empty, bare of items, not

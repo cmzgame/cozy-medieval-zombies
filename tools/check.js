@@ -5960,7 +5960,7 @@ check("Michael's stair nook: walls along both sides of a stair and a back wall a
   }
   return `built: ${edges.length} walls (the run's two sides, the back wall a tile past its top); the nook kept from the stair both ways; up and down the middle`;
 });
-check("no trap for a body that can no longer walk out of an overlap: no wall, door, or window built across another body, no door shut on one, no prop set down over one; a body climbing at a side limit arrives on the landing clear", () => {
+check("no trap for a body that can no longer walk out of an overlap: no wall, door, or window built across a living body (a corpse is none), no prop set down over one; a door still shuts in the face of the dead, who stay out and can move off; a body climbing at a side limit arrives on the landing clear", () => {
   const at = openGrass(6, 5);
   assert(at, "no open grass");
   const [x, y] = at;
@@ -5982,18 +5982,32 @@ check("no trap for a body that can no longer walk out of an overlap: no wall, do
     const builtWall = !!mapMod.peekTile(x + 2, y + 3).n;
     res.push(`wall: refused over a body ${refusedWall}, built once it stepped clear ${builtWall}`);
     assert(refusedWall && builtWall, res.join("; "));
-    // 2. A door shut on a body in its doorway: refused, the door stays open; clear of it, it shuts.
+    // A corpse lying across an edge is no body to trap: the wall goes up.
+    const corpse = { gx: x + 1, gy: y + 2.5, layer: 0, corpse: true, dead: true, radius: 0.3 };
+    gameMod.state.corpses.push(corpse);
+    me.gx = x + 1; me.gy = y + 4.2;
+    try {
+      placementImport.performPlacement(me, { kind: "build", what: "wall_oak", tx: x + 1, ty: y + 3, edge: "n" });
+    } finally {
+      gameMod.state.corpses.splice(gameMod.state.corpses.indexOf(corpse), 1);
+    }
+    res.push(`a wall over a corpse built ${!!mapMod.peekTile(x + 1, y + 3).n}`);
+    assert(mapMod.peekTile(x + 1, y + 3).n, res.join("; "));
+    // 2. A door shut in the face of one of the dead touching its doorway from outside: it shuts; the dead one stays out and can move off;
+    // the player inside moves.
     mapMod.buildWall(x + 4, y + 3, "n", "door", "wall_wood", null, 0);
     const door = mapMod.peekTile(x + 4, y + 3).n;
     door.open = true;
-    z.gx = x + 4; z.gy = y + 2.6;
+    z.gx = x + 4; z.gy = y + 2.25; // outside (north), its circle over the doorway line
     me.gx = x + 4; me.gy = y + 3.9;
     interactImport.performByLabel(me, { kind: "edge", tx: x + 4, ty: y + 3, edge: "n" }, "Close door");
-    const stayedOpen = door.open === true;
-    z.gx = x + 5.5; z.gy = y + 1.5;
-    interactImport.performByLabel(me, { kind: "edge", tx: x + 4, ty: y + 3, edge: "n" }, "Close door");
-    res.push(`door: kept open over a body ${stayedOpen}, shut once clear ${door.open === false}`);
-    assert(stayedOpen && door.open === false, res.join("; "));
+    const shut = door.open === false;
+    const zFrom = [z.gx, z.gy];
+    const zIn = mapMod.moveCircle(z.gx, z.gy, 0.3, 0, 0.05, 0); // into the door: no deeper
+    const zOff = mapMod.moveCircle(z.gx, z.gy, 0.3, 0, -0.05, 0); // away, on its own side
+    const meOff = mapMod.moveCircle(me.gx, me.gy, 0.3, 0.05, 0, 0);
+    res.push(`door: shut ${shut}; the dead one into it ${zIn.gy.toFixed(2)} from ${zFrom[1].toFixed(2)}, away ${zOff.gy.toFixed(2)}; the player moves ${meOff.gx !== me.gx}`);
+    assert(shut && zIn.gy <= zFrom[1] + 1e-9 && zOff.gy < zFrom[1] && meOff.gx !== me.gx, res.join("; "));
     // 3. A prop over a body: the body's circle against the tile's square, exact (beside a side within 0.8, off a corner as near as it is).
     const c = { gx: 10.79, gy: 10, radius: 0.3 };
     const d = { gx: 10.6, gy: 10.6, radius: 0.3 };

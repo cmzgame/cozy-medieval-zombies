@@ -614,13 +614,13 @@ function fitReach(player, f) {
 function propBuildBlock(player, what, tx, ty) {
   if (layerOf(player)) return "Not upstairs yet"; // a palette prop (the Fireplace, the fire pit, the trough) reads the ground's rules alone: not wired for a storey yet
   const f = propBuildFit(what, tx, ty);
-  return f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
+  return f.problem || (stations.bodyOnTiles(fitTiles(f), layerOf(player)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
 function propBuildReason(player, what, tx, ty) {
   if (layerOf(player)) return "Not upstairs yet";
   const f = propBuildFit(what, tx, ty);
-  return fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
+  return fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f), layerOf(player)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
 function buildBlock(player, what, tx, ty, edge, leaf = "") {
@@ -648,12 +648,11 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   }
   if (distToEdge(player.gx, player.gy, tx, ty, edge) < EDGE_CLEARANCE) return "Step back";
   // Nobody else across it either: a wall built through a body traps it, as it can no longer walk out through what it overlaps (map.moveCircle).
-  if (stations.bodyNearSegments([edgeSegment(tx, ty, edge)], WALL_BODY_CLEAR, L)) return "Someone is in the way";
+  if (stations.bodyAcrossSegments([edgeSegment(tx, ty, edge)], L)) return "Someone is in the way";
   return shortfall(player, what);
 }
-// An edge on the ground as a segment, and how near a body may stand to a wall going up on it (its radius, and a hair).
+// An edge on the ground as a segment.
 const edgeSegment = (tx, ty, edge) => (edge === "n" ? [tx - 0.5, ty - 0.5, tx + 0.5, ty - 0.5] : [tx - 0.5, ty - 0.5, tx - 0.5, ty + 0.5]);
-const WALL_BODY_CLEAR = 0.31;
 
 function buildReason(player, what, tx, ty, edge, leaf = "") {
   const [mx, my] = map.edgeMid(tx, ty, edge);
@@ -1067,7 +1066,7 @@ export function takeApartProblem(player, t) {
   t = asRing(t);
   if (t && t.type === "floor") {
     if ((t.layer || 0) !== layerOf(player)) return "There is nothing there.";
-    const why = map.floorTakeUpProblem(t.tx, t.ty, t.layer || 0) || (stations.bodyOnTiles([[t.tx, t.ty]], t.layer || 0) ? "Someone is standing on it" : "");
+    const why = map.floorTakeUpProblem(t.tx, t.ty, t.layer || 0) || (stations.bodyOnTiles([[t.tx, t.ty]], t.layer || 0, true) ? "Someone is standing on it" : ""); // a corpse too: it lies on the floor
     if (why) return why;
     const tool = partsOf(t).tool;
     return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);
@@ -1229,7 +1228,7 @@ function buildGhost(player) {
     // cursor), drawn as the carried prop's ghost is, with its own line.
     const d = buildData[what];
     const f = setdown.fitFor(d.stand || "ground", d.sprite, g.gx, g.gy); // the cursor's grid point: fitFor rounds a wall's tile and centres a footprint
-    const reason = fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f)) ? "Someone is in the way" : "") || shortfall(player, what);
+    const reason = fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f), layerOf(player)) ? "Someone is in the way" : "") || shortfall(player, what);
     return { kind: "prop", prop: { sprite: d.sprite, facing: f.facing, footprint: f.footprint }, tx: f.tx, ty: f.ty, footprint: f.footprint, ok: reason === "", reason, build: what, label: `Click to build (${costText(what)}) · Esc cancel` };
   }
   const { tx, ty, edge } = pickEdge(g.gx, g.gy);
