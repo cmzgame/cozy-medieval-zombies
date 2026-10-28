@@ -268,7 +268,7 @@ export function renderScene(args) {
       const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
       // The walls' view of the storeys round this layer (render/walls.js): the storey above drawn over a tile (a wall under its floor draws no
       // cap), and the stair the viewer stands on (the walls along it fade).
-      setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) : null, viewerStair);
+      setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) && !(faded.any && faded.layers.has(L + 1) && faded(x, y, L + 1)) : null, viewerStair); // a fading storey is no floor over a wall (the review of #551)
       // The drawables standing on `tilesT`, and the bodies, stairs, and flights whose tile `mine` takes.
       const gather = (tilesT, mine) => {
         const drawables = [];

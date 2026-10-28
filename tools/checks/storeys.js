@@ -54,15 +54,17 @@ export async function run(game) {
     ctx.readPixels(0, 0, W, H, ctx.RGBA, ctx.UNSIGNED_BYTE, px);
     let n = 0;
     let low = -1;
+    const cols = new Set();
     for (let i = 0; i < W * H; i++) {
       const j = i * 4;
       if (px[j] > 200 && px[j + 1] < 40 && px[j + 2] < 40) {
         n++;
+        cols.add(i % W);
         const yUp = Math.floor(i / W);
         if (low < 0 || yUp < low) low = yUp; // readPixels rows run bottom up: the smallest is the lowest on screen
       }
     }
-    return { n, low: low < 0 ? -1 : H - 1 - low };
+    return { n, low: low < 0 ? -1 : H - 1 - low, cols: cols.size };
   };
   G.loop.setPaused(true);
   G.rules.set({ zombieAggro: false });
@@ -400,9 +402,48 @@ export async function run(game) {
           const onStair = wallsSeen([x + 4, y + 3], 0);
           const nearFaded = onStair.filter((q) => q.ty === y + 4).every((q) => q.faded) && onStair.filter((q) => q.ty === y + 3).every((q) => !q.faded) && onStair.length === 6;
           row("on a stair walled round, the walls on the camera's side of it fade and the far ones stand", nearFaded && me.rise > 0, `${onStair.length} walls seen; near ${onStair.filter((q) => q.ty === y + 4).map((q) => (q.faded ? "faded" : "solid")).join(",")}; far ${onStair.filter((q) => q.ty === y + 3).map((q) => (q.faded ? "faded" : "solid")).join(",")}`);
+          // A wall with the upper floor over both its sides too: south of the stair's south wall, a row more of floor upstairs and a ground
+          // wall under its middle.
+          for (let k = 0; k < 2; k++) for (const xx of [x + 2, x + 3, x + 4, x + 5]) map.buildFloor(xx, y + 5, "floor_wood", 1, { free: true });
+          map.buildWall(x + 4, y + 5, "n", "wall", "wall_wood", null, 0);
           const fromUp = wallsSeen([x + 1, y + 3], 1);
-          const capless = fromUp.length === 6 && fromUp.every((q) => q.stack && q.stack.covered && q.stack.sink);
-          row("from upstairs, the ground's walls round the stairwell under the upper floor draw no cap and sit under the floor", capless, `${fromUp.length} walls seen, ${fromUp.filter((q) => q.stack && q.stack.sink).length} under the floor`);
+          let both = null;
+          scene.probe.skip = (d) => {
+            if (d.kind === "wall" && d.wall && d.wall.tx === x + 4 && d.wall.ty === y + 5 && d.wall.edge === "n" && map.drawLayerNow() === 0) both = d.stack;
+            return false;
+          };
+          try {
+            G.loop.advance(0);
+          } finally {
+            scene.probe.skip = null;
+          }
+          const edgeKept = fromUp.length === 6 && fromUp.every((q) => q.stack && q.stack.covered && !q.stack.under);
+          row("from upstairs, the ground's walls under the upper floor draw no cap over it: at the stairwell's edge their tops stay flush as its edge, with floor on both sides none", edgeKept && !!both && both.covered && both.under, `${fromUp.length} walls at the stairwell's edge, ${fromUp.filter((q) => q.stack && q.stack.covered && !q.stack.under).length} with their tops flush; the wall under the floor ${both ? (both.under ? "capless" : "capped") : "not seen"}`);
+          // And on its own plane (the review of #551): a body on the stair 0.3 behind the camera-side wall, low enough to stand wholly behind
+          // it, is hidden whole, seen from upstairs through the stairwell.
+          const S = G.game.state;
+          const v = S.villagers[0];
+          if (v) {
+            const was = { gx: v.gx, gy: v.gy, layer: v.layer || 0, rise: v.rise || 0, state: v.state, path: v.path };
+            v.gx = x + 5; // half a tile up, its head at 80 px, under the wall's 96
+            v.gy = y + 3.2;
+            v.layer = 0;
+            v.rise = 0;
+            map.stairStep(v);
+            me.gx = x + 1;
+            me.gy = y + 3;
+            me.layer = 1;
+            me.rise = 0;
+            let seen = null;
+            try {
+              seen = red((d) => d.entity === v);
+            } finally {
+              Object.assign(v, was);
+            }
+            // Hidden but for the one column at the joint of two of the wall's segments, which a body this near shows through on any straight
+            // run (the joint's depth step, docs/51: not the storeys').
+            row("a body on the stair 0.3 behind the wall at the stairwell's edge (its face on its own plane) is hidden by it, but at a segments' joint", seen && seen.cols <= 2, `${seen ? seen.n : "-"} px of it drawn, in ${seen ? seen.cols : "-"} column(s)`);
+          }
         }
       }
     } finally {

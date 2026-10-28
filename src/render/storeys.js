@@ -278,14 +278,22 @@ function emitDrawnStair(s, sheet, name, bias) {
   const [dx, dy] = s.d;
   const P = (u, o) => [s.low[0] + dx * u + -dy * o, s.low[1] + dy * u + dx * o];
   // The head cut (Michael's playtest, 2026-10-27: the posts at the head stood through the wall built beside the stair and the floor above):
-  // nothing of the picture over the landing's floor, the line across the stair's head at 96 px, kept on its foot's side.
+  // nothing of the picture over the landing's floor, the line across the stair's head at 96 px, kept on its foot's side. Only where something
+  // stands beside the head for the posts to poke through (the review of #551): a wall beside the top step or the tile under the landing on
+  // the stair's layer, or a floor of the storey above beside the stairwell's top or the landing; an open stair keeps its newels whole.
+  const [px, py] = [-dy, dx];
+  const beside = (x, y) => [[x + px, y + py], [x - px, y - py]];
+  const heads = [s.tiles[2], s.landing];
+  const wallBy = heads.some(([x, y]) => beside(x, y).some(([a, b]) => map.wallBetween(x, y, a, b, s.layer)));
+  const floorBy = heads.some(([x, y]) => beside(x, y).some(([a, b]) => { const t = map.peekTile(a, b, s.layer + 1); return !!t && !map.isEngineFloor(t.floor); }));
+  const cutHead = wallBy || floorBy;
   const H1 = at(...P(3, -1), map.STOREY);
   const H2 = at(...P(3, 1), map.STOREY);
   const side0 = (p) => (H2[0] - H1[0]) * (p[1] - H1[1]) - (H2[1] - H1[1]) * (p[0] - H1[0]);
   const footSide = Math.sign(side0(at(...P(0, 0), 0)));
   const quad = (pts, o) => {
     let q = clipToRect(pts, pic.left, pic.top, pic.left + pic.w, pic.top + pic.h);
-    if (q) q = clipHalf(q, (p) => side0(p) * footSide >= 0, H1, H2);
+    if (q && cutHead) q = clipHalf(q, (p) => side0(p) * footSide >= 0, H1, H2);
     if (q) gl.texQuad(q, q.map(uvOf), o);
   };
   const world = s.tiles[1];
@@ -322,7 +330,7 @@ function emitDrawnStair(s, sheet, name, bias) {
   const pieces = [
     [side(-0.25, 0), side(0.3, 0), side(0.3, NEWEL_H), side(-0.25, NEWEL_H)],
     [side(0.3, 0), side(2.7, 0), side(2.7, 2.7 * 32 + SIDE_OVER), side(0.3, 0.3 * 32 + SIDE_OVER)],
-    [side(2.9, 0), side(3.25, 0), side(3.25, HEAD_POST_H), side(2.9, HEAD_POST_H)], // the head post alone: the top treads on their own planes (no hard corner over them)
+    [side(2.7, 0), side(3.25, 0), side(3.25, HEAD_POST_H), side(2.7, HEAD_POST_H)], // the head post and the stringer's last run under it, on the near side's plane (the review of #551)
   ];
   for (const q of pieces) quad(q, opts);
   return true;
