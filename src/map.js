@@ -1177,9 +1177,11 @@ export function stairEdgeProblem(tx, ty, edge, layer = 0) {
   const [a, b] = edgeTiles(tx, ty, edge);
   const ha = stairIndex.get(tileKey3(a[0], a[1], layer));
   const hb = stairIndex.get(tileKey3(b[0], b[1], layer));
-  if ((ha && ha.well) || (hb && hb.well)) return "Not round a stairwell";
-  if (ha && hb) return "Not across a stair";
+  // Across its top, on its own layer or on the storey above (the stairwell's top step against the landing): a body crosses there, and the
+  // collision passes a stairwell's tiles whole. The stairwell's sides and its foot end are held by the stair's own edges (stairBlocks), so a
+  // wall may stand there, an upper wall running on over a stair along a ground wall (the recheck of #549).
   for (const [h, o] of [[ha, b], [hb, a]]) if (h && h.k === 2 && h.s.landing[0] === o[0] && h.s.landing[1] === o[1]) return "Not across a stair's top";
+  if (ha && hb && !ha.well && !hb.well) return "Not across a stair";
   return "";
 }
 
@@ -1558,6 +1560,8 @@ export function ringProblem(x0, y0, n, layer = 0) {
     if (round.isStepped(x0, y0, n, x - 1, y) && t.w) return "A wall is in the way";
   }
   for (const [tx, ty, edge] of s.outline) {
+    const stairWhy = stairEdgeProblem(tx, ty, edge, layer); // never across a stair's run or top (the recheck of #549)
+    if (stairWhy) return stairWhy;
     const w = peekTile(tx, ty, layer) ? peekTile(tx, ty, layer)[edge] : null;
     if (!w) continue;
     if (w.round || w.underRound) return "Another round room is there";
@@ -2668,11 +2672,10 @@ export function stairBuildProblem(x0, y0, dir, layer = 0) {
   const chain = [rec.before, ...rec.tiles];
   for (let i = 1; i < chain.length; i++) if (wallBetween(chain[i - 1][0], chain[i - 1][1], chain[i][0], chain[i][1], layer)) return "A wall is in the way";
   if (wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], layer)) return "A wall is in the way"; // its top edge on its own layer
-  // No wall on an edge of the stairwell to be (a body going down crosses into it, and its tiles' walls are passed whole: the review of #549).
-  for (const [x, y] of rec.tiles) {
-    const t = tileAt(x, y, up);
-    if (t.n || t.w || tileAt(x + 1, y, up).w || tileAt(x, y + 1, up).n) return "A wall is over it";
-  }
+  // No wall across the stairwell's top to be, against its landing (a body going down crosses it into the stairwell, whose tiles' walls the
+  // collision passes whole: the review of #549), and no ring's curve over its stairwell or its landing.
+  if (wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], up)) return "A wall is over it";
+  if ([...rec.tiles, rec.landing].some(([x, y]) => curveCrossed(x, y, up) || unreachableAt(x, y, up))) return "A round wall is over it";
   const lt = tileAt(rec.landing[0], rec.landing[1], up);
   if (!(lt.floor === VOID || lt.built) || stairAt(rec.landing[0], rec.landing[1], up) || landingAt(rec.landing[0], rec.landing[1], up)) return "Its landing must be open";
   if (lt.prop || lt.rug || (lt.items && lt.items.length)) return "Something is on its landing";
@@ -2731,7 +2734,7 @@ function stairBlocks(gx, gy, r2, layer, sOn) {
     const sr2 = well || Math.abs(off) >= 0.5 ? r2 : Math.min(r2, STAIR_FEET * STAIR_FEET); // from beside it, the whole body is held off the side
     if (seg(0, 0.5, 3, 0.5, sr2) || seg(0, -0.5, 3, -0.5, sr2)) return true;
     if (well && seg(0, -0.5, 0, 0.5)) return true; // the stairwell's bottom end, over the stair's foot
-    if (!well && sOn !== s && seg(3, -0.5, 3, 0.5, sr2)) return true; // the top edge, to a body not on the stair
+    if (!well && sOn !== s && seg(3, -0.5, 3, 0.5)) return true; // the top edge, to a body not on the stair, its whole body (Michael's nook under the landing)
   }
   return false;
 }
@@ -2782,6 +2785,15 @@ export function stairStep(body) {
       const { t, off } = stairAlong(s, body.gx, body.gy);
       if (t >= 3 && t < 3.6 && Math.abs(off) <= 0.6) {
         body.layer = s.layer + 1;
+        // Onto the landing at its full width (the recheck of #549): a body climbed the steps on its feet, as near a side as STAIR_FEET lets
+        // it; on the landing it is all of it, so it is set in from the landing's sides as far as it is round, never arriving over a wall
+        // or the void beside the landing.
+        const lim = Math.max(0, 0.5 - (body.radius || 0.3));
+        if (Math.abs(off) > lim) {
+          const by = (Math.sign(off) * lim - off);
+          body.gx += -s.d[1] * by;
+          body.gy += s.d[0] * by;
+        }
         break;
       }
     }
@@ -2946,7 +2958,24 @@ function roundBlockerAt(gx, gy, r, layer = 0) {
 
 export function moveCircle(gx, gy, r, dx, dy, layer = 0) {
   const sFrom = stairIndex.size ? stairUnder(gx, gy, layer, 3) : null; // on a stair only if its centre is over its three tiles now
-  if (circleBlocked(gx, gy, r, layer, sFrom)) return { gx: gx + dx, gy: gy + dy };
+  if (circleBlocked(gx, gy, r, layer, sFrom)) {
+    // Already overlapping something (a door shut on it, a prop set down over it, a storey changed under it): it may move, but never deeper
+    // into what it overlaps (the recheck of #549: a body walked out of an overlap straight through a wall, or out over the void). Its
+    // clearance now is the largest circle free where it stands; a move is taken whole or along one axis if that circle is free there too.
+    // With its centre inside something, it walks out freely, as before.
+    if (circleBlocked(gx, gy, 0.02, layer, sFrom)) return { gx: gx + dx, gy: gy + dy };
+    let lo = 0.02;
+    let hi = r;
+    for (let i = 0; i < 7; i++) {
+      const mid = (lo + hi) / 2;
+      if (circleBlocked(gx, gy, mid, layer, sFrom)) hi = mid;
+      else lo = mid;
+    }
+    if (!circleBlocked(gx + dx, gy + dy, lo, layer, sFrom)) return { gx: gx + dx, gy: gy + dy };
+    if (dx && !circleBlocked(gx + dx, gy, lo, layer, sFrom)) return { gx: gx + dx, gy };
+    if (dy && !circleBlocked(gx, gy + dy, lo, layer, sFrom)) return { gx, gy: gy + dy };
+    return { gx, gy };
+  }
   // Round things deflect: a step that would hit a trunk slides along its
   // tangent instead of stopping, so two trunks a tile apart funnel you into
   // the gap between them rather than catching you at the edge.
