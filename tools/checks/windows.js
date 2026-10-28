@@ -104,6 +104,7 @@ export async function run(game) {
     for (const [kind, h] of Object.entries(houses)) {
       if (!h) continue;
       const { win, doors, doorOps, w, from } = h;
+      G.clock.setHour(12); // each trial at noon, out of reach of a flame's pull (as the trial with no door to reach, below)
       // The window open and whole; the door shut; the player inside beside the window; one of the dead outside in sight.
       const shutter0 = win.wall.shutter;
       const hp0 = doors.map((d) => d.hp);
@@ -183,6 +184,10 @@ export async function run(game) {
     // No door the dead can reach: they batter the shut window open for sight, then search, and do not search paths each step.
     if (houses.outdoors) {
       const { win, doors, doorOps, w, from } = houses.outdoors;
+      // Noon again: the trials before this one step minutes of the clock (the nested house's door alone took 282 s on a fresh valley
+      // page, against a 720 s day), and by night the dead with no sight of the player for `flamePatience` go to a flame in sight within
+      // `flameRange` instead (zombie.js nearestFlame), and the valley's lit fire pit by your cottage (#527) stands within that of this house's window.
+      G.clock.setHour(12);
       const shutter0 = win.wall.shutter;
       const broken0 = win.wall.broken;
       const hp0 = win.wall.hp;
