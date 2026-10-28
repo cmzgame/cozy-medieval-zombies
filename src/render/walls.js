@@ -293,6 +293,7 @@ export function postAt(tx, ty, playerRoom) {
 // picture's cap, drawn on its face's plane, under the upper face's foot) the upper face is the one seen: one face, two storeys tall.
 // The same for a post with a post over it, and for a door's or a window's frame top. On the ground with nothing over it, as before.
 const STACK_BIAS = 1;
+const POST_FOOT_UP = 6; // px over a drawn post's anchor (its vertex) where its stone foot begins, at its outer columns (data/art/village/post_*.png)
 function wallOn(tx, ty, edge, layer) {
   const t = map.peekTile(tx, ty, layer);
   return t ? t[edge] || null : null;
@@ -449,7 +450,23 @@ function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
         const ps = getSheet(sheet.wall.post);
         const pf = ps.frames.idle_0;
         if (pf) {
-          gl.quad(x - ps.anchor[0], y - ps.anchor[1], pf[2], pf[3], gl.frameUV(ps, "idle_0"), { world: [[tx - 1, ty], [tx, ty - 1], [tx, ty - 1], [tx - 1, ty]], heights: [pf[3], pf[3], 0, 0], color: [1, 1, 1, alpha], flags });
+          const world = [[tx - 1, ty], [tx, ty - 1], [tx, ty - 1], [tx - 1, ty]];
+          if (lift) {
+            // A post standing on a post (the storeys' seam, Michael's playtest 2026-10-27): no foot of its own, its plinth over the one below's
+            // top read as a stone band between the storeys. Its picture is drawn down to the foot's top, and the rows of shaft just over it
+            // again below that, to the frame's foot, so the shaft runs on into the post below as one post two storeys tall.
+            const uv = gl.frameUV(ps, "idle_0");
+            const X0 = x - ps.anchor[0];
+            const Y0 = y - ps.anchor[1];
+            const W = pf[2];
+            const cut = Math.max(1, Math.round(ps.anchor[1]) - POST_FOOT_UP);
+            const n = Math.min(cut, pf[3] - cut);
+            const band = (top, bottom, v0, v1) => gl.texQuad([[X0, Y0 + top], [X0 + W, Y0 + top], [X0 + W, Y0 + bottom], [X0, Y0 + bottom]], [[uv[0], uv[1] + v0], [uv[0] + W, uv[1] + v0], [uv[0] + W, uv[1] + v1], [uv[0], uv[1] + v1]], { world, heights: [pf[3] - top, pf[3] - top, pf[3] - bottom, pf[3] - bottom], color: [1, 1, 1, alpha], flags, page: uv[4] });
+            gl.holdOrder(true); // side by side, never overlapping: one step
+            band(0, cut, 0, cut);
+            band(cut, cut + n, cut - n, cut);
+            gl.holdOrder(false);
+          } else gl.quad(x - ps.anchor[0], y - ps.anchor[1], pf[2], pf[3], gl.frameUV(ps, "idle_0"), { world, heights: [pf[3], pf[3], 0, 0], color: [1, 1, 1, alpha], flags });
           if (!faded && !covered) {
             const uv = gl.frameUV(ps, "idle_0");
             const pts = [];
