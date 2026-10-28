@@ -119,6 +119,32 @@ export function floorEnd(n) {
   return out;
 }
 
+// How far out round the ring the stepped floor reaches past the curve (its tiles' outer corners, past the wall at the diagonals): per angle as
+// floorEnd, the most of it within half a tile along the curve either side. The base drawn under the near half from inside covers it
+// (render/rings.js emitBase). Kept per size.
+const floorReaches = new Map(); // n -> Float64Array of SKIRT_SAMPLES radii
+export function floorReach(n) {
+  let out = floorReaches.get(n);
+  if (out) return out;
+  const s = base(n);
+  const raw = new Float64Array(SKIRT_SAMPLES);
+  for (let j = 0; j < SKIRT_SAMPLES; j++) {
+    const a = (j / SKIRT_SAMPLES) * 2 * Math.PI;
+    let last = s.R - 1;
+    for (let r = s.R - 1; r < s.R + 1; r += 0.005) if (s.inside(Math.floor(s.k + r * Math.cos(a) + 0.5), Math.floor(s.k + r * Math.sin(a) + 0.5))) last = r;
+    raw[j] = last;
+  }
+  out = new Float64Array(SKIRT_SAMPLES);
+  const w = Math.ceil((0.5 / s.R) / ((2 * Math.PI) / SKIRT_SAMPLES));
+  for (let j = 0; j < SKIRT_SAMPLES; j++) {
+    let m = -Infinity;
+    for (let d = -w; d <= w; d++) m = Math.max(m, raw[(j + d + SKIRT_SAMPLES) % SKIRT_SAMPLES]);
+    out[j] = m;
+  }
+  floorReaches.set(n, out);
+  return out;
+}
+
 export function validSize(n) {
   return SIZES.includes(n);
 }

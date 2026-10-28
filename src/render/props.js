@@ -236,6 +236,9 @@ export function propDrawables(tiles, visible, out) {
     const canopy = !walked && !!getDef(prop.sprite).canopy;
     const surf = depth.propSlice(tx, ty, canopy, walked, off[1]);
     const held = backWalls(surf, tx, ty, canopy); // held off the walls on its tile's back edges, which it stands against
+    // A billboard (a canopy, a thing walked through) a little nearer by where it stands across its diagonal, so two on one diagonal never
+    // tie (render/depth.js across: the woods' crowns flickered as the player walked); a ridge never ties so.
+    const bias = DEPTH_BIAS.prop + (canopy || walked ? depth.across(tx, ty) * gl.depthStep() : 0);
     const d = {
       key: (tx + ty) * 1000 + 1,
       kind: "prop",
@@ -249,7 +252,7 @@ export function propDrawables(tiles, visible, out) {
       tile: [tx, ty],
       surf: held,
       emit() {
-        gl.surface(held, DEPTH_BIAS.prop, DEPTH_ROOM.prop);
+        gl.surface(held, bias, DEPTH_ROOM.prop);
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         if (swarm) bees.emit(swarm, true, [tx, ty]);
         if (sink > 0) risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, (loop.simTime() - prop.risenAt) / RES.riseSeconds, shudderOf(prop));
@@ -259,7 +262,7 @@ export function propDrawables(tiles, visible, out) {
         if (furnFlame) frameQuad(sheet, furnFlame, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
     };
-    if (hl.isProp(prop.id) && !sink) lit.push({ d, sheet, name, f, x, y, tx, ty, prop, surf: held }); // a rising rock is outlined once it is up
+    if (hl.isProp(prop.id) && !sink) lit.push({ d, sheet, name, f, x, y, tx, ty, prop, surf: held, bias }); // a rising rock is outlined once it is up
     out.push(d);
   }
   if (lit.length) highlightProp(lit, out);
@@ -292,7 +295,7 @@ function highlightProp(lit, out) {
       if (!slices.length) return;
       let far = slices[0];
       for (const s of slices) if (s.tx + s.ty < far.tx + far.ty) far = s;
-      gl.surface(far.surf, DEPTH_BIAS.prop, DEPTH_ROOM.prop);
+      gl.surface(far.surf, far.bias, DEPTH_ROOM.prop);
       for (const s of slices) {
         hl.outline(s.sheet, s.name, s.x, s.y, { world: [s.tx, s.ty], heights: s.f ? [s.f[3], s.f[3], 0, 0] : 0 }, false, 0, s.f ? swayOf(s.prop, s.f[3]) : 0);
       }

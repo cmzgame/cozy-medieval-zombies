@@ -102,8 +102,13 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
   const h = sheet.wallHeight || 96;
   const T = sheet.thickness || WALL_T;
   const t = T / 2 / depth.UNIT; // half the thickness in tiles: the faces are this far either side of the curve
-  const out = near ? 1 : -1; // the face the camera sees: the outer on the near half, the inner on the far
-  const Rf = s.R + out * t;
+  // The face drawn: the outer on the near half and the inner on the far, as the camera sees them. With the player inside, the near half's
+  // stretch over the room is cut away to one translucent face at the wall's inner line (Michael's playtest, 2026-10-27: the faded outer face
+  // over the far half's inner face read as see-through layers): the flanks keep their outer face, opaque, as from outside; where the cut meets
+  // a flank, the wall's cut end (a jamb, the thickness seen end on) closes it with no notch; the cap runs on over both; the cut's footprint
+  // is a stone base on the floor (emitBase).
+  const out = near ? 1 : -1;
+  const Rf = s.R + out * t; // the brackets' face
   // The four door points' openings (round.js's order: north, east, south, west), each spanning the curve from one end of its edge to the other
   // (atan(0.5 / R) either side of the point). render/walls.js draws nothing at a ring's door point (Michael's playtest: the straight frame's
   // posts jutted out of the curve and showed as blocks on its cap): the curve runs on over the opening, a hole in its face between the
@@ -133,10 +138,11 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
   // Which of the near half's segments fade with the player inside: those whose face stands over the room's inside on screen (its columns
   // within the inner face's silhouette), never a flank.
   const span = iso.HW * (s.R - t) * Math.SQRT2;
-  const dxOf = (a) => iso.HW * Rf * (Math.cos(a) - Math.sin(a)); // a point on the face, its columns from the centre's
+  const dxOf = (a) => iso.HW * (s.R + t) * (Math.cos(a) - Math.sin(a)); // the outer face's columns from the centre's at that angle (whichever face is drawn): the flanks are the stretch past the inside's silhouette there
   const fades = (a0, a1) => near && inside && Math.min(Math.abs(dxOf(a0)), Math.abs(dxOf(a1))) < span;
   const color = sheet.color || "#7b7670";
   const key = (s.cx + s.cy + out * s.R) * 1000;
+  const sideOf = (a0, a1) => (near && !fades(a0, a1) ? 1 : -1); // the face a segment is drawn as: +1 the outer, -1 the inner
   const ground = (a, rad) => [s.cx + Math.cos(a) * rad, s.cy + Math.sin(a) * rad];
   const scr = ([gx, gy]) => {
     const p = iso.toScreen(gx, gy);
@@ -150,24 +156,26 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
       const uvF = sheet.wall ? gl.frameUV(sheet, FACE) : null;
       const an = sheet.wall ? (sheet.frameAnchors && sheet.frameAnchors[FACE]) || sheet.anchor : null;
       if (!near && !ghostTint) emitSkirt(r, s, color, t, visible); // the inside skirt, all the way round, with the far half (drawn first: it lies under everything)
+      if (near && inside && !ghostTint) emitBase(r, s, color, t, visible, (a) => fades(a, a)); // under the cut stretch, seen from inside: its footprint and the steps' corners past it, one stone band with the skirt
       let first = true;
       for (const [a0, a1, o] of segs) {
-        const g0 = ground(a0, Rf);
-        const g1 = ground(a1, Rf);
+        const so = sideOf(a0, a1);
+        const g0 = ground(a0, s.R + so * t);
+        const g1 = ground(a1, s.R + so * t);
         const plane = depth.planeThrough(g0[0], g0[1], g1[0], g1[1]);
         if (first) {
           gl.surface(plane, 0, DEPTH_ROOM.wall);
           first = false;
         } else gl.setPlane(plane);
         const amid = (a0 + a1) / 2;
-        const l0 = lightPoint(s, a0, out);
-        const l1 = lightPoint(s, a1, out);
-        const lm = lightPoint(s, amid, out);
+        const l0 = lightPoint(s, a0, so);
+        const l1 = lightPoint(s, a1, so);
+        const lm = lightPoint(s, amid, so);
         const vis = !visible || visible.has(tileKey(Math.round(lm[0]), Math.round(lm[1])));
         const flags = ghostTint ? ghostFlags : vis ? gl.FLAG_NOFOG : 0;
         const alpha = fades(a0, a1) ? NEAR_WALL_ALPHA : 1;
         // The face looks along its outward normal (the inner face toward the centre); lit from the top left, darker as it turns to the right.
-        const look = near ? amid : amid + Math.PI;
+        const look = so > 0 ? amid : amid + Math.PI;
         const k = 1 - 0.18 * (1 - Math.cos(look - Math.PI / 2));
         const tint = ghostTint || [k, k, k, alpha];
         let A = scr(g0);
@@ -226,7 +234,37 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
           gl.poly([[A0[0], A0[1] - y - 1.5], [A1[0], A1[1] - y - 1.5], [A1[0], A1[1] - y + 1.5], [A0[0], A0[1] - y + 1.5]], gl.rgb(METAL, 1), { world: lp, flags: gl.FLAG_NOFOG });
         }
       }
-      if (!ghostTint) emitBrackets(r, s, near, visible, (a) => (fades(a - 0.01, a + 0.01) ? NEAR_WALL_ALPHA : 1), Rf, scr);
+      // The cut's two ends: the wall's thickness seen end on, from the inner line to the outer face, the whole height, opaque.
+      if (near && inside && !ghostTint) {
+        for (const [a0, a1] of segs) {
+          for (const [b, past] of [[a0, a0 - 0.004], [a1, a1 + 0.004]]) {
+            if (!fades(a0, a1) || fades(past, past) || nearHalf(past) !== near) continue;
+            const p0 = ground(b, s.R - t);
+            const p1 = ground(b, s.R + t);
+            gl.setPlane(depth.planeThrough(p0[0], p0[1], p1[0], p1[1]));
+            let [A0, A1] = [scr(p0), scr(p1)];
+            let [w0, w1] = [lightPoint(s, b, -1), lightPoint(s, b, 1)];
+            if (A1[0] < A0[0]) {
+              [A0, A1] = [A1, A0];
+              [w0, w1] = [w1, w0];
+            }
+            const k = 0.8; // the cut end looks along the curve, half turned from the light
+            const flags = !visible || visible.has(tileKey(Math.round(w1[0]), Math.round(w1[1]))) ? gl.FLAG_NOFOG : 0;
+            gl.layer(0);
+            if (uvF) {
+              // The same stone as the faces, the straight face's columns from its first used.
+              const w = Math.max(1, Math.min(FACE_COLS[1] - FACE_COLS[0], A1[0] - A0[0]));
+              const foot = (c) => [uvF[0] + an[0] + c - T / 2, uvF[1] + an[1] - iso.HH + T / 4 + c / 2];
+              const fa = foot(FACE_COLS[0]);
+              const fb = foot(FACE_COLS[0] + w);
+              gl.texQuad([A0, A1, [A1[0], A1[1] - h], [A0[0], A0[1] - h]], [fa, fb, [fb[0], fb[1] - h], [fa[0], fa[1] - h]], { world: [w0, w1, w1, w0], heights: [0, 0, h, h], color: [k, k, k, 1], flags, page: uvF[4] });
+            } else {
+              gl.poly([A0, A1, [A1[0], A1[1] - h], [A0[0], A0[1] - h]], gl.rgb(shade(color, k), 1), { world: [w0, w1, w1, w0], heights: [0, 0, h, h], flags });
+            }
+          }
+        }
+      }
+      if (!ghostTint) emitBrackets(r, s, near, visible, (a) => (fades(a - 0.01, a + 0.01) ? null : 1), Rf, scr); // none on the cut stretch's outer face, which is not drawn
       gl.layer(null);
     },
   };
@@ -279,6 +317,54 @@ function emitSkirt(r, s, color, t, visible) {
   draw();
 }
 
+// The base under the near half, drawn only while the player is inside (the near half then drawn as its inner face, faded over the room): the
+// wall's footprint from the inner line out to the outer face, and on past it where the stepped floor's corners reach beyond the wall
+// (round.floorReach), in the skirt's stone and light, outlined on its outer edge, so what lies under and before the faded stretch reads as one
+// stone base with the skirt (Michael's playtest, 2026-10-27: the faded wall's foot, the skirt, and the steps' corners showed as see-through
+// layers). From outside it is never drawn.
+function emitBase(r, s, color, t, visible, under = () => true) {
+  const reach = round.floorReach(r.n);
+  const K = round.SKIRT_SAMPLES;
+  const inner = s.R - t;
+  const at = (j, rad) => {
+    const a = (j / K) * 2 * Math.PI;
+    return [s.cx + Math.cos(a) * rad, s.cy + Math.sin(a) * rad];
+  };
+  const rOut = (j) => Math.max(s.R + t, reach[j % K] + 0.04);
+  const light = (j) => at(j, inner - 0.6);
+  const scr = ([gx, gy]) => {
+    const p = iso.toScreen(gx, gy);
+    return [p.x, p.y];
+  };
+  const flags = !visible || visible.has(tileKey(Math.round(s.cx), Math.round(s.cy))) ? gl.FLAG_NOFOG : 0;
+  const near = [];
+  for (let j = 0; j < K; j++) {
+    const a = ((j + 0.5) / K) * 2 * Math.PI;
+    if (nearHalf(a) && under(a)) near.push(j);
+  }
+  const lifted = !!r.layer;
+  const draw = () => {
+    if (lifted) gl.layer(0);
+    for (const j of near) {
+      const w = [light(j), light(j + 1), light(j + 1), light(j)];
+      gl.poly([at(j, inner), at(j + 1, inner), at(j + 1, rOut(j + 1)), at(j, rOut(j))].map(scr), gl.rgb(shade(color, 0.86), 1), { world: w, flags });
+    }
+    if (lifted) gl.layer(1);
+    for (const j of near) {
+      const w = [light(j), light(j + 1), light(j + 1), light(j)];
+      gl.poly([at(j, rOut(j) - 0.03), at(j + 1, rOut(j + 1) - 0.03), at(j + 1, rOut(j + 1)), at(j, rOut(j))].map(scr), gl.rgb(shade(color, 0.48), 1), { world: w, flags }); // the outline along its outer edge
+    }
+    if (lifted) gl.layer(null);
+  };
+  if (!lifted) {
+    gl.withPass(gl.PASS_FLAT, draw);
+    return;
+  }
+  const o = iso.getOrigin();
+  gl.surface({ A: 0, B: 2, C: -2 * o.y }, DEPTH_BIAS.liftedFloor + 0.25, 0.5);
+  draw();
+}
+
 // The hole an opening at a door point makes in the curve's face, as [from, to] heights, or null: a door the door's height from the floor, a
 // window between its sill and its top, an empty door point the wall's whole height.
 function holeOf(wall, h) {
@@ -319,6 +405,8 @@ function emitBrackets(r, s, near, visible, alphaAt, Rf, scr) {
     const [px, py] = scr([s.cx + Math.cos(f.a) * Rf, s.cy + Math.sin(f.a) * Rf]);
     const floor = map.bracketFloor({ tx, ty, edge, wall });
     const vis = !visible || visible.has(tileKey(floor[0], floor[1]));
-    emitBracket(br, Math.round(px), Math.round(py - BRACKET_UP), map.bracketPos({ tx, ty, edge, wall, layer: r.layer }), alphaAt(f.a), vis ? gl.FLAG_NOFOG : 0, vis, null, tx + ty);
+    const al = alphaAt(f.a);
+    if (al == null) continue;
+    emitBracket(br, Math.round(px), Math.round(py - BRACKET_UP), map.bracketPos({ tx, ty, edge, wall, layer: r.layer }), al, vis ? gl.FLAG_NOFOG : 0, vis, null, tx + ty);
   }
 }

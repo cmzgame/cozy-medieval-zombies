@@ -39,6 +39,21 @@ export function planeThrough(ax, ay, bx, by) {
   return { A, C: a.d + a.sy - A * a.sx };
 }
 
+// Where a billboard stands across its diagonal, as a part of a depth step (gl.depthStep()) to add to its kind's bias. Two billboards on
+// one diagonal (gx + gy the same: two trees on tiles of one tx + ty, two of the dead side by side) are one plane, and where both draw
+// a pixel the float rounding chose between them, row by row and differently as the camera moved: horizontal bars of each flashing as
+// the player walked (Michael, 2026-10-28, the woods' crowns). This sets the one further across, toward the south-west (gy - gx the
+// greater: to the left on screen), a step nearer for each tile across, as the painter's sort drew it (its tiles row by row, so of two
+// keys alike the one of the greater ty drew last, in front). It counts in ACROSS_SLOTS steps and starts again: two that can overlap
+// (a large oak's crown is five tiles wide across the diagonal) always differ, and it stays small beside the kinds' biases (5 steps at
+// most: 0.16 of a unit at 24 bits; at 16 bits, 1.25). A wall, a post, or a prop's ridge never ties so: it is left as it is. Fixed by
+// where the thing stands, never by the camera, so nothing it orders changes as the player walks.
+export const ACROSS_SLOTS = 6;
+export function across(gx, gy) {
+  const v = (gy - gx) % ACROSS_SLOTS;
+  return v < 0 ? v + ACROSS_SLOTS : v;
+}
+
 // A billboard through the ground point (gx, gy): the same depth across every column, its height above that point's own row on screen.
 export function billboard(gx, gy) {
   const p = at(gx, gy);
