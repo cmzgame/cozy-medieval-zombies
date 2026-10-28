@@ -778,9 +778,10 @@ function quickMove({ entry, bag }) {
 }
 
 function openItemMenu(hit, e) {
+  const other = hit.bag ? otherBag(hit.bag) : null;
   const entries = hit.slot
     ? handlers.slotMenu?.(hit.slot) || []
-    : handlers.itemMenu?.(hit.entry, hit.bag, otherBag(hit.bag)) || [];
+    : handlers.itemMenu?.(hit.entry, hit.bag, other) || [];
   if (hit.bag) {
     const [w, h] = grid.sizeOfId(hit.entry.id);
     if (w !== h) {
@@ -795,9 +796,24 @@ function openItemMenu(hit, e) {
     }
   }
   if (!entries.length) return;
+  // The menu stays while the player walks (main.js) and goes when what it was opened on goes (`still`, read each step and again on a pick):
+  // - its item: the same entry (by uid on a guest's replica, whose objects are new each frame) still in that bag, or in that slot;
+  // - its panel: the bag for a bag item, the character screen for a hand or a worn slot (the belt's hotbar shows while a belt is worn);
+  // - the container open beside the bag, for a bag's item and a container's: the same opening still open (main.js `openBag`, which
+  //   closes out of reach or behind a wall, #208), so "Store in" and "Take" never reach a chest walked away from, nor a second one.
+  const same = (q) => !!q && (q === hit.entry || (hit.entry.uid != null && q.uid === hit.entry.uid));
+  const slot = hit.slot ? parseSlot(hit.slot) : null;
+  const shownNow = !slot ? () => open : slot.kind === "belt" ? () => !hotbar.hidden : () => character;
+  const viaContainer = !!hit.bag && !!bags.container && (hit.which === "container" || other === bags.container);
+  const byOpening = viaContainer && !!handlers.openContainer?.(); // else (a panel drawn by a test with no opening) the grid itself
+  const opening = byOpening ? handlers.openContainer() : viaContainer ? bags.container : null;
+  const sameOpening = () => !viaContainer || (byOpening ? handlers.openContainer() === opening : bags.container === opening);
+  const there = slot ? () => same(slotEntry(hit.slot)) : () => !!refind(hit.entry, hit.which);
+  const still = () => shownNow() && there() && sameOpening();
   const wrapped = entries.map((en) => ({
     ...en,
     onSelect: () => {
+      if (!still()) return; // picked in the moment after what it was opened on went, before the step closed it
       en.onSelect();
       handlers.changed?.();
       lastSignature = "";
@@ -805,5 +821,5 @@ function openItemMenu(hit, e) {
     },
   }));
   const u = view.clientToUi(e.clientX, e.clientY);
-  menu.openContextMenu(u.x, u.y, wrapped);
+  menu.openContextMenu(u.x, u.y, wrapped, { still });
 }
