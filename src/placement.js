@@ -242,7 +242,7 @@ function floorPlan(player, what, x0, y0, x1, y1) {
   const farMemo = new Map();
   const far = (x, y) => {
     const k = `${x},${y}`;
-    if (!farMemo.has(k)) farMemo.set(k, !!reachProblem(player, [[x, y]], BUILD_REACH + 0.5, L));
+    if (!farMemo.has(k)) farMemo.set(k, reachProblem(player, [[x, y]], BUILD_REACH + 0.5, L) || "");
     return farMemo.get(k);
   };
   const grows = new Set();
@@ -269,7 +269,7 @@ function floorPlan(player, what, x0, y0, x1, y1) {
   let paid = 0;
   return todo.map(([x, y]) => {
     if (notYet) return [x, y, notYet];
-    if (far(x, y)) return [x, y, "Too far"];
+    if (far(x, y)) return [x, y, far(x, y) === TOO_FAR ? "Too far" : "A wall is in the way"];
     if (!ok.has(key(x, y))) return [x, y, map.floorBuildProblem(x, y, id, L, grows) || "Build it out from a floor"];
     if (tool) return [x, y, tool];
     if (paid >= afford) return [x, y, `Need ${Object.entries(per).map(([i, k]) => `${k} ${noun(i, k)}`).join(", ")}`];
@@ -284,7 +284,8 @@ function floorGhost(player, what) {
   const g = cursorGrid(player);
   const cur = [Math.round(g.gx), Math.round(g.gy)];
   const from = state.build.from || cur;
-  const key = `${what}|${from}|${cur}|${layerOf(player)}|${Math.round(player.gx * 4)},${Math.round(player.gy * 4)}|${map.worldVersion}|${rules.freeBuilding}`;
+  const bag = Object.keys((buildData[what] && buildData[what].cost) || {}).map((id) => inventory.countAll(player, id)).join(","); // what the player holds, for the plan's shortfall
+  const key = `${what}|${from}|${cur}|${layerOf(player)}|${Math.round(player.gx * 4)},${Math.round(player.gy * 4)}|${map.worldVersion}|${rules.freeBuilding}|${bag}`;
   if (floorMemo.key !== key) floorMemo = { key, tiles: floorPlan(player, what, from[0], from[1], cur[0], cur[1]) };
   const tiles = floorMemo.tiles;
   const good = tiles.filter((t) => !t[2]).length;
