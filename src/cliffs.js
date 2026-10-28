@@ -14,6 +14,18 @@ export function plateauAt(x, y, layer) {
   return !!t && !map.isEngineFloor(t.floor);
 }
 
+// Whether the cliff wall on (tx, ty, edge) of `layer` is buried: plateau on both its sides (a hill widened past it), so nothing of it is
+// seen; it is drawn as nothing and counts as no edge at a vertex (no post for it, no corner broken by it).
+export function buried(tx, ty, edge, layer) {
+  const [ax, ay, bx, by] = edge === "n" ? [tx, ty, tx, ty - 1] : [tx, ty, tx - 1, ty];
+  return plateauAt(ax, ay, layer) && plateauAt(bx, by, layer);
+}
+// The wall on (tx, ty, edge) of `layer` as a vertex sees it: null for a buried cliff.
+export function shownWall(tx, ty, edge, layer) {
+  const w = map.tileAt(tx, ty, layer)[edge];
+  return w && cliffWallOf(w) && buried(tx, ty, edge, layer) ? null : w || null;
+}
+
 // The corner at vertex (vx, vy) (the top vertex of tile (vx, vy), grid point (vx - 0.5, vy - 0.5)) on `layer`, before the halves, or
 // null: exactly two cliff edges meet there, one n and one w, and the plateau holds one of the four quadrants round it (an outer corner,
 // named for where the vertex sits on that plateau tile) or three (an inner one, named for where it sits on the notch tile); the two edges
@@ -24,13 +36,14 @@ const OUTER = { N: "outer_s", E: "outer_w", W: "outer_e", S: "outer_n" };
 const INNER = { S: "inner_n", W: "inner_e", E: "inner_w", N: "inner_s" };
 const QUAD = { N: [-1, -1], E: [0, -1], W: [-1, 0], S: [0, 0] };
 export function cornerBase(vx, vy, layer) {
-  const nE = map.tileAt(vx, vy, layer).n;
-  const nW = map.tileAt(vx - 1, vy, layer).n;
-  const wS = map.tileAt(vx, vy, layer).w;
-  const wN = map.tileAt(vx, vy - 1, layer).w;
-  const nOn = [nE, nW].filter(Boolean);
-  const wOn = [wS, wN].filter(Boolean);
-  if (nOn.length !== 1 || wOn.length !== 1 || !cliffWallOf(nOn[0]) || !cliffWallOf(wOn[0])) return null;
+  const nE = shownWall(vx, vy, "n", layer);
+  const nW = shownWall(vx - 1, vy, "n", layer);
+  const wS = shownWall(vx, vy, "w", layer);
+  const wN = shownWall(vx, vy - 1, "w", layer);
+  if ((nE ? 1 : 0) + (nW ? 1 : 0) !== 1 || (wS ? 1 : 0) + (wN ? 1 : 0) !== 1) return null;
+  const nOn = nE || nW;
+  const wOn = wS || wN;
+  if (!cliffWallOf(nOn) || !cliffWallOf(wOn)) return null;
   const q = {};
   let count = 0;
   for (const k of Object.keys(QUAD)) {
@@ -45,7 +58,7 @@ export function cornerBase(vx, vy, layer) {
   const wTile = [vx, south ? vy : vy - 1];
   const n = map.tileAt(nTile[0], nTile[1], layer).n;
   const w = map.tileAt(wTile[0], wTile[1], layer).w;
-  if (n !== nOn[0] || w !== wOn[0]) return null; // its two edges are not the ones the plateau turns along
+  if (n !== nOn || w !== wOn) return null; // its two edges are not the ones the plateau turns along
   return { name: (count === 1 ? OUTER : INNER)[key], nTile, wTile, n, w, nFront: plateauAt(nTile[0], nTile[1] - 1, layer), wFront: plateauAt(wTile[0] - 1, wTile[1], layer) };
 }
 

@@ -335,13 +335,25 @@ function postBase(tx, ty, nE, nW, wS, wN) {
 // `sheet` is the heavier material's (stone over log over wood); `near` is
 // whether it is translucent with a near wall.
 export function postAt(tx, ty, playerRoom) {
-  const straight = (w) => (w && !map.drawnByRing(w) ? w : null); // no post where a ring meets itself: its step corners and its door points' ends (docs/50 section 4; the playtest, 2026-10-27)
-  const nE = straight(map.tileAt(tx, ty).n);
-  const nW = straight(map.tileAt(tx - 1, ty).n);
-  const wS = straight(map.tileAt(tx, ty).w);
-  const wN = straight(map.tileAt(tx, ty - 1).w);
+  const v = vertexAt(tx, ty, playerRoom);
+  return v && !v.corner ? v : null;
+}
+// What stands at the vertex: null, a post ({ sheet, near, thin }), or a cliff's corner piece ({ corner }), the four edges read once and the
+// corner asked only where a cliff wall meets the vertex (the review of #561: an empty vertex costs its four reads, as before the cliffs).
+function vertexAt(tx, ty, playerRoom) {
+  // No post where a ring meets itself: its step corners and its door points' ends (docs/50 section 4; the playtest, 2026-10-27); nor for a
+  // buried cliff edge (art round 10: plateau on both its sides, drawn as nothing).
+  const straight = (w, x, y, e) => (w && !map.drawnByRing(w) && !(cliffs.cliffWallOf(w) && cliffs.buried(x, y, e, map.drawLayerNow())) ? w : null);
+  const nE = straight(map.tileAt(tx, ty).n, tx, ty, "n");
+  const nW = straight(map.tileAt(tx - 1, ty).n, tx - 1, ty, "n");
+  const wS = straight(map.tileAt(tx, ty).w, tx, ty, "w");
+  const wN = straight(map.tileAt(tx, ty - 1).w, tx, ty - 1, "w");
   if (!nE && !nW && !wS && !wN) return null;
-  if (cliffCorner(tx, ty)) return null; // a cliff's corner piece stands there in place of a post (art round 10)
+  // A cliff's corner piece stands there in place of a post (art round 10): asked only where a cliff wall meets the vertex.
+  if (cliffs.cliffWallOf(nE) || cliffs.cliffWallOf(nW) || cliffs.cliffWallOf(wS) || cliffs.cliffWallOf(wN)) {
+    const corner = cliffCorner(tx, ty);
+    if (corner) return { corner };
+  }
   const base = postBase(tx, ty, nE, nW, wS, wN);
   if (!base) return null;
   // Translucent only when every wall it joins is a near wall (the front corner);
@@ -399,22 +411,27 @@ function postStack(tx, ty) {
 // drawn below its edge line at the top, so the plateau's floor is what shows over its flat top (the lip is the wall's, never a cap); a
 // corner (cliffs.cornerAt) takes the corner piece of `wall.corners` for both its edges and in place of the post.
 const sameRun = (a, b) => a.sprite === b.sprite || (!!cliffs.cliffWallOf(a) && !!cliffs.cliffWallOf(b)); // a grassy lip meets a rocky one with no post: the same rock (the artist's note)
-const cornerCache = new Map(); // "L,vx,vy" -> cliffs.cornerBase or null, for the frame cornerFrame
+const cornerCache = new Map(); // vertex key (postBase's) -> cliffs.cornerBase or null, for the frame cornerFrame; asked only at a vertex a cliff wall meets
 let cornerFrame = -1;
 function cornerBaseCached(vx, vy, L) {
   if (gl.frameId() !== cornerFrame) {
     cornerCache.clear();
     cornerFrame = gl.frameId();
   }
-  const k = `${L},${vx},${vy}`;
-  if (!cornerCache.has(k)) cornerCache.set(k, cliffs.cornerBase(vx, vy, L));
-  return cornerCache.get(k);
+  if (!(vx > -4096 && vx < 4096 && vy > -4096 && vy < 4096 && L > -64 && L < 64)) return cliffs.cornerBase(vx, vy, L); // the far wild: unkeyed
+  const k = ((L + 64) * 8192 + (vx + 4096)) * 8192 + (vy + 4096);
+  let c = cornerCache.get(k);
+  if (c === undefined) cornerCache.set(k, (c = cliffs.cornerBase(vx, vy, L)));
+  return c;
 }
 export function cliffCorner(vx, vy) {
   return cliffs.cornerAt(vx, vy, map.drawLayerNow(), cornerBaseCached);
 }
-function claimedByCorner(tx, ty, edge, wall) {
-  return cliffs.claimedByCorner(tx, ty, edge, wall, map.drawLayerNow(), cornerBaseCached);
+// A cliff edge not drawn as a segment: buried (plateau on both its sides: a hill widened past it, seen nowhere; the review of #561), or
+// drawn by a corner piece at either end.
+function cliffHidden(tx, ty, edge, wall) {
+  const L = map.drawLayerNow();
+  return cliffs.buried(tx, ty, edge, L) || cliffs.claimedByCorner(tx, ty, edge, wall, L, cornerBaseCached);
 }
 // A straight cliff edge's picture, and the line its face is cut along under its plateau's floor.
 function cliffArt(sheet, wall, edge, tx, ty, x, y, h) {
@@ -518,14 +535,14 @@ function makeCliffCorner(vx, vy, c, vis) {
 // Corner posts, and a cliff's corner pieces in their place.
 export function postDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
-    const corner = cliffCorner(tx, ty);
-    if (corner) {
+    const v = vertexAt(tx, ty, playerRoom);
+    if (!v) continue;
+    if (v.corner) {
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
-      out.push(makeCliffCorner(tx, ty, corner, vis));
+      out.push(makeCliffCorner(tx, ty, v.corner, vis));
       continue;
     }
-    const post = postAt(tx, ty, playerRoom);
-    if (!post) continue;
+    const post = v;
     const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
     out.push(makePost(tx, ty, post.sheet, vis, post.near, post.thin, postStack(tx, ty)));
   }
@@ -568,7 +585,10 @@ function emitCutWall(sheet, name, edge, x, y, h, T, o, cuts) {
   const B = Tp + f[3];
   const uv = gl.frameUV(sheet, name);
   const piece = (pts) => {
-    const c = pts.map(([px, py]) => [Math.min(R, Math.max(L, px)), Math.min(B, Math.max(Tp, py))]);
+    let c = pts.map(([px, py]) => [Math.min(R, Math.max(L, px)), Math.min(B, Math.max(Tp, py))]);
+    // A cliff's face under its plateau's floor keeps its cut along the edge line when it is a faded near wall too (the review of #561).
+    if (o.clip) c = clipBelow(c, o.clip[0], o.clip[1], [(o.clip[0][0] + o.clip[1][0]) / 2, B + 1000]);
+    if (!c) return;
     gl.texQuad(c, c.map(([px, py]) => [uv[0] + px - L, uv[1] + py - Tp]), {
       page: uv[4],
       world: c.map(([px]) => {
@@ -730,13 +750,13 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
     const t = map.tileAt(tx, ty);
     // A ring's edges, and a door or a window at one of its door points, are drawn by its own drawables, in the curve (render/rings.js, docs/50 section 4).
-    if (t.n && !map.drawnByRing(t.n) && !(cliffs.cliffWallOf(t.n) && claimedByCorner(tx, ty, "n", t.n))) {
+    if (t.n && !map.drawnByRing(t.n) && !(cliffs.cliffWallOf(t.n) && cliffHidden(tx, ty, "n", t.n))) {
       const far = map.tileAt(tx, ty - 1);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
       const stub = isNearWall(tx, ty, "n", playerRoom);
       out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
     }
-    if (t.w && !map.drawnByRing(t.w) && !(cliffs.cliffWallOf(t.w) && claimedByCorner(tx, ty, "w", t.w))) {
+    if (t.w && !map.drawnByRing(t.w) && !(cliffs.cliffWallOf(t.w) && cliffHidden(tx, ty, "w", t.w))) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
       const stub = isNearWall(tx, ty, "w", playerRoom);

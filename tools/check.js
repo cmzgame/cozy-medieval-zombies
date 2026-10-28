@@ -5862,7 +5862,7 @@ const cliffHillCorners = (P, edges) => {
     return { ...k, frame: `${k.name}${h ? `_h${h}` : ""}` };
   });
 };
-check("the cliffs' corners: the artist's hill built by the commands a guest sends (its walls, the stone ramp, its plateau grown from the ramp's landing), and at every vertex the corner the artist's rule names, outer and inner, halved where a step is one tile long; each straight edge's face or back", () => {
+check("the cliffs' corners: the artist's hill built by the commands a guest sends (its walls, the stone ramp, its plateau grown from the ramp's landing), and at every vertex the corner the artist's rule names, outer and inner, halved where a step is one tile long; each straight edge's face or back; widened past a step, the walls left with plateau on both sides buried (no ridge) and the corners still the rule's", () => {
   // The valley's open meadow north-east of the spawn (the pane's test of the same hill stood there), checked open first.
   const X0 = 146;
   const Y0 = 138;
@@ -5935,7 +5935,31 @@ check("the cliffs' corners: the artist's hill built by the commands a guest send
     const claimed = [...edges].filter((e) => { const [k, a, b] = e.split(","); const w = mapMod.peekTile(X0 + Number(a), Y0 + Number(b), 0)[k]; return cliffsMod.claimedByCorner(X0 + Number(a), Y0 + Number(b), k, w, 0); }).length;
     const owned = new Set(want.flatMap((k) => k.ce)).size;
     assert(claimed === owned, `${claimed} edges claimed by corners, the rule owns ${owned}`);
-    return `${edges.size} walls, the ramp, ${laid.size} plateau tiles; ${want.length} corners as the artist's rule (${[...kinds].sort().join(", ")}; ${want.filter((k) => /_h/.test(k.frame)).length} halved); ${claimed} edges by corners, ${backs} backs, ${faces} faces`;
+    // The hill widened (the review of #561): the plateau laid past its step on the right at (10, 3), with the new edges' cliff walls built.
+    // The step's two old walls now have plateau on both sides: buried, drawn as nothing (render/walls.js cliffHidden), and the corners are
+    // the artist's rule over the widened plan, as if those walls were not there.
+    me.gx = X0 + 9; me.gy = Y0 + 3; me.layer = 1;
+    placementImport.performPlacement(me, { kind: "build", what: "floor_cliff_grass", tx: X0 + 10, ty: Y0 + 3, tx2: X0 + 10, ty2: Y0 + 3 });
+    const P2 = new Set([...P, "10,3"]);
+    const edges2 = cliffHillEdges(P2);
+    for (const e of edges2) {
+      if (edges.has(e)) continue;
+      const [k, a, b] = e.split(",");
+      const ex = Number(a);
+      const ey = Number(b);
+      const [p, q] = k === "n" ? [[ex, ey], [ex, ey - 1]] : [[ex, ey], [ex - 1, ey]];
+      const out = P2.has(`${p[0]},${p[1]}`) ? q : p;
+      me.gx = X0 + out[0]; me.gy = Y0 + out[1]; me.layer = 0;
+      placementImport.performPlacement(me, { kind: "build", what: "wall_cliff_grass", tx: X0 + ex, ty: Y0 + ey, edge: k });
+    }
+    const buriedNow = [...edges].filter((e) => !edges2.has(e));
+    assert(mapMod.peekTile(X0 + 10, Y0 + 3, 1).floor === "floor_cliff_grass" && buriedNow.length === 2 && buriedNow.every((e) => { const [k, a, b] = e.split(","); return mapMod.peekTile(X0 + Number(a), Y0 + Number(b), 0)[k] && cliffsMod.buried(X0 + Number(a), Y0 + Number(b), k, 0); }), `widened: the old step's walls ${buriedNow.join(" ")} not buried`);
+    const want2 = cliffHillCorners(P2, edges2).map((k) => `${k.vx},${k.vy}:${k.frame}`).sort();
+    const got2 = [];
+    for (let vy = -1; vy <= 8; vy++) for (let vx = -1; vx <= 14; vx++) { const c = cliffsMod.cornerAt(X0 + vx, Y0 + vy, 0); if (c) got2.push(`${vx},${vy}:${c.frame}`); }
+    got2.sort();
+    assert(JSON.stringify(got2) === JSON.stringify(want2), `widened corners: got ${got2.join(" ")}; the rule ${want2.join(" ")}`);
+    return `${edges.size} walls, the ramp, ${laid.size} plateau tiles; ${want.length} corners as the artist's rule (${[...kinds].sort().join(", ")}; ${want.filter((k) => /_h/.test(k.frame)).length} halved); ${claimed} edges by corners, ${backs} backs, ${faces} faces; widened past its step: ${buriedNow.length} walls buried, ${want2.length} corners as the rule`;
   } finally {
     rulesImport.rules.freeBuilding = free0;
     me.layer = 0;
