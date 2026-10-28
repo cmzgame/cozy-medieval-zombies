@@ -5606,6 +5606,64 @@ check("the storeys' playtest: the landing is walked onto from its three open sid
   }
   return res.join("; ");
 });
+const storeysMod = await import("../src/render/storeys.js");
+check("the drawn stair stands on its tiles: halfway up, the feet at either side limit of the walkable band land on the drawn tread, inside its stringers, in all four facings, wood and stone", () => {
+  // Tread 6 (48 px, t 1.375 to 1.625) of each picture, its top's corners in the drawing's pixels (the artist's table, art round 8).
+  const TREAD6 = {
+    wood: { n: [[47.5, 90.2], [57, 85.5], [83, 98.5], [73.5, 103.2]], w: [[86.5, 90.2], [77, 85.5], [51, 98.5], [60.5, 103.2]], s: [[60.5, 38.8], [51, 43.5], [77, 56.5], [86.5, 51.8]], e: [[73.5, 38.8], [83, 43.5], [57, 56.5], [47.5, 51.8]] },
+    stone: { n: [[49, 82.5], [58, 78], [82, 90], [73, 94.5]], w: [[82, 82.5], [73, 78], [49, 90], [58, 94.5]], s: [[58, 31.5], [49, 36], [73, 48], [82, 43.5]], e: [[73, 31.5], [82, 36], [58, 48], [49, 43.5]] },
+  };
+  // Within `m` px of a convex quad (its corners in order): inside it, or that close to an edge.
+  const near = ([px, py], q, m) => {
+    let inside = true;
+    let sign = 0;
+    let best = Infinity;
+    for (let i = 0; i < 4; i++) {
+      const [ax, ay] = q[i];
+      const [bx, by] = q[(i + 1) % 4];
+      const c = (bx - ax) * (py - ay) - (by - ay) * (px - ax);
+      if (c !== 0) { if (!sign) sign = Math.sign(c); else if (Math.sign(c) !== sign) inside = false; }
+      const vx = bx - ax;
+      const vy = by - ay;
+      const t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy)));
+      best = Math.min(best, Math.hypot(px - ax - vx * t, py - ay - vy * t));
+    }
+    return inside || best <= m;
+  };
+  const D = { n: [0, -1], w: [-1, 0], s: [0, 1], e: [1, 0] };
+  const out = [];
+  const iso = isoMod;
+  const o0 = iso.getOrigin();
+  iso.setOrigin(0, 0);
+  try {
+    for (const material of ["wood", "stone"]) {
+      const def = read(`data/sprites/stair_${material}.json`);
+      for (const dir of ["n", "w", "s", "e"]) {
+        const [dx, dy] = D[dir];
+        const at = [10, 10];
+        const s = { dir, d: D[dir], tiles: [0, 1, 2].map((k) => [at[0] + dx * k, at[1] + dy * k]), low: [at[0] - 0.5 * dx, at[1] - 0.5 * dy] };
+        const a = def.drawings[dir].anchor;
+        const name = `idle_${dir}_0`;
+        // As the loader keeps it: the frame, and the definition's top-vertex anchor turned to the tile's centre (iso.HH lower).
+        const sheet = { frames: { [name]: [0, 0, 200, 200] }, frameAnchors: { [name]: [a[0], a[1] + iso.HH] } };
+        const pic = storeysMod.stairPicture(s, sheet, name);
+        const lim = 0.5 - mapMod.STAIR_FEET;
+        for (const off of [-lim, lim]) {
+          const gx = s.low[0] + dx * 1.5 + -dy * off;
+          const gy = s.low[1] + dy * 1.5 + dx * off;
+          const p = iso.toScreen(gx, gy);
+          const feet = [p.x - pic.left, p.y - mapMod.stairRise(1.5) - pic.top];
+          const ok = near(feet, TREAD6[material][dir], 2);
+          out.push(`${material} ${dir} ${off > 0 ? "+" : "-"}: ${feet.map((v) => v.toFixed(1)).join(",")}${ok ? "" : " OFF"}`);
+        }
+      }
+    }
+  } finally {
+    iso.setOrigin(o0.x, o0.y);
+  }
+  assert(!out.some((l) => l.endsWith("OFF")), out.filter((l) => l.endsWith("OFF")).join("; "));
+  return out.join("; ");
+});
 check("upper floors, step 1: the sync check sees a replica on the wrong storey (the players' and the dead's parts and hashText hash layer and rise); the ground hashes as before", () => {
   towerHouse();
   const p = gameMod.state.player;
