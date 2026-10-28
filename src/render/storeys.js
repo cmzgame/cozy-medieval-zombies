@@ -251,25 +251,51 @@ function clipToRect(pts, x0, y0, x1, y1) {
   }
   return out;
 }
+// A convex polygon clipped to the half-plane `inside` keeps, cut along the line through a and b.
+function clipHalf(pts, inside, a, b) {
+  const out = [];
+  const cut = (p, q) => {
+    const d1 = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+    const d2 = (b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]);
+    const t = d1 / (d1 - d2);
+    return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+  };
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    const q = pts[(i + 1) % pts.length];
+    const ip = inside(p);
+    const iq = inside(q);
+    if (ip) out.push(p);
+    if (ip !== iq) out.push(cut(p, q));
+  }
+  return out.length >= 3 ? out : null;
+}
 function emitDrawnStair(s, sheet, name, bias) {
   const uv = gl.frameUV(sheet, name);
   const pic = stairPicture(s, sheet, name);
   if (!pic || !uv) return false;
   const uvOf = ([X, Y]) => [uv[0] + (X - pic.left), uv[1] + (Y - pic.top)];
+  const [dx, dy] = s.d;
+  const P = (u, o) => [s.low[0] + dx * u + -dy * o, s.low[1] + dy * u + dx * o];
+  // The head cut (Michael's playtest, 2026-10-27: the posts at the head stood through the wall built beside the stair and the floor above):
+  // nothing of the picture over the landing's floor, the line across the stair's head at 96 px, kept on its foot's side.
+  const H1 = at(...P(3, -1), map.STOREY);
+  const H2 = at(...P(3, 1), map.STOREY);
+  const side0 = (p) => (H2[0] - H1[0]) * (p[1] - H1[1]) - (H2[1] - H1[1]) * (p[0] - H1[0]);
+  const footSide = Math.sign(side0(at(...P(0, 0), 0)));
   const quad = (pts, o) => {
-    const q = clipToRect(pts, pic.left, pic.top, pic.left + pic.w, pic.top + pic.h);
+    let q = clipToRect(pts, pic.left, pic.top, pic.left + pic.w, pic.top + pic.h);
+    if (q) q = clipHalf(q, (p) => side0(p) * footSide >= 0, H1, H2);
     if (q) gl.texQuad(q, q.map(uvOf), o);
   };
   const world = s.tiles[1];
   const opts = { world, page: uv[4] };
-  const [dx, dy] = s.d;
-  const P = (u, o) => [s.low[0] + dx * u + -dy * o, s.low[1] + dy * u + dx * o];
   const nearO = (dx !== 0 ? P(0, 0.5)[1] > P(0, -0.5)[1] : P(0, 0.5)[0] > P(0, -0.5)[0]) ? 0.5 : -0.5;
   // 1. The whole picture on its far side's plane.
   const { left, top } = pic;
   const rect = [[left, top], [left + pic.w, top], [left + pic.w, top + pic.h], [left, top + pic.h]];
   gl.surface(sidePlane(s, -nearO), bias, 1);
-  gl.texQuad(rect, rect.map(uvOf), opts);
+  quad(rect, opts);
   // 2. The treads' tops, each on the horizontal plane at its height, and the risers under their front edges.
   for (let k = 1; k <= map.STAIR_TREADS; k++) {
     const h = k * 8;
@@ -296,7 +322,7 @@ function emitDrawnStair(s, sheet, name, bias) {
   const pieces = [
     [side(-0.25, 0), side(0.3, 0), side(0.3, NEWEL_H), side(-0.25, NEWEL_H)],
     [side(0.3, 0), side(2.7, 0), side(2.7, 2.7 * 32 + SIDE_OVER), side(0.3, 0.3 * 32 + SIDE_OVER)],
-    [side(2.7, 0), side(3.25, 0), side(3.25, HEAD_POST_H), side(2.7, HEAD_POST_H)],
+    [side(2.9, 0), side(3.25, 0), side(3.25, HEAD_POST_H), side(2.9, HEAD_POST_H)], // the head post alone: the top treads on their own planes (no hard corner over them)
   ];
   for (const q of pieces) quad(q, opts);
   return true;

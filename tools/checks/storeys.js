@@ -369,6 +369,41 @@ export async function run(game) {
         run({ kind: "build", what: "wall_oak", tx: x + 1, ty: y + 3, edge: "w" }, 4);
         const wl = map.peekTile(x + 1, y + 3, 1).w;
         row("built in the open: a stair (Free building), walked up, a floor grown tile by tile from its landing, a wall on it upstairs", !!bs && up1 && grown === 6 && !!wl, `stair ${bs ? bs.at + " " + bs.dir : "none"}, up ${up1}, ${grown} of 6 tiles grown, wall ${wl ? wl.kind : "none"}`);
+        // 8. Walls round the stair (Michael's playtest, 2026-10-27): along both its sides on the ground, and the upper floor laid beside its
+        // stairwell. On the stair, the walls on the camera's side of it fade (both sides of them one room); from upstairs, the ground's walls
+        // under the upper floor draw no cap and sit under the floor in the depth buffer.
+        if (bs) {
+          for (const xx of [x + 3, x + 4, x + 5]) {
+            map.buildWall(xx, y + 3, "n", "wall", "wall_wood", null, 0);
+            map.buildWall(xx, y + 4, "n", "wall", "wall_wood", null, 0);
+          }
+          const grows = new Set();
+          for (let k = 0; k < 4; k++) for (const yy of [y + 2, y + 4]) for (const xx of [x + 2, x + 3, x + 4, x + 5]) map.buildFloor(xx, yy, "floor_wood", 1, { free: true, grows }); // out from the landing, a tile at a time
+          const wallsSeen = (pos, layer) => {
+            me.gx = pos[0];
+            me.gy = pos[1];
+            me.layer = layer;
+            me.rise = 0;
+            map.stairStep(me);
+            const seen = [];
+            scene.probe.skip = (d) => {
+              if (d.kind === "wall" && d.wall && d.wall.edge === "n" && [x + 3, x + 4, x + 5].includes(d.wall.tx) && [y + 3, y + 4].includes(d.wall.ty)) seen.push({ L: map.drawLayerNow(), ty: d.wall.ty, faded: d.faded, stack: d.stack });
+              return false;
+            };
+            try {
+              G.loop.advance(0);
+            } finally {
+              scene.probe.skip = null;
+            }
+            return seen.filter((q) => q.L === 0);
+          };
+          const onStair = wallsSeen([x + 4, y + 3], 0);
+          const nearFaded = onStair.filter((q) => q.ty === y + 4).every((q) => q.faded) && onStair.filter((q) => q.ty === y + 3).every((q) => !q.faded) && onStair.length === 6;
+          row("on a stair walled round, the walls on the camera's side of it fade and the far ones stand", nearFaded && me.rise > 0, `${onStair.length} walls seen; near ${onStair.filter((q) => q.ty === y + 4).map((q) => (q.faded ? "faded" : "solid")).join(",")}; far ${onStair.filter((q) => q.ty === y + 3).map((q) => (q.faded ? "faded" : "solid")).join(",")}`);
+          const fromUp = wallsSeen([x + 1, y + 3], 1);
+          const capless = fromUp.length === 6 && fromUp.every((q) => q.stack && q.stack.covered && q.stack.sink);
+          row("from upstairs, the ground's walls round the stairwell under the upper floor draw no cap and sit under the floor", capless, `${fromUp.length} walls seen, ${fromUp.filter((q) => q.stack && q.stack.sink).length} under the floor`);
+        }
       }
     } finally {
       G.rules.set({ freeBuilding: free0 });

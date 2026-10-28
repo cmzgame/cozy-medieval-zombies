@@ -223,11 +223,31 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   else if (outside > 0) for (const p of leaves("")) leafQuad(p, false);
 }
 
+// What the scene tells the walls of the storeys round the layer being drawn (render/scene.js, each layer): whether the storey above is drawn
+// over a tile, and the stair the viewer is on, if any.
+let aboveDrawn = null; // (x, y) => true when the storey above this layer is drawn over the tile
+let viewerStair = null; // the stair under the viewer's feet (rise above 0), or null
+export function setStoreyView(above, stair) {
+  aboveDrawn = above;
+  viewerStair = stair;
+}
+// Whether the tile is the viewer's stair's: one of its steps on its own layer, or its stairwell on the layer above.
+function onViewerStair(x, y) {
+  const s = viewerStair;
+  if (!s) return false;
+  const L = map.drawLayerNow();
+  if (L !== s.layer && L !== s.layer + 1) return false;
+  return s.tiles.some(([sx, sy]) => sx === x && sy === y);
+}
+// A near wall fades (translucent): it stands between the camera and the viewer's room. On a stair (Michael's playtest, 2026-10-27: walls
+// built round a stair hid the body on it, both sides of them one room) the walls along the stair's sides on the camera's side fade too, on
+// the stair's layer and round its stairwell on the layer above.
 function isNearWall(tx, ty, edge, playerRoom) {
+  const far = edge === "n" ? [tx, ty - 1] : [tx - 1, ty];
+  if (viewerStair && onViewerStair(far[0], far[1]) && !onViewerStair(tx, ty)) return true;
   if (playerRoom <= 0) return false;
   const t = map.tileAt(tx, ty);
-  const far = edge === "n" ? map.tileAt(tx, ty - 1) : map.tileAt(tx - 1, ty);
-  return far.room === playerRoom && t.room !== playerRoom;
+  return map.tileAt(far[0], far[1]).room === playerRoom && t.room !== playerRoom;
 }
 
 // What stands at a vertex, the player's room aside, worked out once a frame (a wall reads the post at its camera-side end, the posts
@@ -298,14 +318,28 @@ function wallOn(tx, ty, edge, layer) {
   const t = map.peekTile(tx, ty, layer);
   return t ? t[edge] || null : null;
 }
+// A wall under a floor of the storey above (Michael's playtest, 2026-10-27: from upstairs the ground floor's interior walls showed their
+// tops over the floor, and round the stairwell) draws no cap, and its face is sunk a little in the depth buffer, so the floor drawn over
+// it covers what of its picture stands above its top (the drawn cap, on the face's plane); at a stairwell's edge the floor on one side is
+// enough, the wall's top meeting the floor's edge flush. Only while that storey is drawn over it: from inside below, it stands as it did.
+const FLOOR_OVER_SINK = 16;
+function floorOver(x, y) {
+  if (!aboveDrawn || !aboveDrawn(x, y)) return false;
+  const t = map.peekTile(x, y, map.drawLayerNow() + 1);
+  return !!t && !map.isEngineFloor(t.floor);
+}
 function stackOf(tx, ty, edge) {
   const L = map.drawLayerNow();
-  return { covered: !!wallOn(tx, ty, edge, L + 1), onWall: L !== 0 && !!wallOn(tx, ty, edge, L - 1) };
+  const above = !!wallOn(tx, ty, edge, L + 1);
+  const sink = !above && map.edgeTiles(tx, ty, edge).some(([x, y]) => floorOver(x, y));
+  return { covered: above || sink, onWall: L !== 0 && !!wallOn(tx, ty, edge, L - 1), sink };
 }
 function postStack(tx, ty) {
   const L = map.drawLayerNow();
   const at = (l) => !!(wallOn(tx, ty, "n", l) || wallOn(tx - 1, ty, "n", l) || wallOn(tx, ty, "w", l) || wallOn(tx, ty - 1, "w", l));
-  return { covered: at(L + 1), onWall: L !== 0 && at(L - 1) };
+  const above = at(L + 1);
+  const sink = !above && [[tx, ty], [tx - 1, ty], [tx, ty - 1], [tx - 1, ty - 1]].some(([x, y]) => floorOver(x, y));
+  return { covered: above || sink, onWall: L !== 0 && at(L - 1), sink };
 }
 
 // Corner posts.
@@ -413,7 +447,7 @@ function emitCutWall(sheet, name, edge, x, y, h, T, o, cuts) {
 
 function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
   const covered = !!(stack && stack.covered);
-  const lift = stack && stack.onWall ? STACK_BIAS : 0;
+  const lift = (stack && stack.onWall ? STACK_BIAS : 0) - (stack && stack.sink ? FLOOR_OVER_SINK : 0); // a step nearer on a wall below; sunk under a floor above
   const p = iso.toScreen(tx - 0.5, ty - 0.5);
   const x = Math.round(p.x);
   const y = Math.round(p.y);
@@ -502,13 +536,13 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
     if (t.n && !map.drawnByRing(t.n)) {
       const far = map.tileAt(tx, ty - 1);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
-      const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
+      const stub = isNearWall(tx, ty, "n", playerRoom);
       out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
     }
     if (t.w && !map.drawnByRing(t.w)) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
-      const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
+      const stub = isNearWall(tx, ty, "w", playerRoom);
       out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
     }
   }
@@ -537,7 +571,7 @@ function shakeOffset(tx, ty, edge) {
 
 export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null, stack = null) {
   const covered = !!(stack && stack.covered);
-  const lift = stack && stack.onWall ? STACK_BIAS : 0;
+  const lift = (stack && stack.onWall ? STACK_BIAS : 0) - (stack && stack.sink ? FLOOR_OVER_SINK : 0); // a step nearer on a wall below; sunk under a floor above
   const sheet = sheetFor(wall); // the wall's own sheet, or its shut leaves recoloured and its open ones another wood's (#334)
   const variant = wallVariant(wall);
   const sortDepth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
@@ -586,6 +620,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
     kind: "wall",
     wall: { tx, ty, edge }, // check("depth") finds its drawable
     stack, // the storeys' seam (check("storeys") reads it)
+    faded: !!stub, // a near wall drawn translucent (check("storeys") reads it)
     emit() {
       gl.surface(face, lift, DEPTH_ROOM.wall);
       const tint = ghostTint || [1, 1, 1, alpha];
