@@ -349,7 +349,7 @@ function cancelJoin() {
   toSite("worlds");
 }
 
-// The Sandbox step's choices (docs/38, #109, #130): the world's rules (five switches, Trees, and the Starting
+// The Sandbox step's choices (docs/38, #109, #130): the world's rules (four switches, Trees, and the Starting
 // population) and whether the dev chest is made with it. The settings keep only the last choices, offered first at the
 // next step; a world's rules are its own from then on.
 const RULE_KEYS = Object.keys(rules.DEFAULTS);

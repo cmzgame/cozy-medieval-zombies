@@ -10,7 +10,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 ## References: the game as it is
 
 - `03-world-model.md` — chunks, the active region, rooms by flood fill, the authoring vocabulary (sets, features, padding rings).
-- `04-npcs.md` — villagers as built (idle, wander, answer a poke; killable, no weapons) and the ruling; flee, follow, stay are not built.
+- `04-npcs.md` — villagers as built (idle, wander, answer a poke; immune to the dead, no weapons) and the ruling; flee, follow, stay are not built.
 - `05-someday.md` — ideas that must not be foreclosed cheaply, one line each; the stretch goals and moonshots (their tracking issue comes in wave 4).
 - `06-art.md` — the art direction and the dev palette's rules; the sprites themselves are `data/sprites/*.json`.
 - `07-lighting.md` — the light model: one function, chunks and rooms, fire as data, who reads light, the look.

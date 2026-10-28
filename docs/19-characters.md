@@ -45,7 +45,7 @@ The comments above name section 4, the inventory-and-loot system as it was desig
 
 1. One character model, three kinds, each kind's creator adding its own fields; the three lists stay.
 2. Everyone is dressed from items; the dyed entry carries colour; wardrobes are data; sheets are shared by outfit key and bounded by the atlas.
-3. Everyone has the player's model, a doll plus an inventory; the dead and villagers carry pockets instead of needing a bag. A corpse opens like a chest, is one baked frame, and redraws as it is stripped; the player is never lootable; a dead villager's loot is built but not offered until `04`'s killable step.
+3. Everyone has the player's model, a doll plus an inventory; the dead and villagers carry pockets instead of needing a bag. A corpse opens like a chest, is one baked frame, and redraws as it is stripped; the player is never lootable; a dead villager's loot is built but not offered, since villagers are immune to the dead (`02`, 2026-10-28; the mortal path is kept, off by data).
 4. The dead groan "Braaains" now and then; the player had no lines when this was scoped (since 2026-10-13 a player speaks through the log's chat box, `31/03`); speech is one system for any character.
 5. A living zombie offers no menu; a villager offers Poke; the swing passes through the living.
 6. Villagers wander on a 4-tile tether in their room; poke within click reach with the wiggle's cooldown; four in the square.
