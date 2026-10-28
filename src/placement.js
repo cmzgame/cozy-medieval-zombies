@@ -587,6 +587,9 @@ export function wallKindOf(what) {
   return (buildData[what] && buildData[what].kind) || what;
 }
 
+// A palette entry that builds a cliff (art round 10, Free building only): its wall's definition says `wall.cliff`.
+export const isCliffBuild = (what) => !!(buildData[what] && buildData[what].sprite && map.wallRule(buildData[what].sprite).cliff);
+
 // A build entry that stands a prop on its tiles, not a wall on an edge (the Fireplace, the fire pit, the feeding trough): `kind: "prop"`, its `sprite`.
 export const isPropBuild = (what) => !!(buildData[what] && buildData[what].kind === "prop");
 
@@ -629,6 +632,8 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   const kind = wallKindOf(what);
   const over = buildData[what] && buildData[what].over;
   if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
+  if (buildData[what] && buildData[what].dev && !rules.freeBuilding) return isCliffBuild(what) ? "Cliffs are not in the game yet" : "Not in the game yet"; // Free building only (a guest's command too)
+  if (existing && ["door", "window"].includes(kind) && existing.kind === "wall" && map.wallRule(existing.sprite).cliff) return "Not in a cliff"; // bare rock (art round 10): no opening stamped in it
   if (existing && over && existing.sprite !== over) return "Only in a fence";
   if (existing && !map.canStampOver(existing, kind)) return "Already a wall";
   const stairWhy = map.stairEdgeProblem(tx, ty, edge, L); // never across a stair's run or top, nor round its stairwell (the review of #549)
@@ -1083,6 +1088,7 @@ export function takeApartProblem(player, t) {
     const held = holdsProblem(t.prop);
     if (held) return held;
   }
+  if (t.type === "wall" && map.wallRule(t.wall.sprite).cliff && !rules.freeBuilding) return "Cliffs come apart only in Free building"; // a cliff is scenery but for the testing of it (art round 10)
   const tool = partsOf(t).tool;
   return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);
 }

@@ -205,5 +205,67 @@
     "tool": "build",
     "dev": true,
     "note": "as the Wood stair, in stone (9 stone and a plank, docs/49 section 5's default); its landing a stone floor"
+  },
+  "wall_cliff": {
+    "label": "Cliff wall",
+    "kind": "wall",
+    "sprite": "wall_cliff",
+    "cost": {
+      "stone": 1
+    },
+    "seconds": 3,
+    "tool": "build",
+    "dev": true,
+    "note": "art round 10 (Michael, 2026-10-28: \"wire that cliff art for testing\"): a cliff face on a tile edge, 96 tall, bare rock; blocks bodies and sight as stone; no door or window stamped in it, nothing hung on it, taken apart only while Free building is on; a cliff-top floor laid on the storey above it makes it a hill's edge (render/walls.js draws its lip, its back, and the corner pieces); Free building only, for experimenting; the cost a placeholder (a stone, as the stone floor), never charged while Free building is on"
+  },
+  "wall_cliff_grass": {
+    "label": "Grassy cliff wall",
+    "kind": "wall",
+    "sprite": "wall_cliff_grass",
+    "cost": {
+      "stone": 1
+    },
+    "seconds": 3,
+    "tool": "build",
+    "dev": true,
+    "note": "as the Cliff wall, its turf rolled over the lip (art round 10)"
+  },
+  "floor_cliff_top": {
+    "label": "Cliff top",
+    "kind": "floor",
+    "sprite": "floor_cliff_top",
+    "cost": {
+      "stone": 1
+    },
+    "seconds": 1,
+    "tool": "build",
+    "dev": true,
+    "note": "art round 10: bare rock with scree and lichen, laid as the stone floor (docs/49 section 5: a tile at a time, on the ground or upstairs, no physics); over cliff walls it is a hill's top; Free building only; the cost the stone floor's, a placeholder"
+  },
+  "floor_cliff_grass": {
+    "label": "Grassy cliff top",
+    "kind": "floor",
+    "sprite": "floor_cliff_grass",
+    "cost": {
+      "stone": 1
+    },
+    "seconds": 1,
+    "tool": "build",
+    "dev": true,
+    "note": "as the Cliff top, turf with a rock nub now and then (art round 10)"
+  },
+  "stair_ramp_stone": {
+    "label": "Stone ramp",
+    "kind": "stair",
+    "sprite": "stair_ramp_stone",
+    "material": "ramp_stone",
+    "cost": {
+      "stone": 9,
+      "plank": 1
+    },
+    "seconds": 30,
+    "tool": "build",
+    "dev": true,
+    "note": "art round 10: a sloped slab of the cliff's rock climbing one storey over three tiles, north or west, built as a stair (docs/49 section 5) and walked at 32 px a tile with no treads (map.riseOn); its landing a cliff top (its definition's `landing`) unless a floor is laid there already; never taken apart, as a stair; Free building only; the cost the stone stair's, a placeholder"
   }
 }

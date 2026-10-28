@@ -1,0 +1,272 @@
+{
+ "images": {
+  "outer_s": "data/art/cliffs/wall_cliff_grass_corner_outer_s.png",
+  "outer_s_hn": "data/art/cliffs/wall_cliff_grass_corner_outer_s_hn.png",
+  "outer_s_hw": "data/art/cliffs/wall_cliff_grass_corner_outer_s_hw.png",
+  "outer_s_hnw": "data/art/cliffs/wall_cliff_grass_corner_outer_s_hnw.png",
+  "outer_w": "data/art/cliffs/wall_cliff_grass_corner_outer_w.png",
+  "outer_w_hn": "data/art/cliffs/wall_cliff_grass_corner_outer_w_hn.png",
+  "outer_w_hw": "data/art/cliffs/wall_cliff_grass_corner_outer_w_hw.png",
+  "outer_w_hnw": "data/art/cliffs/wall_cliff_grass_corner_outer_w_hnw.png",
+  "outer_e": "data/art/cliffs/wall_cliff_grass_corner_outer_e.png",
+  "outer_e_hn": "data/art/cliffs/wall_cliff_grass_corner_outer_e_hn.png",
+  "outer_e_hw": "data/art/cliffs/wall_cliff_grass_corner_outer_e_hw.png",
+  "outer_e_hnw": "data/art/cliffs/wall_cliff_grass_corner_outer_e_hnw.png",
+  "outer_n": "data/art/cliffs/wall_cliff_grass_corner_outer_n.png",
+  "outer_n_hn": "data/art/cliffs/wall_cliff_grass_corner_outer_n_hn.png",
+  "outer_n_hw": "data/art/cliffs/wall_cliff_grass_corner_outer_n_hw.png",
+  "outer_n_hnw": "data/art/cliffs/wall_cliff_grass_corner_outer_n_hnw.png",
+  "inner_n": "data/art/cliffs/wall_cliff_grass_corner_inner_n.png",
+  "inner_n_hn": "data/art/cliffs/wall_cliff_grass_corner_inner_n_hn.png",
+  "inner_n_hw": "data/art/cliffs/wall_cliff_grass_corner_inner_n_hw.png",
+  "inner_n_hnw": "data/art/cliffs/wall_cliff_grass_corner_inner_n_hnw.png",
+  "inner_e": "data/art/cliffs/wall_cliff_grass_corner_inner_e.png",
+  "inner_e_hn": "data/art/cliffs/wall_cliff_grass_corner_inner_e_hn.png",
+  "inner_e_hw": "data/art/cliffs/wall_cliff_grass_corner_inner_e_hw.png",
+  "inner_e_hnw": "data/art/cliffs/wall_cliff_grass_corner_inner_e_hnw.png",
+  "inner_w": "data/art/cliffs/wall_cliff_grass_corner_inner_w.png",
+  "inner_w_hn": "data/art/cliffs/wall_cliff_grass_corner_inner_w_hn.png",
+  "inner_w_hw": "data/art/cliffs/wall_cliff_grass_corner_inner_w_hw.png",
+  "inner_w_hnw": "data/art/cliffs/wall_cliff_grass_corner_inner_w_hnw.png",
+  "inner_s": "data/art/cliffs/wall_cliff_grass_corner_inner_s.png",
+  "inner_s_hn": "data/art/cliffs/wall_cliff_grass_corner_inner_s_hn.png",
+  "inner_s_hw": "data/art/cliffs/wall_cliff_grass_corner_inner_s_hw.png",
+  "inner_s_hnw": "data/art/cliffs/wall_cliff_grass_corner_inner_s_hnw.png"
+ },
+ "anchors": {
+  "outer_s": [
+   37,
+   116
+  ],
+  "outer_s_hn": [
+   21,
+   116
+  ],
+  "outer_s_hw": [
+   37,
+   116
+  ],
+  "outer_s_hnw": [
+   21,
+   108
+  ],
+  "outer_w": [
+   1,
+   112
+  ],
+  "outer_w_hn": [
+   1,
+   112
+  ],
+  "outer_w_hw": [
+   1,
+   104
+  ],
+  "outer_w_hnw": [
+   1,
+   104
+  ],
+  "outer_e": [
+   40,
+   112
+  ],
+  "outer_e_hn": [
+   40,
+   104
+  ],
+  "outer_e_hw": [
+   40,
+   112
+  ],
+  "outer_e_hnw": [
+   24,
+   104
+  ],
+  "outer_n": [
+   37,
+   93
+  ],
+  "outer_n_hn": [
+   37,
+   93
+  ],
+  "outer_n_hw": [
+   21,
+   93
+  ],
+  "outer_n_hnw": [
+   21,
+   93
+  ],
+  "inner_n": [
+   40,
+   104
+  ],
+  "inner_n_hn": [
+   40,
+   104
+  ],
+  "inner_n_hw": [
+   24,
+   104
+  ],
+  "inner_n_hnw": [
+   24,
+   104
+  ],
+  "inner_e": [
+   37,
+   116
+  ],
+  "inner_e_hn": [
+   37,
+   108
+  ],
+  "inner_e_hw": [
+   37,
+   116
+  ],
+  "inner_e_hnw": [
+   22,
+   108
+  ],
+  "inner_w": [
+   16,
+   116
+  ],
+  "inner_w_hn": [
+   16,
+   116
+  ],
+  "inner_w_hw": [
+   16,
+   108
+  ],
+  "inner_w_hnw": [
+   16,
+   108
+  ],
+  "inner_s": [
+   40,
+   112
+  ],
+  "inner_s_hn": [
+   24,
+   112
+  ],
+  "inner_s_hw": [
+   40,
+   112
+  ],
+  "inner_s_hnw": [
+   24,
+   104
+  ]
+ },
+ "anchorAt": "vertex",
+ "edges": {
+  "outer_s": [
+   [
+    "n",
+    "vx-1",
+    "vy"
+   ],
+   [
+    "w",
+    "vx",
+    "vy-1"
+   ]
+  ],
+  "outer_w": [
+   [
+    "n",
+    "vx",
+    "vy"
+   ],
+   [
+    "w",
+    "vx",
+    "vy-1"
+   ]
+  ],
+  "outer_e": [
+   [
+    "n",
+    "vx-1",
+    "vy"
+   ],
+   [
+    "w",
+    "vx",
+    "vy"
+   ]
+  ],
+  "outer_n": [
+   [
+    "n",
+    "vx",
+    "vy"
+   ],
+   [
+    "w",
+    "vx",
+    "vy"
+   ]
+  ],
+  "inner_n": [
+   [
+    "n",
+    "vx",
+    "vy"
+   ],
+   [
+    "w",
+    "vx",
+    "vy"
+   ]
+  ],
+  "inner_e": [
+   [
+    "n",
+    "vx-1",
+    "vy"
+   ],
+   [
+    "w",
+    "vx",
+    "vy"
+   ]
+  ],
+  "inner_w": [
+   [
+    "n",
+    "vx",
+    "vy"
+   ],
+   [
+    "w",
+    "vx",
+    "vy-1"
+   ]
+  ],
+  "inner_s": [
+   [
+    "n",
+    "vx-1",
+    "vy"
+   ],
+   [
+    "w",
+    "vx",
+    "vy-1"
+   ]
+  ]
+ },
+ "halves": {
+  "": "both edges whole",
+  "_hn": "the n edge's half next to the vertex only",
+  "_hw": "the w edge's half only",
+  "_hnw": "both halves only"
+ },
+ "note": "a cliff's corner pieces (art round 10): each one picture of the two edges that meet at a vertex, the rock rounding round the corner (an outer corner radius 20 at the face, an inner corner a cove of radius 12), anchored on the vertex itself at ground level (as a post: no +16). Drawn in place of both edges' own pictures and the post. `edges` names the two edges each owns, from the vertex (vx, vy). Where two corners share an edge (a step one tile long) each takes its halved picture for that edge (`halves`), cut square at the edge's midpoint, and the two halves meet there; no cut at run time."
+}

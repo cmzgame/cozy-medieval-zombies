@@ -1,0 +1,16 @@
+{
+ "image": "data/art/cliffs/post_cliff.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   20,
+   102
+  ]
+ },
+ "anchor": [
+  10,
+  97
+ ],
+ "note": "a cliff's post (art round 10): a round rock column 16 across with the lip's dome, on the grid vertex itself; serves an outer corner (rounds it at radius 8), a run's end, and an inner corner (hidden in the rock but its top)"
+}
