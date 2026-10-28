@@ -23,39 +23,33 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-27, evening: the engine rework merged; Michael shows the game to a friend tonight; floors, the storey fade, and roofs are next after it)
+## Status (2026-10-28: the engine rework and Michael's playtest of it merged; next, the order of the big builds is to be talked through)
 
 **Michael is playtesting from the Playtest Checklist** (his private page, https://claude.ai/artifact/61HoYfV2iwDFboMeAikYws; the wiki's copy is the Playtest checklist page). It holds every tryable change since 2026-10-17, his ticks, a note per item, and a bug-report box. **The loop:**
-- he files reports there;
+- he files reports there (or in chat, with screenshots);
 - Primary reads the page's `reports` collection (ArtifactData), fixes the bugs in batches, asks him the design questions, and sets each report's `status` to where it went;
 - every merge with a player-visible change adds a row to the page's `items` and to the wiki's checklist.
 
-**Merged on 2026-10-27, in the order Michael set** (each reviewed by a fresh agent, run by Primary in the pane and in two tabs; the wiki synced to `a0cf5a2`):
-1. **The fires** (#527): the Fireplace, the 2 by 2 Fire pit, the campfire crafted and 3 by 3 in the bag; and #531, a fire's light from its footprint's middle.
-2. **The depth buffer** (#530, `docs/51`): the frame sorted per pixel; walls, posts, piles, crops, the outline seam.
+**Merged 2026-10-27 and 28, in the order Michael set** (each reviewed by a fresh agent, run by Primary in the pane, two tabs where the wire changed; the wiki synced to `eba3c56`):
+1. **The fires** (#527, #531).
+2. **The depth buffer** (#530, `docs/51`), and the tree crowns' tie-break (#544).
 3. **Walls 96** (#529, `docs/52`).
-4. **Torch on a wall** (#532, closes #523): Place torch with its bracket; no Wall bracket item. `net.PROTOCOL` 22.
-5. **Upper floors** (`docs/49`): steps 0 and 1, the map in layers (#533, save `VERSION` 4, older worlds refused); steps 2 and 3, storeys drawn and stairs walked (#534, `PROTOCOL` 24), the valley's tall house east of the cottage; Michael's playtest fixes (#540: one wall face, the stair's band, the landing's sides, the stair turned west) and the drawn stairs he approved (#541, art round 8).
-6. **Round rooms** (#536, `docs/50`, `PROTOCOL` 25): stone only, built only with Free building; Hollow Farm's dovecote; Michael's playtest fixes (#537) and the inside stone skirt (#539).
+4. **Torch on a wall** (#532).
+5. **Upper floors** (`docs/49`): the map in layers (#533), storeys and stairs (#534), the tall house; his playtest fixes (#540, #548, #551), the drawn stairs (#541), the storey fade (#546); **floors and stairs in the build palette, Free building only** (#549: Michael's ruling, a tile at a time, no physics, #538); nothing built on top of someone (#553).
+6. **Round rooms** (#536, `docs/50`): stone only, Free building only; the dovecote; his playtest fixes (#537, #539, #545); the drawn doors and windows (#550, art round 9); a ring over a corpse (#556).
+Also: item menus stay open while you walk (#547); the dead stay on a player's trail, a fixed flame never pulls them off (#555, Michael's ruling); stale checks (#535, #552); docs (#538, #542, #543, #554).
 
-Also: #535 (two stale checks), #538 (ruling: floors in plank and stone, anywhere, a tile at a time, no physics), #542 (docs/42 to match).
-
-**Held until after tonight** (Michael: "hold the rest (the transparency fix, roofs, etc) for after my hang out tonight"):
-1. **The storey fade** (`docs/49` section 6: a storey you stand behind fades; today the tall house hides a player north or west of it).
-2. **Floor building** (`docs/49` section 5 as #538 rewrote it, and plank and stone floors on the ground; on a round wall's crossed tiles drawn inside the curve).
-3. The rest of `docs/49` (3b ladders and hatches, 4 looking down, 5 shooting down, 7 more of the valley, 8 building upward), roofs (#512), Michael's ladder spec, then the power items sitting, armour, and so on: **the order to be talked through first** (no big build starts before that).
-
-**Known, small:** the upper corner post's stone foot shows at the seam between storeys; `check("depth")` row 17, one pixel on the 96 px corner post; faint wedges just outside a round wall at its diagonals, seen from inside (Michael's call); a full `check("all")` in a hidden pane takes about 36 minutes and times out (show the pane, or run checks one at a time).
+**Next: the order of the big builds, to be talked through with Michael before any starts** (his rule): roofs (#512); ladders and hatches (`docs/49` 3b; his ladder spec is coming); looking and shooting down (`docs/49` 4 and 5); the power items (gems #281, trinkets #282, silver #283); armour (#133, #503).
 
 **Waiting on Michael:**
-- the halberd's second attack (#503), for the armour sitting;
-- the minimap (#498), for an interface sitting;
-- whether tools may be held beside the spear;
-- the cauldron's state (#528) and the decor collectibles (#524), when he has the ideas.
+- whether one of the dead battering a window with a player inside is pulled off it by a villager coming into sight (today it is; `zombie.js` `nearestPrey`);
+- the halberd's second attack (#503); the minimap (#498); tools beside the spear; the cauldron's state (#528); decor collectibles (#524).
+
+**Known, small:** a body hugging the inside of a 7 by 7 ring catches on a step's corner (#545 measured it); faint wedges just outside a ring at its diagonals, seen from inside; `check("depth")` row 17, one pixel on the 96 px corner post; the Use mode does not end when its item goes; `check("ground")`'s three rows (lit as before, the bake budget, the eye row) fail on main as before; a full `check("all")` in a hidden pane takes over half an hour (show the pane, or run checks one at a time).
 
 **Built but queued:** #483 throwing potions; #500 honey in clay jars.
 
-**Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`). Primary's pane runs on its own `medieval` server (8010); the Secondary's on `medieval-second` (8011).
+**Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`; `net.PROTOCOL` is 26). Primary's pane runs on its own `medieval` server (8010); the Secondary's on `medieval-second` (8011).
 
 **Not done, Michael's hand:** the finished builders' worktrees under `.claude/worktrees/agent-*` (all merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
 
