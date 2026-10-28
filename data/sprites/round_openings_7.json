@@ -1,0 +1,1629 @@
+{
+ "images": {
+  "e_door_boards_in_1": "data/art/round/r7/e_door_boards_in_1.png",
+  "e_door_boards_in_2": "data/art/round/r7/e_door_boards_in_2.png",
+  "e_door_boards_in_3": "data/art/round/r7/e_door_boards_in_3.png",
+  "e_door_boards_out_1": "data/art/round/r7/e_door_boards_out_1.png",
+  "e_door_boards_out_2": "data/art/round/r7/e_door_boards_out_2.png",
+  "e_door_boards_out_3": "data/art/round/r7/e_door_boards_out_3.png",
+  "e_door_broken": "data/art/round/r7/e_door_broken.png",
+  "e_door_frame": "data/art/round/r7/e_door_frame.png",
+  "e_door_open": "data/art/round/r7/e_door_open.png",
+  "e_door_open_a0": "data/art/round/r7/e_door_open_a0.png",
+  "e_door_reveal": "data/art/round/r7/e_door_reveal.png",
+  "e_door_shut": "data/art/round/r7/e_door_shut.png",
+  "e_window_boards_in_1": "data/art/round/r7/e_window_boards_in_1.png",
+  "e_window_boards_in_2": "data/art/round/r7/e_window_boards_in_2.png",
+  "e_window_boards_in_3": "data/art/round/r7/e_window_boards_in_3.png",
+  "e_window_boards_out_1": "data/art/round/r7/e_window_boards_out_1.png",
+  "e_window_boards_out_2": "data/art/round/r7/e_window_boards_out_2.png",
+  "e_window_boards_out_3": "data/art/round/r7/e_window_boards_out_3.png",
+  "e_window_broken": "data/art/round/r7/e_window_broken.png",
+  "e_window_frame": "data/art/round/r7/e_window_frame.png",
+  "e_window_open": "data/art/round/r7/e_window_open.png",
+  "e_window_reveal": "data/art/round/r7/e_window_reveal.png",
+  "e_window_shut": "data/art/round/r7/e_window_shut.png",
+  "n_door_boards_in_1": "data/art/round/r7/n_door_boards_in_1.png",
+  "n_door_boards_in_2": "data/art/round/r7/n_door_boards_in_2.png",
+  "n_door_boards_in_3": "data/art/round/r7/n_door_boards_in_3.png",
+  "n_door_boards_out_1": "data/art/round/r7/n_door_boards_out_1.png",
+  "n_door_boards_out_2": "data/art/round/r7/n_door_boards_out_2.png",
+  "n_door_boards_out_3": "data/art/round/r7/n_door_boards_out_3.png",
+  "n_door_broken": "data/art/round/r7/n_door_broken.png",
+  "n_door_frame": "data/art/round/r7/n_door_frame.png",
+  "n_door_open": "data/art/round/r7/n_door_open.png",
+  "n_door_open_a0": "data/art/round/r7/n_door_open_a0.png",
+  "n_door_reveal": "data/art/round/r7/n_door_reveal.png",
+  "n_door_shut": "data/art/round/r7/n_door_shut.png",
+  "n_window_boards_in_1": "data/art/round/r7/n_window_boards_in_1.png",
+  "n_window_boards_in_2": "data/art/round/r7/n_window_boards_in_2.png",
+  "n_window_boards_in_3": "data/art/round/r7/n_window_boards_in_3.png",
+  "n_window_boards_out_1": "data/art/round/r7/n_window_boards_out_1.png",
+  "n_window_boards_out_2": "data/art/round/r7/n_window_boards_out_2.png",
+  "n_window_boards_out_3": "data/art/round/r7/n_window_boards_out_3.png",
+  "n_window_broken": "data/art/round/r7/n_window_broken.png",
+  "n_window_frame": "data/art/round/r7/n_window_frame.png",
+  "n_window_reveal": "data/art/round/r7/n_window_reveal.png",
+  "n_window_shut": "data/art/round/r7/n_window_shut.png",
+  "s_door_boards_in_1": "data/art/round/r7/s_door_boards_in_1.png",
+  "s_door_boards_in_2": "data/art/round/r7/s_door_boards_in_2.png",
+  "s_door_boards_in_3": "data/art/round/r7/s_door_boards_in_3.png",
+  "s_door_boards_out_1": "data/art/round/r7/s_door_boards_out_1.png",
+  "s_door_boards_out_2": "data/art/round/r7/s_door_boards_out_2.png",
+  "s_door_boards_out_3": "data/art/round/r7/s_door_boards_out_3.png",
+  "s_door_broken": "data/art/round/r7/s_door_broken.png",
+  "s_door_frame": "data/art/round/r7/s_door_frame.png",
+  "s_door_open": "data/art/round/r7/s_door_open.png",
+  "s_door_open_a0": "data/art/round/r7/s_door_open_a0.png",
+  "s_door_reveal": "data/art/round/r7/s_door_reveal.png",
+  "s_door_shut": "data/art/round/r7/s_door_shut.png",
+  "s_window_boards_in_1": "data/art/round/r7/s_window_boards_in_1.png",
+  "s_window_boards_in_2": "data/art/round/r7/s_window_boards_in_2.png",
+  "s_window_boards_in_3": "data/art/round/r7/s_window_boards_in_3.png",
+  "s_window_boards_out_1": "data/art/round/r7/s_window_boards_out_1.png",
+  "s_window_boards_out_2": "data/art/round/r7/s_window_boards_out_2.png",
+  "s_window_boards_out_3": "data/art/round/r7/s_window_boards_out_3.png",
+  "s_window_broken": "data/art/round/r7/s_window_broken.png",
+  "s_window_frame": "data/art/round/r7/s_window_frame.png",
+  "s_window_open": "data/art/round/r7/s_window_open.png",
+  "s_window_reveal": "data/art/round/r7/s_window_reveal.png",
+  "s_window_shut": "data/art/round/r7/s_window_shut.png",
+  "w_door_boards_in_1": "data/art/round/r7/w_door_boards_in_1.png",
+  "w_door_boards_in_2": "data/art/round/r7/w_door_boards_in_2.png",
+  "w_door_boards_in_3": "data/art/round/r7/w_door_boards_in_3.png",
+  "w_door_boards_out_1": "data/art/round/r7/w_door_boards_out_1.png",
+  "w_door_boards_out_2": "data/art/round/r7/w_door_boards_out_2.png",
+  "w_door_boards_out_3": "data/art/round/r7/w_door_boards_out_3.png",
+  "w_door_broken": "data/art/round/r7/w_door_broken.png",
+  "w_door_frame": "data/art/round/r7/w_door_frame.png",
+  "w_door_open": "data/art/round/r7/w_door_open.png",
+  "w_door_open_a0": "data/art/round/r7/w_door_open_a0.png",
+  "w_door_reveal": "data/art/round/r7/w_door_reveal.png",
+  "w_door_shut": "data/art/round/r7/w_door_shut.png",
+  "w_window_boards_in_1": "data/art/round/r7/w_window_boards_in_1.png",
+  "w_window_boards_in_2": "data/art/round/r7/w_window_boards_in_2.png",
+  "w_window_boards_in_3": "data/art/round/r7/w_window_boards_in_3.png",
+  "w_window_boards_out_1": "data/art/round/r7/w_window_boards_out_1.png",
+  "w_window_boards_out_2": "data/art/round/r7/w_window_boards_out_2.png",
+  "w_window_boards_out_3": "data/art/round/r7/w_window_boards_out_3.png",
+  "w_window_broken": "data/art/round/r7/w_window_broken.png",
+  "w_window_frame": "data/art/round/r7/w_window_frame.png",
+  "w_window_reveal": "data/art/round/r7/w_window_reveal.png",
+  "w_window_shut": "data/art/round/r7/w_window_shut.png"
+ },
+ "anchors": {
+  "e_door_boards_in_1": [
+   -86.0,
+   -7.0
+  ],
+  "e_door_boards_in_2": [
+   -86.0,
+   4.0
+  ],
+  "e_door_boards_in_3": [
+   -86.0,
+   10.0
+  ],
+  "e_door_boards_out_1": [
+   -102.0,
+   -15.0
+  ],
+  "e_door_boards_out_2": [
+   -102.0,
+   -4.0
+  ],
+  "e_door_boards_out_3": [
+   -102.0,
+   2.0
+  ],
+  "e_door_broken": [
+   -104.0,
+   -1.0
+  ],
+  "e_door_frame": [
+   -94.0,
+   20.0
+  ],
+  "e_door_open": [
+   -105.0,
+   -4.0
+  ],
+  "e_door_open_a0": [
+   -130.0,
+   9.0
+  ],
+  "e_door_reveal": [
+   -93.0,
+   8.0
+  ],
+  "e_door_shut": [
+   -105.0,
+   7.0
+  ],
+  "e_window_boards_in_1": [
+   -88.0,
+   4.0
+  ],
+  "e_window_boards_in_2": [
+   -88.0,
+   10.0
+  ],
+  "e_window_boards_in_3": [
+   -88.0,
+   14.0
+  ],
+  "e_window_boards_out_1": [
+   -104.0,
+   -4.0
+  ],
+  "e_window_boards_out_2": [
+   -104.0,
+   2.0
+  ],
+  "e_window_boards_out_3": [
+   -104.0,
+   7.0
+  ],
+  "e_window_broken": [
+   -107.0,
+   3.0
+  ],
+  "e_window_frame": [
+   -94.0,
+   19.0
+  ],
+  "e_window_open": [
+   -102.0,
+   14.0
+  ],
+  "e_window_reveal": [
+   -95.0,
+   9.0
+  ],
+  "e_window_shut": [
+   -108.0,
+   7.0
+  ],
+  "n_door_boards_in_1": [
+   -82.0,
+   93.0
+  ],
+  "n_door_boards_in_2": [
+   -82.0,
+   108.0
+  ],
+  "n_door_boards_in_3": [
+   -82.0,
+   111.0
+  ],
+  "n_door_boards_out_1": [
+   -101.0,
+   103.0
+  ],
+  "n_door_boards_out_2": [
+   -101.0,
+   118.0
+  ],
+  "n_door_boards_out_3": [
+   -101.0,
+   121.0
+  ],
+  "n_door_broken": [
+   -96.0,
+   112.0
+  ],
+  "n_door_frame": [
+   -79.0,
+   131.0
+  ],
+  "n_door_open": [
+   -130.0,
+   126.0
+  ],
+  "n_door_open_a0": [
+   -105.0,
+   140.0
+  ],
+  "n_door_reveal": [
+   -93.0,
+   120.0
+  ],
+  "n_door_shut": [
+   -95.0,
+   119.0
+  ],
+  "n_window_boards_in_1": [
+   -84.0,
+   104.0
+  ],
+  "n_window_boards_in_2": [
+   -84.0,
+   114.0
+  ],
+  "n_window_boards_in_3": [
+   -84.0,
+   115.0
+  ],
+  "n_window_boards_out_1": [
+   -103.0,
+   114.0
+  ],
+  "n_window_boards_out_2": [
+   -103.0,
+   124.0
+  ],
+  "n_window_boards_out_3": [
+   -103.0,
+   126.0
+  ],
+  "n_window_broken": [
+   -96.0,
+   114.0
+  ],
+  "n_window_frame": [
+   -79.0,
+   131.0
+  ],
+  "n_window_reveal": [
+   -95.0,
+   121.0
+  ],
+  "n_window_shut": [
+   -97.0,
+   119.0
+  ],
+  "s_door_boards_in_1": [
+   120.0,
+   -7.0
+  ],
+  "s_door_boards_in_2": [
+   120.0,
+   4.0
+  ],
+  "s_door_boards_in_3": [
+   120.0,
+   10.0
+  ],
+  "s_door_boards_out_1": [
+   146.0,
+   -15.0
+  ],
+  "s_door_boards_out_2": [
+   146.0,
+   -4.0
+  ],
+  "s_door_boards_out_3": [
+   146.0,
+   2.0
+  ],
+  "s_door_broken": [
+   130.0,
+   7.0
+  ],
+  "s_door_frame": [
+   144.0,
+   20.0
+  ],
+  "s_door_open": [
+   157.0,
+   9.0
+  ],
+  "s_door_open_a0": [
+   129.0,
+   -4.0
+  ],
+  "s_door_reveal": [
+   131.0,
+   8.0
+  ],
+  "s_door_shut": [
+   129.0,
+   7.0
+  ],
+  "s_window_boards_in_1": [
+   118.0,
+   4.0
+  ],
+  "s_window_boards_in_2": [
+   118.0,
+   10.0
+  ],
+  "s_window_boards_in_3": [
+   118.0,
+   14.0
+  ],
+  "s_window_boards_out_1": [
+   144.0,
+   -4.0
+  ],
+  "s_window_boards_out_2": [
+   144.0,
+   2.0
+  ],
+  "s_window_boards_out_3": [
+   144.0,
+   7.0
+  ],
+  "s_window_broken": [
+   129.0,
+   7.0
+  ],
+  "s_window_frame": [
+   144.0,
+   19.0
+  ],
+  "s_window_open": [
+   141.0,
+   14.0
+  ],
+  "s_window_reveal": [
+   129.0,
+   9.0
+  ],
+  "s_window_shut": [
+   128.0,
+   7.0
+  ],
+  "w_door_boards_in_1": [
+   118.0,
+   93.0
+  ],
+  "w_door_boards_in_2": [
+   118.0,
+   108.0
+  ],
+  "w_door_boards_in_3": [
+   118.0,
+   111.0
+  ],
+  "w_door_boards_out_1": [
+   139.0,
+   103.0
+  ],
+  "w_door_boards_out_2": [
+   139.0,
+   118.0
+  ],
+  "w_door_boards_out_3": [
+   139.0,
+   121.0
+  ],
+  "w_door_broken": [
+   116.0,
+   118.0
+  ],
+  "w_door_frame": [
+   123.0,
+   131.0
+  ],
+  "w_door_open": [
+   129.0,
+   140.0
+  ],
+  "w_door_open_a0": [
+   157.0,
+   126.0
+  ],
+  "w_door_reveal": [
+   131.0,
+   120.0
+  ],
+  "w_door_shut": [
+   116.0,
+   119.0
+  ],
+  "w_window_boards_in_1": [
+   116.0,
+   104.0
+  ],
+  "w_window_boards_in_2": [
+   116.0,
+   114.0
+  ],
+  "w_window_boards_in_3": [
+   116.0,
+   115.0
+  ],
+  "w_window_boards_out_1": [
+   137.0,
+   114.0
+  ],
+  "w_window_boards_out_2": [
+   137.0,
+   124.0
+  ],
+  "w_window_boards_out_3": [
+   137.0,
+   126.0
+  ],
+  "w_window_broken": [
+   116.0,
+   118.0
+  ],
+  "w_window_frame": [
+   123.0,
+   131.0
+  ],
+  "w_window_reveal": [
+   129.0,
+   121.0
+  ],
+  "w_window_shut": [
+   115.0,
+   119.0
+  ]
+ },
+ "pieces": {
+  "e_door_boards_in_1": {
+   "plane": [
+    [
+     3.186,
+     -0.4643
+    ],
+    [
+     3.186,
+     0.4643
+    ]
+   ],
+   "layer": 5
+  },
+  "e_door_boards_in_2": {
+   "plane": [
+    [
+     3.186,
+     -0.4643
+    ],
+    [
+     3.186,
+     0.4643
+    ]
+   ],
+   "layer": 5
+  },
+  "e_door_boards_in_3": {
+   "plane": [
+    [
+     3.186,
+     -0.4643
+    ],
+    [
+     3.186,
+     0.4643
+    ]
+   ],
+   "layer": 5
+  },
+  "e_door_boards_out_1": {
+   "plane": [
+    [
+     3.9062,
+     -0.6278
+    ],
+    [
+     3.9062,
+     0.6278
+    ]
+   ],
+   "layer": 5
+  },
+  "e_door_boards_out_2": {
+   "plane": [
+    [
+     3.9062,
+     -0.6278
+    ],
+    [
+     3.9062,
+     0.6278
+    ]
+   ],
+   "layer": 5
+  },
+  "e_door_boards_out_3": {
+   "plane": [
+    [
+     3.9062,
+     -0.6278
+    ],
+    [
+     3.9062,
+     0.6278
+    ]
+   ],
+   "layer": 5
+  },
+  "e_door_broken": {
+   "plane": [
+    [
+     3.7188,
+     -0.5
+    ],
+    [
+     3.7188,
+     0.5
+    ]
+   ],
+   "layer": 1
+  },
+  "e_door_frame": {
+   "plane": [
+    [
+     3.8438,
+     -0.5
+    ],
+    [
+     3.8438,
+     0.5
+    ]
+   ],
+   "layer": 3
+  },
+  "e_door_open": {
+   "plane": [
+    [
+     3.7506,
+     0.3358
+    ],
+    [
+     4.4065,
+     0.3945
+    ]
+   ],
+   "layer": 2
+  },
+  "e_door_open_a0": {
+   "plane": [
+    [
+     3.7506,
+     -0.3358
+    ],
+    [
+     4.4065,
+     -0.3945
+    ]
+   ],
+   "layer": 2
+  },
+  "e_door_reveal": {
+   "plane": [
+    [
+     3.2371,
+     -0.2898
+    ],
+    [
+     3.7351,
+     -0.3344
+    ]
+   ],
+   "layer": 0
+  },
+  "e_door_shut": {
+   "plane": [
+    [
+     3.7188,
+     -0.5
+    ],
+    [
+     3.7188,
+     0.5
+    ]
+   ],
+   "layer": 1
+  },
+  "e_window_boards_in_1": {
+   "plane": [
+    [
+     3.1936,
+     -0.4062
+    ],
+    [
+     3.1936,
+     0.4062
+    ]
+   ],
+   "layer": 5
+  },
+  "e_window_boards_in_2": {
+   "plane": [
+    [
+     3.1936,
+     -0.4062
+    ],
+    [
+     3.1936,
+     0.4062
+    ]
+   ],
+   "layer": 5
+  },
+  "e_window_boards_in_3": {
+   "plane": [
+    [
+     3.1936,
+     -0.4062
+    ],
+    [
+     3.1936,
+     0.4062
+    ]
+   ],
+   "layer": 5
+  },
+  "e_window_boards_out_1": {
+   "plane": [
+    [
+     3.9062,
+     -0.558
+    ],
+    [
+     3.9062,
+     0.558
+    ]
+   ],
+   "layer": 5
+  },
+  "e_window_boards_out_2": {
+   "plane": [
+    [
+     3.9062,
+     -0.558
+    ],
+    [
+     3.9062,
+     0.558
+    ]
+   ],
+   "layer": 5
+  },
+  "e_window_boards_out_3": {
+   "plane": [
+    [
+     3.9062,
+     -0.558
+    ],
+    [
+     3.9062,
+     0.558
+    ]
+   ],
+   "layer": 5
+  },
+  "e_window_broken": {
+   "plane": [
+    [
+     3.7188,
+     -0.5
+    ],
+    [
+     3.7188,
+     0.5
+    ]
+   ],
+   "layer": 1
+  },
+  "e_window_frame": {
+   "plane": [
+    [
+     3.8438,
+     -0.5
+    ],
+    [
+     3.8438,
+     0.5
+    ]
+   ],
+   "layer": 3
+  },
+  "e_window_open": {
+   "plane": [
+    [
+     3.8906,
+     -0.5
+    ],
+    [
+     3.8906,
+     0.5
+    ]
+   ],
+   "layer": 4
+  },
+  "e_window_reveal": {
+   "plane": [
+    [
+     3.2417,
+     -0.2319
+    ],
+    [
+     3.7404,
+     -0.2676
+    ]
+   ],
+   "layer": 0
+  },
+  "e_window_shut": {
+   "plane": [
+    [
+     3.7188,
+     -0.5
+    ],
+    [
+     3.7188,
+     0.5
+    ]
+   ],
+   "layer": 1
+  },
+  "n_door_boards_in_1": {
+   "plane": [
+    [
+     -0.4972,
+     -3.0938
+    ],
+    [
+     0.4972,
+     -3.0938
+    ]
+   ],
+   "layer": 5
+  },
+  "n_door_boards_in_2": {
+   "plane": [
+    [
+     -0.4972,
+     -3.0938
+    ],
+    [
+     0.4972,
+     -3.0938
+    ]
+   ],
+   "layer": 5
+  },
+  "n_door_boards_in_3": {
+   "plane": [
+    [
+     -0.4972,
+     -3.0938
+    ],
+    [
+     0.4972,
+     -3.0938
+    ]
+   ],
+   "layer": 5
+  },
+  "n_door_boards_out_1": {
+   "plane": [
+    [
+     -0.5357,
+     -3.7812
+    ],
+    [
+     0.5357,
+     -3.7812
+    ]
+   ],
+   "layer": 5
+  },
+  "n_door_boards_out_2": {
+   "plane": [
+    [
+     -0.5357,
+     -3.7812
+    ],
+    [
+     0.5357,
+     -3.7812
+    ]
+   ],
+   "layer": 5
+  },
+  "n_door_boards_out_3": {
+   "plane": [
+    [
+     -0.5357,
+     -3.7812
+    ],
+    [
+     0.5357,
+     -3.7812
+    ]
+   ],
+   "layer": 5
+  },
+  "n_door_broken": {
+   "plane": [
+    [
+     -0.5,
+     -3.2812
+    ],
+    [
+     0.5,
+     -3.2812
+    ]
+   ],
+   "layer": 1
+  },
+  "n_door_frame": {
+   "plane": [
+    [
+     -0.5,
+     -3.125
+    ],
+    [
+     0.5,
+     -3.125
+    ]
+   ],
+   "layer": 3
+  },
+  "n_door_open": {
+   "plane": [
+    [
+     0.3358,
+     -3.7506
+    ],
+    [
+     0.3945,
+     -4.4065
+    ]
+   ],
+   "layer": 2
+  },
+  "n_door_open_a0": {
+   "plane": [
+    [
+     -0.3358,
+     -3.7506
+    ],
+    [
+     -0.3945,
+     -4.4065
+    ]
+   ],
+   "layer": 2
+  },
+  "n_door_reveal": {
+   "plane": [
+    [
+     -0.2898,
+     -3.2371
+    ],
+    [
+     -0.3344,
+     -3.7351
+    ]
+   ],
+   "layer": 0
+  },
+  "n_door_shut": {
+   "plane": [
+    [
+     -0.5,
+     -3.2812
+    ],
+    [
+     0.5,
+     -3.2812
+    ]
+   ],
+   "layer": 1
+  },
+  "n_window_boards_in_1": {
+   "plane": [
+    [
+     -0.442,
+     -3.0938
+    ],
+    [
+     0.442,
+     -3.0938
+    ]
+   ],
+   "layer": 5
+  },
+  "n_window_boards_in_2": {
+   "plane": [
+    [
+     -0.442,
+     -3.0938
+    ],
+    [
+     0.442,
+     -3.0938
+    ]
+   ],
+   "layer": 5
+  },
+  "n_window_boards_in_3": {
+   "plane": [
+    [
+     -0.442,
+     -3.0938
+    ],
+    [
+     0.442,
+     -3.0938
+    ]
+   ],
+   "layer": 5
+  },
+  "n_window_boards_out_1": {
+   "plane": [
+    [
+     -0.4688,
+     -3.7812
+    ],
+    [
+     0.4687,
+     -3.7812
+    ]
+   ],
+   "layer": 5
+  },
+  "n_window_boards_out_2": {
+   "plane": [
+    [
+     -0.4688,
+     -3.7812
+    ],
+    [
+     0.4687,
+     -3.7812
+    ]
+   ],
+   "layer": 5
+  },
+  "n_window_boards_out_3": {
+   "plane": [
+    [
+     -0.4688,
+     -3.7812
+    ],
+    [
+     0.4687,
+     -3.7812
+    ]
+   ],
+   "layer": 5
+  },
+  "n_window_broken": {
+   "plane": [
+    [
+     -0.5,
+     -3.2812
+    ],
+    [
+     0.5,
+     -3.2812
+    ]
+   ],
+   "layer": 1
+  },
+  "n_window_frame": {
+   "plane": [
+    [
+     -0.5,
+     -3.125
+    ],
+    [
+     0.5,
+     -3.125
+    ]
+   ],
+   "layer": 3
+  },
+  "n_window_reveal": {
+   "plane": [
+    [
+     -0.2319,
+     -3.2417
+    ],
+    [
+     -0.2676,
+     -3.7404
+    ]
+   ],
+   "layer": 0
+  },
+  "n_window_shut": {
+   "plane": [
+    [
+     -0.5,
+     -3.2812
+    ],
+    [
+     0.5,
+     -3.2812
+    ]
+   ],
+   "layer": 1
+  },
+  "s_door_boards_in_1": {
+   "plane": [
+    [
+     0.4643,
+     3.186
+    ],
+    [
+     -0.4643,
+     3.186
+    ]
+   ],
+   "layer": 5
+  },
+  "s_door_boards_in_2": {
+   "plane": [
+    [
+     0.4643,
+     3.186
+    ],
+    [
+     -0.4643,
+     3.186
+    ]
+   ],
+   "layer": 5
+  },
+  "s_door_boards_in_3": {
+   "plane": [
+    [
+     0.4643,
+     3.186
+    ],
+    [
+     -0.4643,
+     3.186
+    ]
+   ],
+   "layer": 5
+  },
+  "s_door_boards_out_1": {
+   "plane": [
+    [
+     0.6278,
+     3.9062
+    ],
+    [
+     -0.6278,
+     3.9062
+    ]
+   ],
+   "layer": 5
+  },
+  "s_door_boards_out_2": {
+   "plane": [
+    [
+     0.6278,
+     3.9062
+    ],
+    [
+     -0.6278,
+     3.9062
+    ]
+   ],
+   "layer": 5
+  },
+  "s_door_boards_out_3": {
+   "plane": [
+    [
+     0.6278,
+     3.9062
+    ],
+    [
+     -0.6278,
+     3.9062
+    ]
+   ],
+   "layer": 5
+  },
+  "s_door_broken": {
+   "plane": [
+    [
+     0.5,
+     3.7188
+    ],
+    [
+     -0.5,
+     3.7188
+    ]
+   ],
+   "layer": 1
+  },
+  "s_door_frame": {
+   "plane": [
+    [
+     0.5,
+     3.8438
+    ],
+    [
+     -0.5,
+     3.8438
+    ]
+   ],
+   "layer": 3
+  },
+  "s_door_open": {
+   "plane": [
+    [
+     -0.3358,
+     3.7506
+    ],
+    [
+     -0.3945,
+     4.4065
+    ]
+   ],
+   "layer": 2
+  },
+  "s_door_open_a0": {
+   "plane": [
+    [
+     0.3358,
+     3.7506
+    ],
+    [
+     0.3945,
+     4.4065
+    ]
+   ],
+   "layer": 2
+  },
+  "s_door_reveal": {
+   "plane": [
+    [
+     -0.2898,
+     3.2371
+    ],
+    [
+     -0.3344,
+     3.7351
+    ]
+   ],
+   "layer": 0
+  },
+  "s_door_shut": {
+   "plane": [
+    [
+     0.5,
+     3.7188
+    ],
+    [
+     -0.5,
+     3.7188
+    ]
+   ],
+   "layer": 1
+  },
+  "s_window_boards_in_1": {
+   "plane": [
+    [
+     0.4063,
+     3.1936
+    ],
+    [
+     -0.4062,
+     3.1936
+    ]
+   ],
+   "layer": 5
+  },
+  "s_window_boards_in_2": {
+   "plane": [
+    [
+     0.4063,
+     3.1936
+    ],
+    [
+     -0.4062,
+     3.1936
+    ]
+   ],
+   "layer": 5
+  },
+  "s_window_boards_in_3": {
+   "plane": [
+    [
+     0.4063,
+     3.1936
+    ],
+    [
+     -0.4062,
+     3.1936
+    ]
+   ],
+   "layer": 5
+  },
+  "s_window_boards_out_1": {
+   "plane": [
+    [
+     0.558,
+     3.9062
+    ],
+    [
+     -0.558,
+     3.9062
+    ]
+   ],
+   "layer": 5
+  },
+  "s_window_boards_out_2": {
+   "plane": [
+    [
+     0.558,
+     3.9062
+    ],
+    [
+     -0.558,
+     3.9062
+    ]
+   ],
+   "layer": 5
+  },
+  "s_window_boards_out_3": {
+   "plane": [
+    [
+     0.558,
+     3.9062
+    ],
+    [
+     -0.558,
+     3.9062
+    ]
+   ],
+   "layer": 5
+  },
+  "s_window_broken": {
+   "plane": [
+    [
+     0.5,
+     3.7188
+    ],
+    [
+     -0.5,
+     3.7188
+    ]
+   ],
+   "layer": 1
+  },
+  "s_window_frame": {
+   "plane": [
+    [
+     0.5,
+     3.8438
+    ],
+    [
+     -0.5,
+     3.8438
+    ]
+   ],
+   "layer": 3
+  },
+  "s_window_open": {
+   "plane": [
+    [
+     0.5,
+     3.8906
+    ],
+    [
+     -0.5,
+     3.8906
+    ]
+   ],
+   "layer": 4
+  },
+  "s_window_reveal": {
+   "plane": [
+    [
+     -0.2319,
+     3.2417
+    ],
+    [
+     -0.2676,
+     3.7404
+    ]
+   ],
+   "layer": 0
+  },
+  "s_window_shut": {
+   "plane": [
+    [
+     0.5,
+     3.7188
+    ],
+    [
+     -0.5,
+     3.7188
+    ]
+   ],
+   "layer": 1
+  },
+  "w_door_boards_in_1": {
+   "plane": [
+    [
+     -3.0938,
+     0.4972
+    ],
+    [
+     -3.0938,
+     -0.4972
+    ]
+   ],
+   "layer": 5
+  },
+  "w_door_boards_in_2": {
+   "plane": [
+    [
+     -3.0938,
+     0.4972
+    ],
+    [
+     -3.0938,
+     -0.4972
+    ]
+   ],
+   "layer": 5
+  },
+  "w_door_boards_in_3": {
+   "plane": [
+    [
+     -3.0938,
+     0.4972
+    ],
+    [
+     -3.0938,
+     -0.4972
+    ]
+   ],
+   "layer": 5
+  },
+  "w_door_boards_out_1": {
+   "plane": [
+    [
+     -3.7812,
+     0.5357
+    ],
+    [
+     -3.7812,
+     -0.5357
+    ]
+   ],
+   "layer": 5
+  },
+  "w_door_boards_out_2": {
+   "plane": [
+    [
+     -3.7812,
+     0.5357
+    ],
+    [
+     -3.7812,
+     -0.5357
+    ]
+   ],
+   "layer": 5
+  },
+  "w_door_boards_out_3": {
+   "plane": [
+    [
+     -3.7812,
+     0.5357
+    ],
+    [
+     -3.7812,
+     -0.5357
+    ]
+   ],
+   "layer": 5
+  },
+  "w_door_broken": {
+   "plane": [
+    [
+     -3.2812,
+     0.5
+    ],
+    [
+     -3.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1
+  },
+  "w_door_frame": {
+   "plane": [
+    [
+     -3.125,
+     0.5
+    ],
+    [
+     -3.125,
+     -0.5
+    ]
+   ],
+   "layer": 3
+  },
+  "w_door_open": {
+   "plane": [
+    [
+     -3.7506,
+     -0.3358
+    ],
+    [
+     -4.4065,
+     -0.3945
+    ]
+   ],
+   "layer": 2
+  },
+  "w_door_open_a0": {
+   "plane": [
+    [
+     -3.7506,
+     0.3358
+    ],
+    [
+     -4.4065,
+     0.3945
+    ]
+   ],
+   "layer": 2
+  },
+  "w_door_reveal": {
+   "plane": [
+    [
+     -3.2371,
+     -0.2898
+    ],
+    [
+     -3.7351,
+     -0.3344
+    ]
+   ],
+   "layer": 0
+  },
+  "w_door_shut": {
+   "plane": [
+    [
+     -3.2812,
+     0.5
+    ],
+    [
+     -3.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1
+  },
+  "w_window_boards_in_1": {
+   "plane": [
+    [
+     -3.0938,
+     0.442
+    ],
+    [
+     -3.0938,
+     -0.442
+    ]
+   ],
+   "layer": 5
+  },
+  "w_window_boards_in_2": {
+   "plane": [
+    [
+     -3.0938,
+     0.442
+    ],
+    [
+     -3.0938,
+     -0.442
+    ]
+   ],
+   "layer": 5
+  },
+  "w_window_boards_in_3": {
+   "plane": [
+    [
+     -3.0938,
+     0.442
+    ],
+    [
+     -3.0938,
+     -0.442
+    ]
+   ],
+   "layer": 5
+  },
+  "w_window_boards_out_1": {
+   "plane": [
+    [
+     -3.7812,
+     0.4688
+    ],
+    [
+     -3.7812,
+     -0.4687
+    ]
+   ],
+   "layer": 5
+  },
+  "w_window_boards_out_2": {
+   "plane": [
+    [
+     -3.7812,
+     0.4688
+    ],
+    [
+     -3.7812,
+     -0.4687
+    ]
+   ],
+   "layer": 5
+  },
+  "w_window_boards_out_3": {
+   "plane": [
+    [
+     -3.7812,
+     0.4688
+    ],
+    [
+     -3.7812,
+     -0.4687
+    ]
+   ],
+   "layer": 5
+  },
+  "w_window_broken": {
+   "plane": [
+    [
+     -3.2812,
+     0.5
+    ],
+    [
+     -3.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1
+  },
+  "w_window_frame": {
+   "plane": [
+    [
+     -3.125,
+     0.5
+    ],
+    [
+     -3.125,
+     -0.5
+    ]
+   ],
+   "layer": 3
+  },
+  "w_window_reveal": {
+   "plane": [
+    [
+     -3.2417,
+     -0.2319
+    ],
+    [
+     -3.7404,
+     -0.2676
+    ]
+   ],
+   "layer": 0
+  },
+  "w_window_shut": {
+   "plane": [
+    [
+     -3.2812,
+     0.5
+    ],
+    [
+     -3.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1
+  }
+ },
+ "note": "art round 9 (Michael approved, 2026-10-27): a round stone wall's doors and windows, 7 across (docs/50), drawn on the curve: per door point (n 270, e 0, s 90, w 180 degrees) and kind the frame, the reveal, the shut, open (and open_a0, hinged at the other end), and broken leaves or shutters, and the boards out and in, 1 to 3. Each frame's anchor is the ring's centre on the ground; `pieces` gives each frame's depth plane (two ground points in tiles from the centre, for depth.planeThrough) and its layer (reveal 0, leaf 1, open leaf 2, frame 3, open shutters 4, boards 5); the face's tint is baked in (render/rings.js draws them untinted)."
+}
