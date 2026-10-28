@@ -15,7 +15,8 @@
 // generator, the legibility floor, the blend, the swing's targets, and the wall clock.
 // Rows 1 to 4 were the gate for removing render/entities.js's `besideWalls` (docs/51 section 6), gone since. Rows 19 to 23 are the fresh
 // review's of #530: a figure on a pile and in a crop row, a crop over a figure behind it, the outline of a piece of two tiles, and the
-// layers' room at 16 bits. Row 12's range is read at the tab's own
+// layers' room at 16 bits. Row 24 is Michael's tree crowns flickering as he walked: two of a kind on one diagonal, the same winner from
+// every place. Row 12's range is read at the tab's own
 // size; the spec asks it at 3840 by 2160 at zoom 1.1 (the pane's resize_window), and the row says which it had. Row 13 measures the
 // frame's time on the busy view, first, before the probe's paired draws: the "before" is the mean of the same loop on main's renderer on a
 // fresh page, passed as `{ before: ms }`.
@@ -545,6 +546,76 @@ export async function run(game, opts = {}) {
       me.hands.off = saved.off;
       while (pokes.length) pokes.pop()();
       for (let x = X + 4; x <= X + 9; x++) for (let y = Y + 4; y <= Y + 8; y++) G.map.touch(x, y);
+    }
+
+    // 24. Two of a kind on one diagonal (Michael, 2026-10-28: tree crowns "glitch like crazy ... horizontal bars of each that flash back
+    // and forth as you are walking only"): two large oaks on tiles of one tx + ty, two tiles apart across it, and two of the dead
+    // standing on one gx + gy, a quarter of a tile apart across it, clear of the oaks, each pair overlapping. Their billboards were one
+    // plane, and which drew at a shared pixel was the float rounding's, row by row, moved by the camera. Drawn from nine places a few
+    // world pixels apart (the walk's drift: the picture moves by whole world pixels, a fraction of the canvas's at zoom 1.1, and the
+    // depth's centre with it), every pixel where both are drawn is won by the same one from every place, the one further across the
+    // diagonal by render/depth.js `across` (to the south-west, as the sort drew it, but where the count starts again).
+    {
+      const oakA = await place("tree_oak_old", X + 19, Y + 21);
+      const oakB = await place("tree_oak_old", X + 20, Y + 20);
+      const zA = createZombie(X + 20.25, Y + 15.75, { hp: 1000 });
+      const zB = createZombie(X + 20.5, Y + 15.5, { hp: 1000 });
+      S.zombies.push(zA, zB);
+      G.clock.setHour(12); // in full light: the dead drawn whole (opaque), never faded by the dark into the translucent pass
+      G.light.update();
+      const transBefore = [];
+      const sightM = await import("/src/sight.js");
+      const pairs = [
+        { what: "two large oaks", a: isProp(oakA), b: isProp(oakB), at: () => screen(X + 20, Y + 20), front: depth.across(X + 19, Y + 21) > depth.across(X + 20, Y + 20) ? 1 : 2 },
+        { what: "two of the dead", a: isEntity(zA), b: isEntity(zB), at: () => screen(X + 20.5, Y + 15.5), front: depth.across(X + 20.25, Y + 15.75) > depth.across(X + 20.5, Y + 15.5) ? 1 : 2 },
+      ];
+      const base = [X + 13, Y + 12];
+      const shifts = [[0, 0], [1, 0], [0, 1], [2, 3], [5, -4], [7, 7], [-3, 9], [11, -6], [16, 8]];
+      for (const pr of pairs) {
+        pr.ref = null;
+        pr.n = 0;
+        pr.flips = 0;
+        pr.wins = [0, 0];
+      }
+      for (const [sx, sy] of shifts) {
+        standAt(base[0] + (sx / 32 + sy / 16) / 2, base[1] + (sy / 16 - sx / 32) / 2);
+        zA.gx = X + 20.25; zA.gy = Y + 15.75; zA.facing = "s";
+        zB.gx = X + 20.5; zB.gy = Y + 15.5; zB.facing = "s";
+        shot();
+        transBefore.push(sightM.seenAlpha(me, zA));
+        for (const pr of pairs) {
+          const at = pr.at();
+          const silA = silhouetteOf(pr.a);
+          const silB = silhouetteOf(pr.b);
+          const vA = visibleOf(pr.a);
+          const vB = visibleOf(pr.b);
+          const win = new Map();
+          for (let wy = 0; wy < V.h; wy++) {
+            for (let wx = 0; wx < V.w; wx++) {
+              const i = idx(wx, wy);
+              if (i < 0 || !silA[i] || !silB[i]) continue;
+              const w = vA[i] ? 1 : vB[i] ? 2 : 0;
+              if (!w) continue; // something else in front of both
+              win.set(`${Math.round(wx - at.x)},${Math.round(wy - at.y)}`, w);
+              pr.wins[w - 1]++;
+            }
+          }
+          if (!pr.ref) pr.ref = win;
+          else {
+            for (const [key, w] of win) {
+              const r = pr.ref.get(key);
+              if (r === undefined) continue;
+              pr.n++;
+              if (r !== w) pr.flips++;
+            }
+          }
+        }
+      }
+      row("24. two of a kind on one diagonal (two oaks' crowns, two of the dead): each pixel both draw won by the same one, the one further across, from places a few pixels apart", pairs.every((pr) => pr.ref && pr.ref.size > 0 && pr.n > 0 && pr.flips === 0 && pr.wins[2 - pr.front] === 0), pairs.map((pr) => `${pr.what}: ${pr.ref ? pr.ref.size : 0} shared px, ${pr.flips} of ${pr.n} won by the other from another place; won by the one further across (${pr.front === 1 ? "the south-west" : "the north-east, past the count's turn"}) ${pr.wins[pr.front - 1]}, by the other ${pr.wins[2 - pr.front]}`).join("; ") + `; the dead seen at ${Math.min(...transBefore).toFixed(2)} to ${Math.max(...transBefore).toFixed(2)}`);
+      S.zombies.splice(S.zombies.indexOf(zA), 1);
+      S.zombies.splice(S.zombies.indexOf(zB), 1);
+      unplace(oakA);
+      unplace(oakB);
     }
 
     // 5. A tree in front of a house: a large oak on the tile against its south wall, and one a tile clear of it; the canopy over the wall's
