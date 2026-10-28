@@ -2,6 +2,9 @@
 // through view.js instead of 960 by 540, and an Escape that closed the menu is swallowed (docs/10, 2026-10-10).
 // Right-click context menu. Entries: [{ label, enabled, onSelect, card? }]: an entry with a `card`({ name, kind, state, lines, fine }, as
 // item-info.js makes them) shows it in the hover card while the pointer is over the entry (Burn corpse's warning, docs/43 section 7).
+// Two kinds: the world's menu (main.js), which closes when the player walks, and an item's menu opened on a panel (the bag, a container,
+// the belt, a hand, a worn slot), opened with `still`, which stays open while the player walks (only the pause menu stops the game) and
+// closes when its item is no longer where it was (`still()` false).
 import * as view from "../view.js";
 import * as hoverCard from "./hover-card.js";
 
@@ -9,6 +12,7 @@ let root = null;
 let open = false;
 let swallowedClick = false;
 let swallowedEscape = false;
+let still = null; // an item's menu: whether its item is still where the menu was opened on it; null for the world's menu
 
 export function initContextMenu() {
   root = document.createElement("div");
@@ -46,8 +50,9 @@ export function initContextMenu() {
   });
 }
 
-export function openContextMenu(x, y, entries, canvasW = view.view.uiW, canvasH = view.view.uiH) {
+export function openContextMenu(x, y, entries, { canvasW = view.view.uiW, canvasH = view.view.uiH, still: stillFn = null } = {}) {
   root.innerHTML = "";
+  still = stillFn;
   for (const en of entries) {
     const el = document.createElement("div");
     el.className = `menu-entry${en.enabled === false ? " disabled" : ""}`;
@@ -67,12 +72,25 @@ export function openContextMenu(x, y, entries, canvasW = view.view.uiW, canvasH 
 
 export function closeContextMenu() {
   open = false;
+  still = null;
   if (root) root.hidden = true;
   hoverCard.hideIf("menu:");
 }
 
 export function isMenuOpen() {
   return open;
+}
+
+// True while the open menu is an item's, opened on a panel: walking does not close it.
+export function isItemMenu() {
+  return open && !!still;
+}
+
+// An item's menu whose item has gone (used up, dropped, taken, moved by the world) closes; true if it did.
+export function closeIfGone() {
+  if (!open || !still || still()) return false;
+  closeContextMenu();
+  return true;
 }
 
 // True once if an Escape was used to close the menu (docs/10: Escape closes
