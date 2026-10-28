@@ -22,7 +22,7 @@ import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/4
 import { postDrawables, wallDrawables } from "./walls.js";
 import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
-import { emitFloors, hiderFor, layersFor, liftOf, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
+import { emitFadedFloors, emitFloors, faderFor, hiderFor, layersFor, liftOf, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
 
 // The night, as before: tunables Michael picks by eye, live on
 // window.__game.render.night. `climb` is how many pixels a pool climbs a wall
@@ -70,8 +70,11 @@ export const DEPTH_ROOM = { post: 0.5, wall: 1, floorItem: 0.5, prop: 1, figure:
 // in two colours, whatever the colours behind it. All null in play.
 export const probe = { skip: null, override: null, mark: null };
 
+// The fade of a storey you stand behind (docs/49 section 6), on in play; check("storeys") turns it off to see what it shows.
+export const storeyFade = { on: true };
+
 // The last frame's drawables by pass (check("depth"), its cost row): how many there were, and how many drew in the translucent pass.
-export const lastStats = { drawables: 0, translucent: 0 };
+export const lastStats = { drawables: 0, translucent: 0, faded: "" }; // and the storeys that faded (render/storeys.js faderFor sig)
 
 
 // Only trees open a see-through hole for the player (Michael, 2026-10-11:
@@ -238,62 +241,91 @@ export function renderScene(args) {
   const holes = [];
   let translucent = 0;
   let count = 0;
+  // The storeys that fade (docs/49 section 6, a default Michael ordered built): an upper storey of a building between the viewer and the
+  // camera that covers the viewer's body on screen. Its walls, posts, caps, floor, rugs, props, items, stairs, and the bodies and
+  // flights on it are drawn under gl.setFade, laid over what is behind them as one sheet at the near-wall fade's alpha (gl.js
+  // PASS_FADE), so nothing on the storey is drawn opaque over its faded floor; the ground storey under it keeps its own rules.
+  const faded = faderFor(storeyFade.on ? player : null);
+  lastStats.faded = faded.sig;
   for (const L of layers) {
     gl.setExtraFlags(L === 0 ? 0 : L === upperL ? gl.FLAG_UPPER : gl.FLAG_SKY);
     withLift(L * map.STOREY, () => map.withDrawLayer(L, () => {
       // A storey's tiles in view: only those whose chunk that layer holds (most of the view is no storey's), less what the hiding rule
-      // hides; the ground's whole (nothing below the viewer is hidden).
-      const tilesL = L ? grown.get(L).filter(([x, y]) => !hidden(x, y, L)) : tiles;
+      // hides; the ground's whole (nothing below the viewer is hidden). A storey that fades is drawn apart, after the rest of its layer.
+      const tilesAll = L ? grown.get(L).filter(([x, y]) => !hidden(x, y, L)) : tiles;
+      const fadeHere = L > VL && faded.any && faded.layers.has(L);
+      const tilesL = fadeHere ? tilesAll.filter(([x, y]) => !faded(x, y, L)) : tilesAll;
+      const tilesF = fadeHere ? tilesAll.filter(([x, y]) => faded(x, y, L)) : null;
+      const fadedAt = (x, y) => fadeHere && faded(Math.round(x), Math.round(y), L);
       if (L) {
         // An upper floor's ground (or a cellar's), a quad a chunk with its depth written, and what lies flat on it just over it.
         gl.setPass(gl.PASS_STAND);
-        emitFloors(tilesL, L, DEPTH_BIAS.liftedFloor, hidden);
+        emitFloors(tilesL, L, DEPTH_BIAS.liftedFloor, hidden, fadeHere ? faded : null);
         emitRugs(tilesL);
       }
       const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
-      const drawables = [];
-      wallDrawables(tilesL, visible, roomHere, drawables);
-      ringDrawables(tilesL, visible, roomHere, drawables, L); // round rooms on this layer, their two halves (docs/50 section 4)
-      postDrawables(tilesL, visible, roomHere, drawables);
-      propDrawables(tilesL, visible, drawables);
-      floorItemDrawables(tilesL, visible, drawables);
-      stairDrawables(tilesL, L, DEPTH_BIAS.prop, drawables); // the stairs on this layer, dev art (docs/49 section 11)
-      // The bodies on this layer, each a further `rise` up when it is on a stair, its picture made and drawn at that height.
-      entityDrawables(entities.filter((e) => (e.layer || 0) === L && !e.rise && !hidden(Math.round(e.gx), Math.round(e.gy), L)), visible, drawables, drawAll, player);
-      for (const e of entities) {
-        if ((e.layer || 0) !== L || hidden(Math.round(e.gx), Math.round(e.gy), L)) continue; // a body on a hidden storey is not drawn (the review of #534)
-        const r = e.rise || 0;
-        if (!r) continue;
-        const n0 = drawables.length;
-        withLift(r, () => entityDrawables([e], visible, drawables, drawAll, player));
-        for (let i = n0; i < drawables.length; i++) {
-          const d = drawables[i];
-          const emit = d.emit;
-          d.emit = () => withLift(r, emit);
+      // The drawables standing on `tilesT`, and the bodies, stairs, and flights whose tile `mine` takes.
+      const gather = (tilesT, mine) => {
+        const drawables = [];
+        wallDrawables(tilesT, visible, roomHere, drawables);
+        ringDrawables(tilesT, visible, roomHere, drawables, L); // round rooms on this layer, their two halves (docs/50 section 4)
+        postDrawables(tilesT, visible, roomHere, drawables);
+        propDrawables(tilesT, visible, drawables);
+        floorItemDrawables(tilesT, visible, drawables);
+        stairDrawables(tilesT, L, DEPTH_BIAS.prop, drawables, fadeHere ? (s) => mine(s.tiles[1][0], s.tiles[1][1]) : null); // the stairs on this layer (docs/49 section 11)
+        // The bodies on this layer, each a further `rise` up when it is on a stair, its picture made and drawn at that height.
+        const mineBody = (e) => (e.layer || 0) === L && !hidden(Math.round(e.gx), Math.round(e.gy), L) && mine(e.gx, e.gy); // a body on a hidden storey is not drawn (the review of #534)
+        entityDrawables(entities.filter((e) => !e.rise && mineBody(e)), visible, drawables, drawAll, player);
+        for (const e of entities) {
+          const r = e.rise || 0;
+          if (!r || !mineBody(e)) continue;
+          const n0 = drawables.length;
+          withLift(r, () => entityDrawables([e], visible, drawables, drawAll, player));
+          for (let i = n0; i < drawables.length; i++) {
+            const d = drawables[i];
+            const emit = d.emit;
+            d.emit = () => withLift(r, emit);
+          }
         }
-      }
-      if (arrows && arrows.length) arrowDrawables(arrows.filter((a) => (a.layer || 0) === L), visible, drawables); // a flight on its own layer (docs/49)
-      if (L === 0) fireDrawables(fire, visible, drawables);
-      drawables.sort((a, b) => a.key - b.key);
+        if (arrows && arrows.length) arrowDrawables(arrows.filter((a) => (a.layer || 0) === L && mine(a.gx, a.gy)), visible, drawables); // a flight on its own layer (docs/49)
+        if (L === 0) fireDrawables(fire, visible, drawables);
+        drawables.sort((a, b) => a.key - b.key);
+        return drawables;
+      };
+      // Every standing drawable sets its own depth surface as it emits; a flat one (an arrow's shadow) asks for the flat pass itself.
+      const emitAll = (drawables) => {
+        for (const d of drawables) {
+          if (probe.skip && probe.skip(d)) continue;
+          gl.setPass(gl.PASS_STAND);
+          const before = gl.passVertices(gl.PASS_TRANS) + gl.passVertices(gl.PASS_FADE);
+          const marked = probe.mark && probe.mark.is(d);
+          if (marked) gl.setMark(probe.mark.color);
+          try {
+            d.emit();
+          } finally {
+            if (marked) gl.setMark(null);
+          }
+          if (gl.passVertices(gl.PASS_TRANS) + gl.passVertices(gl.PASS_FADE) > before) translucent++;
+        }
+        count += drawables.length;
+      };
+      const drawables = gather(tilesL, (x, y) => !fadedAt(x, y));
       if (L === VL) {
         computeOcclusion(drawables, player);
         for (const d of drawables) if (d.occluded && d.rect) holes.push([d.rect.x + d.rect.w / 2, d.rect.y + d.rect.h * 0.45]);
       }
-      // Every standing drawable sets its own depth surface as it emits; a flat one (an arrow's shadow) asks for the flat pass itself.
-      for (const d of drawables) {
-        if (probe.skip && probe.skip(d)) continue;
-        gl.setPass(gl.PASS_STAND);
-        const before = gl.passVertices(gl.PASS_TRANS);
-        const marked = probe.mark && probe.mark.is(d);
-        if (marked) gl.setMark(probe.mark.color);
+      emitAll(drawables);
+      if (fadeHere && tilesF.length) {
+        gl.setFade(NEAR_WALL_ALPHA);
         try {
-          d.emit();
+          gl.setPass(gl.PASS_STAND);
+          emitFadedFloors(tilesF, L, DEPTH_BIAS.liftedFloor, faded);
+          emitRugs(tilesF);
+          emitAll(gather(tilesF, (x, y) => fadedAt(x, y)));
         } finally {
-          if (marked) gl.setMark(null);
+          gl.setFade(0);
         }
-        if (gl.passVertices(gl.PASS_TRANS) > before) translucent++;
       }
-      count += drawables.length;
     }));
   }
   gl.setExtraFlags(0);
