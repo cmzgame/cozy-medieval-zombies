@@ -9,6 +9,7 @@ import * as iso from "../iso.js";
 import * as map from "../map.js";
 import * as gl from "../gl.js";
 import { getSheet } from "../assets.js";
+import * as round from "../round.js"; // a laid floor in a ring's square, drawn inside its curve (docs/49 section 5)
 
 const PAD = 48; // px round a chunk's floor picture: a floor frame may reach past its diamond
 
@@ -359,7 +360,21 @@ function floorSheet(c) {
       if (!f) continue;
       const cx = (lx - ly) * iso.HW + C * iso.HW + PAD;
       const cy = (lx + ly) * iso.HH + iso.HH + PAD;
+      const r = t.built ? map.ringAt(x, y, c.layer) : null;
+      const s = r ? round.shape(r.x0, r.y0, r.n) : null;
+      const clip = s && Math.hypot(Math.abs(x - s.cx) + 0.5, Math.abs(y - s.cy) + 0.5) > s.R;
+      if (clip) {
+        // A floor a player laid where a ring's curve runs over the tile or between it and the stepped walls: inside the curve alone, as on
+        // the ground (src/ground.js; the review of #549: on every layer).
+        ctx.save();
+        ctx.beginPath();
+        const ex = (s.cx - c.cx * C - (s.cy - c.cy * C)) * iso.HW + C * iso.HW + PAD;
+        const ey = (s.cx - c.cx * C + (s.cy - c.cy * C)) * iso.HH + iso.HH + PAD;
+        ctx.ellipse(ex, ey, s.R * iso.HW * Math.SQRT2, s.R * iso.HH * Math.SQRT2, 0, 0, Math.PI * 2);
+        ctx.clip();
+      }
       ctx.drawImage(sh.image, f[0], f[1], f[2], f[3], cx - sh.anchor[0], cy - sh.anchor[1], f[2], f[3]);
+      if (clip) ctx.restore();
     }
   }
   const sheet = had ? had.sheet : { image: canvas, frames: { all: [0, 0, W, H] }, anchor: [0, 0] };

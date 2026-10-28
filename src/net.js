@@ -163,7 +163,11 @@ export function makeCode() {
 // `underRound` (the ring under it at a door point); the `place` command's `build` kind for a ring names its square's corner and `size` and
 // no edge, and its `remove` may name `{ type: "round", id }`. An older guest would draw a ring as straight walls with posts and walk
 // through its curve (it has no curve index), and an older host drops a ring's build for want of an edge.
-export const PROTOCOL = 25;
+// 26 (2026-10-27, docs/49 section 5, floors and stairs in the build menu): a chunk's record may carry `built` ([lx, ly, under, free?], a floor a
+// player laid) and `stairs` ([lx, ly, dir, material, free?], a stair a player built, by its low tile); the `place` command's `build` names a
+// floor's rectangle (tx, ty, tx2, ty2) or a stair's low tile and `dir`, and its `remove` may name `{ type: "floor", tx, ty }`. An older
+// guest would drop a built stair's record (no stair to climb, its stairwell a hole) and an older host the new commands.
+export const PROTOCOL = 26;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).

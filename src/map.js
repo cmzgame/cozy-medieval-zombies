@@ -1066,7 +1066,7 @@ export function floorBuildProblem(x, y, id, layer = 0, grows = null) {
   if (stairAt(x, y, layer)) return "Not over a stair";
   if (landingAt(x, y, layer)) return "Not on a stair's landing";
   if (t.floor === EARTH || t.floor === HOLE) return "Not here";
-  if (!isEngineFloor(t.floor) && floorRule(t.floor).walk === false) return "Not on water";
+  if (!isEngineFloor(t.floor) && (floorRule(t.floor).walk === false || floorRule(t.floor).drink || /^floor_water/.test(t.floor))) return "Not on water"; // a ford is never paved (the review of #549)
   if (t.floor === id) return "Already laid";
   if (t.prop || t.rug) return "Something stands there";
   if (layer !== 0 && t.floor === VOID) {
@@ -1168,8 +1168,24 @@ export function canStampOver(existing, kind) {
 // Whether a wall of this kind may be built on the edge: nothing there yet (or a plain wall or a broken opening a door or a
 // window may stand in, `canStampOver`), no solid prop whose footprint spans it, and a door needs both its tiles to be
 // walkable and clear so it can be walked through and stood at.
+// Why no wall, door, or window may stand on an edge for a stair's sake, or "" (the review of #549: the cell law and "nobody climbs through a
+// window"): none between two of its steps, none across its top edge on its own layer (a body crosses there to the landing), and none on an
+// edge of its stairwell on the layer above (a body going down crosses the top edge into the stairwell, whose tiles the collision passes
+// whole). Along a stair's sides on its own layer a wall may stand (its sides hold bodies anyway).
+export function stairEdgeProblem(tx, ty, edge, layer = 0) {
+  if (!stairIndex.size) return "";
+  const [a, b] = edgeTiles(tx, ty, edge);
+  const ha = stairIndex.get(tileKey3(a[0], a[1], layer));
+  const hb = stairIndex.get(tileKey3(b[0], b[1], layer));
+  if ((ha && ha.well) || (hb && hb.well)) return "Not round a stairwell";
+  if (ha && hb) return "Not across a stair";
+  for (const [h, o] of [[ha, b], [hb, a]]) if (h && h.k === 2 && h.s.landing[0] === o[0] && h.s.landing[1] === o[1]) return "Not across a stair's top";
+  return "";
+}
+
 export function canBuildWall(tx, ty, edge, kind = "wall", layer = 0) {
   if (!canStampOver(tileAt(tx, ty, layer)[edge], kind)) return false;
+  if (stairEdgeProblem(tx, ty, edge, layer)) return false; // a stair's run, its top, and its stairwell (the review of #549)
   if (ringWallProblem(tx, ty, edge, kind, layer)) return false; // a ring's rules (docs/50 section 5)
   const [a, b] = edgeTiles(tx, ty, edge);
   const pa = tileAt(a[0], a[1], layer).prop;
@@ -2651,7 +2667,12 @@ export function stairBuildProblem(x0, y0, dir, layer = 0) {
   }
   const chain = [rec.before, ...rec.tiles];
   for (let i = 1; i < chain.length; i++) if (wallBetween(chain[i - 1][0], chain[i - 1][1], chain[i][0], chain[i][1], layer)) return "A wall is in the way";
-  if (wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], up)) return "A wall is in the way";
+  if (wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], layer)) return "A wall is in the way"; // its top edge on its own layer
+  // No wall on an edge of the stairwell to be (a body going down crosses into it, and its tiles' walls are passed whole: the review of #549).
+  for (const [x, y] of rec.tiles) {
+    const t = tileAt(x, y, up);
+    if (t.n || t.w || tileAt(x + 1, y, up).w || tileAt(x, y + 1, up).n) return "A wall is over it";
+  }
   const lt = tileAt(rec.landing[0], rec.landing[1], up);
   if (!(lt.floor === VOID || lt.built) || stairAt(rec.landing[0], rec.landing[1], up) || landingAt(rec.landing[0], rec.landing[1], up)) return "Its landing must be open";
   if (lt.prop || lt.rug || (lt.items && lt.items.length)) return "Something is on its landing";

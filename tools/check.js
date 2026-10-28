@@ -5787,6 +5787,52 @@ check("the drawn stair stands on its tiles: halfway up, the feet at either side 
   assert(!out.some((l) => l.endsWith("OFF")), out.filter((l) => l.endsWith("OFF")).join("; "));
   return out.join("; ");
 });
+check("the review of #549: no wall, window, or door across a stair's run or top or round its stairwell, on either layer; a stair never built through a wall; a ford never paved", () => {
+  const s = tallHouse(); // the tall house's stair: steps (127..125, 217) climbing west, its landing (124, 217) upstairs
+  const [t0, t1, t2] = s.tiles;
+  const P = mapMod.stairEdgeProblem;
+  const why = {
+    between: P(t0[0], t0[1], "w", 0), // between its first two steps
+    top: P(t2[0], t2[1], "w", 0), // its top edge, on its own layer, under the landing
+    side: P(t1[0], t1[1], "n", 0), // along its side on its own layer: allowed
+    wellSide: P(t1[0], t1[1], "n", 1), // its stairwell's side upstairs
+    wellTop: P(t2[0], t2[1], "w", 1), // its stairwell's top edge, against the landing
+  };
+  assert(why.between && why.top && !why.side && why.wellSide && why.wellTop, JSON.stringify(why));
+  assert(!mapMod.canBuildWall(t2[0], t2[1], "w", "wall", 1) && !mapMod.canBuildWall(t1[0], t1[1], "n", "window", 1) && !mapMod.canBuildWall(t2[0], t2[1], "w", "door", 0) && mapMod.canBuildWall(t1[0], t1[1], "n", "wall", 0), "canBuildWall takes a wall, window, or door across a stair");
+  // Through a guest's command, from upstairs beside the stairwell: a window on its side is not built.
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  let through = null;
+  let ford = "none on the map";
+  try {
+    rulesImport.rules.freeBuilding = true;
+    me.gx = t1[0]; me.gy = t1[1] - 1.2; me.layer = 1;
+    placementImport.performPlacement(me, { kind: "build", what: "window", tx: t1[0], ty: t1[1], edge: "n" });
+    assert(!mapMod.peekTile(t1[0], t1[1], 1).n, "a window was built on the stairwell's side");
+    me.layer = 0;
+    // A stair aimed past a wall: refused by the line, though in reach by distance.
+    const at = openGrass(8, 7);
+    assert(at, "no open grass");
+    const [x, y] = at;
+    for (const xx of [x + 4, x + 5, x + 6, x + 7]) mapMod.buildWall(xx, y + 5, "n", "wall", "wall_wood", null, 0);
+    me.gx = x + 6.5; me.gy = y + 5.2; me.layer = 0;
+    const n0 = mapMod.stairs().length;
+    placementImport.performPlacement(me, { kind: "build", what: "stair_wood", tx: x + 5, ty: y + 3, dir: "w" });
+    through = mapMod.stairs().length !== n0;
+    assert(!through, "a stair was built through a wall");
+    // A ford (shallow water): never paved.
+    for (let dy = -60; dy <= 60 && ford === "none on the map"; dy++) for (let dx = -60; dx <= 60; dx++) {
+      const tt = mapMod.peekTile(x + dx, y + dy);
+      if (tt && tt.floor === "floor_water_shallow") { ford = mapMod.floorBuildProblem(x + dx, y + dy, "floor_wood", 0); break; }
+    }
+    assert(ford === "Not on water" || ford === "none on the map", `a ford: ${ford}`);
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+    me.layer = 0;
+  }
+  return `refused: ${why.between}; ${why.top}; ${why.wellSide}; ${why.wellTop}; a side on its own layer allowed; through a wall refused; a ford: ${ford}`;
+});
 check("upper floors, step 1: the sync check sees a replica on the wrong storey (the players' and the dead's parts and hashText hash layer and rise); the ground hashes as before", () => {
   towerHouse();
   const p = gameMod.state.player;
@@ -6209,7 +6255,7 @@ check("round rooms, step 1: the save and the wire carry a ring in its walls: res
   assert(mapMod.ringById(r.id) && mapMod.curveCrossed(3, 2), "a replica did not get the ring from its chunks");
   for (const d of without) mapMod.installChunk(d);
   assert(!mapMod.ringById(r.id) && !mapMod.curveCrossed(3, 2) && !mapMod.allRings(0).some((q) => q.x0 === 2 && q.y0 === 2), "a replica kept the ring its chunks came without");
-  assert(netMod.PROTOCOL === 25, `PROTOCOL ${netMod.PROTOCOL}`);
+  assert(netMod.PROTOCOL >= 25, `PROTOCOL ${netMod.PROTOCOL}`); // 25 brought the rings; 26 the built floors and stairs (docs/49 section 5)
   return `restored with its door and its record; a replica's ring from ${withRing.length} chunk record(s), and gone with them`;
 });
 check("round rooms, step 6: the round stone wall is in the palette only with Free building (Michael, 2026-10-27), built by a guest's command on its square's corner and size, and taken apart whole; an authored one never", () => {
