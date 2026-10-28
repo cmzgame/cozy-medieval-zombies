@@ -6,8 +6,8 @@
 //   await __game.check("windows")
 // It finds a house with one window and one door, opens the window's shutters, stands the player inside beside it and one of
 // the dead outside in sight of them, and steps the world. At night, by a little house it builds and a campfire it lights, a dead one on
-// a player's trail stays on the window or the door it is breaking and never goes to the flame, and one with none still does (Michael,
-// 2026-10-27). It turns zombie aggro on and restores it (the setting is
+// a player's trail stays on the window or the door it is breaking, or on its search, and never goes to the fire; a torch the player
+// carries still leads it; and one with no player to follow still goes to the fire (Michael, 2026-10-27). It turns zombie aggro on and restores it (the setting is
 // shared with Michael's pane: read first, put back in a finally), and puts everything it moved back.
 
 export async function run(game) {
@@ -360,6 +360,40 @@ export async function run(game) {
         const gaveUp = !z.huntsPlayer;
         step(60 * 2);
         row("[night, a flame] one whose search ran out gives up the player, and then the flame takes it", gaveUp && atFire(z) && z.aggro, `gave up ${gaveUp}, went for the fire ${atFire(z)}, state ${z.state}`);
+
+        // 4. A hunter mid-search in the open (no breach, no siege: `huntsPlayer` alone), the fire in range: it keeps its search and does not
+        // go to the fire, until the search runs out.
+        G.clock.setHour(0);
+        z = own([cx, cy - 2]);
+        Object.assign(z, { path: [], breach: null, siege: null, lastSeen: [cx, cy - 2], state: "search", searchTimer: T.searchTime, aggro: true, huntsPlayer: true, sincePlayer: 30, sightTimer: 0 });
+        let searchSteps = 0, offSearch = 0;
+        wentToFlame = false;
+        for (t = 0; t < 60 * (T.searchTime + 5) && z.huntsPlayer; t++) {
+          step(1);
+          if (!z.huntsPlayer) break;
+          searchSteps++;
+          if (z.state !== "search") offSearch++;
+          if (atFire(z)) wentToFlame = true;
+        }
+        row("[night, a flame] a hunter mid-search in the open, the fire in range, keeps its search and never goes to the fire", searchSteps > 60 * (T.searchTime - 1) && offSearch === 0 && !wentToFlame,
+          `${(searchSteps / 60).toFixed(1)} s searching (searchTime ${T.searchTime}), ${offSearch} steps out of the search, went to the fire ${wentToFlame}; gave up ${!z.huntsPlayer}`);
+
+        // 5. A hunter that lost the player, the player 10 tiles off carrying a lit torch (beyond sight, `sight` 8, within `flameRange` 12):
+        // it follows the torch, still hunting (a carried flame is a sighting of the player; following it is following the trail).
+        G.clock.setHour(0);
+        me.hands.main = G.items.makeEntry("torch", 1, { lit: true, wear: 0 });
+        G.teleport(cx + 7, cy - 9);
+        z = own([cx - 3, cy - 9]);
+        Object.assign(z, { path: [], breach: null, siege: null, lastSeen: [cx - 3, cy - 9], state: "search", searchTimer: T.searchTime, aggro: true, huntsPlayer: true, sincePlayer: 30, sightTimer: 0 });
+        let led = false, ledUnseen = false;
+        for (t = 0; t < 60 * 2 && !led; t++) {
+          step(1);
+          if (z.lastSeen && Math.hypot(z.lastSeen[0] - me.gx, z.lastSeen[1] - me.gy) < 1.5) { led = true; ledUnseen = !z.seesNow; }
+        }
+        const ledDist = Math.hypot(z.gx - me.gx, z.gy - me.gy);
+        row("[night] a hunter that lost the player follows the torch they carry 10 tiles off", led && ledUnseen && z.huntsPlayer && z.state === "chase",
+          `led ${led} after ${(t / 60).toFixed(2)} s, unseen then ${ledUnseen}, ${ledDist.toFixed(1)} tiles off, still hunting ${z.huntsPlayer}, state ${z.state}`);
+        me.hands.main = hand0;
       }
     }
   } finally {
