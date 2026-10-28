@@ -160,11 +160,14 @@ export async function run(game) {
       G.teleport(cx0, cy0);
       me.layer = 0;
       G.loop.advance(1 / 60);
-      for (let dy = -14; dy <= 14 && !at; dy++) for (let dx = -14; dx <= 14 && !at; dx++) {
+      for (let dy = -30; dy <= 30 && !at; dy++) for (let dx = -30; dx <= 30 && !at; dx++) {
         const x = cx0 + dx;
         const y = cy0 + dy;
         let ok = true;
-        for (let ay = -1; ay <= 7 && ok; ay++) for (let ax = -1; ax <= 8 && ok; ax++) { const t = map.peekTile(x + ax, y + ay); ok = !!t && !t.prop && !t.rug && !t.n && !t.w && !(t.items && t.items.length) && map.isWalkableTile(x + ax, y + ay) && !map.stairAt(x + ax, y + ay, 0) && map.peekTile(x + ax, y + ay, 1) === null; }
+        // The stair's row clear on the ground (the tile before its foot, its three tiles, and where the builder stands), and the storey above
+        // open over the stair and the floor to be grown beside its landing.
+        for (let ax = 2; ax <= 7 && ok; ax++) { const t = map.peekTile(x + ax, y + 3); ok = !!t && !t.prop && !t.rug && !(t.items && t.items.length) && map.isWalkableTile(x + ax, y + 3) && !map.stairAt(x + ax, y + 3, 0) && !map.wallBetween(x + ax - 1, y + 3, x + ax, y + 3); }
+        for (let ay = 1; ay <= 5 && ok; ay++) for (let ax = -1; ax <= 6 && ok; ax++) ok = (map.peekTile(x + ax, y + ay, 1) || { floor: map.VOID }).floor === map.VOID && !map.stairAt(x + ax, y + ay, 1);
         if (ok) at = [x, y];
       }
       if (!at) row("built in the open: a stair, a floor grown from its landing, a wall on it", false, "no open ground near the player");
