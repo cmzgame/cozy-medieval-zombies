@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "out")
-REPO = "C:/Users/micha/Dev/cozy-medieval-zombies/.claude/worktrees/79-sweep-3e-23fa08"   # read only
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))   # read only
 OUTLINE = "#2b2522"
 CELL = 19
 ANGLES = [(0, ""), (22.5, "_22_5"), (45, "_45"), (67.5, "_67_5"), (90, "_90")]

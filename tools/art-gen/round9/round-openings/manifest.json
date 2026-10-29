@@ -1,0 +1,5945 @@
+{
+ "note": "Round stone wall openings (docs/50), art round 9. offset: the PNG's top-left in screen px from the ring's centre on the ground (the centre tile's centre, iso.toScreen(cx, cy)); anchor_px is the same point inside the PNG. depth_plane: two ground points in tiles from the ring's centre, for depth.planeThrough(cx + x0, cy + y0, cx + x1, cy + y1). layer: the order within the half's drawable when two pieces tie (reveal 0, leaf 1, open leaf 2, frame 3, open shutters 4, boards 5). Points: n 270, e 0, s 90, w 180 degrees (rings.js DOOR_ANGLES); e and s on the near half (outer face seen), n and w on the far half (inner face seen).",
+ "pieces": [
+  {
+   "file": "out/r5/n_door_reveal.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "reveal",
+   "offset": [
+    61,
+    -104
+   ],
+   "anchor_px": [
+    -61,
+    104
+   ],
+   "w": 38,
+   "h": 71,
+   "depth_plane": [
+    [
+     -0.2805,
+     -2.2324
+    ],
+    [
+     -0.3429,
+     -2.7285
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_frame.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "frame",
+   "offset": [
+    47,
+    -115
+   ],
+   "anchor_px": [
+    -47,
+    115
+   ],
+   "w": 43,
+   "h": 91,
+   "depth_plane": [
+    [
+     -0.5,
+     -2.125
+    ],
+    [
+     0.5,
+     -2.125
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 4 px inside the inner face (in front of the concave face out to the frame's ends)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_shut.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "shut",
+   "offset": [
+    63,
+    -103
+   ],
+   "anchor_px": [
+    -63,
+    103
+   ],
+   "w": 21,
+   "h": 69,
+   "depth_plane": [
+    [
+     -0.5,
+     -2.2812
+    ],
+    [
+     0.5,
+     -2.2812
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the leaf (the leaf sits 2 px in from the face seen)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_broken.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "broken",
+   "offset": [
+    63,
+    -98
+   ],
+   "anchor_px": [
+    -63,
+    98
+   ],
+   "w": 22,
+   "h": 65,
+   "depth_plane": [
+    [
+     -0.5,
+     -2.2812
+    ],
+    [
+     0.5,
+     -2.2812
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut leaf",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_open.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "open",
+   "offset": [
+    98,
+    -110
+   ],
+   "anchor_px": [
+    -98,
+    110
+   ],
+   "w": 28,
+   "h": 72,
+   "depth_plane": [
+    [
+     0.3448,
+     -2.744
+    ],
+    [
+     0.4286,
+     -3.4107
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane, hinge to free edge (rings.js's swung leaf, hinged at a1)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_open_a0.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "open_a0",
+   "offset": [
+    72,
+    -124
+   ],
+   "anchor_px": [
+    -72,
+    124
+   ],
+   "w": 24,
+   "h": 73,
+   "depth_plane": [
+    [
+     -0.3448,
+     -2.744
+    ],
+    [
+     -0.4286,
+     -3.4107
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane; the alternative hinge, at a0 (the opening's other end)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_boards_out_1.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_1",
+   "offset": [
+    68,
+    -88
+   ],
+   "anchor_px": [
+    -68,
+    88
+   ],
+   "w": 40,
+   "h": 24,
+   "depth_plane": [
+    [
+     -0.55,
+     -2.7812
+    ],
+    [
+     0.55,
+     -2.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_boards_out_2.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_2",
+   "offset": [
+    68,
+    -103
+   ],
+   "anchor_px": [
+    -68,
+    103
+   ],
+   "w": 40,
+   "h": 51,
+   "depth_plane": [
+    [
+     -0.55,
+     -2.7812
+    ],
+    [
+     0.55,
+     -2.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_boards_out_3.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_3",
+   "offset": [
+    68,
+    -106
+   ],
+   "anchor_px": [
+    -68,
+    106
+   ],
+   "w": 40,
+   "h": 59,
+   "depth_plane": [
+    [
+     -0.55,
+     -2.7812
+    ],
+    [
+     0.55,
+     -2.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_boards_in_1.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_1",
+   "offset": [
+    51,
+    -76
+   ],
+   "anchor_px": [
+    -51,
+    76
+   ],
+   "w": 34,
+   "h": 20,
+   "depth_plane": [
+    [
+     -0.4711,
+     -2.0938
+    ],
+    [
+     0.4711,
+     -2.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_boards_in_2.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_2",
+   "offset": [
+    51,
+    -91
+   ],
+   "anchor_px": [
+    -51,
+    91
+   ],
+   "w": 34,
+   "h": 48,
+   "depth_plane": [
+    [
+     -0.4711,
+     -2.0938
+    ],
+    [
+     0.4711,
+     -2.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_door_boards_in_3.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_3",
+   "offset": [
+    51,
+    -94
+   ],
+   "anchor_px": [
+    -51,
+    94
+   ],
+   "w": 34,
+   "h": 56,
+   "depth_plane": [
+    [
+     -0.4711,
+     -2.0938
+    ],
+    [
+     0.4711,
+     -2.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_reveal.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "reveal",
+   "offset": [
+    63,
+    -106
+   ],
+   "anchor_px": [
+    -63,
+    106
+   ],
+   "w": 34,
+   "h": 51,
+   "depth_plane": [
+    [
+     -0.2246,
+     -2.2388
+    ],
+    [
+     -0.2745,
+     -2.7363
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_frame.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "frame",
+   "offset": [
+    47,
+    -115
+   ],
+   "anchor_px": [
+    -47,
+    115
+   ],
+   "w": 43,
+   "h": 70,
+   "depth_plane": [
+    [
+     -0.5,
+     -2.125
+    ],
+    [
+     0.5,
+     -2.125
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 4 px inside the inner face (in front of the concave face out to the frame's ends)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_shut.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "shut",
+   "offset": [
+    65,
+    -103
+   ],
+   "anchor_px": [
+    -65,
+    103
+   ],
+   "w": 17,
+   "h": 45,
+   "depth_plane": [
+    [
+     -0.5,
+     -2.2812
+    ],
+    [
+     0.5,
+     -2.2812
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the shutters (2 px in from the face seen)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_broken.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "broken",
+   "offset": [
+    64,
+    -98
+   ],
+   "anchor_px": [
+    -64,
+    98
+   ],
+   "w": 19,
+   "h": 41,
+   "depth_plane": [
+    [
+     -0.5,
+     -2.2812
+    ],
+    [
+     0.5,
+     -2.2812
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut shutters",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_boards_out_1.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_1",
+   "offset": [
+    71,
+    -98
+   ],
+   "anchor_px": [
+    -71,
+    98
+   ],
+   "w": 34,
+   "h": 20,
+   "depth_plane": [
+    [
+     -0.4813,
+     -2.7812
+    ],
+    [
+     0.4812,
+     -2.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_boards_out_2.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_2",
+   "offset": [
+    71,
+    -108
+   ],
+   "anchor_px": [
+    -71,
+    108
+   ],
+   "w": 34,
+   "h": 38,
+   "depth_plane": [
+    [
+     -0.4813,
+     -2.7812
+    ],
+    [
+     0.4812,
+     -2.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_boards_out_3.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_3",
+   "offset": [
+    71,
+    -110
+   ],
+   "anchor_px": [
+    -71,
+    110
+   ],
+   "w": 34,
+   "h": 43,
+   "depth_plane": [
+    [
+     -0.4813,
+     -2.7812
+    ],
+    [
+     0.4812,
+     -2.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_boards_in_1.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_1",
+   "offset": [
+    53,
+    -87
+   ],
+   "anchor_px": [
+    -53,
+    87
+   ],
+   "w": 30,
+   "h": 18,
+   "depth_plane": [
+    [
+     -0.4188,
+     -2.0938
+    ],
+    [
+     0.4187,
+     -2.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_boards_in_2.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_2",
+   "offset": [
+    53,
+    -97
+   ],
+   "anchor_px": [
+    -53,
+    97
+   ],
+   "w": 30,
+   "h": 36,
+   "depth_plane": [
+    [
+     -0.4188,
+     -2.0938
+    ],
+    [
+     0.4187,
+     -2.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/n_window_boards_in_3.png",
+   "size": 5,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_3",
+   "offset": [
+    53,
+    -99
+   ],
+   "anchor_px": [
+    -53,
+    99
+   ],
+   "w": 30,
+   "h": 41,
+   "depth_plane": [
+    [
+     -0.4188,
+     -2.0938
+    ],
+    [
+     0.4187,
+     -2.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/e_door_reveal.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "reveal",
+   "offset": [
+    61,
+    -24
+   ],
+   "anchor_px": [
+    -61,
+    24
+   ],
+   "w": 38,
+   "h": 71,
+   "depth_plane": [
+    [
+     2.2324,
+     -0.2805
+    ],
+    [
+     2.7285,
+     -0.3429
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_frame.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "frame",
+   "offset": [
+    61,
+    -36
+   ],
+   "anchor_px": [
+    -61,
+    36
+   ],
+   "w": 50,
+   "h": 92,
+   "depth_plane": [
+    [
+     2.8438,
+     -0.5
+    ],
+    [
+     2.8438,
+     0.5
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 3 px outside the outer face (in front of the convex face all along the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_shut.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "shut",
+   "offset": [
+    73,
+    -23
+   ],
+   "anchor_px": [
+    -73,
+    23
+   ],
+   "w": 24,
+   "h": 69,
+   "depth_plane": [
+    [
+     2.7188,
+     -0.5
+    ],
+    [
+     2.7188,
+     0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the leaf (the leaf sits 2 px in from the face seen)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_broken.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "broken",
+   "offset": [
+    72,
+    -15
+   ],
+   "anchor_px": [
+    -72,
+    15
+   ],
+   "w": 22,
+   "h": 62,
+   "depth_plane": [
+    [
+     2.7188,
+     -0.5
+    ],
+    [
+     2.7188,
+     0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut leaf",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_open.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "open",
+   "offset": [
+    72,
+    -12
+   ],
+   "anchor_px": [
+    -72,
+    12
+   ],
+   "w": 24,
+   "h": 73,
+   "depth_plane": [
+    [
+     2.744,
+     0.3448
+    ],
+    [
+     3.4107,
+     0.4286
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane, hinge to free edge (rings.js's swung leaf, hinged at a1)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_open_a0.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "open_a0",
+   "offset": [
+    98,
+    -26
+   ],
+   "anchor_px": [
+    -98,
+    26
+   ],
+   "w": 28,
+   "h": 73,
+   "depth_plane": [
+    [
+     2.744,
+     -0.3448
+    ],
+    [
+     3.4107,
+     -0.4286
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane; the alternative hinge, at a0 (the opening's other end)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_boards_out_1.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_1",
+   "offset": [
+    69,
+    -1
+   ],
+   "anchor_px": [
+    -69,
+    1
+   ],
+   "w": 46,
+   "h": 30,
+   "depth_plane": [
+    [
+     2.9062,
+     -0.6539
+    ],
+    [
+     2.9062,
+     0.6539
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_boards_out_2.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_2",
+   "offset": [
+    69,
+    -12
+   ],
+   "anchor_px": [
+    -69,
+    12
+   ],
+   "w": 46,
+   "h": 54,
+   "depth_plane": [
+    [
+     2.9062,
+     -0.6539
+    ],
+    [
+     2.9062,
+     0.6539
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_boards_out_3.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_3",
+   "offset": [
+    69,
+    -19
+   ],
+   "anchor_px": [
+    -69,
+    19
+   ],
+   "w": 46,
+   "h": 66,
+   "depth_plane": [
+    [
+     2.9062,
+     -0.6539
+    ],
+    [
+     2.9062,
+     0.6539
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_boards_in_1.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_1",
+   "offset": [
+    54,
+    -9
+   ],
+   "anchor_px": [
+    -54,
+    9
+   ],
+   "w": 33,
+   "h": 25,
+   "depth_plane": [
+    [
+     2.1745,
+     -0.45
+    ],
+    [
+     2.1745,
+     0.45
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_boards_in_2.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_2",
+   "offset": [
+    54,
+    -19
+   ],
+   "anchor_px": [
+    -54,
+    19
+   ],
+   "w": 33,
+   "h": 47,
+   "depth_plane": [
+    [
+     2.1745,
+     -0.45
+    ],
+    [
+     2.1745,
+     0.45
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_door_boards_in_3.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_3",
+   "offset": [
+    54,
+    -26
+   ],
+   "anchor_px": [
+    -54,
+    26
+   ],
+   "w": 33,
+   "h": 59,
+   "depth_plane": [
+    [
+     2.1745,
+     -0.45
+    ],
+    [
+     2.1745,
+     0.45
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_reveal.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "reveal",
+   "offset": [
+    63,
+    -25
+   ],
+   "anchor_px": [
+    -63,
+    25
+   ],
+   "w": 34,
+   "h": 50,
+   "depth_plane": [
+    [
+     2.2388,
+     -0.2246
+    ],
+    [
+     2.7363,
+     -0.2745
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_frame.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "frame",
+   "offset": [
+    61,
+    -36
+   ],
+   "anchor_px": [
+    -61,
+    36
+   ],
+   "w": 50,
+   "h": 71,
+   "depth_plane": [
+    [
+     2.8438,
+     -0.5
+    ],
+    [
+     2.8438,
+     0.5
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 3 px outside the outer face (in front of the convex face all along the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_shut.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "shut",
+   "offset": [
+    75,
+    -23
+   ],
+   "anchor_px": [
+    -75,
+    23
+   ],
+   "w": 21,
+   "h": 46,
+   "depth_plane": [
+    [
+     2.7188,
+     -0.5
+    ],
+    [
+     2.7188,
+     0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the shutters (2 px in from the face seen)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_broken.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "broken",
+   "offset": [
+    74,
+    -20
+   ],
+   "anchor_px": [
+    -74,
+    20
+   ],
+   "w": 23,
+   "h": 44,
+   "depth_plane": [
+    [
+     2.7188,
+     -0.5
+    ],
+    [
+     2.7188,
+     0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut shutters",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_open.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "open",
+   "offset": [
+    69,
+    -31
+   ],
+   "anchor_px": [
+    -69,
+    31
+   ],
+   "w": 40,
+   "h": 61,
+   "depth_plane": [
+    [
+     2.8906,
+     -0.5
+    ],
+    [
+     2.8906,
+     0.5
+    ]
+   ],
+   "layer": 4,
+   "depth_note": "tangent at the door point, 4.5 px outside the outer face (over the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_boards_out_1.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_1",
+   "offset": [
+    71,
+    -12
+   ],
+   "anchor_px": [
+    -71,
+    12
+   ],
+   "w": 42,
+   "h": 28,
+   "depth_plane": [
+    [
+     2.9062,
+     -0.5813
+    ],
+    [
+     2.9062,
+     0.5813
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_boards_out_2.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_2",
+   "offset": [
+    71,
+    -18
+   ],
+   "anchor_px": [
+    -71,
+    18
+   ],
+   "w": 42,
+   "h": 42,
+   "depth_plane": [
+    [
+     2.9062,
+     -0.5813
+    ],
+    [
+     2.9062,
+     0.5813
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_boards_out_3.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_3",
+   "offset": [
+    71,
+    -23
+   ],
+   "anchor_px": [
+    -71,
+    23
+   ],
+   "w": 42,
+   "h": 51,
+   "depth_plane": [
+    [
+     2.9062,
+     -0.5813
+    ],
+    [
+     2.9062,
+     0.5813
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_boards_in_1.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_1",
+   "offset": [
+    56,
+    -20
+   ],
+   "anchor_px": [
+    -56,
+    20
+   ],
+   "w": 30,
+   "h": 23,
+   "depth_plane": [
+    [
+     2.1849,
+     -0.3937
+    ],
+    [
+     2.1849,
+     0.3937
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_boards_in_2.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_2",
+   "offset": [
+    56,
+    -26
+   ],
+   "anchor_px": [
+    -56,
+    26
+   ],
+   "w": 30,
+   "h": 37,
+   "depth_plane": [
+    [
+     2.1849,
+     -0.3937
+    ],
+    [
+     2.1849,
+     0.3937
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/e_window_boards_in_3.png",
+   "size": 5,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_3",
+   "offset": [
+    56,
+    -31
+   ],
+   "anchor_px": [
+    -56,
+    31
+   ],
+   "w": 30,
+   "h": 45,
+   "depth_plane": [
+    [
+     2.1849,
+     -0.3937
+    ],
+    [
+     2.1849,
+     0.3937
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_reveal.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "reveal",
+   "offset": [
+    -99,
+    -24
+   ],
+   "anchor_px": [
+    99,
+    24
+   ],
+   "w": 38,
+   "h": 71,
+   "depth_plane": [
+    [
+     -0.2805,
+     2.2324
+    ],
+    [
+     -0.3429,
+     2.7285
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_frame.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "frame",
+   "offset": [
+    -111,
+    -36
+   ],
+   "anchor_px": [
+    111,
+    36
+   ],
+   "w": 50,
+   "h": 92,
+   "depth_plane": [
+    [
+     0.5,
+     2.8438
+    ],
+    [
+     -0.5,
+     2.8438
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 3 px outside the outer face (in front of the convex face all along the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_shut.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "shut",
+   "offset": [
+    -97,
+    -23
+   ],
+   "anchor_px": [
+    97,
+    23
+   ],
+   "w": 24,
+   "h": 69,
+   "depth_plane": [
+    [
+     0.5,
+     2.7188
+    ],
+    [
+     -0.5,
+     2.7188
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the leaf (the leaf sits 2 px in from the face seen)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_broken.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "broken",
+   "offset": [
+    -98,
+    -23
+   ],
+   "anchor_px": [
+    98,
+    23
+   ],
+   "w": 21,
+   "h": 68,
+   "depth_plane": [
+    [
+     0.5,
+     2.7188
+    ],
+    [
+     -0.5,
+     2.7188
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut leaf",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_open.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "open",
+   "offset": [
+    -126,
+    -26
+   ],
+   "anchor_px": [
+    126,
+    26
+   ],
+   "w": 28,
+   "h": 73,
+   "depth_plane": [
+    [
+     -0.3448,
+     2.744
+    ],
+    [
+     -0.4286,
+     3.4107
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane, hinge to free edge (rings.js's swung leaf, hinged at a1)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_open_a0.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "open_a0",
+   "offset": [
+    -96,
+    -12
+   ],
+   "anchor_px": [
+    96,
+    12
+   ],
+   "w": 24,
+   "h": 73,
+   "depth_plane": [
+    [
+     0.3448,
+     2.744
+    ],
+    [
+     0.4286,
+     3.4107
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane; the alternative hinge, at a0 (the opening's other end)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_boards_out_1.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_1",
+   "offset": [
+    -115,
+    -1
+   ],
+   "anchor_px": [
+    115,
+    1
+   ],
+   "w": 46,
+   "h": 30,
+   "depth_plane": [
+    [
+     0.6539,
+     2.9062
+    ],
+    [
+     -0.6539,
+     2.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_boards_out_2.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_2",
+   "offset": [
+    -115,
+    -12
+   ],
+   "anchor_px": [
+    115,
+    12
+   ],
+   "w": 46,
+   "h": 54,
+   "depth_plane": [
+    [
+     0.6539,
+     2.9062
+    ],
+    [
+     -0.6539,
+     2.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_boards_out_3.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_3",
+   "offset": [
+    -115,
+    -19
+   ],
+   "anchor_px": [
+    115,
+    19
+   ],
+   "w": 46,
+   "h": 66,
+   "depth_plane": [
+    [
+     0.6539,
+     2.9062
+    ],
+    [
+     -0.6539,
+     2.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_boards_in_1.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_1",
+   "offset": [
+    -87,
+    -9
+   ],
+   "anchor_px": [
+    87,
+    9
+   ],
+   "w": 33,
+   "h": 25,
+   "depth_plane": [
+    [
+     0.45,
+     2.1745
+    ],
+    [
+     -0.45,
+     2.1745
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_boards_in_2.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_2",
+   "offset": [
+    -87,
+    -19
+   ],
+   "anchor_px": [
+    87,
+    19
+   ],
+   "w": 33,
+   "h": 47,
+   "depth_plane": [
+    [
+     0.45,
+     2.1745
+    ],
+    [
+     -0.45,
+     2.1745
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_door_boards_in_3.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_3",
+   "offset": [
+    -87,
+    -26
+   ],
+   "anchor_px": [
+    87,
+    26
+   ],
+   "w": 33,
+   "h": 59,
+   "depth_plane": [
+    [
+     0.45,
+     2.1745
+    ],
+    [
+     -0.45,
+     2.1745
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_reveal.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "reveal",
+   "offset": [
+    -97,
+    -25
+   ],
+   "anchor_px": [
+    97,
+    25
+   ],
+   "w": 34,
+   "h": 50,
+   "depth_plane": [
+    [
+     -0.2246,
+     2.2388
+    ],
+    [
+     -0.2745,
+     2.7363
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_frame.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "frame",
+   "offset": [
+    -111,
+    -36
+   ],
+   "anchor_px": [
+    111,
+    36
+   ],
+   "w": 50,
+   "h": 71,
+   "depth_plane": [
+    [
+     0.5,
+     2.8438
+    ],
+    [
+     -0.5,
+     2.8438
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 3 px outside the outer face (in front of the convex face all along the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_shut.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "shut",
+   "offset": [
+    -96,
+    -23
+   ],
+   "anchor_px": [
+    96,
+    23
+   ],
+   "w": 21,
+   "h": 46,
+   "depth_plane": [
+    [
+     0.5,
+     2.7188
+    ],
+    [
+     -0.5,
+     2.7188
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the shutters (2 px in from the face seen)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_broken.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "broken",
+   "offset": [
+    -97,
+    -23
+   ],
+   "anchor_px": [
+    97,
+    23
+   ],
+   "w": 23,
+   "h": 47,
+   "depth_plane": [
+    [
+     0.5,
+     2.7188
+    ],
+    [
+     -0.5,
+     2.7188
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut shutters",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_open.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "open",
+   "offset": [
+    -109,
+    -31
+   ],
+   "anchor_px": [
+    109,
+    31
+   ],
+   "w": 40,
+   "h": 61,
+   "depth_plane": [
+    [
+     0.5,
+     2.8906
+    ],
+    [
+     -0.5,
+     2.8906
+    ]
+   ],
+   "layer": 4,
+   "depth_note": "tangent at the door point, 4.5 px outside the outer face (over the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_boards_out_1.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_1",
+   "offset": [
+    -113,
+    -12
+   ],
+   "anchor_px": [
+    113,
+    12
+   ],
+   "w": 42,
+   "h": 28,
+   "depth_plane": [
+    [
+     0.5813,
+     2.9062
+    ],
+    [
+     -0.5812,
+     2.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_boards_out_2.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_2",
+   "offset": [
+    -113,
+    -18
+   ],
+   "anchor_px": [
+    113,
+    18
+   ],
+   "w": 42,
+   "h": 42,
+   "depth_plane": [
+    [
+     0.5813,
+     2.9062
+    ],
+    [
+     -0.5812,
+     2.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_boards_out_3.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_3",
+   "offset": [
+    -113,
+    -23
+   ],
+   "anchor_px": [
+    113,
+    23
+   ],
+   "w": 42,
+   "h": 51,
+   "depth_plane": [
+    [
+     0.5813,
+     2.9062
+    ],
+    [
+     -0.5812,
+     2.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_boards_in_1.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_1",
+   "offset": [
+    -86,
+    -20
+   ],
+   "anchor_px": [
+    86,
+    20
+   ],
+   "w": 30,
+   "h": 23,
+   "depth_plane": [
+    [
+     0.3938,
+     2.1849
+    ],
+    [
+     -0.3937,
+     2.1849
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_boards_in_2.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_2",
+   "offset": [
+    -86,
+    -26
+   ],
+   "anchor_px": [
+    86,
+    26
+   ],
+   "w": 30,
+   "h": 37,
+   "depth_plane": [
+    [
+     0.3938,
+     2.1849
+    ],
+    [
+     -0.3937,
+     2.1849
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/s_window_boards_in_3.png",
+   "size": 5,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_3",
+   "offset": [
+    -86,
+    -31
+   ],
+   "anchor_px": [
+    86,
+    31
+   ],
+   "w": 30,
+   "h": 45,
+   "depth_plane": [
+    [
+     0.3938,
+     2.1849
+    ],
+    [
+     -0.3937,
+     2.1849
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r5/w_door_reveal.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "reveal",
+   "offset": [
+    -99,
+    -104
+   ],
+   "anchor_px": [
+    99,
+    104
+   ],
+   "w": 38,
+   "h": 71,
+   "depth_plane": [
+    [
+     -2.2324,
+     -0.2805
+    ],
+    [
+     -2.7285,
+     -0.3429
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_frame.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "frame",
+   "offset": [
+    -90,
+    -115
+   ],
+   "anchor_px": [
+    90,
+    115
+   ],
+   "w": 43,
+   "h": 91,
+   "depth_plane": [
+    [
+     -2.125,
+     0.5
+    ],
+    [
+     -2.125,
+     -0.5
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 4 px inside the inner face (in front of the concave face out to the frame's ends)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_shut.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "shut",
+   "offset": [
+    -84,
+    -103
+   ],
+   "anchor_px": [
+    84,
+    103
+   ],
+   "w": 21,
+   "h": 69,
+   "depth_plane": [
+    [
+     -2.2812,
+     0.5
+    ],
+    [
+     -2.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the leaf (the leaf sits 2 px in from the face seen)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_broken.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "broken",
+   "offset": [
+    -84,
+    -102
+   ],
+   "anchor_px": [
+    84,
+    102
+   ],
+   "w": 22,
+   "h": 69,
+   "depth_plane": [
+    [
+     -2.2812,
+     0.5
+    ],
+    [
+     -2.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut leaf",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_open.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "open",
+   "offset": [
+    -96,
+    -124
+   ],
+   "anchor_px": [
+    96,
+    124
+   ],
+   "w": 24,
+   "h": 73,
+   "depth_plane": [
+    [
+     -2.744,
+     -0.3448
+    ],
+    [
+     -3.4107,
+     -0.4286
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane, hinge to free edge (rings.js's swung leaf, hinged at a1)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_open_a0.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "open_a0",
+   "offset": [
+    -126,
+    -110
+   ],
+   "anchor_px": [
+    126,
+    110
+   ],
+   "w": 28,
+   "h": 72,
+   "depth_plane": [
+    [
+     -2.744,
+     0.3448
+    ],
+    [
+     -3.4107,
+     0.4286
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane; the alternative hinge, at a0 (the opening's other end)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_boards_out_1.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_1",
+   "offset": [
+    -108,
+    -88
+   ],
+   "anchor_px": [
+    108,
+    88
+   ],
+   "w": 40,
+   "h": 24,
+   "depth_plane": [
+    [
+     -2.7812,
+     0.55
+    ],
+    [
+     -2.7812,
+     -0.55
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_boards_out_2.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_2",
+   "offset": [
+    -108,
+    -103
+   ],
+   "anchor_px": [
+    108,
+    103
+   ],
+   "w": 40,
+   "h": 51,
+   "depth_plane": [
+    [
+     -2.7812,
+     0.55
+    ],
+    [
+     -2.7812,
+     -0.55
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_boards_out_3.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_3",
+   "offset": [
+    -108,
+    -106
+   ],
+   "anchor_px": [
+    108,
+    106
+   ],
+   "w": 40,
+   "h": 59,
+   "depth_plane": [
+    [
+     -2.7812,
+     0.55
+    ],
+    [
+     -2.7812,
+     -0.55
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_boards_in_1.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_1",
+   "offset": [
+    -85,
+    -76
+   ],
+   "anchor_px": [
+    85,
+    76
+   ],
+   "w": 34,
+   "h": 20,
+   "depth_plane": [
+    [
+     -2.0938,
+     0.4711
+    ],
+    [
+     -2.0938,
+     -0.4711
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_boards_in_2.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_2",
+   "offset": [
+    -85,
+    -91
+   ],
+   "anchor_px": [
+    85,
+    91
+   ],
+   "w": 34,
+   "h": 48,
+   "depth_plane": [
+    [
+     -2.0938,
+     0.4711
+    ],
+    [
+     -2.0938,
+     -0.4711
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_door_boards_in_3.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_3",
+   "offset": [
+    -85,
+    -94
+   ],
+   "anchor_px": [
+    85,
+    94
+   ],
+   "w": 34,
+   "h": 56,
+   "depth_plane": [
+    [
+     -2.0938,
+     0.4711
+    ],
+    [
+     -2.0938,
+     -0.4711
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_reveal.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "reveal",
+   "offset": [
+    -97,
+    -106
+   ],
+   "anchor_px": [
+    97,
+    106
+   ],
+   "w": 34,
+   "h": 51,
+   "depth_plane": [
+    [
+     -2.2388,
+     -0.2246
+    ],
+    [
+     -2.7363,
+     -0.2745
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_frame.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "frame",
+   "offset": [
+    -90,
+    -115
+   ],
+   "anchor_px": [
+    90,
+    115
+   ],
+   "w": 43,
+   "h": 70,
+   "depth_plane": [
+    [
+     -2.125,
+     0.5
+    ],
+    [
+     -2.125,
+     -0.5
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 4 px inside the inner face (in front of the concave face out to the frame's ends)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_shut.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "shut",
+   "offset": [
+    -82,
+    -103
+   ],
+   "anchor_px": [
+    82,
+    103
+   ],
+   "w": 17,
+   "h": 45,
+   "depth_plane": [
+    [
+     -2.2812,
+     0.5
+    ],
+    [
+     -2.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the shutters (2 px in from the face seen)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_broken.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "broken",
+   "offset": [
+    -83,
+    -102
+   ],
+   "anchor_px": [
+    83,
+    102
+   ],
+   "w": 19,
+   "h": 45,
+   "depth_plane": [
+    [
+     -2.2812,
+     0.5
+    ],
+    [
+     -2.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut shutters",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_boards_out_1.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_1",
+   "offset": [
+    -105,
+    -98
+   ],
+   "anchor_px": [
+    105,
+    98
+   ],
+   "w": 34,
+   "h": 20,
+   "depth_plane": [
+    [
+     -2.7812,
+     0.4813
+    ],
+    [
+     -2.7812,
+     -0.4812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_boards_out_2.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_2",
+   "offset": [
+    -105,
+    -108
+   ],
+   "anchor_px": [
+    105,
+    108
+   ],
+   "w": 34,
+   "h": 38,
+   "depth_plane": [
+    [
+     -2.7812,
+     0.4813
+    ],
+    [
+     -2.7812,
+     -0.4812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_boards_out_3.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_3",
+   "offset": [
+    -105,
+    -110
+   ],
+   "anchor_px": [
+    105,
+    110
+   ],
+   "w": 34,
+   "h": 43,
+   "depth_plane": [
+    [
+     -2.7812,
+     0.4813
+    ],
+    [
+     -2.7812,
+     -0.4812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_boards_in_1.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_1",
+   "offset": [
+    -83,
+    -87
+   ],
+   "anchor_px": [
+    83,
+    87
+   ],
+   "w": 30,
+   "h": 18,
+   "depth_plane": [
+    [
+     -2.0938,
+     0.4188
+    ],
+    [
+     -2.0938,
+     -0.4187
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_boards_in_2.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_2",
+   "offset": [
+    -83,
+    -97
+   ],
+   "anchor_px": [
+    83,
+    97
+   ],
+   "w": 30,
+   "h": 36,
+   "depth_plane": [
+    [
+     -2.0938,
+     0.4188
+    ],
+    [
+     -2.0938,
+     -0.4187
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r5/w_window_boards_in_3.png",
+   "size": 5,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_3",
+   "offset": [
+    -83,
+    -99
+   ],
+   "anchor_px": [
+    83,
+    99
+   ],
+   "w": 30,
+   "h": 41,
+   "depth_plane": [
+    [
+     -2.0938,
+     0.4188
+    ],
+    [
+     -2.0938,
+     -0.4187
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_reveal.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "reveal",
+   "offset": [
+    93,
+    -120
+   ],
+   "anchor_px": [
+    -93,
+    120
+   ],
+   "w": 38,
+   "h": 71,
+   "depth_plane": [
+    [
+     -0.2898,
+     -3.2371
+    ],
+    [
+     -0.3344,
+     -3.7351
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_frame.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "frame",
+   "offset": [
+    79,
+    -131
+   ],
+   "anchor_px": [
+    -79,
+    131
+   ],
+   "w": 44,
+   "h": 91,
+   "depth_plane": [
+    [
+     -0.5,
+     -3.125
+    ],
+    [
+     0.5,
+     -3.125
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 4 px inside the inner face (in front of the concave face out to the frame's ends)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_shut.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "shut",
+   "offset": [
+    95,
+    -119
+   ],
+   "anchor_px": [
+    -95,
+    119
+   ],
+   "w": 21,
+   "h": 69,
+   "depth_plane": [
+    [
+     -0.5,
+     -3.2812
+    ],
+    [
+     0.5,
+     -3.2812
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the leaf (the leaf sits 2 px in from the face seen)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_broken.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "broken",
+   "offset": [
+    96,
+    -112
+   ],
+   "anchor_px": [
+    -96,
+    112
+   ],
+   "w": 21,
+   "h": 63,
+   "depth_plane": [
+    [
+     -0.5,
+     -3.2812
+    ],
+    [
+     0.5,
+     -3.2812
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut leaf",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_open.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "open",
+   "offset": [
+    130,
+    -126
+   ],
+   "anchor_px": [
+    -130,
+    126
+   ],
+   "w": 27,
+   "h": 72,
+   "depth_plane": [
+    [
+     0.3358,
+     -3.7506
+    ],
+    [
+     0.3945,
+     -4.4065
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane, hinge to free edge (rings.js's swung leaf, hinged at a1)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_open_a0.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "open_a0",
+   "offset": [
+    105,
+    -140
+   ],
+   "anchor_px": [
+    -105,
+    140
+   ],
+   "w": 24,
+   "h": 73,
+   "depth_plane": [
+    [
+     -0.3358,
+     -3.7506
+    ],
+    [
+     -0.3945,
+     -4.4065
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane; the alternative hinge, at a0 (the opening's other end)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_boards_out_1.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_1",
+   "offset": [
+    101,
+    -103
+   ],
+   "anchor_px": [
+    -101,
+    103
+   ],
+   "w": 38,
+   "h": 22,
+   "depth_plane": [
+    [
+     -0.5357,
+     -3.7812
+    ],
+    [
+     0.5357,
+     -3.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_boards_out_2.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_2",
+   "offset": [
+    101,
+    -118
+   ],
+   "anchor_px": [
+    -101,
+    118
+   ],
+   "w": 38,
+   "h": 50,
+   "depth_plane": [
+    [
+     -0.5357,
+     -3.7812
+    ],
+    [
+     0.5357,
+     -3.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_boards_out_3.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_3",
+   "offset": [
+    101,
+    -121
+   ],
+   "anchor_px": [
+    -101,
+    121
+   ],
+   "w": 38,
+   "h": 58,
+   "depth_plane": [
+    [
+     -0.5357,
+     -3.7812
+    ],
+    [
+     0.5357,
+     -3.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_boards_in_1.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_1",
+   "offset": [
+    82,
+    -93
+   ],
+   "anchor_px": [
+    -82,
+    93
+   ],
+   "w": 36,
+   "h": 22,
+   "depth_plane": [
+    [
+     -0.4972,
+     -3.0938
+    ],
+    [
+     0.4972,
+     -3.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_boards_in_2.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_2",
+   "offset": [
+    82,
+    -108
+   ],
+   "anchor_px": [
+    -82,
+    108
+   ],
+   "w": 36,
+   "h": 49,
+   "depth_plane": [
+    [
+     -0.4972,
+     -3.0938
+    ],
+    [
+     0.4972,
+     -3.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_door_boards_in_3.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_3",
+   "offset": [
+    82,
+    -111
+   ],
+   "anchor_px": [
+    -82,
+    111
+   ],
+   "w": 36,
+   "h": 57,
+   "depth_plane": [
+    [
+     -0.4972,
+     -3.0938
+    ],
+    [
+     0.4972,
+     -3.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_reveal.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "reveal",
+   "offset": [
+    95,
+    -121
+   ],
+   "anchor_px": [
+    -95,
+    121
+   ],
+   "w": 34,
+   "h": 50,
+   "depth_plane": [
+    [
+     -0.2319,
+     -3.2417
+    ],
+    [
+     -0.2676,
+     -3.7404
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_frame.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "frame",
+   "offset": [
+    79,
+    -131
+   ],
+   "anchor_px": [
+    -79,
+    131
+   ],
+   "w": 44,
+   "h": 71,
+   "depth_plane": [
+    [
+     -0.5,
+     -3.125
+    ],
+    [
+     0.5,
+     -3.125
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 4 px inside the inner face (in front of the concave face out to the frame's ends)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_shut.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "shut",
+   "offset": [
+    97,
+    -119
+   ],
+   "anchor_px": [
+    -97,
+    119
+   ],
+   "w": 18,
+   "h": 46,
+   "depth_plane": [
+    [
+     -0.5,
+     -3.2812
+    ],
+    [
+     0.5,
+     -3.2812
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the shutters (2 px in from the face seen)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_broken.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "broken",
+   "offset": [
+    96,
+    -114
+   ],
+   "anchor_px": [
+    -96,
+    114
+   ],
+   "w": 20,
+   "h": 42,
+   "depth_plane": [
+    [
+     -0.5,
+     -3.2812
+    ],
+    [
+     0.5,
+     -3.2812
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut shutters",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_boards_out_1.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_1",
+   "offset": [
+    103,
+    -114
+   ],
+   "anchor_px": [
+    -103,
+    114
+   ],
+   "w": 34,
+   "h": 20,
+   "depth_plane": [
+    [
+     -0.4688,
+     -3.7812
+    ],
+    [
+     0.4687,
+     -3.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_boards_out_2.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_2",
+   "offset": [
+    103,
+    -124
+   ],
+   "anchor_px": [
+    -103,
+    124
+   ],
+   "w": 34,
+   "h": 38,
+   "depth_plane": [
+    [
+     -0.4688,
+     -3.7812
+    ],
+    [
+     0.4687,
+     -3.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_boards_out_3.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_3",
+   "offset": [
+    103,
+    -126
+   ],
+   "anchor_px": [
+    -103,
+    126
+   ],
+   "w": 34,
+   "h": 43,
+   "depth_plane": [
+    [
+     -0.4688,
+     -3.7812
+    ],
+    [
+     0.4687,
+     -3.7812
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_boards_in_1.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_1",
+   "offset": [
+    84,
+    -104
+   ],
+   "anchor_px": [
+    -84,
+    104
+   ],
+   "w": 32,
+   "h": 20,
+   "depth_plane": [
+    [
+     -0.442,
+     -3.0938
+    ],
+    [
+     0.442,
+     -3.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_boards_in_2.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_2",
+   "offset": [
+    84,
+    -114
+   ],
+   "anchor_px": [
+    -84,
+    114
+   ],
+   "w": 32,
+   "h": 38,
+   "depth_plane": [
+    [
+     -0.442,
+     -3.0938
+    ],
+    [
+     0.442,
+     -3.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/n_window_boards_in_3.png",
+   "size": 7,
+   "point": "n",
+   "angle": 270,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_3",
+   "offset": [
+    84,
+    -115
+   ],
+   "anchor_px": [
+    -84,
+    115
+   ],
+   "w": 32,
+   "h": 42,
+   "depth_plane": [
+    [
+     -0.442,
+     -3.0938
+    ],
+    [
+     0.442,
+     -3.0938
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/e_door_reveal.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "reveal",
+   "offset": [
+    93,
+    -8
+   ],
+   "anchor_px": [
+    -93,
+    8
+   ],
+   "w": 38,
+   "h": 71,
+   "depth_plane": [
+    [
+     3.2371,
+     -0.2898
+    ],
+    [
+     3.7351,
+     -0.3344
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_frame.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "frame",
+   "offset": [
+    94,
+    -20
+   ],
+   "anchor_px": [
+    -94,
+    20
+   ],
+   "w": 50,
+   "h": 92,
+   "depth_plane": [
+    [
+     3.8438,
+     -0.5
+    ],
+    [
+     3.8438,
+     0.5
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 3 px outside the outer face (in front of the convex face all along the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_shut.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "shut",
+   "offset": [
+    105,
+    -7
+   ],
+   "anchor_px": [
+    -105,
+    7
+   ],
+   "w": 24,
+   "h": 70,
+   "depth_plane": [
+    [
+     3.7188,
+     -0.5
+    ],
+    [
+     3.7188,
+     0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the leaf (the leaf sits 2 px in from the face seen)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_broken.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "broken",
+   "offset": [
+    104,
+    1
+   ],
+   "anchor_px": [
+    -104,
+    -1
+   ],
+   "w": 23,
+   "h": 63,
+   "depth_plane": [
+    [
+     3.7188,
+     -0.5
+    ],
+    [
+     3.7188,
+     0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut leaf",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_open.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "open",
+   "offset": [
+    105,
+    4
+   ],
+   "anchor_px": [
+    -105,
+    -4
+   ],
+   "w": 24,
+   "h": 73,
+   "depth_plane": [
+    [
+     3.7506,
+     0.3358
+    ],
+    [
+     4.4065,
+     0.3945
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane, hinge to free edge (rings.js's swung leaf, hinged at a1)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_open_a0.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "open_a0",
+   "offset": [
+    130,
+    -9
+   ],
+   "anchor_px": [
+    -130,
+    9
+   ],
+   "w": 27,
+   "h": 72,
+   "depth_plane": [
+    [
+     3.7506,
+     -0.3358
+    ],
+    [
+     4.4065,
+     -0.3945
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane; the alternative hinge, at a0 (the opening's other end)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_boards_out_1.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_1",
+   "offset": [
+    102,
+    15
+   ],
+   "anchor_px": [
+    -102,
+    -15
+   ],
+   "w": 44,
+   "h": 30,
+   "depth_plane": [
+    [
+     3.9062,
+     -0.6278
+    ],
+    [
+     3.9062,
+     0.6278
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_boards_out_2.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_2",
+   "offset": [
+    102,
+    4
+   ],
+   "anchor_px": [
+    -102,
+    -4
+   ],
+   "w": 44,
+   "h": 54,
+   "depth_plane": [
+    [
+     3.9062,
+     -0.6278
+    ],
+    [
+     3.9062,
+     0.6278
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_boards_out_3.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_3",
+   "offset": [
+    102,
+    -2
+   ],
+   "anchor_px": [
+    -102,
+    2
+   ],
+   "w": 44,
+   "h": 65,
+   "depth_plane": [
+    [
+     3.9062,
+     -0.6278
+    ],
+    [
+     3.9062,
+     0.6278
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_boards_in_1.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_1",
+   "offset": [
+    86,
+    7
+   ],
+   "anchor_px": [
+    -86,
+    -7
+   ],
+   "w": 34,
+   "h": 25,
+   "depth_plane": [
+    [
+     3.186,
+     -0.4643
+    ],
+    [
+     3.186,
+     0.4643
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_boards_in_2.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_2",
+   "offset": [
+    86,
+    -4
+   ],
+   "anchor_px": [
+    -86,
+    4
+   ],
+   "w": 34,
+   "h": 49,
+   "depth_plane": [
+    [
+     3.186,
+     -0.4643
+    ],
+    [
+     3.186,
+     0.4643
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_door_boards_in_3.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_3",
+   "offset": [
+    86,
+    -10
+   ],
+   "anchor_px": [
+    -86,
+    10
+   ],
+   "w": 34,
+   "h": 60,
+   "depth_plane": [
+    [
+     3.186,
+     -0.4643
+    ],
+    [
+     3.186,
+     0.4643
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_reveal.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "reveal",
+   "offset": [
+    95,
+    -9
+   ],
+   "anchor_px": [
+    -95,
+    9
+   ],
+   "w": 34,
+   "h": 50,
+   "depth_plane": [
+    [
+     3.2417,
+     -0.2319
+    ],
+    [
+     3.7404,
+     -0.2676
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_frame.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "frame",
+   "offset": [
+    94,
+    -19
+   ],
+   "anchor_px": [
+    -94,
+    19
+   ],
+   "w": 50,
+   "h": 71,
+   "depth_plane": [
+    [
+     3.8438,
+     -0.5
+    ],
+    [
+     3.8438,
+     0.5
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 3 px outside the outer face (in front of the convex face all along the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_shut.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "shut",
+   "offset": [
+    108,
+    -7
+   ],
+   "anchor_px": [
+    -108,
+    7
+   ],
+   "w": 20,
+   "h": 45,
+   "depth_plane": [
+    [
+     3.7188,
+     -0.5
+    ],
+    [
+     3.7188,
+     0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the shutters (2 px in from the face seen)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_broken.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "broken",
+   "offset": [
+    107,
+    -3
+   ],
+   "anchor_px": [
+    -107,
+    3
+   ],
+   "w": 22,
+   "h": 42,
+   "depth_plane": [
+    [
+     3.7188,
+     -0.5
+    ],
+    [
+     3.7188,
+     0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut shutters",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_open.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "open",
+   "offset": [
+    102,
+    -14
+   ],
+   "anchor_px": [
+    -102,
+    14
+   ],
+   "w": 39,
+   "h": 60,
+   "depth_plane": [
+    [
+     3.8906,
+     -0.5
+    ],
+    [
+     3.8906,
+     0.5
+    ]
+   ],
+   "layer": 4,
+   "depth_note": "tangent at the door point, 4.5 px outside the outer face (over the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_boards_out_1.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_1",
+   "offset": [
+    104,
+    4
+   ],
+   "anchor_px": [
+    -104,
+    -4
+   ],
+   "w": 40,
+   "h": 28,
+   "depth_plane": [
+    [
+     3.9062,
+     -0.558
+    ],
+    [
+     3.9062,
+     0.558
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_boards_out_2.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_2",
+   "offset": [
+    104,
+    -2
+   ],
+   "anchor_px": [
+    -104,
+    2
+   ],
+   "w": 40,
+   "h": 42,
+   "depth_plane": [
+    [
+     3.9062,
+     -0.558
+    ],
+    [
+     3.9062,
+     0.558
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_boards_out_3.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_3",
+   "offset": [
+    104,
+    -7
+   ],
+   "anchor_px": [
+    -104,
+    7
+   ],
+   "w": 40,
+   "h": 50,
+   "depth_plane": [
+    [
+     3.9062,
+     -0.558
+    ],
+    [
+     3.9062,
+     0.558
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_boards_in_1.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_1",
+   "offset": [
+    88,
+    -4
+   ],
+   "anchor_px": [
+    -88,
+    4
+   ],
+   "w": 30,
+   "h": 23,
+   "depth_plane": [
+    [
+     3.1936,
+     -0.4062
+    ],
+    [
+     3.1936,
+     0.4062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_boards_in_2.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_2",
+   "offset": [
+    88,
+    -10
+   ],
+   "anchor_px": [
+    -88,
+    10
+   ],
+   "w": 30,
+   "h": 37,
+   "depth_plane": [
+    [
+     3.1936,
+     -0.4062
+    ],
+    [
+     3.1936,
+     0.4062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/e_window_boards_in_3.png",
+   "size": 7,
+   "point": "e",
+   "angle": 0,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_3",
+   "offset": [
+    88,
+    -14
+   ],
+   "anchor_px": [
+    -88,
+    14
+   ],
+   "w": 30,
+   "h": 44,
+   "depth_plane": [
+    [
+     3.1936,
+     -0.4062
+    ],
+    [
+     3.1936,
+     0.4062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_reveal.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "reveal",
+   "offset": [
+    -131,
+    -8
+   ],
+   "anchor_px": [
+    131,
+    8
+   ],
+   "w": 38,
+   "h": 71,
+   "depth_plane": [
+    [
+     -0.2898,
+     3.2371
+    ],
+    [
+     -0.3344,
+     3.7351
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_frame.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "frame",
+   "offset": [
+    -144,
+    -20
+   ],
+   "anchor_px": [
+    144,
+    20
+   ],
+   "w": 50,
+   "h": 92,
+   "depth_plane": [
+    [
+     0.5,
+     3.8438
+    ],
+    [
+     -0.5,
+     3.8438
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 3 px outside the outer face (in front of the convex face all along the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_shut.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "shut",
+   "offset": [
+    -129,
+    -7
+   ],
+   "anchor_px": [
+    129,
+    7
+   ],
+   "w": 24,
+   "h": 70,
+   "depth_plane": [
+    [
+     0.5,
+     3.7188
+    ],
+    [
+     -0.5,
+     3.7188
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the leaf (the leaf sits 2 px in from the face seen)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_broken.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "broken",
+   "offset": [
+    -130,
+    -7
+   ],
+   "anchor_px": [
+    130,
+    7
+   ],
+   "w": 21,
+   "h": 69,
+   "depth_plane": [
+    [
+     0.5,
+     3.7188
+    ],
+    [
+     -0.5,
+     3.7188
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut leaf",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_open.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "open",
+   "offset": [
+    -157,
+    -9
+   ],
+   "anchor_px": [
+    157,
+    9
+   ],
+   "w": 27,
+   "h": 72,
+   "depth_plane": [
+    [
+     -0.3358,
+     3.7506
+    ],
+    [
+     -0.3945,
+     4.4065
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane, hinge to free edge (rings.js's swung leaf, hinged at a1)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_open_a0.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "open_a0",
+   "offset": [
+    -129,
+    4
+   ],
+   "anchor_px": [
+    129,
+    -4
+   ],
+   "w": 24,
+   "h": 73,
+   "depth_plane": [
+    [
+     0.3358,
+     3.7506
+    ],
+    [
+     0.3945,
+     4.4065
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane; the alternative hinge, at a0 (the opening's other end)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_boards_out_1.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_1",
+   "offset": [
+    -146,
+    15
+   ],
+   "anchor_px": [
+    146,
+    -15
+   ],
+   "w": 44,
+   "h": 30,
+   "depth_plane": [
+    [
+     0.6278,
+     3.9062
+    ],
+    [
+     -0.6278,
+     3.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_boards_out_2.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_2",
+   "offset": [
+    -146,
+    4
+   ],
+   "anchor_px": [
+    146,
+    -4
+   ],
+   "w": 44,
+   "h": 54,
+   "depth_plane": [
+    [
+     0.6278,
+     3.9062
+    ],
+    [
+     -0.6278,
+     3.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_boards_out_3.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_out_3",
+   "offset": [
+    -146,
+    -2
+   ],
+   "anchor_px": [
+    146,
+    2
+   ],
+   "w": 44,
+   "h": 65,
+   "depth_plane": [
+    [
+     0.6278,
+     3.9062
+    ],
+    [
+     -0.6278,
+     3.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_boards_in_1.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_1",
+   "offset": [
+    -120,
+    7
+   ],
+   "anchor_px": [
+    120,
+    -7
+   ],
+   "w": 34,
+   "h": 25,
+   "depth_plane": [
+    [
+     0.4643,
+     3.186
+    ],
+    [
+     -0.4643,
+     3.186
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_boards_in_2.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_2",
+   "offset": [
+    -120,
+    -4
+   ],
+   "anchor_px": [
+    120,
+    4
+   ],
+   "w": 34,
+   "h": 49,
+   "depth_plane": [
+    [
+     0.4643,
+     3.186
+    ],
+    [
+     -0.4643,
+     3.186
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_door_boards_in_3.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "door",
+   "piece": "boards_in_3",
+   "offset": [
+    -120,
+    -10
+   ],
+   "anchor_px": [
+    120,
+    10
+   ],
+   "w": 34,
+   "h": 60,
+   "depth_plane": [
+    [
+     0.4643,
+     3.186
+    ],
+    [
+     -0.4643,
+     3.186
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_reveal.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "reveal",
+   "offset": [
+    -129,
+    -9
+   ],
+   "anchor_px": [
+    129,
+    9
+   ],
+   "w": 34,
+   "h": 50,
+   "depth_plane": [
+    [
+     -0.2319,
+     3.2417
+    ],
+    [
+     -0.2676,
+     3.7404
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_frame.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "frame",
+   "offset": [
+    -144,
+    -19
+   ],
+   "anchor_px": [
+    144,
+    19
+   ],
+   "w": 50,
+   "h": 71,
+   "depth_plane": [
+    [
+     0.5,
+     3.8438
+    ],
+    [
+     -0.5,
+     3.8438
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 3 px outside the outer face (in front of the convex face all along the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_shut.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "shut",
+   "offset": [
+    -128,
+    -7
+   ],
+   "anchor_px": [
+    128,
+    7
+   ],
+   "w": 20,
+   "h": 45,
+   "depth_plane": [
+    [
+     0.5,
+     3.7188
+    ],
+    [
+     -0.5,
+     3.7188
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the shutters (2 px in from the face seen)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_broken.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "broken",
+   "offset": [
+    -129,
+    -7
+   ],
+   "anchor_px": [
+    129,
+    7
+   ],
+   "w": 22,
+   "h": 46,
+   "depth_plane": [
+    [
+     0.5,
+     3.7188
+    ],
+    [
+     -0.5,
+     3.7188
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut shutters",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_open.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "open",
+   "offset": [
+    -141,
+    -14
+   ],
+   "anchor_px": [
+    141,
+    14
+   ],
+   "w": 39,
+   "h": 60,
+   "depth_plane": [
+    [
+     0.5,
+     3.8906
+    ],
+    [
+     -0.5,
+     3.8906
+    ]
+   ],
+   "layer": 4,
+   "depth_note": "tangent at the door point, 4.5 px outside the outer face (over the frame)",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_boards_out_1.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_1",
+   "offset": [
+    -144,
+    4
+   ],
+   "anchor_px": [
+    144,
+    -4
+   ],
+   "w": 40,
+   "h": 28,
+   "depth_plane": [
+    [
+     0.558,
+     3.9062
+    ],
+    [
+     -0.558,
+     3.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_boards_out_2.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_2",
+   "offset": [
+    -144,
+    -2
+   ],
+   "anchor_px": [
+    144,
+    2
+   ],
+   "w": 40,
+   "h": 42,
+   "depth_plane": [
+    [
+     0.558,
+     3.9062
+    ],
+    [
+     -0.558,
+     3.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_boards_out_3.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_out_3",
+   "offset": [
+    -144,
+    -7
+   ],
+   "anchor_px": [
+    144,
+    7
+   ],
+   "w": 40,
+   "h": 50,
+   "depth_plane": [
+    [
+     0.558,
+     3.9062
+    ],
+    [
+     -0.558,
+     3.9062
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_boards_in_1.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_1",
+   "offset": [
+    -118,
+    -4
+   ],
+   "anchor_px": [
+    118,
+    4
+   ],
+   "w": 30,
+   "h": 23,
+   "depth_plane": [
+    [
+     0.4063,
+     3.1936
+    ],
+    [
+     -0.4062,
+     3.1936
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_boards_in_2.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_2",
+   "offset": [
+    -118,
+    -10
+   ],
+   "anchor_px": [
+    118,
+    10
+   ],
+   "w": 30,
+   "h": 37,
+   "depth_plane": [
+    [
+     0.4063,
+     3.1936
+    ],
+    [
+     -0.4062,
+     3.1936
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/s_window_boards_in_3.png",
+   "size": 7,
+   "point": "s",
+   "angle": 90,
+   "half": "near",
+   "seen_face": "outer",
+   "kind": "window",
+   "piece": "boards_in_3",
+   "offset": [
+    -118,
+    -14
+   ],
+   "anchor_px": [
+    118,
+    14
+   ],
+   "w": 30,
+   "h": 44,
+   "depth_plane": [
+    [
+     0.4063,
+     3.1936
+    ],
+    [
+     -0.4062,
+     3.1936
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": true
+  },
+  {
+   "file": "out/r7/w_door_reveal.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "reveal",
+   "offset": [
+    -131,
+    -120
+   ],
+   "anchor_px": [
+    131,
+    120
+   ],
+   "w": 38,
+   "h": 71,
+   "depth_plane": [
+    [
+     -3.2371,
+     -0.2898
+    ],
+    [
+     -3.7351,
+     -0.3344
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_frame.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "frame",
+   "offset": [
+    -123,
+    -131
+   ],
+   "anchor_px": [
+    123,
+    131
+   ],
+   "w": 44,
+   "h": 91,
+   "depth_plane": [
+    [
+     -3.125,
+     0.5
+    ],
+    [
+     -3.125,
+     -0.5
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 4 px inside the inner face (in front of the concave face out to the frame's ends)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_shut.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "shut",
+   "offset": [
+    -116,
+    -119
+   ],
+   "anchor_px": [
+    116,
+    119
+   ],
+   "w": 21,
+   "h": 69,
+   "depth_plane": [
+    [
+     -3.2812,
+     0.5
+    ],
+    [
+     -3.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the leaf (the leaf sits 2 px in from the face seen)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_broken.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "broken",
+   "offset": [
+    -116,
+    -118
+   ],
+   "anchor_px": [
+    116,
+    118
+   ],
+   "w": 22,
+   "h": 69,
+   "depth_plane": [
+    [
+     -3.2812,
+     0.5
+    ],
+    [
+     -3.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut leaf",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_open.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "open",
+   "offset": [
+    -129,
+    -140
+   ],
+   "anchor_px": [
+    129,
+    140
+   ],
+   "w": 24,
+   "h": 73,
+   "depth_plane": [
+    [
+     -3.7506,
+     -0.3358
+    ],
+    [
+     -4.4065,
+     -0.3945
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane, hinge to free edge (rings.js's swung leaf, hinged at a1)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_open_a0.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "open_a0",
+   "offset": [
+    -157,
+    -126
+   ],
+   "anchor_px": [
+    157,
+    126
+   ],
+   "w": 27,
+   "h": 72,
+   "depth_plane": [
+    [
+     -3.7506,
+     0.3358
+    ],
+    [
+     -4.4065,
+     0.3945
+    ]
+   ],
+   "layer": 2,
+   "depth_note": "the leaf's own radial plane; the alternative hinge, at a0 (the opening's other end)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_boards_out_1.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_1",
+   "offset": [
+    -139,
+    -103
+   ],
+   "anchor_px": [
+    139,
+    103
+   ],
+   "w": 38,
+   "h": 22,
+   "depth_plane": [
+    [
+     -3.7812,
+     0.5357
+    ],
+    [
+     -3.7812,
+     -0.5357
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_boards_out_2.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_2",
+   "offset": [
+    -139,
+    -118
+   ],
+   "anchor_px": [
+    139,
+    118
+   ],
+   "w": 38,
+   "h": 50,
+   "depth_plane": [
+    [
+     -3.7812,
+     0.5357
+    ],
+    [
+     -3.7812,
+     -0.5357
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_boards_out_3.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_out_3",
+   "offset": [
+    -139,
+    -121
+   ],
+   "anchor_px": [
+    139,
+    121
+   ],
+   "w": 38,
+   "h": 58,
+   "depth_plane": [
+    [
+     -3.7812,
+     0.5357
+    ],
+    [
+     -3.7812,
+     -0.5357
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_boards_in_1.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_1",
+   "offset": [
+    -118,
+    -93
+   ],
+   "anchor_px": [
+    118,
+    93
+   ],
+   "w": 36,
+   "h": 22,
+   "depth_plane": [
+    [
+     -3.0938,
+     0.4972
+    ],
+    [
+     -3.0938,
+     -0.4972
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_boards_in_2.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_2",
+   "offset": [
+    -118,
+    -108
+   ],
+   "anchor_px": [
+    118,
+    108
+   ],
+   "w": 36,
+   "h": 49,
+   "depth_plane": [
+    [
+     -3.0938,
+     0.4972
+    ],
+    [
+     -3.0938,
+     -0.4972
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_door_boards_in_3.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "door",
+   "piece": "boards_in_3",
+   "offset": [
+    -118,
+    -111
+   ],
+   "anchor_px": [
+    118,
+    111
+   ],
+   "w": 36,
+   "h": 57,
+   "depth_plane": [
+    [
+     -3.0938,
+     0.4972
+    ],
+    [
+     -3.0938,
+     -0.4972
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_reveal.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "reveal",
+   "offset": [
+    -129,
+    -121
+   ],
+   "anchor_px": [
+    129,
+    121
+   ],
+   "w": 34,
+   "h": 50,
+   "depth_plane": [
+    [
+     -3.2417,
+     -0.2319
+    ],
+    [
+     -3.7404,
+     -0.2676
+    ]
+   ],
+   "layer": 0,
+   "depth_note": "the jamb's own radial plane (the reveal it shows); the opening's floor rides with it",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_frame.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "frame",
+   "offset": [
+    -123,
+    -131
+   ],
+   "anchor_px": [
+    123,
+    131
+   ],
+   "w": 44,
+   "h": 71,
+   "depth_plane": [
+    [
+     -3.125,
+     0.5
+    ],
+    [
+     -3.125,
+     -0.5
+    ]
+   ],
+   "layer": 3,
+   "depth_note": "tangent to the curve at the door point, 4 px inside the inner face (in front of the concave face out to the frame's ends)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_shut.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "shut",
+   "offset": [
+    -115,
+    -119
+   ],
+   "anchor_px": [
+    115,
+    119
+   ],
+   "w": 18,
+   "h": 46,
+   "depth_plane": [
+    [
+     -3.2812,
+     0.5
+    ],
+    [
+     -3.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "tangent at the door point, 1 px in front of the shutters (2 px in from the face seen)",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_broken.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "broken",
+   "offset": [
+    -116,
+    -118
+   ],
+   "anchor_px": [
+    116,
+    118
+   ],
+   "w": 20,
+   "h": 46,
+   "depth_plane": [
+    [
+     -3.2812,
+     0.5
+    ],
+    [
+     -3.2812,
+     -0.5
+    ]
+   ],
+   "layer": 1,
+   "depth_note": "as the shut shutters",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_boards_out_1.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_1",
+   "offset": [
+    -137,
+    -114
+   ],
+   "anchor_px": [
+    137,
+    114
+   ],
+   "w": 34,
+   "h": 20,
+   "depth_plane": [
+    [
+     -3.7812,
+     0.4688
+    ],
+    [
+     -3.7812,
+     -0.4687
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_boards_out_2.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_2",
+   "offset": [
+    -137,
+    -124
+   ],
+   "anchor_px": [
+    137,
+    124
+   ],
+   "w": 34,
+   "h": 38,
+   "depth_plane": [
+    [
+     -3.7812,
+     0.4688
+    ],
+    [
+     -3.7812,
+     -0.4687
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_boards_out_3.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_out_3",
+   "offset": [
+    -137,
+    -126
+   ],
+   "anchor_px": [
+    137,
+    126
+   ],
+   "w": 34,
+   "h": 43,
+   "depth_plane": [
+    [
+     -3.7812,
+     0.4688
+    ],
+    [
+     -3.7812,
+     -0.4687
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, on the far face; seen through the hole, behind the wall",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_boards_in_1.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_1",
+   "offset": [
+    -116,
+    -104
+   ],
+   "anchor_px": [
+    116,
+    104
+   ],
+   "w": 32,
+   "h": 20,
+   "depth_plane": [
+    [
+     -3.0938,
+     0.442
+    ],
+    [
+     -3.0938,
+     -0.442
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_boards_in_2.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_2",
+   "offset": [
+    -116,
+    -114
+   ],
+   "anchor_px": [
+    116,
+    114
+   ],
+   "w": 32,
+   "h": 38,
+   "depth_plane": [
+    [
+     -3.0938,
+     0.442
+    ],
+    [
+     -3.0938,
+     -0.442
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  },
+  {
+   "file": "out/r7/w_window_boards_in_3.png",
+   "size": 7,
+   "point": "w",
+   "angle": 180,
+   "half": "far",
+   "seen_face": "inner",
+   "kind": "window",
+   "piece": "boards_in_3",
+   "offset": [
+    -116,
+    -115
+   ],
+   "anchor_px": [
+    116,
+    115
+   ],
+   "w": 32,
+   "h": 42,
+   "depth_plane": [
+    [
+     -3.0938,
+     0.442
+    ],
+    [
+     -3.0938,
+     -0.442
+    ]
+   ],
+   "layer": 5,
+   "depth_note": "the boards' own straight plane, 5 px off the face seen, clear of the frame",
+   "fades_with_near_half": false
+  }
+ ]
+}

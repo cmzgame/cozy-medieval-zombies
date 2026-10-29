@@ -1,0 +1,116 @@
+{
+ "round": 8,
+ "date": "2026-10-27",
+ "files": [
+  {
+   "file": "out/stair_wood_n.png",
+   "size": [
+    134,
+    176
+   ],
+   "anchor": [
+    34,
+    142
+   ],
+   "facing": "n",
+   "material": "wood"
+  },
+  {
+   "file": "out/stair_wood_w.png",
+   "size": [
+    135,
+    176
+   ],
+   "anchor": [
+    100,
+    142
+   ],
+   "facing": "w",
+   "material": "wood"
+  },
+  {
+   "file": "out/stair_wood_s.png",
+   "size": [
+    135,
+    130
+   ],
+   "anchor": [
+    100,
+    64
+   ],
+   "facing": "s",
+   "material": "wood"
+  },
+  {
+   "file": "out/stair_wood_e.png",
+   "size": [
+    134,
+    130
+   ],
+   "anchor": [
+    34,
+    64
+   ],
+   "facing": "e",
+   "material": "wood"
+  },
+  {
+   "file": "out/stair_wood.json"
+  },
+  {
+   "file": "out/stair_stone_n.png",
+   "size": [
+    132,
+    168
+   ],
+   "anchor": [
+    34,
+    134
+   ],
+   "facing": "n",
+   "material": "stone"
+  },
+  {
+   "file": "out/stair_stone_w.png",
+   "size": [
+    131,
+    168
+   ],
+   "anchor": [
+    97,
+    134
+   ],
+   "facing": "w",
+   "material": "stone"
+  },
+  {
+   "file": "out/stair_stone_s.png",
+   "size": [
+    131,
+    122
+   ],
+   "anchor": [
+    97,
+    56
+   ],
+   "facing": "s",
+   "material": "stone"
+  },
+  {
+   "file": "out/stair_stone_e.png",
+   "size": [
+    132,
+    122
+   ],
+   "anchor": [
+    34,
+    56
+   ],
+   "facing": "e",
+   "material": "stone"
+  },
+  {
+   "file": "out/stair_stone.json"
+  }
+ ]
+}

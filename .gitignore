@@ -5,3 +5,12 @@ Thumbs.db
 screenshots/
 .claude/worktrees/
 *.log
+# art generators write here (tools/art-gen/README.md)
+tools/art-gen/round8/*/out/
+tools/art-gen/round9/*/out/
+tools/art-gen/round10/*/out/
+tools/art-gen/round11/*/out/
+tools/art-gen/round11/*/look/
+tools/art-gen/round12/*/out/
+tools/art-gen/round13/*/out/
+tools/art-gen/round13/*/look/

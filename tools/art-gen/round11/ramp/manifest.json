@@ -1,0 +1,54 @@
+{
+ "round": 11,
+ "date": "2026-10-29",
+ "files": [
+  {
+   "file": "out/wall_ramp_side_north_plain.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "what": "the ramp's side, north edge: a square rock face on the edge line, 96 tall, flat top"
+  },
+  {
+   "file": "out/wall_ramp_side_west_plain.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "what": "the ramp's side, west edge: a square rock face on the edge line, 96 tall, flat top"
+  },
+  {
+   "file": "out/stair_ramp_stone_n.png",
+   "size": [
+    129,
+    160
+   ],
+   "anchor": [
+    31,
+    128
+   ],
+   "what": "stone ramp climbing n, anchor the low-end tile's top vertex"
+  },
+  {
+   "file": "out/stair_ramp_stone_w.png",
+   "size": [
+    128,
+    160
+   ],
+   "anchor": [
+    97,
+    128
+   ],
+   "what": "stone ramp climbing w, anchor the low-end tile's top vertex"
+  }
+ ]
+}

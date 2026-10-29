@@ -1,0 +1,22 @@
+# Art round 9: doors and windows in a round stone wall
+
+Michael, 2026-10-27, on the round stone rooms (`docs/50`): "the circular stone walls are looking great from the outside. It looks like the doors and windows for round walls are redrawn in a simple flat style, I assume they'll be replaced with art?" Yes: this round draws them.
+
+## What a round wall is (read `docs/50-round-rooms.md` whole)
+
+- A ring of stone, 5 or 7 tiles across, 96 px tall (`docs/52`), as thick as the straight stone wall, drawn as 48 thin segments along a circle (the engine's `src/render/rings.js`, generated stone from the stone wall's own tones; look at it in `data/sprites/wall_stone.json` and its art). Its **four door points** are where the circle touches its square: on screen the leftmost, rightmost, topmost and bottommost points of the ring (the screen diagonals). An opening sits only there.
+- **A door**: the hole runs from the floor to 64 px; a **window**: from 24 px to 64 px (`DOOR_TOP`, `WINDOW_SILL`, `WINDOW_TOP`). The cap (the wall's top) runs unbroken over the opening. Today the engine cuts the hole in the curve and fills it with flat placeholder planks, shutters, or boards.
+- States to draw: **door** shut and open (open: the leaf swung out square to the curve from the opening's end, as `rings.js` places it), broken (the hole alone, maybe a splintered jamb); **window** with shutters shut and open, and boarded (boards nailed across, inside and out). The leaf and shutters sit **on the curve**: a shut door is a slightly curved plank leaf following the wall's arc across the opening; seen from inside the far half, the same opening shows its inner face.
+- Each opening is seen at four screen positions (left, right, top, bottom of the ring), from outside (left and right and bottom openings face the camera; the top one is seen from inside across the room, or only its cap from outside) and from inside.
+
+## The house style (read first)
+
+The repo (read only; never edit, commit, or write there): `C:/Users/micha/Dev/cozy-medieval-zombies/.claude/worktrees/79-sweep-3e-23fa08`. Read `docs/art/01-style-bible.md`, `docs/sprite-definitions.md`, and look (Read tool) at the straight wall's door and window art (`data/sprites/wall_stone.json`, `wall_wood.json` and the parts sheets they point at: the shut door, the open leaf, the shutters, the boards), the Fireplace and Fire pit (`data/art/village/fireplace.png`, `fire_pit.png`: Michael's high-water marks), and the drawn stairs (`data/art/village/stair_wood_n.png`). Rules: hard pixels only (alpha 0 or 255); a 1 px `#2b2522` outline round each separate piece; light from the top left; stepped ramps; drawn at final size. Wood leaves in the oak door's tones, iron straps and a ring pull; a stone arch or lintel line over the opening in the ring's stone is welcome if it reads (a slightly exaggerated, WoW-ish chunky look, as the Fireplace).
+
+## What to deliver, in your own folder only
+
+`C:/Users/micha/AppData/Local/Temp/claude/C--Users-micha-Dev-cozy-medieval-zombies--claude-worktrees-79-sweep-3e-23fa08/b80e4332-b754-466b-9b55-c0810f052756/scratchpad/art9/round-openings/`: `gen.py` (Python 3, PIL and numpy, plain `python`, deterministic), `out/`, `preview.png`, `README.md`, `manifest.json`.
+
+For a 5-across and a 7-across ring (the curve's radius differs, so the leaf's arc differs): each opening at each of the four door points, outside face and inside face as applies, in each state (door shut, open, broken; window shut, open, boarded), as separate pieces with their anchors stated in ring-local screen pixels (relative to the ring's centre on the ground) so the engine can place them over its own generated curve, plus a **frame** piece (jambs, lintel or arch) per door point, drawn to sit on the curve's surface (no square posts: Michael's ruling, the posts jutting out of the curve were the bug). Say how each piece's depth should be read (which segment's plane it sits on).
+
+**preview.png**: a 5 and a 7 ring drawn as the engine draws it (mimic `rings.js`: 48 stone segments, a cap) with your openings composited in, from outside (the camera's view) and from inside (the near half faded to 0.42), by day, at 1x and 3x, a 55 px figure at a door for scale. Look at every output with the Read tool and iterate until each reads at a glance. Report the files, anchors, depth notes, and anything weak. Do not wire anything: Michael approves art first.

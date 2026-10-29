@@ -1,0 +1,210 @@
+{
+ "2_n": {
+  "frame": {
+   "file": "out/gate_stone_2_north_frame.png",
+   "size": [
+    81,
+    137
+   ],
+   "anchor": [
+    8,
+    100
+   ]
+  },
+  "leaf_closed": {
+   "file": "out/gate_stone_2_north_leaf_closed.png",
+   "size": [
+    46,
+    85
+   ],
+   "anchor": [
+    -2,
+    58
+   ]
+  },
+  "leaf_mid": {
+   "file": "out/gate_stone_2_north_leaf_mid.png",
+   "size": [
+    46,
+    56
+   ],
+   "anchor": [
+    -2,
+    58
+   ]
+  },
+  "leaf_raised": {
+   "file": "out/gate_stone_2_north_leaf_raised.png",
+   "size": [
+    32,
+    27
+   ],
+   "anchor": [
+    -10,
+    58
+   ]
+  }
+ },
+ "2_w": {
+  "frame": {
+   "file": "out/gate_stone_2_west_frame.png",
+   "size": [
+    81,
+    137
+   ],
+   "anchor": [
+    72,
+    100
+   ]
+  },
+  "leaf_closed": {
+   "file": "out/gate_stone_2_west_leaf_closed.png",
+   "size": [
+    46,
+    85
+   ],
+   "anchor": [
+    48,
+    58
+   ]
+  },
+  "leaf_mid": {
+   "file": "out/gate_stone_2_west_leaf_mid.png",
+   "size": [
+    46,
+    56
+   ],
+   "anchor": [
+    48,
+    58
+   ]
+  },
+  "leaf_raised": {
+   "file": "out/gate_stone_2_west_leaf_raised.png",
+   "size": [
+    32,
+    27
+   ],
+   "anchor": [
+    42,
+    58
+   ]
+  }
+ },
+ "3_n": {
+  "frame": {
+   "file": "out/gate_stone_3_north_frame.png",
+   "size": [
+    113,
+    153
+   ],
+   "anchor": [
+    8,
+    100
+   ]
+  },
+  "leaf_closed": {
+   "file": "out/gate_stone_3_north_leaf_closed.png",
+   "size": [
+    78,
+    96
+   ],
+   "anchor": [
+    -2,
+    53
+   ]
+  },
+  "leaf_mid": {
+   "file": "out/gate_stone_3_north_leaf_mid.png",
+   "size": [
+    78,
+    67
+   ],
+   "anchor": [
+    -2,
+    53
+   ]
+  },
+  "leaf_raised": {
+   "file": "out/gate_stone_3_north_leaf_raised.png",
+   "size": [
+    56,
+    34
+   ],
+   "anchor": [
+    -11,
+    53
+   ]
+  }
+ },
+ "3_w": {
+  "frame": {
+   "file": "out/gate_stone_3_west_frame.png",
+   "size": [
+    113,
+    153
+   ],
+   "anchor": [
+    104,
+    100
+   ]
+  },
+  "leaf_closed": {
+   "file": "out/gate_stone_3_west_leaf_closed.png",
+   "size": [
+    78,
+    96
+   ],
+   "anchor": [
+    80,
+    53
+   ]
+  },
+  "leaf_mid": {
+   "file": "out/gate_stone_3_west_leaf_mid.png",
+   "size": [
+    78,
+    67
+   ],
+   "anchor": [
+    80,
+    53
+   ]
+  },
+  "leaf_raised": {
+   "file": "out/gate_stone_3_west_leaf_raised.png",
+   "size": [
+    56,
+    34
+   ],
+   "anchor": [
+    67,
+    53
+   ]
+  }
+ },
+ "geometry": {
+  "2": {
+   "run": 64,
+   "opening": [
+    8,
+    56
+   ],
+   "springing": 38,
+   "crown": 78,
+   "radius": 45.33,
+   "leaf_plane": 6
+  },
+  "3": {
+   "run": 96,
+   "opening": [
+    8,
+    88
+   ],
+   "springing": 34,
+   "crown": 78,
+   "radius": 44.2,
+   "leaf_plane": 6
+  }
+ }
+}
