@@ -1017,7 +1017,9 @@ export function restage(prop, sprite, regrowAt) {
 export function removeProp(prop) {
   const layer = prop.layer || 0;
   for (const [tx, ty] of prop.tiles) {
-    const t = tileAt(tx, ty, layer);
+    // growTile, not tileAt: a tile on an ungrown neighbour chunk (#341) must be grown to clear the
+    // authored prop from it, or the ghost stands again when the neighbour grows (#582).
+    const t = growTile(tx, ty, layer);
     if (t.prop === prop) t.prop = null;
     if (t.rug === prop) t.rug = null;
   }
@@ -2683,7 +2685,7 @@ export function openingsNear(gx, gy, r = 1.15, layer = 0) {
   const cy = Math.round(gy);
   for (let ty = cy - 2; ty <= cy + 2; ty++) {
     for (let tx = cx - 2; tx <= cx + 2; tx++) {
-      const t = tileAt(tx, ty, layer);
+      const t = growTile(tx, ty, layer);
       if (t.n && t.n.kind !== "wall") {
         const mx = tx;
         const my = ty - 0.5;
@@ -3114,7 +3116,7 @@ export function circleBlocked(gx, gy, r0, layer = 0, sFrom = undefined) {
         const w = stairIndex.get(tileKey3(tx, ty, layer));
         if (w && w.well) continue; // a stairwell: its edges block (stairBlocks), its void does not
       }
-      const t = tileAt(tx, ty, layer);
+      const t = growTile(tx, ty, layer);
       // Water blocks like a solid tile: no body enters a wholly-water tile (docs/30, law 8).
       if (tx <= maxX && ty <= maxY && floorRule(t.floor).walk === false) {
         const cx = Math.max(tx - 0.5, Math.min(gx, tx + 0.5));

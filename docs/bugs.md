@@ -16,8 +16,6 @@
 
 ## Open: likely bugs
 
-- **A prop removed or restaged in an ungrown chunk leaves a solid ghost out of the registry** (found building #447 and reproduced by its review under Node, 2026-10-25, on `primary/447-resources-comeback`; not reachable in play today). `map.removeProp` (`src/map.js` ~787) and `map.restage` reach the tile through `tileAt`, which for an ungrown chunk is the frozen blank tile: the prop leaves the registry, but the authored tile keeps it, so when the chunk grows it stands on its tile again, solid, not minable, and a sync mismatch. Every remover today stands in its own grown ring. Likely fix: reach the tile through `growTile`, as `placeProp` does (a mutator grows its chunk).
-
 - **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`, *needs repro*). `src/moodles.js` (~26): the first stage's words assume a bite, and water gives no bite.
 
 ## Open: surprises for Michael to rule on
@@ -36,6 +34,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Became issues
 
 (Move lines here with the issue's number once reproduced.)
+
+- **A prop removed or restaged in an ungrown chunk leaves a solid ghost out of the registry.** → #582.
 
 ## Fixed
 
