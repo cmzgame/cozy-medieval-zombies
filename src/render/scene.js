@@ -229,15 +229,17 @@ export function renderScene(args) {
   // view is not drawn at all, so away from every house the frame is the ground's alone (the review of #534: every loaded chunk's layer
   // took the extra pass and the second area every frame). The viewer's own layer is always drawn.
   const grown = new Map();
+  const held = new Set(); // the storeys with a tile of their own in view: the edge row and column storeyTileOn adds only draw, never choose (the review of #564)
   const layers = layersFor(VL).filter((L) => {
     if (!L) return true;
     const t = tilesOf(tiles, L).filter(([x, y]) => storeyTileOn(x, y, L));
     grown.set(L, t);
-    return t.length > 0 || L === VL;
+    if (t.some(([x, y]) => grownOn(x, y, L))) held.add(L);
+    return held.has(L) || L === VL;
   });
   // A storey's own light, ambient, and fog (the second set of area textures): the viewer's layer when it is not the ground, else the
   // first storey in view; a storey besides those is lit as the open air (the sky's flag) until the light is kept per layer for all.
-  const upperL = VL !== 0 ? VL : layers.find((l) => l > 0) ?? null;
+  const upperL = VL !== 0 ? VL : layers.find((l) => l > 0 && held.has(l)) ?? null;
   if (upperL !== null) buildStoreyArea(grown.get(upperL), visible, drawAll || !fog, cam.gx, cam.gy, upperL);
   gl.setUpperSet(upperL !== null);
   if (layers[0] === 0) {
