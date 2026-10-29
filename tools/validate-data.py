@@ -79,6 +79,18 @@ for kind, b in build.items():
         check_id(f"build.{kind}.cost", cost)
     if b.get("sprite") not in sprites:
         fail(f"build.{kind}: no sprite {b.get('sprite')!r}")
+    # The palette's tabs (Michael, 2026-10-28): a known tab, and a Terrain entry paints a floor the ground's table knows, Free building only.
+    if b.get("tab", "build") not in ("build", "terrain"):
+        fail(f"build.{kind}: unknown tab {b.get('tab')!r}")
+    if b.get("tab") == "terrain" and not b.get("dev"):
+        fail(f"build.{kind}: a Terrain entry is `dev` (Free building only)")
+    if b.get("kind") == "terrain":
+        if not b.get("dev"):
+            fail(f"build.{kind}: a terrain entry paints the ground and is `dev` (Free building only)")
+        if b.get("tab") != "terrain":
+            fail(f"build.{kind}: a terrain entry is on the Terrain tab")
+        if b.get("sprite") not in load("data/ground.json").get("floors", {}):
+            fail(f"build.{kind}: the floor {b.get('sprite')!r} is not in data/ground.json `floors`")
 
 # The starting kit (#136): every id exists, what is worn has a slot, and the whole fits the bag it starts in (by area: the sack, and the
 # Developer Bag a world may start with instead; `node tools/check.js` proves the fit by placement on the real grid).

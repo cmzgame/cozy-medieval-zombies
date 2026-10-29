@@ -2126,14 +2126,21 @@ html, body {
 
 .mp-canvas:active { cursor: grabbing; }
 
-/* ---- docs/13: the build palette ---- */
+/* ---- docs/13: the build palette ----
+   Two tabs, Build and Terrain. It sits under the HUD and clears the log and the hotbar (a height cap, whatever the interface size); the
+   title, the tabs, Take apart, and the hint stay put and only the list scrolls (Michael, 2026-10-28: "they need height constraints,
+   scrolling, etc. Right now it stretches to full screen, no scroll, and is hard to use"). */
 #build-palette {
   position: absolute;
   left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 124px; /* under the HUD (its box ends at 120) */
+  max-height: calc(100% - 124px - 156px); /* over the log (its top is 148 above the bottom) */
   z-index: 7;
   min-width: 200px;
+  max-width: 280px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   padding: 8px;
   background: var(--panel);
   border: 2px solid var(--panel-edge);
@@ -2142,20 +2149,81 @@ html, body {
   font-family: var(--font-small);
 }
 
+#build-palette[hidden] { display: none; }
+
 .bp-title {
+  flex: none;
   font-size: 15px;
   font-family: var(--font-small);
   margin-bottom: 6px;
   color: #d8c8e0;
 }
 
+.bp-tabs {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.bp-tabs[hidden] { display: none; }
+
+.bp-tab {
+  flex: 1;
+  padding: 4px 6px;
+  font: inherit;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid #4a4058;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.bp-tab:hover { background: #3a3044; color: var(--text); }
+
+.bp-tab.on {
+  color: var(--ink);
+  background: var(--gold);
+  border-color: var(--gold);
+  font-weight: 600;
+}
+
+.bp-list {
+  position: relative; /* its rows' offsetTop is read from it to scroll one into view */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain; /* a wheel over the list scrolls the list and never the page or the world */
+  scrollbar-width: thin;
+  scrollbar-color: var(--edge) transparent;
+}
+
+.bp-group {
+  padding: 6px 8px 2px;
+  font-size: 11px;
+  font-family: var(--font-small);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #a098ac;
+}
+
+.bp-group:first-child { padding-top: 0; }
+
 .bp-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 16px;
   padding: 5px 8px;
   border-radius: 3px;
   cursor: pointer;
+}
+
+.bp-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bp-row:hover {
@@ -2163,7 +2231,15 @@ html, body {
 }
 
 .bp-cost {
+  flex: none;
   color: #a8d8a0;
+}
+
+.bp-sw {
+  flex: none;
+  width: 26px;
+  height: 14px;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); /* a tile's diamond, in the floor's own colour */
 }
 
 .bp-row.active {
@@ -2181,6 +2257,12 @@ html, body {
   color: #e87070;
 }
 
+.bp-foot {
+  flex: none;
+}
+
+.bp-foot[hidden] { display: none; }
+
 .bp-remove {
   margin-top: 4px;
   border-top: 1px solid #4a4058;
@@ -2192,12 +2274,23 @@ html, body {
 }
 
 .bp-hint {
+  flex: none;
   margin-top: 6px;
   font-size: 11px;
   font-family: var(--font-small);
   color: #a098ac;
-  max-width: 220px;
 }
+
+/* A short window (the UI under 560 px tall: build-palette.js sets the class): the palette moves to the right of the HUD, up under the clock's
+   row, so the list keeps its room between the top and the log, and the title and the hint give theirs up. */
+#build-palette.short {
+  left: 246px;
+  top: 40px;
+  max-height: calc(100% - 40px - 156px);
+}
+
+#build-palette.short .bp-hint,
+#build-palette.short .bp-title { display: none; }
 
 /* ---- the loading shell (docs/23, step 1): shown by index.html before any script runs ---- */
 #loading {
