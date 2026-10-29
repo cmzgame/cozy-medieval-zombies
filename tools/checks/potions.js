@@ -1,7 +1,7 @@
 // Potions, step 2 (docs/47 sections 2 to 4, 8 and 9, #481): the vials, the cauldron, and drinking. From the console, on a tab with
 // `?nosave&mute` (the valley):
 //   await __game.check("potions")
-// The art (art round 5, 2026-10-26): each vial item a drawn pair, 19 by 19, lying on the floor as its picture (`floor_<id>`), the colour on
+// The art (art round 5, 2026-10-26): each vial item a drawn pair, 19 by 19, lying on the floor as its picture (`lying_<id>`), the colour on
 // the wax seal and the glazed band (healing red, stamina gold, mana blue, poison green, strong poison a darker green with a black seal), the
 // potions and poisons with a belt portrait, the empty vial and the unfired one bare; over the bag each new item's icon and its hover
 // card read on the page. The witch's cauldron on the lane to the mere: its menu (Use the cauldron, the oven's Light, no Pick up, no Boil),
@@ -219,7 +219,7 @@ export async function run(game, opts = {}) {
     for (const v of VIALS) {
       const def = G.items.getItem(v);
       let floor = null;
-      try { floor = G.assets.getSheet(`floor_${v}`); } catch { floor = null; }
+      try { floor = G.assets.getSheet(`lying_${v}`); } catch { floor = null; }
       if (!def.icon || def.icon.src !== `data/art/items/${v}_icon.png` || def.icon.size.join() !== "19,19" || !def.held || def.held.image !== `data/art/items/${v}_world.png` || !floor) wrongArt.push(`${v}: no drawn icon, picture, or floor picture`);
       else if (!!def.portrait !== POTS.includes(v)) wrongArt.push(`${v}: portrait ${!!def.portrait}`);
     }

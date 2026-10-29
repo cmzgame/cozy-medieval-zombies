@@ -6001,6 +6001,18 @@ check("the stone ramp: a stair of its own material (north and west only), walked
     me.rise = 0;
   }
 });
+check("an item lying on the floor is drawn from `lying_<id>`, a name no sprite definition takes (Michael's playtest, 2026-10-28: as `floor_<id>` the item stone's picture took the stone floor's sheet, and every stone floor, a stone stair's landing among them, drew as one pebble)", () => {
+  const main = fs.readFileSync(path.join(root, "src/main.js"), "utf8");
+  const props = fs.readFileSync(path.join(root, "src/render/props.js"), "utf8");
+  assert(/registerSheet\(`lying_\$\{def\.id\}`/.test(main) && !/registerSheet\(`floor_\$\{/.test(main), "main.js does not register an item's lying picture as lying_<id>");
+  assert(/projectileSheet\(`lying_\$\{e\.id\}`\)/.test(props) && !/projectileSheet\(`floor_\$\{/.test(props), "render/props.js does not draw an item lying from lying_<id>");
+  const sprites = new Set(fs.readdirSync(path.join(root, "data/sprites")).map((f) => f.replace(/\.json$/, "")));
+  const ids = itemsMod.allItems().map((d) => d.id);
+  const clash = ids.filter((id) => sprites.has(`lying_${id}`));
+  assert(!clash.length, `a sprite definition takes an item's lying name: ${clash.join(", ")}`);
+  const floorIds = ids.filter((id) => sprites.has(`floor_${id}`));
+  return `${ids.length} items; none of their lying names is a definition's (the old names would have clashed for ${floorIds.join(", ") || "none"})`;
+});
 const storeysMod = await import("../src/render/storeys.js");
 check("the drawn stair stands on its tiles: halfway up, the feet at either side limit of the walkable band land on the drawn tread, inside its stringers, in all four facings, wood and stone", () => {
   // Tread 6 (48 px, t 1.375 to 1.625) of each picture, its top's corners in the drawing's pixels (the artist's table, art round 8).

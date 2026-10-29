@@ -67,8 +67,8 @@ export const DEPTH_ROOM = { post: 0.5, wall: 1, floorItem: 0.5, prop: 1, figure:
 // thing's own pixels from what is behind them; `override` replaces fields of the frame's scene (a ghost, the marker, a flight, the tile
 // mark, the highlight, the fog), so a check can stage what the client's own modules would; `mark` ({ is, color }) draws the drawables `is`
 // returns true for in one flat colour (gl.setMark), in their own passes and depths, so a check finds a thing's own pixels by drawing it
-// in two colours, whatever the colours behind it. All null in play.
-export const probe = { skip: null, override: null, mark: null };
+// in two colours, whatever the colours behind it; `floor` ({ layer, color }, check("cliffs")) draws a storey's floors so. All null in play.
+export const probe = { skip: null, override: null, mark: null, floor: null };
 
 // The fade of a storey you stand behind (docs/49 section 6), on in play; check("storeys") turns it off to see what it shows.
 export const storeyFade = { on: true };
@@ -199,6 +199,15 @@ function grownOn(x, y, L) {
   }
   return grownHas;
 }
+// A storey's tile to draw: one whose chunk layer L holds, or one on the first row or column of a chunk it does not hold whose neighbour
+// to the west or north it does. The top vertex of that tile is the far end of a wall standing on the neighbour, and what stands at a
+// vertex (a post, a cliff's corner piece, which draws the edges it claims) is drawn from the vertex's own tile (Michael's playtest,
+// 2026-10-28: a hill's front corner on the first storey fell on a chunk that storey did not hold, and its two cliff edges drew as nothing).
+function storeyTileOn(x, y, L) {
+  if (grownOn(x, y, L)) return true;
+  const C = map.CHUNK;
+  return (x - Math.floor(x / C) * C === 0 && grownOn(x - 1, y, L)) || (y - Math.floor(y / C) * C === 0 && grownOn(x, y - 1, L));
+}
 
 export function renderScene(args) {
   const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null } = probe.override ? { ...args, ...probe.override } : args;
@@ -220,15 +229,17 @@ export function renderScene(args) {
   // view is not drawn at all, so away from every house the frame is the ground's alone (the review of #534: every loaded chunk's layer
   // took the extra pass and the second area every frame). The viewer's own layer is always drawn.
   const grown = new Map();
+  const held = new Set(); // the storeys with a tile of their own in view: the edge row and column storeyTileOn adds only draw, never choose (the review of #564)
   const layers = layersFor(VL).filter((L) => {
     if (!L) return true;
-    const t = tilesOf(tiles, L).filter(([x, y]) => grownOn(x, y, L));
+    const t = tilesOf(tiles, L).filter(([x, y]) => storeyTileOn(x, y, L));
     grown.set(L, t);
-    return t.length > 0 || L === VL;
+    if (t.some(([x, y]) => grownOn(x, y, L))) held.add(L);
+    return held.has(L) || L === VL;
   });
   // A storey's own light, ambient, and fog (the second set of area textures): the viewer's layer when it is not the ground, else the
   // first storey in view; a storey besides those is lit as the open air (the sky's flag) until the light is kept per layer for all.
-  const upperL = VL !== 0 ? VL : layers.find((l) => l > 0) ?? null;
+  const upperL = VL !== 0 ? VL : layers.find((l) => l > 0 && held.has(l)) ?? null;
   if (upperL !== null) buildStoreyArea(grown.get(upperL), visible, drawAll || !fog, cam.gx, cam.gy, upperL);
   gl.setUpperSet(upperL !== null);
   if (layers[0] === 0) {
@@ -262,7 +273,13 @@ export function renderScene(args) {
       if (L) {
         // An upper floor's ground (or a cellar's), a quad a chunk with its depth written, and what lies flat on it just over it.
         gl.setPass(gl.PASS_STAND);
-        emitFloors(tilesL, L, DEPTH_BIAS.liftedFloor, hidden, fadeHere ? faded : null);
+        const markFloor = probe.floor && probe.floor.layer === L;
+        if (markFloor) gl.setMark(probe.floor.color);
+        try {
+          emitFloors(tilesL, L, DEPTH_BIAS.liftedFloor, hidden, fadeHere ? faded : null);
+        } finally {
+          if (markFloor) gl.setMark(null);
+        }
         emitRugs(tilesL);
       }
       const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
