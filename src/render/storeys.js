@@ -457,7 +457,9 @@ function floorSheet(c) {
       const cy = (lx + ly) * iso.HH + iso.HH + PAD;
       const r = t.built ? map.ringAt(x, y, c.layer) : null;
       const s = r ? round.shape(r.x0, r.y0, r.n) : null;
-      const clip = s && Math.hypot(Math.abs(x - s.cx) + 0.5, Math.abs(y - s.cy) + 0.5) > s.R;
+      // Only a tile the ring steps over (the curve cuts it); a floor in the ring's square beyond the stepped tiles (the corners) is the walkway's own,
+      // laid round the ring, and stays whole (Michael's playtest, 2026-10-29: the floor round a tower on a wall walk was missing its outer corners).
+      const clip = s && round.isStepped(r.x0, r.y0, r.n, x, y) && Math.hypot(Math.abs(x - s.cx) + 0.5, Math.abs(y - s.cy) + 0.5) > s.R;
       if (clip) {
         // A floor a player laid where a ring's curve runs over the tile or between it and the stepped walls: inside the curve alone, as on
         // the ground (src/ground.js; the review of #549: on every layer).
