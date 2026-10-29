@@ -1194,7 +1194,7 @@ export function edgeMid(tx, ty, edge) {
 export function canStampOver(existing, kind) {
   if (!existing) return true;
   if (kind !== "door" && kind !== "window") return false;
-  if (existing.kind === "wall" && wallRule(existing.sprite).cliff) return false; // no door or window in a cliff (art round 10, Free building's)
+  if (existing.kind === "wall" && wallRule(existing.sprite).solid) return false; // no door or window in a cliff (art round 10, Free building's) nor in a ramp's own side
   if (existing.kind === "wall") return kind === "door" || !wallRule(existing.sprite).seeThrough; // a window is no use in a fence or bars
   return existing.kind === kind && !!existing.broken;
 }
@@ -2580,7 +2580,7 @@ export function wallRule(sprite) {
   let def = null;
   try { def = getDef(sprite); } catch { def = null; }
   const w = (def && def.wall) || {};
-  r = { seeThrough: !!w.seeThrough, fence: !!w.fence, cliff: !!w.cliff }; // a cliff (art round 10): bare rock, no opening stamped in it, nothing hung on it
+  r = { seeThrough: !!w.seeThrough, fence: !!w.fence, cliff: !!w.cliff, solid: !!w.solid || !!w.cliff, side: !!w.solid && !w.cliff }; // `solid`: no opening, nothing hung on it (a cliff's, and a ramp's own side: wall_ramp_side) // a cliff (art round 10): bare rock, no opening stamped in it, nothing hung on it
   wallRules.set(sprite, r);
   return r;
 }
@@ -2711,10 +2711,16 @@ function builtStairRecord(x0, y0, dir, material, layer, free) {
 // across its run, no prop, rug, or item), the tile before its foot walkable, its landing above open (the void, or a floor a player laid)
 // with nothing on it, and its stairwell void. Stairs climb away from the camera (Primary's default, Michael to confirm: climbing east or
 // south the treads fold onto one line on screen).
-export function stairBuildProblem(x0, y0, dir, layer = 0) {
+export function stairBuildProblem(x0, y0, dir, layer = 0, material = "wood") {
   if (dir === "e" || dir === "s") return "Stairs climb away from the camera";
   const rec = builtStairRecord(x0, y0, dir, "wood", layer, false);
   if (!rec) return "Not here";
+  if (stairKind(material).ramp) {
+    // A ramp walls the ground under its landing on three sides (landingSideEdges), never to be taken apart: nothing may stand on that tile
+    // when it goes up, or be sealed in with it (a body is the placement's to refuse, which only it can see).
+    const g = tileAt(rec.landing[0], rec.landing[1], layer);
+    if (g && (g.prop || g.rug || (g.items && g.items.length))) return "Something is in the way";
+  }
   if (layer < 0) return "Not here";
   const up = layer + 1;
   const [bx, by] = rec.before;
@@ -2728,7 +2734,8 @@ export function stairBuildProblem(x0, y0, dir, layer = 0) {
   }
   const chain = [rec.before, ...rec.tiles];
   for (let i = 1; i < chain.length; i++) if (wallBetween(chain[i - 1][0], chain[i - 1][1], chain[i][0], chain[i][1], layer)) return "A wall is in the way";
-  if (wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], layer)) return "A wall is in the way"; // its top edge on its own layer
+  const head = wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], layer); // its top edge on its own layer
+  if (head) return head.kind === "wall" && wallRule(head.sprite).cliff ? "A cliff wall is at its head: take it down first" : "A wall is in the way";
   // No wall across the stairwell's top to be, against its landing (a body going down crosses it into the stairwell, whose tiles' walls the
   // collision passes whole: the review of #549), and no ring's curve over its stairwell or its landing.
   if (wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], up)) return "A wall is over it";
@@ -2739,15 +2746,39 @@ export function stairBuildProblem(x0, y0, dir, layer = 0) {
   return "";
 }
 
+// The edges of the ground under a stair's landing that are not its head's: [tx, ty, edge] for the n and w edges round that tile (the head
+// is the one it shares with the stair's top step).
+const RAMP_SIDE = "wall_ramp_side";
+export function landingSideEdges(rec) {
+  const [lx, ly] = rec.landing;
+  const edges = [[lx, ly, "n"], [lx, ly + 1, "n"], [lx, ly, "w"], [lx + 1, ly, "w"]]; // north, south, west, east
+  const head = rec.dir === "n" ? [lx, ly + 1, "n"] : [lx + 1, ly, "w"];
+  return edges.filter(([x, y, e]) => !(x === head[0] && y === head[1] && e === head[2]));
+}
+
 // Build it: its landing's planks laid on the storey above (part of its cost, never taken up), the stairwell over its three tiles left void,
 // its record kept on its low tile's chunk. A built stair never comes up (ruled). Returns the stair, or null.
 export function buildStair(x0, y0, dir, material, layer = 0, { free = false } = {}) {
-  if (stairBuildProblem(x0, y0, dir, layer)) return null;
+  if (stairBuildProblem(x0, y0, dir, layer, material)) return null;
   const rec = builtStairRecord(x0, y0, dir, material, layer, free);
   const up = layer + 1;
   const land = growTile(rec.landing[0], rec.landing[1], up);
   if (land.floor === VOID) land.floor = stairKind(rec.material).landing;
   for (const [x, y] of rec.tiles) growTile(x, y, up).floor = VOID; // the stairwell, already void (stairBuildProblem)
+  if (stairKind(rec.material).ramp) {
+    // A ramp brings its own solid sides for its landing tile (Michael, 2026-10-29: "Our ramp needs to bring its own free next level floor tile
+    // side walls"): the landing floats a storey over the ground, so the edges of the tile under it that are not the head's get a plain square
+    // wall where none stands, and the ramp keeps its whole solid shape. Laid with the ramp, saved as walls, never taken apart (no `built`).
+    for (const [tx, ty, edge] of landingSideEdges(rec)) {
+      const t = growTile(tx, ty, layer);
+      if (t[edge]) continue; // a cliff wall built there already is the side
+      const wall = createWall("wall", RAMP_SIDE);
+      wall.at = addr(tx, ty, layer);
+      t[edge] = wall;
+      touch(tx, ty, layer);
+      rebuildRoomsAround(tx, ty, edge, layer);
+    }
+  }
   stairList.push(rec);
   indexStairs();
   for (const [x, y] of [...rec.tiles, rec.landing]) touch(x, y, layer);

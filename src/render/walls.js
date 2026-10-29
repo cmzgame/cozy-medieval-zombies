@@ -343,7 +343,8 @@ export function postAt(tx, ty, playerRoom) {
 function vertexAt(tx, ty, playerRoom) {
   // No post where a ring meets itself: its step corners and its door points' ends (docs/50 section 4; the playtest, 2026-10-27); nor for a
   // buried cliff edge (art round 10: plateau on both its sides, drawn as nothing).
-  const straight = (w, x, y, e) => (w && !map.drawnByRing(w) && !(cliffs.cliffWallOf(w) && cliffs.buried(x, y, e, map.drawLayerNow())) ? w : null);
+  // A ramp's own side (`wall.solid` and no cliff: wall_ramp_side, art round 11) stands post-less: its picture is the whole face.
+  const straight = (w, x, y, e) => (w && !map.drawnByRing(w) && !(cliffs.cliffWallOf(w) && cliffs.buried(x, y, e, map.drawLayerNow())) && !map.wallRule(w.sprite).side ? w : null);
   const nE = straight(map.tileAt(tx, ty).n, tx, ty, "n");
   const nW = straight(map.tileAt(tx - 1, ty).n, tx - 1, ty, "n");
   const wS = straight(map.tileAt(tx, ty).w, tx, ty, "w");

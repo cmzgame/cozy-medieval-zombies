@@ -6,17 +6,17 @@
  ],
  "drawings": {
   "n": {
-   "image": "data/art/cliffs/stair_ramp_stone_n.png",
+   "image": "data/art/village/stair_ramp_stone_n.png",
    "anchor": [
-    29,
-    127
+    31,
+    128
    ]
   },
   "w": {
-   "image": "data/art/cliffs/stair_ramp_stone_w.png",
+   "image": "data/art/village/stair_ramp_stone_w.png",
    "anchor": [
     97,
-    127
+    128
    ]
   }
  },
@@ -27,427 +27,476 @@
    {
     "u": 0.4375,
     "tread": 0.09375,
-    "height": 14
+    "height": 14.0
    },
    {
     "u": 1.4375,
     "tread": 0.09375,
-    "height": 46
+    "height": 46.0
    },
    {
     "u": 2.4375,
     "tread": 0.09375,
-    "height": 78
+    "height": 78.0
    }
   ],
   "surface": {
    "n": [
     {
-     "t": 0,
-     "height": 0,
+     "t": 0.0,
+     "height": 0.0,
      "centre": [
-      13,
-      151
+      15.0,
+      152.0
      ]
     },
     {
      "t": 0.125,
-     "height": 4,
+     "height": 4.0,
      "centre": [
-      17,
-      145
+      19.0,
+      146.0
      ]
     },
     {
      "t": 0.25,
-     "height": 8,
+     "height": 8.0,
      "centre": [
-      21,
-      139
+      23.0,
+      140.0
      ]
     },
     {
      "t": 0.375,
-     "height": 12,
+     "height": 12.0,
      "centre": [
-      25,
-      133
+      27.0,
+      134.0
      ]
     },
     {
      "t": 0.5,
-     "height": 14,
+     "height": 14.0,
      "centre": [
-      29,
-      129
+      31.0,
+      130.0
      ]
     },
     {
      "t": 0.625,
-     "height": 20,
+     "height": 20.0,
      "centre": [
-      33,
-      121
+      35.0,
+      122.0
      ]
     },
     {
      "t": 0.75,
-     "height": 24,
+     "height": 24.0,
      "centre": [
-      37,
-      115
+      39.0,
+      116.0
      ]
     },
     {
      "t": 0.875,
-     "height": 28,
+     "height": 28.0,
      "centre": [
-      41,
-      109
+      43.0,
+      110.0
      ]
     },
     {
-     "t": 1,
-     "height": 32,
+     "t": 1.0,
+     "height": 32.0,
      "centre": [
-      45,
-      103
+      47.0,
+      104.0
      ]
     },
     {
      "t": 1.125,
-     "height": 36,
+     "height": 36.0,
      "centre": [
-      49,
-      97
+      51.0,
+      98.0
      ]
     },
     {
      "t": 1.25,
-     "height": 40,
+     "height": 40.0,
      "centre": [
-      53,
-      91
+      55.0,
+      92.0
      ]
     },
     {
      "t": 1.375,
-     "height": 44,
+     "height": 44.0,
      "centre": [
-      57,
-      85
+      59.0,
+      86.0
      ]
     },
     {
      "t": 1.5,
-     "height": 46,
+     "height": 46.0,
      "centre": [
-      61,
-      81
+      63.0,
+      82.0
      ]
     },
     {
      "t": 1.625,
-     "height": 52,
+     "height": 52.0,
      "centre": [
-      65,
-      73
+      67.0,
+      74.0
      ]
     },
     {
      "t": 1.75,
-     "height": 56,
+     "height": 56.0,
      "centre": [
-      69,
-      67
+      71.0,
+      68.0
      ]
     },
     {
      "t": 1.875,
-     "height": 60,
+     "height": 60.0,
      "centre": [
-      73,
-      61
+      75.0,
+      62.0
      ]
     },
     {
-     "t": 2,
-     "height": 64,
+     "t": 2.0,
+     "height": 64.0,
      "centre": [
-      77,
-      55
+      79.0,
+      56.0
      ]
     },
     {
      "t": 2.125,
-     "height": 68,
+     "height": 68.0,
      "centre": [
-      81,
-      49
+      83.0,
+      50.0
      ]
     },
     {
      "t": 2.25,
-     "height": 72,
+     "height": 72.0,
      "centre": [
-      85,
-      43
+      87.0,
+      44.0
      ]
     },
     {
      "t": 2.375,
-     "height": 76,
+     "height": 76.0,
      "centre": [
-      89,
-      37
+      91.0,
+      38.0
      ]
     },
     {
      "t": 2.5,
-     "height": 78,
+     "height": 78.0,
      "centre": [
-      93,
-      33
+      95.0,
+      34.0
      ]
     },
     {
      "t": 2.625,
-     "height": 84,
+     "height": 84.0,
      "centre": [
-      97,
-      25
+      99.0,
+      26.0
      ]
     },
     {
      "t": 2.75,
-     "height": 88,
+     "height": 88.0,
      "centre": [
-      101,
-      19
+      103.0,
+      20.0
      ]
     },
     {
      "t": 2.875,
-     "height": 92,
+     "height": 92.0,
      "centre": [
-      105,
-      13
+      107.0,
+      14.0
      ]
     },
     {
-     "t": 3,
-     "height": 96,
+     "t": 3.0,
+     "height": 96.0,
      "centre": [
-      109,
-      7
+      111.0,
+      8.0
      ]
     }
    ],
    "w": [
     {
-     "t": 0,
-     "height": 0,
+     "t": 0.0,
+     "height": 0.0,
      "centre": [
-      113,
-      151
+      113.0,
+      152.0
      ]
     },
     {
      "t": 0.125,
-     "height": 4,
+     "height": 4.0,
      "centre": [
-      109,
-      145
+      109.0,
+      146.0
      ]
     },
     {
      "t": 0.25,
-     "height": 8,
+     "height": 8.0,
      "centre": [
-      105,
-      139
+      105.0,
+      140.0
      ]
     },
     {
      "t": 0.375,
-     "height": 12,
+     "height": 12.0,
      "centre": [
-      101,
-      133
+      101.0,
+      134.0
      ]
     },
     {
      "t": 0.5,
-     "height": 14,
+     "height": 14.0,
      "centre": [
-      97,
-      129
+      97.0,
+      130.0
      ]
     },
     {
      "t": 0.625,
-     "height": 20,
+     "height": 20.0,
      "centre": [
-      93,
-      121
+      93.0,
+      122.0
      ]
     },
     {
      "t": 0.75,
-     "height": 24,
+     "height": 24.0,
      "centre": [
-      89,
-      115
+      89.0,
+      116.0
      ]
     },
     {
      "t": 0.875,
-     "height": 28,
+     "height": 28.0,
      "centre": [
-      85,
-      109
+      85.0,
+      110.0
      ]
     },
     {
-     "t": 1,
-     "height": 32,
+     "t": 1.0,
+     "height": 32.0,
      "centre": [
-      81,
-      103
+      81.0,
+      104.0
      ]
     },
     {
      "t": 1.125,
-     "height": 36,
+     "height": 36.0,
      "centre": [
-      77,
-      97
+      77.0,
+      98.0
      ]
     },
     {
      "t": 1.25,
-     "height": 40,
+     "height": 40.0,
      "centre": [
-      73,
-      91
+      73.0,
+      92.0
      ]
     },
     {
      "t": 1.375,
-     "height": 44,
+     "height": 44.0,
      "centre": [
-      69,
-      85
+      69.0,
+      86.0
      ]
     },
     {
      "t": 1.5,
-     "height": 46,
+     "height": 46.0,
      "centre": [
-      65,
-      81
+      65.0,
+      82.0
      ]
     },
     {
      "t": 1.625,
-     "height": 52,
+     "height": 52.0,
      "centre": [
-      61,
-      73
+      61.0,
+      74.0
      ]
     },
     {
      "t": 1.75,
-     "height": 56,
+     "height": 56.0,
      "centre": [
-      57,
-      67
+      57.0,
+      68.0
      ]
     },
     {
      "t": 1.875,
-     "height": 60,
+     "height": 60.0,
      "centre": [
-      53,
-      61
+      53.0,
+      62.0
      ]
     },
     {
-     "t": 2,
-     "height": 64,
+     "t": 2.0,
+     "height": 64.0,
      "centre": [
-      49,
-      55
+      49.0,
+      56.0
      ]
     },
     {
      "t": 2.125,
-     "height": 68,
+     "height": 68.0,
      "centre": [
-      45,
-      49
+      45.0,
+      50.0
      ]
     },
     {
      "t": 2.25,
-     "height": 72,
+     "height": 72.0,
      "centre": [
-      41,
-      43
+      41.0,
+      44.0
      ]
     },
     {
      "t": 2.375,
-     "height": 76,
+     "height": 76.0,
      "centre": [
-      37,
-      37
+      37.0,
+      38.0
      ]
     },
     {
      "t": 2.5,
-     "height": 78,
+     "height": 78.0,
      "centre": [
-      33,
-      33
+      33.0,
+      34.0
      ]
     },
     {
      "t": 2.625,
-     "height": 84,
+     "height": 84.0,
      "centre": [
-      29,
-      25
+      29.0,
+      26.0
      ]
     },
     {
      "t": 2.75,
-     "height": 88,
+     "height": 88.0,
      "centre": [
-      25,
-      19
+      25.0,
+      20.0
      ]
     },
     {
      "t": 2.875,
-     "height": 92,
+     "height": 92.0,
      "centre": [
-      21,
-      13
+      21.0,
+      14.0
      ]
     },
     {
-     "t": 3,
-     "height": 96,
+     "t": 3.0,
+     "height": 96.0,
      "centre": [
-      17,
-      7
+      17.0,
+      8.0
      ]
     }
    ]
+  },
+  "landing": {
+   "n": {
+    "t": 3.5,
+    "height": 96.0,
+    "centre": [
+     127,
+     0.0
+    ]
+   },
+   "w": {
+    "t": 3.5,
+    "height": 96.0,
+    "centre": [
+     1,
+     0.0
+    ]
+   }
   }
  },
  "carry": false,
- "note": "a stone ramp (art round 10): a sloped rock slab climbing one storey over three tiles, six shallow worn steps cut in it (3 px each), its sides closed by rock in the cliff's strata, its edges rounded over as the cliff's lip; facings n and w only (climbing away from the camera)",
- "landing": "floor_cliff_top"
+ "note": "the stone ramp, redrawn in art round 11: the slab as round 10's, its flanks now square-edged (rounding 1.5 px, was 5) and its strata continuing without a seam into wall_ramp_side's faces at the head; the landing's sides are the wall_ramp_side pieces, not part of this picture",
+ "landing": "floor_cliff_top",
+ "columns": {
+  "n": {
+   "tile0": [
+    null,
+    40
+   ],
+   "tile1": [
+    40,
+    72
+   ],
+   "tile2": [
+    72,
+    null
+   ]
+  },
+  "w": {
+   "tile0": [
+    88,
+    null
+   ],
+   "tile1": [
+    56,
+    88
+   ],
+   "tile2": [
+    null,
+    56
+   ]
+  }
+ },
+ "landingSides": "wall_ramp_side (wall_ramp_side.json): laid on the landing tile's three ground edges by map.buildStair"
 }

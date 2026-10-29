@@ -361,15 +361,9 @@
     "kind": "stair",
     "sprite": "stair_ramp_stone",
     "material": "ramp_stone",
-    "cost": {
-      "stone": 9,
-      "plank": 1
-    },
-    "seconds": 30,
-    "tool": "build",
     "dev": true,
     "tab": "terrain",
     "group": "Landforms",
-    "note": "art round 10: a sloped slab of the cliff's rock climbing one storey over three tiles, north or west, built as a stair (docs/49 section 5) and walked at 32 px a tile with no treads (map.riseOn); its landing a cliff top (its definition's `landing`) unless a floor is laid there already; never taken apart, as a stair; Free building only; the cost the stone stair's, a placeholder"
+    "note": "art round 10: a sloped slab of the cliff's rock climbing one storey over three tiles, north or west, built as a stair (docs/49 section 5) and walked at 32 px a tile with no treads (map.riseOn); its landing a cliff top (its definition's `landing`) unless a floor is laid there already; it lays its own square side walls (wall_ramp_side) on the ground under its landing, so it keeps its whole solid shape; never taken apart, as a stair; Free building only; placed at once and free like the Terrain tab's other pieces (Michael, 2026-10-29: \"make ramps build immediately for now just for building\"): no bar, no cost, no tool"
   }
 }

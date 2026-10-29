@@ -15,6 +15,9 @@
 //   4. From each storey (the ground, the first, the second), every cliff wall that is not buried (plateau on both its sides) is drawn on its
 //      own storey: its segment, or the corner piece that claims it.
 //   5. The upper hill's front corner piece drawn, its own pixels in the frame (scene.probe.mark), from his place on the second storey.
+//   6. (Michael, 2026-10-29) The Stone ramp is placed at once and free, never as a timed build (the Build tab's stone stair still is); it brings
+//      its own solid sides for its landing tile (map.landingSideEdges: a wall on each edge of the ground under the landing but the head's);
+//      a cliff wall at its head is refused with its own words; and a body walks up and down each ramp, in each facing, by the movement keys.
 // What it built stays (a built stair never comes up): a `?nosave` page's world is thrown away. The player, the rules, the hour, and the
 // pause are put back in its finally.
 
@@ -44,7 +47,7 @@ export function buildHill(G, X0, Y0) {
   const map = G.map;
   const me = G.player;
   const at = (a, b, L) => { me.gx = X0 + a; me.gy = Y0 + b; me.layer = L; me.rise = 0; me.auto = null; };
-  const run = (cmd) => { G.placement.performPlacement(me, cmd); for (let i = 0; i < 45 && me.action; i++) G.loop.advance(1); };
+  const run = (cmd) => { G.placement.performPlacement(me, cmd); run.pending = !!me.action; for (let i = 0; i < 45 && me.action; i++) G.loop.advance(1); };
   const fl = (a, b, L) => (map.peekTile(X0 + a, Y0 + b, L) || {}).floor;
   // A plan's floor laid tile by tile out from `start` (already walkable), each from a laid neighbour.
   const grow = (P, start, L, what) => {
@@ -89,16 +92,19 @@ export function buildHill(G, X0, Y0) {
   at(4, 13.6, 0);
   run({ kind: "build", what: "stair_ramp_stone", tx: X0 + 4, ty: Y0 + 12, dir: "n" });
   got.ramp1 = stairAt(4, 12, 0);
+  got.pending = [run.pending]; // whether a bar was left running by each ramp (none: it is placed at once) and by the Build tab's stone stair (one)
   got.walls0 = walls(H1, null, 0, "n,4,10"); // less the ramp's head
   got.floors1 = [grow(H1, "4,9", 1, "floor_cliff_top"), H1.size];
   at(10, 3, 1);
   run({ kind: "build", what: "stair_ramp_stone", tx: X0 + 9, ty: Y0 + 3, dir: "w" });
   got.ramp2 = stairAt(9, 3, 1);
+  got.pending.push(run.pending);
   got.walls1 = walls(H2, H1, 1, "w,7,3");
   got.floors2 = [grow(H2, "6,3", 2, "floor_cliff_top"), H2.size];
   at(2, 6, 2);
   run({ kind: "build", what: "stair_stone", tx: X0 + 2, ty: Y0 + 5, dir: "n" });
   got.stair = stairAt(2, 5, 2);
+  got.stairPending = run.pending;
   got.landing = fl(2, 2, 3);
   got.ring = [grow(new Set([...RING, "2,2"]), "2,2", 3, "floor_cliff_grass") - 1, RING.size];
   return got;
@@ -216,6 +222,67 @@ export async function run(game) {
     const okBuild = got.ramp1 && got.ramp2 && got.stair && got.walls0[0] === got.walls0[1] && got.walls1[0] === got.walls1[1] && got.floors1[0] === got.floors1[1] && got.floors2[0] === got.floors2[1] && got.landing === "floor_stone" && got.ring[0] === got.ring[1];
     row("his hill built by the commands a guest sends: the lower hill's walls, its ramp, its cliff tops; the upper hill's walls on the first storey, its ramp, its cliff tops; the stone stair on the second, its landing, the grassy ring on the third", okBuild,
       `at ${X0},${Y0}: ramps ${got.ramp1}/${got.ramp2}, stair ${got.stair}; walls ${got.walls0.join("/")} on the ground, ${got.walls1.join("/")} on the first; cliff tops ${got.floors1.join("/")}, ${got.floors2.join("/")}; landing ${got.landing}; ring ${got.ring.join("/")}`);
+    // 3a. The ramp at once and free; the Build tab's stair timed.
+    row("the Stone ramp is placed at once and free (no bar, no cost, no tool: `isInstantStair`), the Build tab's stone stair still timed and priced", got.pending.every((p) => !p) && got.stairPending === true && G.placement.isInstantStair("stair_ramp_stone") && !G.placement.isInstantStair("stair_stone") && !G.placement.isInstantStair("stair_wood") && G.placement.paletteKinds().some((k) => k.id === "stair_stone" && k.seconds > 0),
+      `ramps left a bar: ${got.pending.join("/")}; the stone stair left one: ${got.stairPending}`);
+    // 3b. The sides: every edge of the ground under a ramp's landing but its head's holds a wall that blocks a body (the ramp's own, or a cliff wall
+    // built there first), and the head's holds none.
+    const ramps = map.stairs().filter((q) => q.built && map.stairKind(q.material).ramp);
+    const sideBad = [];
+    for (const q of ramps) {
+      for (const [tx, ty, e] of map.landingSideEdges(q)) {
+        const w = (map.peekTile(tx, ty, q.layer) || {})[e];
+        if (!w || !map.blocksMove(w)) sideBad.push(`${q.id} ${e}@${tx},${ty}`);
+      }
+      const head = q.dir === "n" ? [q.landing[0], q.landing[1] + 1, "n"] : [q.landing[0] + 1, q.landing[1], "w"];
+      if ((map.peekTile(head[0], head[1], q.layer) || {})[head[2]]) sideBad.push(`${q.id} head walled`);
+    }
+    const ownSides = ramps.reduce((n, q) => n + map.landingSideEdges(q).filter(([tx, ty, e]) => ((map.peekTile(tx, ty, q.layer) || {})[e] || {}).sprite === "wall_ramp_side").length, 0);
+    row("each ramp brings its own solid sides: a wall on every edge of the ground under its landing but its head's, none at the head, never taken apart", ramps.length === 2 && !sideBad.length && ownSides > 0 && ramps.every((q) => map.landingSideEdges(q).length === 3),
+      `${ramps.length} ramps, ${ownSides} of its own wall_ramp_side pieces${sideBad.length ? `; missing: ${sideBad.join(", ")}` : ""}`);
+    // 3c. A cliff wall at a ramp's head is refused in its own words (the lower hill's wall just beside the first ramp's head).
+    const headWhy = map.stairBuildProblem(X0 + 5, Y0 + 12, "n", 0);
+    row("a ramp whose head is a cliff wall is refused with `A cliff wall is at its head: take it down first`", headWhy === "A cliff wall is at its head: take it down first", headWhy);
+    // 3d. Walked by the movement keys (real key events, the loop stepped): up each ramp from its foot onto its landing, rise climbing, then back
+    // down to the foot.
+    const key = (code, down) => window.dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { code, key: code, bubbles: true }));
+    const hold = (codes, n, stop = null) => {
+      codes.forEach((c) => key(c, true));
+      const log = [];
+      try {
+        for (let i = 0; i < n; i++) {
+          G.loop.advance(1 / 60);
+          log.push([me.layer || 0, me.rise || 0, me.gx, me.gy]);
+          if (stop && stop(log)) break;
+        }
+      } finally {
+        codes.forEach((c) => key(c, false));
+        G.loop.advance(1 / 60);
+      }
+      return log;
+    };
+    for (const q of ramps) {
+      const d = { n: [0, -1], w: [-1, 0] }[q.dir];
+      const upKeys = q.dir === "n" ? ["KeyW", "KeyD"] : ["KeyW", "KeyA"]; // screen up-right climbs n, up-left climbs w
+      const downKeys = q.dir === "n" ? ["KeyS", "KeyA"] : ["KeyS", "KeyD"];
+      me.layer = q.layer;
+      me.rise = 0;
+      me.auto = null;
+      G.teleport(q.before[0] - d[0] * 0.2, q.before[1] - d[1] * 0.2);
+      G.loop.advance(1 / 60);
+      const up = hold(upKeys, 170, (l) => l.length > 6 && l[l.length - 1][0] === q.layer + 1 && l.slice(-6).every((r) => r[0] === q.layer + 1)); // six steps past the top edge
+      const top = up[up.length - 1];
+      const rises = up.filter((r) => r[0] === q.layer).map((r) => r[1]);
+      const mono = rises.every((r, i) => !i || r >= rises[i - 1] - 1);
+      const onLanding = top[0] === q.layer + 1 && top[1] === 0 && Math.round(top[2]) === q.landing[0] && Math.round(top[3]) === q.landing[1];
+      row(`up the ramp at ${q.at} (${q.dir}, layer ${q.layer}) by the movement keys: the rise climbs evenly to a storey, onto the landing, standing on it`, onLanding && Math.max(...rises) >= 88 && mono,
+        `ends layer ${top[0]} rise ${top[1]} at ${top[2].toFixed(2)},${top[3].toFixed(2)}; highest rise ${Math.max(...rises)}, monotone ${mono}`);
+      const down = hold(downKeys, 190, (l) => l.length > 6 && l[l.length - 1][0] === q.layer && l[l.length - 1][1] === 0 && l.slice(-6).every((r) => r[0] === q.layer && r[1] === 0) && l.some((r) => r[1] > 60)); // off the foot
+      const end = down[down.length - 1];
+      const fell = down.filter((r) => r[0] === q.layer).map((r) => r[1]);
+      row(`down the ramp at ${q.at} by the keys: over its top edge onto it, the rise falling, off its foot on its own layer`, end[0] === q.layer && end[1] === 0 && fell.some((r) => r > 60) && (end[2] - q.before[0]) * d[0] + (end[3] - q.before[1]) * d[1] <= 0.6,
+        `ends layer ${end[0]} rise ${end[1]} at ${end[2].toFixed(2)},${end[3].toFixed(2)}; highest rise ${Math.max(0, ...fell)}`);
+    }
     // 3. The landing, from his place on the second storey beside the stair's foot.
     stand(X0 + 3.5, Y0 + 5.5, 2);
     const lx = X0 + 2;
@@ -268,6 +335,42 @@ export async function run(game) {
     const n = red((d) => d.corner && d.corner.vx === vx && d.corner.vy === vy && map.drawLayerNow() === 1); // the ground's own corner at that vertex (the lower hill's notch) left out
     row("the upper hill's front corner piece, at a vertex whose own chunk the first storey does not hold, drawn: its pixels in the frame", !!corner && !held[0] && held[1] && held[2] && n > 100,
       `${corner ? corner.frame : "no corner"} at the chunks' corner; the first storey holds its own chunk ${held[0]}, the west ${held[1]}, the north ${held[2]}; ${n} px`);
+    // 6. Nothing is walled in (last: the ramp's landing grows a chunk of the first storey, and the corner row above needs that one not held) with a ramp: a body, an item, a rug, or a prop on the ground under its landing refuses it (that tile gets three
+    // walls that are never taken apart), and clearing it lets it build.
+    {
+      const clear = (x, y) => {
+        const t = map.peekTile(x, y, 0);
+        return !!t && !t.prop && !t.n && !t.w && !t.rug && !(t.items && t.items.length) && map.isWalkableTile(x, y) && !map.stairAt(x, y, 0) && !map.peekTile(x, y, 1);
+      };
+      let patch = null;
+      for (let ax = X0 + 16; ax <= X0 + 60 && !patch; ax += 2) for (let ay = Y0 + 4; ay <= Y0 + 40 && !patch; ay += 2) {
+        map.ensureAround(ax, ay, 2);
+        let ok = true;
+        for (let y = ay - 4; y <= ay + 4 && ok; y++) for (let x = ax - 1; x <= ax + 1 && ok; x++) ok = clear(x, y);
+        if (ok) patch = [ax, ay];
+      }
+      if (!patch) {
+        row("open ground for a ramp's landing test", false, "none east of the hill");
+      } else {
+        const [px, py] = patch; // the ramp's low tile; its landing (px, py - 3)
+        const cmd = { kind: "build", what: "stair_ramp_stone", tx: px, ty: py, dir: "n" };
+        const built = () => map.stairs().some((q) => q.built && q.at[0] === px && q.at[1] === py && q.layer === 0);
+        const attempt = () => { G.placement.performPlacement(me, cmd); for (let i = 0; i < 45 && me.action; i++) G.loop.advance(1); return built(); };
+        const stay = (x, y) => { me.layer = 0; me.rise = 0; me.auto = null; G.teleport(x, y); G.loop.advance(1 / 60); };
+        stay(px, py - 3); // the builder on the landing's ground tile: in reach (3 tiles from the low tile), and sealed in if it went up
+        const withBody = attempt();
+        stay(px, py + 1.6);
+        const stoneEntry = G.items.makeEntry("stone", 1);
+        map.dropItem(px, py - 3, stoneEntry, 0);
+        const withItem = attempt();
+        const why = map.stairBuildProblem(px, py, "n", 0, "ramp_stone");
+        map.tileAt(px, py - 3, 0).items = null;
+        const clearBuilt = attempt();
+        const sidesOn = map.landingSideEdges(map.stairs().find((q) => q.built && q.at[0] === px && q.at[1] === py) || { landing: [0, 0], dir: "n" }).length;
+        row("a ramp is refused while a body stands on the ground under its landing, or an item lies there, and builds once it is clear (nothing is walled in)", !withBody && !withItem && why === "Something is in the way" && clearBuilt && sidesOn === 3,
+          `with the builder on it: built ${withBody}; with an item: built ${withItem} (${why}); cleared: built ${clearBuilt}`);
+      }
+    }
   } finally {
     G.rules.set({ freeBuilding: saved.free, zombieAggro: saved.aggro });
     G.clock.setHour(saved.hour);

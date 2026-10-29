@@ -250,6 +250,9 @@ function cursorGrid(player) {
 // or one laid earlier in the same drag, may be laid, so a floor grows out from a lone landing.
 export const isFloorBuild = (what) => !!(buildData[what] && buildData[what].kind === "floor");
 export const isStairBuild = (what) => !!(buildData[what] && buildData[what].kind === "stair");
+// A stair on the Terrain tab (the Stone ramp) is a landform: placed outright like the ground's paints, with no bar, no cost, and no tool
+// (Michael, 2026-10-29: "make ramps build immediately for now just for building"); the Build tab's stairs stay timed and priced.
+export const isInstantStair = (what) => isStairBuild(what) && !!buildData[what].dev && buildData[what].tab === "terrain";
 const MAX_DRAG = 12; // tiles a side of a floor's drag
 
 // ---- terrain (Michael, 2026-10-28: the build menu's Terrain tab; docs/13) ----
@@ -468,10 +471,15 @@ function stairTilesOf(x, y, dir) {
 function stairBlock(player, what, x, y, dir) {
   if (buildData[what].dev && !rules.freeBuilding) return "Stairs are not in the game yet"; // Free building only for now
   const L = layerOf(player);
-  const why = map.stairBuildProblem(x, y, dir, L);
+  const why = map.stairBuildProblem(x, y, dir, L, buildData[what].material || "wood");
   if (why) return why;
-  const { tiles } = stairTilesOf(x, y, dir);
+  const { tiles, landing } = stairTilesOf(x, y, dir);
   if (stations.bodyOnTiles(tiles, L)) return "Someone is in the way";
+  if (map.stairKind(buildData[what].material || "wood").ramp) {
+    // The ground under a ramp's landing is walled on three sides with the ramp (map.landingSideEdges): no body is sealed in with it.
+    if (stations.bodyOnTiles([landing], L)) return "Someone is in the way";
+    if (stations.bodyOnTiles([landing], L, true)) return "A body lies there";
+  }
   return shortfall(player, what);
 }
 function stairReason(player, what, x, y, dir) {
@@ -498,7 +506,7 @@ function startStairBuild(player, what, x, y, dir) {
     mx: x,
     my: y,
     range: BUILD_REACH + 0.6,
-    duration: d.seconds || 0,
+    duration: isInstantStair(what) ? 0 : d.seconds || 0, // a landform is placed at once
     enabled: true,
     simple: false,
     perform() {
@@ -507,7 +515,7 @@ function startStairBuild(player, what, x, y, dir) {
         showMessage(why);
         return false;
       }
-      spend(player, what);
+      if (!isInstantStair(what)) spend(player, what);
       return !!map.buildStair(x, y, dir, d.material || "wood", layerOf(player), { free: !!rules.freeBuilding });
     },
   };
@@ -603,7 +611,7 @@ export function putDownTarget(player) {
 
 // What a build costs now: nothing while Free building is on.
 export function costOf(what) {
-  if (rules.freeBuilding) return {};
+  if (rules.freeBuilding || isInstantStair(what)) return {};
   return (buildData[what] && buildData[what].cost) || {};
 }
 
@@ -727,7 +735,7 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   const over = buildData[what] && buildData[what].over;
   if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
   if (buildData[what] && buildData[what].dev && !rules.freeBuilding) return isCliffBuild(what) ? "Cliffs are not in the game yet" : "Not in the game yet"; // Free building only (a guest's command too)
-  if (existing && ["door", "window"].includes(kind) && existing.kind === "wall" && map.wallRule(existing.sprite).cliff) return "Not in a cliff"; // bare rock (art round 10): no opening stamped in it
+  if (existing && ["door", "window"].includes(kind) && existing.kind === "wall" && map.wallRule(existing.sprite).solid) return map.wallRule(existing.sprite).cliff ? "Not in a cliff" : "Not in solid rock"; // bare rock (art round 10): no opening stamped in it
   if (existing && over && existing.sprite !== over) return "Only in a fence";
   if (existing && !map.canStampOver(existing, kind)) return "Already a wall";
   const stairWhy = map.stairEdgeProblem(tx, ty, edge, L); // never across a stair's run or top, nor round its stairwell (the review of #549)
@@ -1775,6 +1783,7 @@ export function prompt() {
   }
   if (g.kind === "stair") {
     if (!g.ok) return { label: g.reason, mx: g.x, my: g.y, progress: null, enabled: false };
+    if (isInstantStair(g.what)) return { label: "Click to place · Esc cancel", mx: g.x, my: g.y, progress: null, enabled: true };
     return { label: `Click to build (${costText(g.what)}) · Esc cancel`, mx: g.x, my: g.y, progress: null, enabled: true };
   }
   if (g.kind === "round") {
