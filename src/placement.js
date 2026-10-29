@@ -43,6 +43,11 @@ import * as round from "./round.js"; // a round room's geometry (docs/50)
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
 export const BUILD_REACH = 2.6; // tiles from the player to the middle of a built edge
 export const REMOVE_REACH = 2.6; // tiles from the player to the nearest part of what is removed
+// Free building has no reach worth the name (Michael, 2026-10-29: "If I can see it, I can stamp it"): 48 tiles, inside the grown ring (four chunks), and
+// the lines of sight the tests already keep (a made prop or a ghost is never put through a wall) stay. The authority validates a guest's command by these same functions.
+export const FREE_REACH = 48;
+const buildReach = () => (rules.freeBuilding ? FREE_REACH : BUILD_REACH);
+const removeReach = () => (rules.freeBuilding ? FREE_REACH : REMOVE_REACH);
 const EDGE_CLEARANCE = 0.45; // the player may not stand closer than this to an edge being built
 
 // kind is null, "prop", "rug", "painting", "build", or "remove". ghost is what the renderer draws.
@@ -178,7 +183,7 @@ function nearestOutline(player, x0, y0, n) {
 }
 
 function roundReason(player, what, x0, y0, n) {
-  if (nearestOutline(player, x0, y0, n).d > BUILD_REACH) return "Too far";
+  if (nearestOutline(player, x0, y0, n).d > buildReach()) return "Too far";
   return roundBlock(player, what, x0, y0, n);
 }
 
@@ -202,7 +207,7 @@ function startRoundBuild(player, what, x0, y0, n) {
     tiles: map.edgeTiles(near.tx, near.ty, near.edge),
     mx: near.mx,
     my: near.my,
-    range: BUILD_REACH + 0.6,
+    range: buildReach() + 0.6,
     duration: (d.seconds || 0) * (n === 7 ? 1.4 : 1),
     enabled: true,
     simple: false,
@@ -277,7 +282,7 @@ function terrainPlan(player, what, x0, y0, x1, y1) {
   const xb = Math.min(Math.max(x0, x1), xa + TERRAIN_DRAG - 1);
   const yb = Math.min(Math.max(y0, y1), ya + TERRAIN_DRAG - 1);
   const water = map.isWaterFloor(id);
-  const reach = Number(d.reach) || BUILD_REACH + 0.5;
+  const reach = rules.freeBuilding ? FREE_REACH : Number(d.reach) || buildReach() + 0.5;
   const already = d.already || `That is already ${d.label.toLowerCase()} ground`; // an entry may say it its own way (`already`)
   const out = [];
   for (let y = ya; y <= yb; y++) {
@@ -313,7 +318,7 @@ function floorPlan(player, what, x0, y0, x1, y1) {
   const farMemo = new Map();
   const far = (x, y) => {
     const k = `${x},${y}`;
-    if (!farMemo.has(k)) farMemo.set(k, reachProblem(player, [[x, y]], BUILD_REACH + 0.5, L) || "");
+    if (!farMemo.has(k)) farMemo.set(k, reachProblem(player, [[x, y]], buildReach() + 0.5, L) || "");
     return farMemo.get(k);
   };
   const grows = new Set();
@@ -377,7 +382,7 @@ function startFloorBuild(player, what, x0, y0, x1, y1) {
     tiles: [[near[0], near[1]]],
     mx: near[0],
     my: near[1],
-    range: BUILD_REACH + 0.6,
+    range: buildReach() + 0.6,
     duration: (d.seconds || 0) * plan.length,
     enabled: true,
     simple: false,
@@ -432,7 +437,7 @@ function startTerrainPaint(player, what, x0, y0, x1, y1) {
     tiles: [[near[0], near[1]]],
     mx: near[0],
     my: near[1],
-    range: (Number(d.reach) || BUILD_REACH + 0.5) + 0.6,
+    range: (rules.freeBuilding ? FREE_REACH : Number(d.reach) || buildReach() + 0.5) + 0.6,
     duration: (d.seconds || 0) * plan.length,
     enabled: true,
     simple: false,
@@ -487,7 +492,7 @@ function stairBlock(player, what, x, y, dir) {
   return shortfall(player, what);
 }
 function stairReason(player, what, x, y, dir) {
-  const why = reachProblem(player, [[x, y]], BUILD_REACH + 0.5, layerOf(player)); // by distance and a clear line: never built through a wall (the review of #549)
+  const why = reachProblem(player, [[x, y]], buildReach() + 0.5, layerOf(player)); // by distance and a clear line: never built through a wall (the review of #549)
   if (why) return why === TOO_FAR ? "Too far" : why;
   return stairBlock(player, what, x, y, dir);
 }
@@ -509,7 +514,7 @@ function startStairBuild(player, what, x, y, dir) {
     tiles: [[x, y]],
     mx: x,
     my: y,
-    range: BUILD_REACH + 0.6,
+    range: buildReach() + 0.6,
     duration: isInstantStair(what) ? 0 : d.seconds || 0, // a landform is placed at once
     enabled: true,
     simple: false,
@@ -555,7 +560,7 @@ function gateBlock(player, what, tx, ty, edge) {
 }
 function gateReason(player, what, tx, ty, edge) {
   const reach = Math.min(...gateEdges(what, tx, ty, edge).map(([x, y]) => { const [mx, my] = map.edgeMid(x, y, edge); return Math.hypot(player.gx - mx, player.gy - my); }));
-  if (reach > BUILD_REACH) return "Too far";
+  if (reach > buildReach()) return "Too far";
   return gateBlock(player, what, tx, ty, edge);
 }
 function gateGhost(player, what) {
@@ -575,7 +580,7 @@ function startGateBuild(player, what, tx, ty, edge) {
     tiles: map.edgeTiles(tx, ty, edge),
     mx,
     my,
-    range: BUILD_REACH + 1.6,
+    range: buildReach() + 1.6,
     duration: 0,
     enabled: true,
     simple: false,
@@ -781,7 +786,7 @@ function fitTiles(f) {
 
 // Why this player cannot reach a fit from where they stand, or "": its nearest tile by distance and a clear line (#208).
 function fitReach(player, f) {
-  const why = reachProblem(player, fitTiles(f), setdown.REACH);
+  const why = reachProblem(player, fitTiles(f), rules.freeBuilding ? FREE_REACH : setdown.REACH);
   return why === TOO_FAR ? "Too far" : why || "";
 }
 
@@ -838,7 +843,7 @@ const edgeSegment = (tx, ty, edge) => (edge === "n" ? [tx - 0.5, ty - 0.5, tx + 
 
 function buildReason(player, what, tx, ty, edge, leaf = "") {
   const [mx, my] = map.edgeMid(tx, ty, edge);
-  if (Math.hypot(player.gx - mx, player.gy - my) > BUILD_REACH) return "Too far";
+  if (Math.hypot(player.gx - mx, player.gy - my) > buildReach()) return "Too far";
   return buildBlock(player, what, tx, ty, edge, leaf);
 }
 
@@ -1133,8 +1138,8 @@ function targetReach(player, t) {
 // Why a removal is out of reach, or "": a wall you built by distance alone (Michael, 2026-10-18: removing a wall is fine from either side of it);
 // a made prop by distance and a clear line, so a chest or a station cannot be taken down through a wall (#227).
 function removeReachProblem(player, t) {
-  if (t.type === "wall" || t.type === "round" || t.type === "floor") return targetReach(player, t) > REMOVE_REACH ? "Too far" : "";
-  const why = reachProblem(player, t.prop.tiles, REMOVE_REACH, t.prop.layer || 0);
+  if (t.type === "wall" || t.type === "round" || t.type === "floor") return targetReach(player, t) > removeReach() ? "Too far" : "";
+  const why = reachProblem(player, t.prop.tiles, removeReach(), t.prop.layer || 0);
   return why === TOO_FAR ? "Too far" : why || "";
 }
 
@@ -1783,7 +1788,7 @@ function startPropBuild(player, what, tx, ty) {
     tiles: fitTiles(f0),
     mx: tx + (f0.footprint[0] - 1) / 2,
     my: ty + (f0.footprint[1] - 1) / 2,
-    range: BUILD_REACH + 0.6,
+    range: buildReach() + 0.6,
     duration: d.seconds || 0,
     enabled: true,
     simple: false,
@@ -1820,7 +1825,7 @@ function startBuild(player, g) {
     tiles: map.edgeTiles(g.tx, g.ty, g.edge),
     mx,
     my,
-    range: BUILD_REACH + 0.6,
+    range: buildReach() + 0.6,
     duration: d.seconds || 0,
     enabled: true,
     simple: false,
