@@ -136,6 +136,10 @@ export async function run(game) {
     row("this tab is the host", false, "the check builds: run it alone or on the host");
     return finish();
   }
+  if (!new URLSearchParams(location.search).has("nosave")) {
+    row("a ?nosave page", false, "the hill it builds stays (a built stair never comes up): open the page with ?nosave&mute");
+    return finish();
+  }
   const map = G.map;
   const me = G.player;
   const scene = await import("/src/render/scene.js");
