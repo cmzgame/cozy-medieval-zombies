@@ -263,6 +263,7 @@
   },
   "terrain_nospawn": {
     "label": "No random spawn",
+      "already": "That is already marked no-spawn ground",
     "kind": "terrain",
     "tab": "terrain",
     "group": "Ground",
@@ -275,6 +276,7 @@
   },
   "terrain_water_shallow": {
     "label": "Shallow water",
+      "already": "That is already shallow water",
     "kind": "terrain",
     "tab": "terrain",
     "group": "Water",
@@ -287,6 +289,7 @@
   },
   "terrain_water": {
     "label": "Water",
+      "already": "That is already water",
     "kind": "terrain",
     "tab": "terrain",
     "group": "Water",
