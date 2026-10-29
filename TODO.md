@@ -23,7 +23,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-28: the engine rework and Michael's playtest of it merged; next, the order of the big builds is to be talked through)
+## Status (2026-10-28, night: the engine rework, the cliffs, and the terrain menu merged; next, the order of the big builds is to be talked through)
 
 **Michael is playtesting from the Playtest Checklist** (his private page, https://claude.ai/artifact/61HoYfV2iwDFboMeAikYws; the wiki's copy is the Playtest checklist page). It holds every tryable change since 2026-10-17, his ticks, a note per item, and a bug-report box. **The loop:**
 - he files reports there (or in chat, with screenshots);
@@ -37,15 +37,15 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 4. **Torch on a wall** (#532).
 5. **Upper floors** (`docs/49`): the map in layers (#533), storeys and stairs (#534), the tall house; his playtest fixes (#540, #548, #551), the drawn stairs (#541), the storey fade (#546); **floors and stairs in the build palette, Free building only** (#549: Michael's ruling, a tile at a time, no physics, #538); nothing built on top of someone (#553).
 6. **Round rooms** (#536, `docs/50`): stone only, Free building only; the dovecote; his playtest fixes (#537, #539, #545); the drawn doors and windows (#550, art round 9); a ring over a corpse (#556).
+7. **Cliffs for experimenting** (art round 10, #561, #564; Free building only): a cliff wall, grassy cliff wall, cliff tops, a stone ramp, corners; the bounded world they are for (`docs/29-world/10`, PR #558) is **parked by Michael, open and unmerged, no build issue**. **The build menu split into Build and Terrain** (#565): the Terrain tab (Free building only) paints Grass, Dirt, Cobblestone, Water, Shallow water, the pink No random spawn tile (does nothing yet; for hand-building the map) and holds the cliff pieces; the palette scrolls. A crash fixed (#563: the removal tool over a laid floor); every stone floor drew as pebbles (#564, a name clash). **Villagers are immune** (#559, Michael's ruling, the old ruling expunged).
 Also: item menus stay open while you walk (#547); the dead stay on a player's trail, a fixed flame never pulls them off (#555, Michael's ruling); stale checks (#535, #552); docs (#538, #542, #543, #554).
 
 **Next: the order of the big builds, to be talked through with Michael before any starts** (his rule): roofs (#512); ladders and hatches (`docs/49` 3b; his ladder spec is coming); looking and shooting down (`docs/49` 4 and 5); the power items (gems #281, trinkets #282, silver #283); armour (#133, #503).
 
 **Waiting on Michael:**
-- whether one of the dead battering a window with a player inside is pulled off it by a villager coming into sight (today it is; `zombie.js` `nearestPrey`);
 - the halberd's second attack (#503); the minimap (#498); tools beside the spear; the cauldron's state (#528); decor collectibles (#524).
 
-**Known, small:** a body hugging the inside of a 7 by 7 ring catches on a step's corner (#545 measured it); faint wedges just outside a ring at its diagonals, seen from inside; `check("depth")` row 17, one pixel on the 96 px corner post; the Use mode does not end when its item goes; `check("ground")`'s three rows (lit as before, the bake budget, the eye row) fail on main as before; a full `check("all")` in a hidden pane takes over half an hour (show the pane, or run checks one at a time).
+**Known, small:** the history write-up (#560, not started); where new dead come from once the wild is bounded (Michael's open problem in `29-world/10`); a body hugging the inside of a 7 by 7 ring catches on a step's corner (#545 measured it); faint wedges just outside a ring at its diagonals, seen from inside; `check("depth")` row 17, one pixel on the 96 px corner post; the Use mode does not end when its item goes; `check("ground")`'s three rows (lit as before, the bake budget, the eye row) fail on main as before; a full `check("all")` in a hidden pane takes over half an hour (show the pane, or run checks one at a time).
 
 **Built but queued:** #483 throwing potions; #500 honey in clay jars.
 
