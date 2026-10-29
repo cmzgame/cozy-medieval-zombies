@@ -97,6 +97,8 @@ html, body {
 }
 
 #game {
+  -webkit-user-drag: none;
+  user-select: none;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   background: #16121c;

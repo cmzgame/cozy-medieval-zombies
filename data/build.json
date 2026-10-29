@@ -97,6 +97,19 @@
     "tool": "build",
     "group": "Walls and openings"
   },
+  "wall_stone": {
+    "label": "Stone wall",
+    "kind": "wall",
+    "sprite": "wall_stone",
+    "cost": {
+      "stone": 1
+    },
+    "seconds": 6,
+    "tool": "build",
+    "dev": true,
+    "group": "Walls and openings",
+    "note": "the village's stone wall, built a segment at a time like the wooden walls; shown and buildable only while Free building is on (as the round stone wall), its cost the placeholder and Primary's default, never charged while Free building is on (Michael, 2026-10-29: straight stone walls were missing from the build menu; the castle's gates and battlements stamp over it)"
+  },
   "fence": {
     "label": "Fence",
     "kind": "wall",

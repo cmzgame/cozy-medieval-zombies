@@ -99,6 +99,16 @@ export function init(targetCanvas) {
     if (e.target.closest("#debug")) return;
     e.preventDefault();
   });
+  // A click and drag only ever works the game (Michael, 2026-10-29: dragging a terrain stamp dragged "a copy of the game as if it were an image"):
+  // the browser's own drag of a picture or a selection never starts, nor does a selection begin, outside a text field.
+  const inField = (t) => !!(t && t.closest && t.closest("input, textarea, [contenteditable]"));
+  canvas.draggable = false;
+  document.addEventListener("dragstart", (e) => {
+    if (!inField(e.target)) e.preventDefault();
+  });
+  document.addEventListener("selectstart", (e) => {
+    if (!inField(e.target)) e.preventDefault();
+  });
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     wheelDelta += Math.sign(e.deltaY);
