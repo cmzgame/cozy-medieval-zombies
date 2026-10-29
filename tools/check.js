@@ -5756,6 +5756,166 @@ check("built stairs and floors upstairs: a stair built in the open climbing away
   }
   return res.join("; ");
 });
+// ---- the Terrain tab (Michael, 2026-10-28: "Build menu becomes 2: Build, and Terrain") ----
+check("the build palette's tabs are data: every entry's `tab` is a known one, every Terrain entry is `dev` (Free building only) and paints a floor with a definition, the pink floor has its chart colour, no `walk` field, and a place in the ground's table; the Terrain tab is offered only with Free building on", () => {
+  const build = read("data/build.json");
+  const tabs = placementImport.TABS.map((t) => t.id);
+  const ground = read("data/ground.json");
+  const bad = [];
+  for (const [id, b] of Object.entries(build)) {
+    if (b.tab !== undefined && !tabs.includes(b.tab)) bad.push(`${id}: unknown tab ${b.tab}`);
+    if (b.tab === "terrain" && !b.dev) bad.push(`${id}: a Terrain entry that is not Free building only`);
+    if (b.kind === "terrain") {
+      if (b.tab !== "terrain") bad.push(`${id}: kind terrain but not on the Terrain tab`);
+      let def = null;
+      try { def = read(`data/sprites/${b.sprite}.json`); } catch { bad.push(`${id}: no sprite definition ${b.sprite}`); }
+      if (def && !def.mapColor) bad.push(`${id}: ${b.sprite} has no mapColor`);
+      if (!ground.floors[b.sprite]) bad.push(`${id}: ${b.sprite} is not in the ground's table`);
+    }
+  }
+  assert(!bad.length, bad.join("; "));
+  const terrain = Object.entries(build).filter(([, b]) => b.tab === "terrain").map(([id]) => id);
+  for (const want of ["terrain_grass", "terrain_dirt", "terrain_cobble", "terrain_water_shallow", "terrain_water", "terrain_nospawn", "wall_cliff", "wall_cliff_grass", "floor_cliff_top", "floor_cliff_grass", "stair_ramp_stone"]) assert(terrain.includes(want), `${want} is not on the Terrain tab`);
+  assert(!terrain.some((id) => /^(wall|wall_\w+|door|window|fence|gate|floor_wood|floor_stone|stair_wood|stair_stone|fireplace|fire_pit|feed_trough|round_stone)$/.test(id) && !/cliff|ramp/.test(id)), "a Build entry is on the Terrain tab");
+  const pink = read("data/sprites/floor_nospawn.json");
+  assert(pink.mapColor && pink.mapColor.toLowerCase() === pink.placeholder.color.toLowerCase() && pink.walk === undefined && /nothing reads it/.test(pink.note), "the pink floor's definition");
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(pink.mapColor.slice(i, i + 2), 16));
+  assert(r > 220 && b > 140 && g < 130 && r > g * 1.8, `the pink is not pink: ${pink.mapColor}`);
+  const free0 = rulesImport.rules.freeBuilding;
+  try {
+    rulesImport.rules.freeBuilding = false;
+    const off = placementImport.paletteTabs().map((t) => t.id).join(",");
+    rulesImport.rules.freeBuilding = true;
+    const on = placementImport.paletteTabs().map((t) => t.id).join(",");
+    assert(off === "build" && on === "build,terrain", `tabs: off "${off}", on "${on}"`);
+    assert(placementImport.paletteKinds().filter((k) => placementImport.tabOf(k) === "terrain").length === terrain.length, "the Terrain tab does not hold what the data names");
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+  }
+  return `${terrain.length} entries on Terrain, all Free building only; the pink ${pink.mapColor}; tabs "${placementImport.TABS.map((t) => t.id)}", Terrain only with Free building on`;
+});
+check("terrain paints the ground by the command a guest sends: grass over dirt, dirt, cobble, water, the pink, each a floor change with no `built` record, refused with Free building off and upstairs, and water refused under an item, a wall edge, and a body", () => {
+  const at = openGrass(8, 8);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const paint = (what, a, b, a2 = a, b2 = b) => placementImport.performPlacement(me, { kind: "build", what, tx: x + a, ty: y + b, tx2: x + a2, ty2: y + b2 });
+  const fl = (a, b) => mapMod.peekTile(x + a, y + b).floor;
+  try {
+    rulesImport.rules.freeBuilding = false;
+    me.gx = x + 4; me.gy = y + 4; me.layer = 0;
+    paint("terrain_dirt", 1, 1, 3, 3);
+    assert(fl(1, 1) === "floor_grass" && !placementImport.paletteKinds().some((k) => k.kind === "terrain"), "painted, or offered, with Free building off");
+    rulesImport.rules.freeBuilding = true;
+    const before = gameMod.syncParts().map;
+    paint("terrain_dirt", 1, 1, 3, 3);
+    const tiles = [];
+    for (let b = 1; b <= 3; b++) for (let a = 1; a <= 3; a++) tiles.push(mapMod.peekTile(x + a, y + b));
+    assert(tiles.every((t) => t.floor === "floor_dirt" && !t.built), `the drag painted ${tiles.map((t) => t.floor).join(",")}`);
+    assert(gameMod.syncParts().map !== before, "the sync check's map part did not move with a painted tile");
+    // Grass over dirt, and a tile with a prop takes grass (a prop is no bar to dirt or grass).
+    paint("terrain_grass", 2, 2);
+    assert(fl(2, 2) === "floor_grass" && fl(1, 1) === "floor_dirt", "grass over dirt");
+    const chest = mapMod.createProp({ sprite: "chest", tile: [x + 7, y + 7] });
+    mapMod.placeProp(chest, x + 7, y + 7);
+    paint("terrain_cobble", 7, 7);
+    assert(fl(7, 7) === "floor_cobble" && mapMod.peekTile(x + 7, y + 7).prop === chest, "cobble under a prop was refused");
+    paint("terrain_cobble", 7, 7);
+    paint("terrain_nospawn", 5, 1);
+    paint("terrain_water_shallow", 5, 2);
+    paint("terrain_water", 5, 3);
+    assert([fl(5, 1), fl(5, 2), fl(5, 3)].join() === "floor_nospawn,floor_water_shallow,floor_water" && mapMod.isWalkableTile(x + 5, y + 1) && mapMod.isWalkableTile(x + 5, y + 2) && !mapMod.isWalkableTile(x + 5, y + 3), `the pink walks, the shallows walk, the water does not: ${[fl(5, 1), fl(5, 2), fl(5, 3)]}`);
+    // Water of either kind is refused under what stands or lies there and under a body; the pink and the dirt are not.
+    mapMod.dropItem(x + 7, y + 1, { id: "stick", count: 1 });
+    mapMod.buildWall(x + 7, y + 3, "n", "wall", "wall_log", null, 0);
+    const why = {
+      item: mapMod.paintGroundProblem(x + 7, y + 1, "floor_water", 0),
+      itemShallow: mapMod.paintGroundProblem(x + 7, y + 1, "floor_water_shallow", 0),
+      prop: mapMod.paintGroundProblem(x + 7, y + 7, "floor_water", 0),
+      wall: mapMod.paintGroundProblem(x + 7, y + 3, "floor_water", 0),
+      wallBelow: mapMod.paintGroundProblem(x + 7, y + 2, "floor_water", 0),
+      dirtOnItem: mapMod.paintGroundProblem(x + 7, y + 1, "floor_dirt", 0),
+    };
+    assert(why.item === "Not under something" && why.itemShallow === "Not under something" && why.prop === "Not under something" && why.wall === "Not under something" && why.wallBelow === "Not under something" && why.dirtOnItem === "", JSON.stringify(why));
+    me.gx = x + 4; me.gy = y + 5;
+    paint("terrain_water", 4, 5);
+    assert(fl(4, 5) === "floor_grass", "water was laid under the player's own feet");
+    paint("terrain_water", 7, 1);
+    assert(fl(8, 1) === "floor_grass", "water was laid under an item by the command");
+    me.gx = x + 2; me.gy = y + 8;
+    // A laid floor is refused, upstairs is refused, a stair's tile is refused.
+    mapMod.buildFloor(x + 6, y + 6, "floor_wood", 0, { free: true });
+    paint("terrain_dirt", 6, 6);
+    assert(fl(6, 6) === "floor_wood" && mapMod.paintGroundProblem(x + 6, y + 6, "floor_dirt", 0) === "A floor is laid there", "dirt over a laid floor");
+    assert(mapMod.paintGroundProblem(x + 1, y + 1, "floor_grass", 1) === "Terrain is the ground's", "terrain upstairs");
+    me.layer = 1;
+    paint("terrain_grass", 1, 1);
+    assert(fl(1, 1) === "floor_dirt", "painted from upstairs");
+    me.layer = 0;
+    const s = mapMod.stairs().find((q) => q.building && q.layer === 0);
+    assert(s && mapMod.paintGroundProblem(s.tiles[1][0], s.tiles[1][1], "floor_dirt", 0) === "Not over a stair", "a stair's tile paints");
+    return `the pink walks, the shallows walk, the water does not; refused: ${Object.values(why).join(", ")}, under the player, over a laid floor, upstairs, over a stair`;
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+  }
+});
+check("a terrain drag is at most 24 tiles a side and reaches 12 tiles (an entry's `reach`), by the same command: a 25-wide drag is refused outright, a 24-wide one paints what is in reach, a tile past the reach stays", () => {
+  const at = openGrass(26, 3);
+  assert(at, "no open grass 26 by 3");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const dirt = () => { let k = 0; for (let i = 0; i < 26; i++) if (mapMod.peekTile(x + i, y + 1).floor === "floor_dirt") k++; return k; };
+  try {
+    rulesImport.rules.freeBuilding = true;
+    me.gx = x + 12; me.gy = y + 1; me.layer = 0;
+    placementImport.performPlacement(me, { kind: "build", what: "terrain_dirt", tx: x, ty: y + 1, tx2: x + 24, ty2: y + 1 });
+    const n25 = dirt();
+    placementImport.performPlacement(me, { kind: "build", what: "terrain_dirt", tx: x, ty: y + 1, tx2: x + 23, ty2: y + 1 });
+    const n24 = dirt();
+    assert(n25 === 0 && n24 === 24, `a 25-wide drag painted ${n25}, a 24-wide ${n24}`);
+    me.gx = x - 1; me.gy = y + 1;
+    for (let i = 0; i < 26; i++) mapMod.setFloor(x + i, y + 1, "floor_grass", 0);
+    placementImport.performPlacement(me, { kind: "build", what: "terrain_dirt", tx: x, ty: y + 1, tx2: x + 23, ty2: y + 1 });
+    const near = dirt();
+    assert(mapMod.peekTile(x + 11, y + 1).floor === "floor_dirt" && mapMod.peekTile(x + 14, y + 1).floor === "floor_grass" && near > 10 && near < 24, `from the drag's end only ${near} were in reach (tile 11 ${mapMod.peekTile(x + 11, y + 1).floor}, tile 14 ${mapMod.peekTile(x + 14, y + 1).floor})`);
+    return `a 25-wide drag refused, a 24-wide one painted 24; from one end ${near} of 24 were in reach (12 tiles)`;
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+  }
+});
+check("a painted tile is saved and sent with its chunk, and a wild chunk holding one is not evicted and regrown away (an untouched wild chunk beside it is)", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  try {
+    rulesImport.rules.freeBuilding = true;
+    const C = mapMod.CHUNK;
+    const X = 40 * C + 3;
+    const Y = 40 * C + 3;
+    mapMod.ensureAround(X, Y, 3);
+    const c = mapMod.getChunk(Math.floor(X / C), Math.floor(Y / C), false, 0);
+    assert(c && c.wild, "the far chunk is not wild");
+    me.gx = X; me.gy = Y + 1; me.layer = 0;
+    placementImport.performPlacement(me, { kind: "build", what: "terrain_nospawn", tx: X + 1, ty: Y, tx2: X + 1, ty2: Y });
+    const t = mapMod.peekTile(X + 1, Y);
+    assert(t.floor === "floor_nospawn" && !t.built && c.dirty, `painted ${t.floor}, dirty ${c.dirty}`);
+    const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(c)));
+    mapMod.setFloor(X + 1, Y, "floor_grass", 0);
+    mapMod.installChunk(rec);
+    assert(mapMod.peekTile(X + 1, Y).floor === "floor_nospawn", "the chunk's record did not bring the painted tile back");
+    const neighbour = [Math.floor(X / C) + 3, Math.floor(Y / C)];
+    mapMod.ensureAround(neighbour[0] * C + 3, neighbour[1] * C + 3, 0);
+    assert(mapMod.getChunk(neighbour[0], neighbour[1], false, 0), "no neighbouring wild chunk to compare");
+    mapMod.evictFar(-4000, -4000, 2);
+    assert(mapMod.getChunk(Math.floor(X / C), Math.floor(Y / C), false, 0) && mapMod.peekTile(X + 1, Y).floor === "floor_nospawn", "the painted chunk was evicted");
+    assert(!mapMod.getChunk(neighbour[0], neighbour[1], false, 0), "the untouched wild chunk beside it was not evicted (the comparison proves nothing)");
+    return "the pink tile came back from its chunk's record, and the chunk stayed through evictFar while its untouched neighbour went";
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+  }
+});
 // ---- the cliffs (art round 10, Michael 2026-10-28: "wire that cliff art for testing"; Free building's pieces) ----
 const cliffsMod = await import("../src/cliffs.js");
 const CLIFF_IDS = ["wall_cliff", "wall_cliff_grass", "floor_cliff_top", "floor_cliff_grass", "stair_ramp_stone"];

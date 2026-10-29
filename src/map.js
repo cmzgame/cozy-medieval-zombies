@@ -1089,6 +1089,40 @@ export function buildFloor(x, y, id, layer = 0, { free = false, grows = null } =
   return true;
 }
 
+// ---- terrain (Michael, 2026-10-28: the build menu's Terrain tab) ----
+// The ground's own surface painted outright: the tile's floor becomes `id` as tilling turns grass to soil, with no `built` record (so no
+// Take apart and nothing put back), and the ground bake blends it into its neighbours by the floor id alone, as it does the authored ones.
+// The ground only: "Terrain is the ground's". A body on the tile is the caller's to say (the map keeps no bodies).
+
+// Whether floor `id` is water of either kind (a ford or the deep): the terrain that may not go under something.
+export function isWaterFloor(id) {
+  if (isEngineFloor(id)) return false;
+  const r = floorRule(id);
+  return r.walk === false || r.walk < 1 || !!r.drink || /^floor_water/.test(id);
+}
+
+// Why floor `id` cannot be painted on (x, y) of `layer`, or "".
+export function paintGroundProblem(x, y, id, layer = 0) {
+  if (layer !== 0) return "Terrain is the ground's";
+  const t = peekTile(x, y, 0) || tileAt(x, y, 0);
+  if (t.built) return "A floor is laid there";
+  if (stairAt(x, y, 0) || landingAt(x, y, 0)) return "Not over a stair";
+  if (t.floor === EARTH || t.floor === HOLE || t.floor === VOID) return "Not here";
+  if (t.floor === id) return "Nothing to change";
+  if (t.prop && t.prop.crop) return "Crops grow there";
+  if (isWaterFloor(id) && (t.prop || t.rug || (t.items && t.items.length) || t.n || t.w || tileAt(x, y + 1, 0).n || tileAt(x + 1, y, 0).w)) return "Not under something";
+  return "";
+}
+
+// Paint floor `id` on the ground at (x, y). Returns false when it may not be painted. Saved and sent with its chunk like any floor change
+// (the tile's chunk is marked, so a wild chunk is not evicted and regrown away).
+export function paintGround(x, y, id) {
+  if (paintGroundProblem(x, y, id, 0)) return false;
+  setFloor(x, y, id, 0);
+  roomsDirty = true;
+  return true;
+}
+
 // Why the built floor on (x, y) of `layer` cannot be taken up, or "" (a body on it is the caller's to say: the map keeps no bodies).
 export function floorTakeUpProblem(x, y, layer = 0) {
   const t = peekTile(x, y, layer);

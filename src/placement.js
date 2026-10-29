@@ -78,6 +78,30 @@ export function buildKinds() {
   return Object.entries(buildData).map(([id, d]) => ({ id, ...d }));
 }
 
+// The palette's tabs (Michael, 2026-10-28: "Build menu becomes 2: Build, and Terrain"): an entry's `tab` in data/build.json names its tab, "build"
+// when it names none. Nothing is chosen by an entry's id.
+export const TABS = [{ id: "build", label: "Build" }, { id: "terrain", label: "Terrain" }];
+export const tabOf = (k) => (k && TABS.some((t) => t.id === k.tab) ? k.tab : "build");
+
+// The tabs the palette shows now: those holding an entry on offer. The Terrain tab is every entry `dev`, so with Free building off the palette
+// is the Build tab alone and shows no tab bar.
+export function paletteTabs() {
+  const on = new Set(paletteKinds().map(tabOf));
+  return TABS.filter((t) => on.has(t.id));
+}
+
+// The colour a terrain row shows as its swatch: its floor's chart colour (`mapColor`), else its flat placeholder's, else null (a drawn
+// floor without one shows none).
+export function swatchOf(k) {
+  if (!k || k.kind !== "terrain") return null;
+  try {
+    const d = getDef(k.sprite);
+    return d.mapColor || (d.placeholder && d.placeholder.color) || null;
+  } catch {
+    return null;
+  }
+}
+
 // What the palette offers now: a region's wood (`region` in its entry: Winter Pine and Bloodbark, #334) only while Free building is on.
 export function paletteKinds() {
   return buildKinds().filter((k) => !(k.region || k.dev) || rules.freeBuilding); // and what is not in the game yet (`dev`: the round stone wall, Michael 2026-10-27)
@@ -228,8 +252,46 @@ export const isFloorBuild = (what) => !!(buildData[what] && buildData[what].kind
 export const isStairBuild = (what) => !!(buildData[what] && buildData[what].kind === "stair");
 const MAX_DRAG = 12; // tiles a side of a floor's drag
 
+// ---- terrain (Michael, 2026-10-28: the build menu's Terrain tab; docs/13) ----
+// A palette entry of `kind` terrain paints the ground's floor (its `sprite` is the floor's id) outright, by the floors' drag, a larger one: a
+// map is painted big. Each tile is its own paint with its own refusal (map.paintGroundProblem; water also not under a body), the ghost each
+// tile green or red, nothing charged (Free building only, `dev`) and nothing kept: no `built` record, so there is nothing to take apart.
+export const isTerrainBuild = (what) => !!(buildData[what] && buildData[what].kind === "terrain");
+export const TERRAIN_DRAG = 24; // tiles a side of a terrain drag (docs/42: a lever)
+const dragCap = (what) => (isTerrainBuild(what) ? TERRAIN_DRAG : MAX_DRAG);
+
+// The terrain drag's tiles, each [x, y, reason]: reach by distance and a clear line like the floors' (the entry's own `reach`, a world-editing tool's).
+function terrainPlan(player, what, x0, y0, x1, y1) {
+  const L = layerOf(player);
+  const d = buildData[what];
+  const id = d.sprite;
+  const xa = Math.min(x0, x1);
+  const ya = Math.min(y0, y1);
+  const xb = Math.min(Math.max(x0, x1), xa + TERRAIN_DRAG - 1);
+  const yb = Math.min(Math.max(y0, y1), ya + TERRAIN_DRAG - 1);
+  const water = map.isWaterFloor(id);
+  const reach = Number(d.reach) || BUILD_REACH + 0.5;
+  const out = [];
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      let why = "";
+      if (d.dev && !rules.freeBuilding) why = "Terrain is not in the game yet"; // Free building only (as the round stone wall)
+      else if (L !== 0) why = "Terrain is the ground's";
+      else {
+        const far = reachProblem(player, [[x, y]], reach, L);
+        if (far) why = far === TOO_FAR ? "Too far" : "A wall is in the way";
+        else why = map.paintGroundProblem(x, y, id, L) || (water && stations.bodyOnTiles([[x, y]], L) ? "Someone is in the way" : "");
+        if (why === "Nothing to change") why = `Already ${d.label.toLowerCase()}`;
+      }
+      out.push([x, y, why]);
+    }
+  }
+  return out;
+}
+
 // The rectangle's tiles, each [x, y, reason]: laid in rings out from what is walkable already, so a tile's neighbour laid earlier counts.
 function floorPlan(player, what, x0, y0, x1, y1) {
+  if (isTerrainBuild(what)) return terrainPlan(player, what, x0, y0, x1, y1);
   const L = layerOf(player);
   const id = buildData[what].sprite;
   const xa = Math.min(x0, x1);
@@ -290,12 +352,13 @@ function floorGhost(player, what) {
   const tiles = floorMemo.tiles;
   const good = tiles.filter((t) => !t[2]).length;
   const first = tiles.find((t) => t[2]);
-  return { kind: "floor", what, sprite: buildData[what].sprite, layer: layerOf(player), tiles, x0: from[0], y0: from[1], x1: cur[0], y1: cur[1], ok: good > 0, reason: good ? "" : first ? first[2] : "Not here", good, dragging: !!state.build.from };
+  return { kind: "floor", what, sprite: buildData[what].sprite, terrain: isTerrainBuild(what), layer: layerOf(player), tiles, x0: from[0], y0: from[1], x1: cur[0], y1: cur[1], ok: good > 0, reason: good ? "" : first ? first[2] : "Not here", good, dragging: !!state.build.from };
 }
 
 // The drag's tiles laid, timed as a wall is (each tile's seconds), everything checked again when the bar completes.
 function startFloorBuild(player, what, x0, y0, x1, y1) {
   const d = buildData[what];
+  if (isTerrainBuild(what)) return startTerrainPaint(player, what, x0, y0, x1, y1);
   const plan = floorPlan(player, what, x0, y0, x1, y1).filter((t) => !t[2]);
   if (!plan.length) return false;
   const near = plan.reduce((a, b) => (Math.hypot(player.gx - a[0], player.gy - a[1]) <= Math.hypot(player.gx - b[0], player.gy - b[1]) ? a : b));
@@ -341,6 +404,35 @@ function startFloorBuild(player, what, x0, y0, x1, y1) {
       }
       if (!laid) showMessage((now.find((t) => t[2]) || [0, 0, "Not here"])[2]);
       return laid > 0;
+    },
+  };
+  if (startAction) startAction(player, action);
+  else action.perform();
+  return true;
+}
+
+// The terrain drag painted, tile by tile, each checked again as it is painted. Instant while `seconds` is 0 (the entry's default).
+function startTerrainPaint(player, what, x0, y0, x1, y1) {
+  const d = buildData[what];
+  const plan = terrainPlan(player, what, x0, y0, x1, y1).filter((t) => !t[2]);
+  if (!plan.length) return false;
+  const near = plan.reduce((a, b) => (Math.hypot(player.gx - a[0], player.gy - a[1]) <= Math.hypot(player.gx - b[0], player.gy - b[1]) ? a : b));
+  const action = {
+    kind: "build",
+    label: `Painting ${d.label.toLowerCase()}`,
+    tiles: [[near[0], near[1]]],
+    mx: near[0],
+    my: near[1],
+    range: (Number(d.reach) || BUILD_REACH + 0.5) + 0.6,
+    duration: (d.seconds || 0) * plan.length,
+    enabled: true,
+    simple: false,
+    perform() {
+      const now = terrainPlan(player, what, x0, y0, x1, y1);
+      let painted = 0;
+      for (const [x, y, why] of now) if (!why && map.paintGround(x, y, d.sprite)) painted++;
+      if (!painted) showMessage((now.find((t) => t[2]) || [0, 0, "Not here"])[2]);
+      return painted > 0;
     },
   };
   if (startAction) startAction(player, action);
@@ -825,7 +917,7 @@ export function update(player) {
   }
   if (state.kind === "build" && takesLeaf(state.build.what) && input.wasPressed("KeyR")) state.build.leaf = nextLeaf(state.build.leaf || ""); // the leaf wood (#334)
   if (state.kind === "prop") state.ghost = propGhost(player);
-  else if (state.kind === "build" && isFloorBuild(state.build.what)) {
+  else if (state.kind === "build" && (isFloorBuild(state.build.what) || isTerrainBuild(state.build.what))) {
     state.ghost = floorGhost(player, state.build.what);
     if (state.build.from && !input.mouseLeftDown()) finishFloor(player); // a floor's drag released: lay what the ghost shows
   }
@@ -1474,10 +1566,11 @@ export function performPlacement(player, cmd) {
     setdown.mountTorch(player, cmd.uid, cmd.tx, cmd.ty, cmd.edge);
     return true;
   }
-  if (cmd.kind === "build" && typeof cmd.what === "string" && isFloorBuild(cmd.what)) {
-    // A floor's rectangle (docs/49 section 5): its two corners on the player's storey, each tile by the rules the host's own release meets.
+  if (cmd.kind === "build" && typeof cmd.what === "string" && (isFloorBuild(cmd.what) || isTerrainBuild(cmd.what))) {
+    // A floor's rectangle (docs/49 section 5), or a terrain's painted one (the Terrain tab): its two corners on the player's storey, each tile
+    // by the rules the host's own release meets (the host's Free building, its reach, its refusals).
     const [x0, y0, x1, y1] = [cmd.tx, cmd.ty, cmd.tx2, cmd.ty2].map((v) => Math.round(Number(v)));
-    if (![x0, y0, x1, y1].every(Number.isFinite) || Math.abs(x1 - x0) >= MAX_DRAG || Math.abs(y1 - y0) >= MAX_DRAG) return false;
+    if (![x0, y0, x1, y1].every(Number.isFinite) || Math.abs(x1 - x0) >= dragCap(cmd.what) || Math.abs(y1 - y0) >= dragCap(cmd.what)) return false;
     if (player.action) return true;
     if (!startFloorBuild(player, cmd.what, x0, y0, x1, y1)) showMessage((floorPlan(player, cmd.what, x0, y0, x1, y1).find((t) => t[2]) || [0, 0, "Not here"])[2]);
     return true;
@@ -1675,6 +1768,7 @@ export function prompt() {
     const [mx, my] = [(g.x0 + g.x1) / 2, (g.y0 + g.y1) / 2];
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
     const n = g.tiles.length;
+    if (g.terrain) return { label: g.dragging ? `Release to paint ${g.good} of ${n} tiles · Esc cancel` : "Click to paint · drag for more · Esc cancel", mx, my, progress: null, enabled: true };
     return { label: g.dragging ? `Release to lay ${g.good} of ${n} (${costText(g.what)} a tile) · Esc cancel` : `Click to lay (${costText(g.what)}) · drag for more · Esc cancel`, mx, my, progress: null, enabled: true };
   }
   if (g.kind === "stair") {
