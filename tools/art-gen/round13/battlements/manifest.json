@@ -1,0 +1,487 @@
+{
+ "round": 13,
+ "piece": "battlements",
+ "date": "2026-10-29",
+ "files": [
+  {
+   "file": "out/battlement_north_far_plain.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    0,
+    52
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_north_far_plain_1.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    0,
+    52
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_north_far_plain_2.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    0,
+    52
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_north_far_loop.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    0,
+    52
+   ],
+   "what": "straight segment, the crenel filled and pierced by an arrow loop (the rare variant)"
+  },
+  {
+   "file": "out/battlement_north_far_late.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    0,
+    52
+   ],
+   "what": "straight segment cut for an inner corner (the first 16 left to the corner)"
+  },
+  {
+   "file": "out/battlement_north_far_early.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    0,
+    52
+   ],
+   "what": "straight segment cut for an inner corner (the last 16 left to the corner)"
+  },
+  {
+   "file": "out/battlement_north_near_plain.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    16,
+    44
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_north_near_plain_1.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    16,
+    44
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_north_near_plain_2.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    16,
+    44
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_north_near_loop.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    16,
+    44
+   ],
+   "what": "straight segment, the crenel filled and pierced by an arrow loop (the rare variant)"
+  },
+  {
+   "file": "out/battlement_north_near_late.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    16,
+    44
+   ],
+   "what": "straight segment cut for an inner corner (the first 16 left to the corner)"
+  },
+  {
+   "file": "out/battlement_north_near_early.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    16,
+    44
+   ],
+   "what": "straight segment cut for an inner corner (the last 16 left to the corner)"
+  },
+  {
+   "file": "out/battlement_west_far_plain.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    47,
+    52
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_west_far_plain_1.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    47,
+    52
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_west_far_plain_2.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    47,
+    52
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_west_far_loop.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    47,
+    52
+   ],
+   "what": "straight segment, the crenel filled and pierced by an arrow loop (the rare variant)"
+  },
+  {
+   "file": "out/battlement_west_far_late.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    47,
+    52
+   ],
+   "what": "straight segment cut for an inner corner (the first 16 left to the corner)"
+  },
+  {
+   "file": "out/battlement_west_far_early.png",
+   "size": [
+    47,
+    68
+   ],
+   "anchor": [
+    47,
+    52
+   ],
+   "what": "straight segment cut for an inner corner (the last 16 left to the corner)"
+  },
+  {
+   "file": "out/battlement_west_near_plain.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    31,
+    44
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_west_near_plain_1.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    31,
+    44
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_west_near_plain_2.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    31,
+    44
+   ],
+   "what": "straight segment, tile top vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_west_near_loop.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    31,
+    44
+   ],
+   "what": "straight segment, the crenel filled and pierced by an arrow loop (the rare variant)"
+  },
+  {
+   "file": "out/battlement_west_near_late.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    31,
+    44
+   ],
+   "what": "straight segment cut for an inner corner (the first 16 left to the corner)"
+  },
+  {
+   "file": "out/battlement_west_near_early.png",
+   "size": [
+    47,
+    84
+   ],
+   "anchor": [
+    31,
+    44
+   ],
+   "what": "straight segment cut for an inner corner (the last 16 left to the corner)"
+  },
+  {
+   "file": "out/battlement_corner_outer_n.png",
+   "size": [
+    30,
+    16
+   ],
+   "anchor": [
+    15,
+    60
+   ],
+   "what": "corner piece, anchored on the vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_corner_outer_s.png",
+   "size": [
+    32,
+    70
+   ],
+   "anchor": [
+    16,
+    44
+   ],
+   "what": "corner piece, anchored on the vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_corner_outer_e.png",
+   "size": [
+    31,
+    72
+   ],
+   "anchor": [
+    -1,
+    52
+   ],
+   "what": "corner piece, anchored on the vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_corner_outer_w.png",
+   "size": [
+    31,
+    72
+   ],
+   "anchor": [
+    32,
+    52
+   ],
+   "what": "corner piece, anchored on the vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_corner_inner_n.png",
+   "size": [
+    32,
+    70
+   ],
+   "anchor": [
+    16,
+    44
+   ],
+   "what": "corner piece, anchored on the vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_corner_inner_s.png",
+   "size": [
+    32,
+    60
+   ],
+   "anchor": [
+    16,
+    60
+   ],
+   "what": "corner piece, anchored on the vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_corner_inner_e.png",
+   "size": [
+    32,
+    73
+   ],
+   "anchor": [
+    32,
+    52
+   ],
+   "what": "corner piece, anchored on the vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_corner_inner_w.png",
+   "size": [
+    32,
+    73
+   ],
+   "anchor": [
+    0,
+    52
+   ],
+   "what": "corner piece, anchored on the vertex at the walkway floor"
+  },
+  {
+   "file": "out/battlement_end_E_far.png",
+   "size": [
+    23,
+    56
+   ],
+   "anchor": [
+    8,
+    56
+   ],
+   "what": "a run's free end (the half merlon beyond the vertex), anchored on the vertex"
+  },
+  {
+   "file": "out/battlement_end_E_near.png",
+   "size": [
+    23,
+    72
+   ],
+   "anchor": [
+    24,
+    48
+   ],
+   "what": "a run's free end (the half merlon beyond the vertex), anchored on the vertex"
+  },
+  {
+   "file": "out/battlement_end_S_far.png",
+   "size": [
+    23,
+    56
+   ],
+   "anchor": [
+    15,
+    56
+   ],
+   "what": "a run's free end (the half merlon beyond the vertex), anchored on the vertex"
+  },
+  {
+   "file": "out/battlement_end_S_near.png",
+   "size": [
+    23,
+    72
+   ],
+   "anchor": [
+    -1,
+    48
+   ],
+   "what": "a run's free end (the half merlon beyond the vertex), anchored on the vertex"
+  },
+  {
+   "file": "out/battlement_end_W_far.png",
+   "size": [
+    24,
+    56
+   ],
+   "anchor": [
+    0,
+    52
+   ],
+   "what": "a run's free end (the half merlon beyond the vertex), anchored on the vertex"
+  },
+  {
+   "file": "out/battlement_end_W_near.png",
+   "size": [
+    24,
+    71
+   ],
+   "anchor": [
+    16,
+    44
+   ],
+   "what": "a run's free end (the half merlon beyond the vertex), anchored on the vertex"
+  },
+  {
+   "file": "out/battlement_end_N_far.png",
+   "size": [
+    24,
+    56
+   ],
+   "anchor": [
+    24,
+    52
+   ],
+   "what": "a run's free end (the half merlon beyond the vertex), anchored on the vertex"
+  },
+  {
+   "file": "out/battlement_end_N_near.png",
+   "size": [
+    24,
+    71
+   ],
+   "anchor": [
+    8,
+    44
+   ],
+   "what": "a run's free end (the half merlon beyond the vertex), anchored on the vertex"
+  }
+ ]
+}

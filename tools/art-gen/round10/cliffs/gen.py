@@ -27,7 +27,7 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "out")
 LOOK = os.path.join(HERE, "look")
-REPO = "C:/Users/micha/Dev/cozy-medieval-zombies/.claude/worktrees/79-sweep-3e-23fa08"   # read only
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))  # the repo root: tools/art-gen/roundN/name/   # read only
 for d in (OUT, LOOK, os.path.join(OUT, "depth")):
     os.makedirs(d, exist_ok=True)
 
