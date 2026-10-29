@@ -17,6 +17,7 @@ export async function run(game) {
   const M = G.maps;
   const urls = [];
   const free0 = G.rules.rules.freeBuilding;
+  const made = { identity: null, worlds: [] }; // what this check adds to the page's store, taken out again in the `finally` (the Worlds check follows it)
   const me0 = G.player;
   try {
     G.loop.setPaused(true);
@@ -33,10 +34,12 @@ export async function run(game) {
     // 2. A world on each of two maps, listed with its map's name, never "unplayable".
     await W.leave();
     const a = I.add({ name: "Mapper", look: { hairStyle: "short" } });
+    made.identity = a.id;
     await W.create("Valley world", a.id);
     step(2);
     const here = G.maps.current;
     const w1 = W.current;
+    made.worlds.push(w1.worldId, "w-other");
     await W.save();
     await W.leave();
     const snap = await G.save.readWorld(w1.worldId);
@@ -156,6 +159,9 @@ export async function run(game) {
     row("it ends in a fresh test world, never kept", W.inWorld && !!G.player && W.current === null, `in a world ${W.inWorld}, kept ${!!W.current}`);
   } finally {
     M.setNavigator(null);
+    if (W.inWorld && W.current) await W.leave().catch(() => {});
+    for (const id of made.worlds) await G.save.deleteWorld(id).catch(() => {});
+    if (made.identity) try { I.remove(made.identity); } catch { /* already gone */ }
     G.rules.set({ freeBuilding: free0 });
     G.loop.setPaused(false);
     void me0;

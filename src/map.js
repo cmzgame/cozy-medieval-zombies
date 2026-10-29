@@ -2150,7 +2150,10 @@ export function installChunk(d) {
   for (const [floor, n] of d.floors) for (let j = 0; j < n; j++) tiles[i++] = createTile(RENAMED_FLOORS[floor] || floor); // a floor a save or a frame names by an old id comes back as its new one
   for (const [lx, ly, edge, w] of d.walls) tiles[ly * CHUNK + lx][edge] = { ...w, at: addr(cx * CHUNK + lx, cy * CHUNK + ly, layer) };
   for (const [lx, ly, list] of d.items) tiles[ly * CHUNK + lx].items = list;
-  for (const [lx, ly, under, free] of d.built || []) tiles[ly * CHUNK + lx].built = free ? { under, free: true } : { under }; // a laid floor (docs/49 section 5)
+  for (const [lx, ly, was, free] of d.built || []) {
+    const under = RENAMED_FLOORS[was] || was; // the floor a laid one covers comes back by its new id too
+    tiles[ly * CHUNK + lx].built = free ? { under, free: true } : { under }; // a laid floor (docs/49 section 5)
+  }
   // The tiles of props anchored on a neighbour (#341): stood again from the registry when the prop is there and still covers the tile. A prop not
   // in it yet (its anchor's chunk comes later in a restore or a frame) stands on this tile when that chunk's installProp runs.
   for (const [lx, ly, id] of d.parts || []) {

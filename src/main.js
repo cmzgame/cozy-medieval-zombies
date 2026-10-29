@@ -450,13 +450,25 @@ async function arrive() {
   }
 }
 const arriving = () => !!(URLQ.get("world") || URLQ.has("make") || URLQ.has("rejoin"));
+// The hand-off marks are read once, at boot (URLQ), and then dropped from the address: a reload or a later join must not replay them (the review of
+// #567). `movedOnce` is the page's own memory that a guest was moved here; a join that lands without a move clears it.
+let movedOnce = URLQ.has("jumped");
+function cleanAddress() {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    if (!["world", "make", "rejoin", "jumped"].some((k) => q.has(k))) return;
+    for (const k of ["world", "make", "rejoin", "jumped"]) q.delete(k);
+    const rest = q.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${rest ? `?${rest}` : ""}${window.location.hash || ""}`);
+  } catch { /* an address that cannot be rewritten stays as it is */ }
+}
 
 // A guest whose host's world is on another map than this page's (the welcome names it): the join is taken up again on the host's map,
 // by a reload that keeps the code (and the owner key, for a world of mine on the server). Once is the limit: a page that arrived this way
 // and still differs refuses with a word, never reloads in a loop.
 function followHostMap(hostMap) {
   const code = net.status().code;
-  if (!maps.exists(hostMap) || URLQ.has("jumped")) {
+  if (!maps.exists(hostMap) || movedOnce) {
     if (net.isGuest()) net.leave();
     if (net.onTheWire()) net.close();
     shell.worldHide();
@@ -2029,7 +2041,8 @@ async function boot() {
   net.setIdentity({ name: testIdentity().name || null, look: lookOf(testIdentity()), handed: handedOf(testIdentity().handed) }); // the wire's identity until a join picks one
   net.init({ host: TEST_WORLD ? url.get("host") : null, join: joinCode, lag: urlLag }, {
     restore: async (snap, playerId, world) => {
-      if (world && world.map && world.map !== MAP_NAME) { followHostMap(world.map); return; } // the host's world is on another map: this page goes there first (Michael, 2026-10-28)
+      if (world && world.map && world.map !== MAP_NAME) { followHostMap(world.map); return; }
+      movedOnce = false; // this join landed on its own map: a later one may be moved again // the host's world is on another map: this page goes there first (Michael, 2026-10-28)
       shell.worldStage("Receiving the world", 0.4);
       shell.worldNoCancel(); // the world is here: Leave is the way out now (the review of #115)
       awaitingWelcome = false;
@@ -2174,6 +2187,7 @@ async function boot() {
   });
   window.addEventListener("pagehide", autosave);
   await shell.finish(); // the screen goes once the first frame is under it
+  cleanAddress();
   if (arriving() && !net.isGuest()) arrive().catch((err) => { console.error(err); shell.worldHide(); screens.show("worlds", { note: "The map changed, but the world could not be opened." }); }); // the world a map change was for (Michael, 2026-10-28)
   // A test join from the URL (`?join=`) still waiting for its welcome: the joining screen over the stand-in (#107).
   if (net.isGuest() && !joinedWorld) { awaitingWelcome = true; showJoining(net.status().code); }
