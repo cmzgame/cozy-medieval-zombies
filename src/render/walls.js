@@ -33,6 +33,7 @@ const L_FLAME = 3;
 // the open frame with nothing in it (docs/09).
 function wallVariant(wall) {
   const n = wall.boards.near.length;
+  if (wall.gate) return "gate"; // a castle gate's frame is the same shut or open; its portcullis is the leaf (emitGateLeaf)
   if (wall.kind === "door") {
     const shut = !wall.open && !wall.broken;
     if (n) return `${shut ? "door_shut_boarded" : "door_boarded"}${n}`;
@@ -206,6 +207,99 @@ function swingLeaf(wall, edge, tx, ty, side, parts, open) {
   return `leaf_${side}_${open ? (step ? "60" : "30") : (step ? "30" : "60")}`;
 }
 
+// ---- castle gates (docs/02, 2026-10-29; the art of round 12) ----
+// A gate is one wall object on each of its 2 or 3 edges (map.js, `wall.gate = { i }`), and its picture is one frame as wide as the run. Each edge
+// draws its own 49 by 121 window of that frame, the very rectangle a plain stone wall's picture is on that edge (the frame is those segments side
+// by side with the arch carved out), so everything that is per segment stays per segment: its depth plane and ridge, its cap redrawn on the sky,
+// the fade of a near wall and its cuts, the cut under a floor, the sort. The window is a derived sheet that shares the whole sheet's place in the
+// atlas (`sliceOf`, gl.frameUV); the portcullis leaf is cut the same way, into the columns each edge owns.
+const slices = new WeakMap(); // a sheet -> "name:x:y:w:h" -> its derived sheet
+
+// A derived sheet whose frame `name` is the rectangle [wx, wy, ww, wh] of the sheet's frame (in its picture's pixels), anchored at [ax, ay] (centre anchors).
+function subSheet(sheet, name, wx, wy, ww, wh, ax, ay) {
+  let m = slices.get(sheet);
+  if (!m) slices.set(sheet, (m = new Map()));
+  const key = `${name}:${wx}:${wy}:${ww}:${wh}:${ax}:${ay}`;
+  let d = m.get(key);
+  if (!d) {
+    const f = sheet.frames[name];
+    d = Object.create(sheet);
+    d.sliceOf = sheet.sliceOf || sheet;
+    d.frames = { [name]: [f[0] + wx, f[1] + wy, ww, wh] };
+    d.frameAnchors = { [name]: [ax, ay] };
+    m.set(key, d);
+  }
+  return d;
+}
+
+// The window of a gate's frame that edge `k` of its run draws: the same rectangle and anchor as a plain wall of its run on that edge.
+function gateSlice(sheet, side, k) {
+  const name = `${side}_gate`;
+  const f = sheet.frames[name];
+  if (!f) return null;
+  const run = getSheet(sheet.wall.run || "wall_stone");
+  const pn = `${side}_plain`;
+  const pf = run.frames[pn];
+  const pa = (run.frameAnchors && run.frameAnchors[pn]) || run.anchor;
+  const ga = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
+  const wx = ga[0] + (side === "north" ? 32 * k : -32 * k) - pa[0];
+  const wy = ga[1] + 16 * k - pa[1];
+  if (wx < 0 || wy < 0 || wx + pf[2] > f[2] || wy + pf[3] > f[3]) return null; // a picture that does not hold the run's window: nothing drawn rather than garbage
+  return subSheet(sheet, name, wx, wy, pf[2], pf[3], pa[0], pa[1]);
+}
+
+// A gate's portcullis frame by its state, shown the same on every edge: closed (down), raised (up), and the one in-between frame all through a
+// swing (rising or falling, `wall.gate.swing` seconds, in sim time, each screen's own picture: never the world's, never sent, never saved).
+const gateSwings = new Map(); // "layer:x,y,edge" of the first edge -> { open, at }
+function gateLeafState(wall, edge, tx, ty) {
+  const [sx, sy] = map.gateStart(tx, ty, edge, wall);
+  const k = `${map.drawLayerNow()}:${sx},${sy},${edge}`;
+  const open = !!wall.open;
+  const now = loop.simTime();
+  let s = gateSwings.get(k);
+  if (!s) gateSwings.set(k, (s = { open, at: -Infinity })); // a gate first seen is drawn as it stands
+  else if (s.open !== open) {
+    s.open = open;
+    s.at = now;
+  }
+  const t = (now - s.at) / map.gateSwing(wall);
+  return t >= 0 && t < 1 ? "mid" : open ? "raised" : "closed";
+}
+
+// The portcullis of the gate that wall is one of, as seen from edge (tx, ty): the columns of its picture this edge owns, drawn on the grille's own
+// plane (6 units behind the edge line, the face 8: depth.wallFace with T = 12) after the wall and its cap. `whole` is the gate's sheet.
+function emitGateLeaf(whole, wall, edge, tx, ty, x, y, o) {
+  const parts = whole.wall.parts ? getSheet(whole.wall.parts) : null;
+  const side = edge === "n" ? "north" : "west";
+  const name = `leaf_${side}_${gateLeafState(wall, edge, tx, ty)}`;
+  const lf = parts && parts.frames[name];
+  if (!lf) return;
+  if (o.note) o.note(name);
+  const la = (parts.frameAnchors && parts.frameAnchors[name]) || parts.anchor;
+  const span = (map.gateOf(wall) || { span: 1 }).span;
+  const k = wall.gate.i;
+  const dx = edge === "n" ? 32 : -32;
+  const x0 = x - dx * k; // the first edge's tile centre on screen, where the leaf's anchor is
+  const y0 = y - 16 * k;
+  // The screen columns of this edge: a north edge runs from its tile centre to 32 right of it, a west edge from 32 left of it to it; the first
+  // and the last edges own what lies past the ends of the run too.
+  const lo = edge === "n" ? x : x - 32;
+  const hi = lo + 32;
+  const cut0 = (edge === "n" ? k === 0 : k === span - 1) ? -Infinity : lo;
+  const cut1 = (edge === "n" ? k === span - 1 : k === 0) ? Infinity : hi;
+  const left = x0 - la[0];
+  const a = Math.max(left, cut0);
+  const b = Math.min(left + lf[2], cut1);
+  if (b <= a) return;
+  const sx = Math.round(a - left);
+  const sw = Math.round(b - left) - sx;
+  if (sw <= 0) return;
+  const piece = subSheet(parts, name, sx, 0, sw, lf[3], la[0] - sx, la[1]);
+  if (o.face) gl.setPlane(depth.wallFace(edge, tx, ty, 12));
+  wallPartQuad(piece, name, x0, y0, o);
+  if (o.face) gl.setPlane(o.face);
+}
+
 function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   const side = edge === "n" ? "north" : "west";
   const { art: settled, boards, n } = drawnVariant(variant);
@@ -217,7 +311,7 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   if (!f) return;
   const anchor = sheet.frameAnchors[name] || sheet.anchor;
   const parts = sheet.wall.parts ? getSheet(sheet.wall.parts) : null;
-  const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
+  const open = !wall.gate && !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open"); // a gate's leaf rises into its arch, it swings out of nothing
   const outside = open && !o.ghost ? map.outsideSign(tx, ty, edge) : 0;
   const leaves = (far) => (wall.kind === "door" ? [`leaf${far}_${side}`] : [`shutter${far}_left_${side}`, `shutter${far}_right_${side}`]);
   // A door's open leaf stands square to its wall through its hinge and takes that plane (docs/51 section 3); shutters fold back flat
@@ -266,6 +360,7 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   if (boards) wallPartQuad(getSheet(sheet.wall.boards || "wall_boards"), `boards_${boards}_${side}_${n}`, x, y, o);
   if (mid) wallPartQuad(parts, mid, x, y, o); // the swinging leaf in place of the open one, while it swings
   else if (outside > 0) for (const p of leaves("")) leafQuad(p, false);
+  if (o.gate) emitGateLeaf(o.gate, wall, edge, tx, ty, x, y, o); // a castle gate's portcullis, after the wall and its cap
 }
 
 // What the scene tells the walls of the storeys round the layer being drawn (render/scene.js, each layer): whether the storey above is drawn
@@ -411,7 +506,7 @@ function postStack(tx, ty) {
 // is on the camera's side, its lip seen from behind on its far face's plane (behind the plateau's floor); a face with its plateau floored is
 // drawn below its edge line at the top, so the plateau's floor is what shows over its flat top (the lip is the wall's, never a cap); a
 // corner (cliffs.cornerAt) takes the corner piece of `wall.corners` for both its edges and in place of the post.
-const sameRun = (a, b) => a.sprite === b.sprite || (!!cliffs.cliffWallOf(a) && !!cliffs.cliffWallOf(b)); // a grassy lip meets a rocky one with no post: the same rock (the artist's note)
+const sameRun = (a, b) => a.sprite === b.sprite || map.wallRule(a.sprite).run === map.wallRule(b.sprite).run || (!!cliffs.cliffWallOf(a) && !!cliffs.cliffWallOf(b)); // a castle gate is the stone wall's own run (`wall.run`): no post at its ends nor inside its arch (docs/02, 2026-10-29) // a grassy lip meets a rocky one with no post: the same rock (the artist's note)
 const cornerCache = new Map(); // vertex key (postBase's) -> cliffs.cornerBase or null, for the frame cornerFrame; asked only at a vertex a cliff wall meets
 let cornerFrame = -1;
 function cornerBaseCached(vx, vy, L) {
@@ -793,6 +888,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
   const under = !!(stack && stack.under); // under a floor of the storey above: drawn without its cap
   const sheet = sheetFor(wall); // the wall's own sheet, or its shut leaves recoloured and its open ones another wood's (#334)
   const variant = wallVariant(wall);
+  const gateSheet = wall.gate && sheet.wall ? gateSlice(sheet, edge === "n" ? "north" : "west", wall.gate.i) : null; // a castle gate edge draws its window of the gate's picture
   const sortDepth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
   const p = iso.toScreen(tx, ty);
   const x = Math.round(p.x) + shakeOffset(tx, ty, edge);
@@ -837,17 +933,18 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
       by += Math.round(T / 4);
     }
   }
-  return {
+  const drawable = {
     key: sortDepth * 1000,
     kind: "wall",
     wall: { tx, ty, edge }, // check("depth") finds its drawable
     stack, // the storeys' seam (check("storeys") reads it)
     faded: !!stub, // a near wall drawn translucent (check("storeys") reads it)
+    gateLeaf: null, // a castle gate's edge: the portcullis frame drawn at its last emit (check("gates") reads it)
     emit() {
       gl.surface(face, lift, DEPTH_ROOM.wall);
       const tint = ghostTint || [1, 1, 1, alpha];
       if (sheet.wall) {
-        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts, face, covered, under: under && !cliff, frameName: cliff ? cliff.frameName : null, clip: cliff && !ghostTint ? cliff.clip : null });
+        emitDrawnWall(gateSheet || sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts, face, covered, under: under && !cliff, frameName: cliff ? cliff.frameName : gateSheet ? `${edge === "n" ? "north" : "west"}_gate` : null, clip: cliff && !ghostTint ? cliff.clip : null, gate: gateSheet ? sheet : null, note: (name) => { drawable.gateLeaf = name; } });
       } else {
       // Swung leaves only for a whole, open, unboarded leaf.
       const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
@@ -877,6 +974,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
       gl.layer(null);
     },
   };
+  return drawable;
 }
 
 // A bracket at screen (bx, by) on the current surface: its iron, and a lantern's cage and pane or a torch and its flame, lit from the world

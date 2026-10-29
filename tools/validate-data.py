@@ -537,6 +537,50 @@ for key, e in load("data/build.json").items():
     # Round walls (docs/50): stone only and not in the game yet, offered only with Free building on (Michael, 2026-10-27).
     if e.get("kind") == "round" and (e.get("sprite") != "wall_stone" or not e.get("dev")):
         fail(f"build {key}: a round wall is stone only and `dev` (Free building alone) for now")
+# Castle gates (art round 12, docs/09, Michael 2026-10-29): a wall definition with `wall.gate` is a gate of 2 or 3 edges in the run `wall.run` (a wall that
+# exists), its picture one frame as wide as the run on each side (`north_gate`, `west_gate`), its parts sheet the portcullis in closed, mid, and raised on each side, its
+# flags booleans (the rulings as data), its swing a number of seconds above 0, its crown a height; a build entry of kind `gate` is `dev` (Free building only) and names one.
+gate_sprites = {}
+for path in sorted(glob.glob("data/sprites/*.json")):
+    d = load(path.replace("\\", "/"))
+    w = d.get("wall") if isinstance(d, dict) else None
+    if isinstance(w, dict) and "gate" in w:
+        gate_sprites[os.path.basename(path)[:-5]] = (d, w)
+for sid, (d, w) in gate_sprites.items():
+    g = w["gate"]
+    if g.get("span") not in (2, 3):
+        fail(f"sprite {sid}: wall.gate.span is 2 or 3")
+    run = w.get("run")
+    if not (isinstance(run, str) and os.path.exists(f"data/sprites/{run}.json") and "wall" in load(f"data/sprites/{run}.json")):
+        fail(f"sprite {sid}: wall.run {run!r} is not a wall definition")
+    for side in ("north", "west"):
+        if f"{side}_gate" not in d.get("images", {}):
+            fail(f"sprite {sid}: no `{side}_gate` picture")
+    parts = w.get("parts")
+    pd = load(f"data/sprites/{parts}.json") if parts and os.path.exists(f"data/sprites/{parts}.json") else {}
+    for side in ("north", "west"):
+        for st in ("closed", "mid", "raised"):
+            if f"leaf_{side}_{st}" not in pd.get("images", {}):
+                fail(f"sprite {sid}: parts sheet {parts!r} has no leaf_{side}_{st}")
+    for flag in ("grille", "deadBreak", "bitesPass", "shotsPass", "fireSpreads"):
+        if not isinstance(g.get(flag), bool):
+            fail(f"sprite {sid}: wall.gate.{flag} is true or false (a ruling of Michael's, 2026-10-29, as data)")
+    if not (num(g.get("swing")) and g["swing"] > 0):
+        fail(f"sprite {sid}: wall.gate.swing is the seconds to rise or fall, above 0")
+    if not (num((g.get("opening") or {}).get("crown")) and 0 < g["opening"]["crown"] <= w.get("height", 96)):
+        fail(f"sprite {sid}: wall.gate.opening.crown is the arch's height, up to the wall's")
+    if g.get("deadBreak") and not (num(g.get("hp")) and g["hp"] > 0):
+        fail(f"sprite {sid}: a gate the dead can break has `hp`")
+for key, e in load("data/build.json").items():
+    if e.get("kind") == "gate":
+        if not e.get("dev"):
+            fail(f"build {key}: a castle gate is `dev` (Free building alone) for now (Michael, 2026-10-29)")
+        if e.get("sprite") not in gate_sprites:
+            fail(f"build {key}: a gate entry names a wall definition with `wall.gate`")
+        if e.get("cost"):
+            fail(f"build {key}: a castle gate is placed at once and free: no cost")
+    elif e.get("sprite") in gate_sprites:
+        fail(f"build {key}: a gate's wall definition is built by an entry of kind `gate`")
 # The round rooms on the maps (docs/50 section 5): 5 or 7 across, stone, their openings at the four door points.
 for mp in glob.glob("data/maps/*.json"):
     mj = load(mp.replace("\\", "/"))

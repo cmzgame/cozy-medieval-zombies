@@ -193,7 +193,11 @@ export function heightOfWall(wall) {
 export function wallStops(wall, z) {
   if (!wall || z >= heightOfWall(wall)) return false;
   if (map.boarded(wall)) return true;
-  if (wall.kind === "door") return !((wall.open || wall.broken) && z < DOOR_TOP);
+  if (wall.kind === "door") {
+    const gate = map.gateShotHeight(wall); // a castle gate's arch lets a shot through, shut or open, under its crown (docs/02, 2026-10-29: "arrows, spells and thrown things pass the bars when it is closed")
+    if (gate) return z >= gate;
+    return !((wall.open || wall.broken) && z < DOOR_TOP);
+  }
   if (wall.kind === "window") return !((wall.shutter === "open" || wall.broken) && z >= WINDOW_SILL && z < WINDOW_TOP);
   return true;
 }

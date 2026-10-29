@@ -263,7 +263,7 @@
   },
   "terrain_randomspawn": {
     "label": "Random spawn",
-      "already": "That is already random-spawn ground",
+    "already": "That is already random-spawn ground",
     "kind": "terrain",
     "tab": "terrain",
     "group": "Ground",
@@ -276,7 +276,7 @@
   },
   "terrain_water_shallow": {
     "label": "Shallow water",
-      "already": "That is already shallow water",
+    "already": "That is already shallow water",
     "kind": "terrain",
     "tab": "terrain",
     "group": "Water",
@@ -289,7 +289,7 @@
   },
   "terrain_water": {
     "label": "Water",
-      "already": "That is already water",
+    "already": "That is already water",
     "kind": "terrain",
     "tab": "terrain",
     "group": "Water",
@@ -365,5 +365,23 @@
     "tab": "terrain",
     "group": "Landforms",
     "note": "art round 10: a sloped slab of the cliff's rock climbing one storey over three tiles, north or west, built as a stair (docs/49 section 5) and walked at 32 px a tile with no treads (map.riseOn); its landing a cliff top (its definition's `landing`) unless a floor is laid there already; it lays its own square side walls (wall_ramp_side) on the ground under its landing, so it keeps its whole solid shape; never taken apart, as a stair; Free building only; placed at once and free like the Terrain tab's other pieces (Michael, 2026-10-29: \"make ramps build immediately for now just for building\"): no bar, no cost, no tool"
+  },
+  "gate_stone_2": {
+    "label": "Stone gate (2 wide)",
+    "kind": "gate",
+    "sprite": "wall_stone_gate_2",
+    "dev": true,
+    "group": "Castle",
+    "hint": "Click, then click a plain stone wall: a 2-tile gate with a portcullis replaces the wall at once; E opens and shuts it",
+    "note": "docs/09 (Michael, 2026-10-29: \"Free building only\", \"Agreed, for now\"): a 2-tile castle gate stamped over 2 plain stone wall edges in a row, shut, placed at once and free as the Stone ramp is (no bar, no cost, no tool); E opens and shuts it like a door; taking it apart puts the plain wall back"
+  },
+  "gate_stone_3": {
+    "label": "Stone gate (3 wide)",
+    "kind": "gate",
+    "sprite": "wall_stone_gate_3",
+    "dev": true,
+    "group": "Castle",
+    "hint": "Click, then click a plain stone wall: a 3-tile gate with a portcullis replaces the wall at once; E opens and shuts it",
+    "note": "docs/09 (Michael, 2026-10-29: \"Free building only\", \"Agreed, for now\"): a 3-tile castle gate stamped over 3 plain stone wall edges in a row, shut, placed at once and free as the Stone ramp is (no bar, no cost, no tool); E opens and shuts it like a door; taking it apart puts the plain wall back"
   }
 }

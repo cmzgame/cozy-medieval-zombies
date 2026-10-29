@@ -1,0 +1,64 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "north_gate": "data/art/village/gate_stone_2_north_frame.png",
+  "west_gate": "data/art/village/gate_stone_2_west_frame.png"
+ },
+ "anchors": {
+  "north_gate": [
+   8,
+   100
+  ],
+  "west_gate": [
+   72,
+   100
+  ]
+ },
+ "wall": {
+  "height": 96,
+  "thickness": 16,
+  "color": "#7b7670",
+  "material": "stone",
+  "post": "post_stone",
+  "parts": "wall_parts_gate_stone_2",
+  "run": "wall_stone",
+  "gate": {
+   "kind": "portcullis",
+   "span": 2,
+   "opening": {
+    "u": [
+     8,
+     56
+    ],
+    "springing": 38,
+    "crown": 78,
+    "arch": "pointed",
+    "radius": 45.33,
+    "note": "u in world units along the run from the gate's first edge's start; z from the ground; through the wall's whole 16 thickness"
+   },
+   "leaf": {
+    "plane": 6,
+    "frames": [
+     "closed",
+     "mid",
+     "raised"
+    ],
+    "tips": [
+     0,
+     30,
+     60
+    ],
+    "note": "the grille's plane, in units from the edge line toward the camera; tips = the height of its spiked points"
+   },
+   "name": "Stone gate (2 wide)",
+   "swing": 1.2,
+   "grille": true,
+   "deadBreak": false,
+   "bitesPass": false,
+   "shotsPass": true,
+   "fireSpreads": false,
+   "hp": 400
+  }
+ },
+ "note": "a stone-wall castle gate 2 tiles wide (art round 12, Michael's approval 2026-10-29): one wall object per edge of its run, each drawing its own slice of the picture; the portcullis is a flat grille drawn after the wall (wall_parts_gate_stone_2); the flags are docs/02, 2026-10-29: the dead cannot break a closed gate (deadBreak), bites and melee do not pass its bars (bitesPass), shots do (shotsPass), fire does not spread through it (fireSpreads), sight and light pass it closed (grille)"
+}

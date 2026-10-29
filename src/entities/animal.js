@@ -21,7 +21,7 @@
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
 import { getSheet } from "../assets.js";
 import { repath, followPath, separate, pickTargetAround, faceToward } from "./movement.js";
-import { lineOfSight } from "../visibility.js";
+import { lineOfSight, lineOfReach } from "../visibility.js";
 import { isWalkableTile, roomAt, dropItem, peekTile, canStep, markDirty } from "../map.js";
 import * as rng from "../rng.js";
 import * as clock from "../clock.js";
@@ -380,7 +380,7 @@ function charge(a, dt, others, threats, sp) {
     if (a.windup <= 0) {
       a.windup = 0;
       a.biteTimer = f.cooldown;
-      if (d <= f.reach + 0.3 && lineOfSight(a.gx, a.gy, t.gx, t.gy)) emit("animalBite", { animal: a, victim: t, damage: f.damage });
+      if (d <= f.reach + 0.3 && lineOfReach(a.gx, a.gy, t.gx, t.gy)) emit("animalBite", { animal: a, victim: t, damage: f.damage });
     }
     return;
   }
