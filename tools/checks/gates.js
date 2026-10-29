@@ -1,4 +1,4 @@
-// The castle gates (Michael, 2026-10-29, docs/54; docs/02: "the dead cannot break a closed gate", bites and melee do not pass its bars, arrows and spells do,
+// The castle gates (Michael, 2026-10-29, docs/09; docs/02: "the dead cannot break a closed gate", bites and melee do not pass its bars, arrows and spells do,
 // fire does not spread through it, Free building only, placed at once and free). From the console, on a tab with `?nosave&mute` sized 1280 by 800 (docs/testing.md), in the valley:
 //   await __game.check("gates")
 // It lays stone wall on open ground across a chunk's corner, builds both gates (2 and 3 wide) on both runs (n and w) by the commands a guest sends

@@ -1688,7 +1688,7 @@ export function removeRing(id) {
   return taken;
 }
 
-// ---- castle gates (Michael, 2026-10-29; docs/02, docs/54) ----
+// ---- castle gates (Michael, 2026-10-29; docs/02, docs/09) ----
 // A castle gate is a door-kind wall on each of the 2 or 3 consecutive edges of one run, each carrying `gate: { i }` (its place in the run, 0 the
 // first: the smallest tx on a north run, ty on a west) and the gate's sprite (`wall_stone_gate_2`, whose definition says `wall.gate`). One open
 // state is kept on all of them (setGateOpen, the only place it changes), so every path that reads a door reads a gate (bodies, rooms, light, the
@@ -1958,6 +1958,7 @@ export function damageOpening(wall, side, amount) {
       broke = "board";
     }
   } else if (!wall.broken) {
+    if (wall.gate && !Number.isFinite(wall.hp)) wall.hp = gateOf(wall).hp || DOOR_HP * 4; // a gate made while the dead could not break it (its health Infinity, saved as null) takes its definition's health once they can
     wall.hp -= amount;
     if (wall.hp <= 0) {
       wall.hp = 0;

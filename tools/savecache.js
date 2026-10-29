@@ -88,7 +88,7 @@ if (map.canBuildWall(px + 7, py + 5, "n")) {
   map.buildWall(px + 7, py + 5, "n", "window", "wall_mahogany", "wall_spruce"); did("a window of another wood built");
   map.destroyWall(px + 7, py + 5, "n"); did("a window of another wood taken down");
 }
-// A castle gate (docs/54): a gate built over two plain stone edges that stand in two chunks, opened and shut as one, and taken apart whole; every edge
+// A castle gate (docs/09): a gate built over two plain stone edges that stand in two chunks, opened and shut as one, and taken apart whole; every edge
 // of it is touched, so both chunks' saved copies are made again.
 {
   let spot = null;

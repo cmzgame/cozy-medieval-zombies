@@ -251,7 +251,7 @@ function cursorGrid(player) {
 export const isFloorBuild = (what) => !!(buildData[what] && buildData[what].kind === "floor");
 export const isStairBuild = (what) => !!(buildData[what] && buildData[what].kind === "stair");
 // A castle gate (Michael, 2026-10-29: "Free building only ... Agreed, for now"; instant and free like the Stone ramp): stamped over the 2 or 3 plain stone
-// wall edges of one run, shut; E opens it like a door (docs/54). Never charged, timed, or tooled; offered only while Free building is on (`dev`).
+// wall edges of one run, shut; E opens it like a door (docs/09). Never charged, timed, or tooled; offered only while Free building is on (`dev`).
 export const isGateBuild = (what) => !!(buildData[what] && buildData[what].kind === "gate");
 // A stair on the Terrain tab (the Stone ramp) is a landform: placed outright like the ground's paints, with no bar, no cost, and no tool
 // (Michael, 2026-10-29: "make ramps build immediately for now just for building"); the Build tab's stairs stay timed and priced.
@@ -527,7 +527,7 @@ function startStairBuild(player, what, x, y, dir) {
 }
 
 
-// ---- castle gates (docs/02, 2026-10-29; docs/54) ----
+// ---- castle gates (docs/02, 2026-10-29; docs/09) ----
 // The run a gate would take for the edge under the cursor: the hovered edge and the one along it on the side of the edge the cursor is nearer, for
 // a gate two wide; the hovered edge in the middle of three. Returns { tx, ty, edge } of the first edge of the run (the smallest tx on a north run, ty on a west).
 function gateRunAt(what, g) {
@@ -1679,7 +1679,7 @@ export function performPlacement(player, cmd) {
     return true;
   }
   if (cmd.kind === "build" && typeof cmd.what === "string" && isGateBuild(cmd.what)) {
-    // A castle gate (docs/54): the first edge of its run and the run's direction, on the player's storey, by the rules the host's own click meets.
+    // A castle gate (docs/09): the first edge of its run and the run's direction, on the player's storey, by the rules the host's own click meets.
     const tx = Math.round(Number(cmd.tx));
     const ty = Math.round(Number(cmd.ty));
     const edge = cmd.edge === "n" || cmd.edge === "w" ? cmd.edge : null;
