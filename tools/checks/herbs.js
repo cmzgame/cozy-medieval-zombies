@@ -149,11 +149,11 @@ export async function run(game, opts = {}) {
     const badIcons = [];
     for (const id of ITEMS) {
       const def = G.items.getItem(id);
-      // Drawn (art rounds 4 and 5, 2026-10-26): the icon a file 19 by 19 and the floor picture (`floor_<id>`) its drawn world picture;
+      // Drawn (art rounds 4 and 5, 2026-10-26): the icon a file 19 by 19 and the floor picture (`lying_<id>`) its drawn world picture;
       // generated: the icon made at boot from its design (an herb's its node's own pixels) and registered as the floor picture (`icon_<id>`).
       const drawn = !!(def.icon && !def.icon.placeholder);
       let sheet = null;
-      try { sheet = G.assets.getSheet(drawn ? `floor_${id}` : `icon_${id}`); } catch { sheet = null; }
+      try { sheet = G.assets.getSheet(drawn ? `lying_${id}` : `icon_${id}`); } catch { sheet = null; }
       if (drawn) {
         if (def.icon.src !== `data/art/items/${id}_icon.png` || def.icon.size.join() !== "19,19" || !sheet) { badIcons.push(`${id}: drawn, src ${def.icon.src}, floor ${!!sheet}`); continue; }
       } else if (!def.icon || !/^data:image\/png/.test(def.icon.src || "") || !sheet || sheet.image.width !== 19 || sheet.image.height !== 19) { badIcons.push(`${id}: src ${def.icon && def.icon.src ? def.icon.src.slice(0, 15) : "none"}, sheet ${sheet ? `${sheet.image.width}x${sheet.image.height}` : "none"}`); continue; }

@@ -1558,9 +1558,10 @@ async function boot() {
         const g = def.held.guard;
         assets.registerSheet("held_shield_guard", g ? await assets.heldSheetFromImage({ mode: "fixed", image: g.image, grip: g.grip }) : figure.generateHeld("shield_guard", def.held.colours));
       }
-      // An item with drawn art lies on the floor as its own picture (`floor_<id>`, render/props.js; the demo pass, 2026-10-26): a long thing
+      // An item with drawn art lies on the floor as its own picture (`lying_<id>`, render/props.js; the demo pass, 2026-10-26): a long thing
       // drawn in angles as its 90 degree picture, flat on the ground, and one drawn by facing (the bow, always upright) as that picture turned a
-      // quarter, whole pixels; anything else as its one world picture; anchored on its foot.
+      // quarter, whole pixels; anything else as its one world picture; anchored on its foot. Never `floor_<id>`, the floors' own names
+      // (Michael's playtest, 2026-10-28: the item stone's picture took the stone floor's sheet, and every stone floor drew as one pebble).
       for (const def of items.allItems()) {
         const h = def.held;
         if (!h || (def.icon && def.icon.placeholder)) continue;
@@ -1576,7 +1577,7 @@ async function boot() {
         ctx.drawImage(img, 0, 0);
         const [w, hh] = [canvas.width, canvas.height];
         const sheet = { image: canvas, frames: { idle_0: [0, 0, w, hh] }, anchor: [Math.floor(w / 2), hh - 1], bounds: { x: 0, y: 0, w, h: hh }, animations: {}, facings: [], mirror: {} };
-        assets.registerSheet(`floor_${def.id}`, sheet, { generated: "floor", def: "data/items.json" });
+        assets.registerSheet(`lying_${def.id}`, sheet, { generated: "lying", def: "data/items.json" });
       }
       // An item whose icon is generated (`icon.placeholder`: a sprite's id, its node's design, or a design of its own; docs/46 step 2): the bag's
       // picture from that design, and the same picture as the item lying on the floor (`icon_<id>`, render/props.js), the pair from one design.
