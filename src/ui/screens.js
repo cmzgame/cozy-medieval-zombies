@@ -1153,7 +1153,7 @@ function render() {
         <h1>A character ${what}</h1>
         ${why}
         ${stepHtml}
-        <div class="screen-buttons row">${button("create-next", c.step < CREATION_STEPS ? "Next" : c.for === "join" ? "Join as this" : "Into the valley")}${button("back", "Back")}</div>
+        <div class="screen-buttons row">${button("create-next", c.step < CREATION_STEPS ? "Next" : c.for === "join" ? "Join as this" : "Into the world")}${button("back", "Back")}</div>
       </div>`;
   } else if (current === "identities") {
     root.innerHTML = `
