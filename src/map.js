@@ -1119,7 +1119,6 @@ export function paintGroundProblem(x, y, id, layer = 0) {
 export function paintGround(x, y, id) {
   if (paintGroundProblem(x, y, id, 0)) return false;
   setFloor(x, y, id, 0);
-  roomsDirty = true;
   return true;
 }
 

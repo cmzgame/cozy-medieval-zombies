@@ -256,7 +256,7 @@ const MAX_DRAG = 12; // tiles a side of a floor's drag
 // A palette entry of `kind` terrain paints the ground's floor (its `sprite` is the floor's id) outright, by the floors' drag, a larger one: a
 // map is painted big. Each tile is its own paint with its own refusal (map.paintGroundProblem; water also not under a body), the ghost each
 // tile green or red, nothing charged (Free building only, `dev`) and nothing kept: no `built` record, so there is nothing to take apart.
-export const isTerrainBuild = (what) => !!(buildData[what] && buildData[what].kind === "terrain");
+export const isTerrainBuild = (what) => !!(buildData[what] && buildData[what].kind === "terrain" && buildData[what].dev); // an entry that forgot `dev` is no terrain: never paintable with Free building off
 export const TERRAIN_DRAG = 24; // tiles a side of a terrain drag (docs/42: a lever)
 const dragCap = (what) => (isTerrainBuild(what) ? TERRAIN_DRAG : MAX_DRAG);
 
@@ -271,17 +271,19 @@ function terrainPlan(player, what, x0, y0, x1, y1) {
   const yb = Math.min(Math.max(y0, y1), ya + TERRAIN_DRAG - 1);
   const water = map.isWaterFloor(id);
   const reach = Number(d.reach) || BUILD_REACH + 0.5;
+  const already = d.already || `That is already ${d.label.toLowerCase()} ground`; // an entry may say it its own way (`already`)
   const out = [];
   for (let y = ya; y <= yb; y++) {
     for (let x = xa; x <= xb; x++) {
       let why = "";
-      if (d.dev && !rules.freeBuilding) why = "Terrain is not in the game yet"; // Free building only (as the round stone wall)
+      if (!rules.freeBuilding) why = "Terrain is not in the game yet"; // Free building only (as the round stone wall)
       else if (L !== 0) why = "Terrain is the ground's";
+      else if (Math.hypot(x - player.gx, y - player.gy) > reach) why = "Too far"; // reach.js's own distance test first: no line test for a tile past it
       else {
         const far = reachProblem(player, [[x, y]], reach, L);
         if (far) why = far === TOO_FAR ? "Too far" : "A wall is in the way";
-        else why = map.paintGroundProblem(x, y, id, L) || (water && stations.bodyOnTiles([[x, y]], L) ? "Someone is in the way" : "");
-        if (why === "Nothing to change") why = `Already ${d.label.toLowerCase()}`;
+        else why = map.paintGroundProblem(x, y, id, L) || (water ? (stations.bodyOnTiles([[x, y]], L) ? "Someone is in the way" : stations.bodyOnTiles([[x, y]], L, true) ? "A body lies there" : "") : ""); // a corpse too: its loot must not lie on a tile no one walks
+        if (why === "Nothing to change") why = already;
       }
       out.push([x, y, why]);
     }

@@ -77,6 +77,17 @@ export async function run(game) {
     row("the tab is remembered over a close and an open", bp.currentTab() === "terrain" && palEl().querySelector(".bp-tab.on").textContent === "Terrain" && names()[0] === "Grass");
     palEl().querySelector('.bp-tab[data-tab="build"]').click();
     row("and Build is one click back", bp.currentTab() === "build" && names()[0] === "Log wall");
+    // The remembered tab outlives the Terrain tab's absence: Free building off shows Build, and Terrain returns with Free building.
+    palEl().querySelector('.bp-tab[data-tab="terrain"]').click();
+    bp.close();
+    G.rules.set({ freeBuilding: false });
+    bp.openPalette(me);
+    const during = [bp.currentTab(), bp.rememberedTab(), palEl().querySelector(".bp-tabs").hidden, names()[0]];
+    bp.close();
+    G.rules.set({ freeBuilding: true });
+    bp.openPalette(me);
+    row("the remembered tab is kept while Terrain is not on offer and comes back with Free building (shown Build meanwhile)", during.join() === "build,terrain,true,Log wall" && bp.currentTab() === "terrain" && names()[0] === "Grass", `meanwhile ${during.join(" ")}; after ${bp.currentTab()}`);
+    palEl().querySelector('.bp-tab[data-tab="build"]').click();
 
     // ---- 2. the height cap and the scroll ----
     const pal = rect(palEl());
@@ -175,8 +186,19 @@ export async function run(game) {
       placement.update(me);
       inp.endStep();
       const g = placement.state.ghost;
+      // The cost of a full 24 by 24 ghost recomputed at each cursor move (the plan is kept while nothing it reads has changed).
+      const ms = [];
+      for (let k = 0; k < 6; k++) {
+        placement.state.build.from = [x - 8, y - 3];
+        aimAt(x + 15 - (k % 2), y + 20);
+        const t0 = performance.now();
+        placement.update(me);
+        ms.push(performance.now() - t0);
+      }
+      const big = placement.state.ghost;
+      row("a 24 by 24 ghost recomputes in a few milliseconds at a cursor move", !!big && big.tiles.length >= 500 && Math.max(...ms) < 40, `${big ? big.tiles.length : 0} tiles: ${ms.map((m) => m.toFixed(1)).join(", ")} ms`);
       const why = g && g.tiles ? Object.fromEntries(g.tiles.map(([a, b, r]) => [`${a - x},${b - y}`, r])) : {};
-      row("the ghost of a terrain drag is each tile green or red with its reason: nine tiles, the dirt one \"Already dirt\", the laid one \"A floor is laid there\", the rest green", !!g && g.kind === "floor" && g.terrain === true && g.tiles.length === 9 && why["2,1"] === "Already dirt" && why["3,1"] === "A floor is laid there" && g.tiles.filter((t) => !t[2]).length === 7 && g.ok, g ? `${g.tiles.length} tiles, ${g.good} green; ${why["2,1"]}; ${why["3,1"]}` : "no ghost");
+      row("the ghost of a terrain drag is each tile green or red with its reason: nine tiles, the dirt one \"That is already dirt ground\", the laid one \"A floor is laid there\", the rest green", !!g && g.kind === "floor" && g.terrain === true && g.tiles.length === 9 && why["2,1"] === "That is already dirt ground" && why["3,1"] === "A floor is laid there" && g.tiles.filter((t) => !t[2]).length === 7 && g.ok, g ? `${g.tiles.length} tiles, ${g.good} green; ${why["2,1"]}; ${why["3,1"]}` : "no ghost");
       placement.cancel();
       map.takeUpFloor(x + 3, y + 1, 0);
       paint(x + 2, y + 1, "floor_grass");
@@ -214,14 +236,18 @@ export async function run(game) {
       const share = (c, k) => (c[k] || 0) / Object.values(c).reduce((a, b) => a + b, 0);
       const dirtEdge = kindsOfTile(x + 2, y + 1); // a dirt tile at the patch's edge
       const dirtMid = kindsOfTile(x + 1, y + 1); // the middle one
-      const grassBeside = kindsOfTile(x + 3, y + 1); // grass between the dirt and the cobble
-      const grassFar = kindsOfTile(x + 7, y + 1);
-      row("a painted dirt patch blends like the valley's: the grass tile beside it is part dirt and part grass (a ragged edge, no hard diamond), its own tiles dirt all through, grass far off none", (grassBeside.dirt || 0) > 100 && (grassBeside.grass || 0) > 100 && share(dirtEdge, "dirt") > 0.97 && share(dirtMid, "dirt") > 0.97 && share(grassFar, "grass") > 0.99, `grass beside ${JSON.stringify(grassBeside)}; edge ${JSON.stringify(dirtEdge)}; middle ${JSON.stringify(dirtMid)}`);
-      const waterEdge = kindsOfTile(x + 2, y + 5); // the grass tile beside the water
+      // The ragged edge is noise in the world's position, so the mixed tile is looked for among the tiles within two or three of the patch, not at one spot (the dirt reaches a tile or two past the painted ones, as the valley's paths do).
+      const ring = (x0, y0, x1, y1, d = 3) => { const t = []; for (let b = y0 - d; b <= y1 + d; b++) for (let a = x0 - d; a <= x1 + d; a++) if (a < x0 || a > x1 || b < y0 || b > y1) t.push(kindsOfTile(x + a, y + b)); return t; };
+      const mixed = (list, k) => list.find((c) => (c[k] || 0) > 50 && (c.grass || 0) > 50);
+      const dirtRing = ring(0, 0, 2, 2, 2).filter((c) => !c.cobble && !c.water);
+      const grassBeside = mixed(dirtRing, "dirt") || {};
+      row("a painted dirt patch blends like the valley's: a grass tile beside it is part dirt and part grass (a ragged edge, no hard diamond), its own tiles dirt all through", (grassBeside.dirt || 0) > 100 && (grassBeside.grass || 0) > 100 && share(dirtEdge, "dirt") > 0.97 && share(dirtMid, "dirt") > 0.97, `ring ${JSON.stringify(dirtRing.slice(0, 6))}; grass beside ${JSON.stringify(grassBeside)}; edge ${JSON.stringify(dirtEdge)}; middle ${JSON.stringify(dirtMid)}`);
+      const waterRing = ring(3, 4, 5, 6);
+      const waterEdge = mixed(waterRing, "dirt") || {}; // a ragged dirt shore: a tile part dirt, part grass
       const waterMid = kindsOfTile(x + 4, y + 5);
       const shallow = kindsOfTile(x + 1, y + 4);
       const shallowEdge = kindsOfTile(x + 0, y + 4);
-      row("deep water blends as the river does, a ragged dirt shore between it and the grass (the grass tile beside it is part dirt, part grass); a shallow tile is a hard diamond of the laid kind (as the river's ford)", (waterEdge.dirt || 0) > 100 && (waterEdge.grass || 0) > 100 && share(waterMid, "water") > 0.97 && share(shallow, "laid") > 0.99 && share(shallowEdge, "laid") > 0.99, `water edge ${JSON.stringify(waterEdge)}; shallow ${JSON.stringify(shallow)}; shallow edge ${JSON.stringify(shallowEdge)}`);
+      row("deep water blends as the river does, a ragged dirt shore between it and the grass (a grass tile beside it is part dirt, part grass); a shallow tile is a hard diamond of the laid kind (as the river's ford)", (waterEdge.dirt || 0) > 100 && (waterEdge.grass || 0) > 100 && share(waterMid, "water") > 0.97 && share(shallow, "laid") > 0.99 && share(shallowEdge, "laid") > 0.99, `water ring ${JSON.stringify(waterRing.slice(0, 6))}; water edge ${JSON.stringify(waterEdge)}; shallow ${JSON.stringify(shallow)}; shallow edge ${JSON.stringify(shallowEdge)}`);
       const pinkBake = G.ground.bakeImage(Math.floor((x + 0) / C), Math.floor((y + 6) / C));
       let pink = 0;
       let all = 0;

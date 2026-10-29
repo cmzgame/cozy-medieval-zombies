@@ -15,10 +15,13 @@ let hintEl = null;
 let open = false;
 let onPick = () => {};
 let lastPlayer = null;
-let tab = "build"; // the last tab, kept for the session
+let tab = "build"; // the last tab picked, kept for the session (also while it is not on offer)
+let shownTab = "build"; // the tab drawn now: the remembered one, or the first on offer
 const scrollOf = {}; // each tab's list scroll, kept while the palette is shut
 let lastPicked = null; // the row last picked, scrolled into view when the palette opens again
 let revealFor = null; // the row to scroll into view at the next render, or null
+let uiHeight = 0; // the UI's height in UI px, read again after a resize
+window.addEventListener("resize", () => { uiHeight = 0; });
 let seenActive = null; // the mode's row at the last render
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -39,12 +42,12 @@ export function initBuildPalette(handlers = {}) {
   root.addEventListener("click", (e) => {
     const t = e.target.closest(".bp-tab");
     if (t) {
-      if (t.dataset.tab !== tab) {
-        scrollOf[tab] = listEl.scrollTop;
+      if (t.dataset.tab !== shownTab) {
+        scrollOf[shownTab] = listEl.scrollTop;
         tab = t.dataset.tab;
         revealFor = null;
         render(lastPlayer);
-        listEl.scrollTop = scrollOf[tab] || 0;
+        listEl.scrollTop = scrollOf[shownTab] || 0;
       }
       return;
     }
@@ -68,7 +71,7 @@ export function openPalette(player) {
 }
 
 export function close() {
-  if (open && listEl) scrollOf[tab] = listEl.scrollTop;
+  if (open && listEl) scrollOf[shownTab] = listEl.scrollTop;
   open = false;
   seenActive = null;
   if (root) root.hidden = true;
@@ -76,6 +79,11 @@ export function close() {
 
 // The tab shown now (for the checks).
 export function currentTab() {
+  return shownTab;
+}
+
+// The tab remembered: the one last picked, shown again when it is on offer again (Terrain, with Free building).
+export function rememberedTab() {
   return tab;
 }
 
@@ -101,11 +109,13 @@ function set(el, html) {
 export function render(player) {
   if (!open) return;
   lastPlayer = player;
-  root.classList.toggle("short", root.parentElement.clientHeight < 560); // a short window: beside the HUD, not under it (the style)
+  if (uiHeight === 0) uiHeight = root.parentElement.clientHeight; // read once (a layout), again only when the window is resized
+  root.classList.toggle("short", uiHeight < 560); // a short window: beside the HUD, not under it (the style)
   const active = placement.state.kind === "build" && placement.state.build ? placement.state.build.what : null;
   const tabs = placement.paletteTabs();
-  if (!tabs.some((t) => t.id === tab)) tab = tabs.length ? tabs[0].id : "build"; // the Terrain tab goes with Free building
-  const kinds = placement.paletteKinds().filter((k) => placement.tabOf(k) === tab);
+  const shown = tabs.some((t) => t.id === tab) ? tab : tabs.length ? tabs[0].id : "build"; // the Terrain tab goes with Free building: the remembered one stays, and comes back with it
+  shownTab = shown;
+  const kinds = placement.paletteKinds().filter((k) => placement.tabOf(k) === shown);
   // Under small headings (an entry's `group`), in the order they first appear; an entry with none sits at the top.
   const groups = new Map();
   for (const k of kinds) {
@@ -122,10 +132,10 @@ export function render(player) {
     return `<div class="bp-row${short ? " short" : ""}${active === k.id ? " active" : ""}" data-kind="${k.id}" title="${esc(k.label)}: ${esc(short || how)}"><span class="bp-name">${esc(k.label)}</span>${right}</div>${leaf}`;
   };
   const list = [...groups].map(([g, ks]) => (g ? `<div class="bp-group">${esc(g)}</div>` : "") + ks.map(rowHtml).join("")).join("");
-  const remove = tab === "build" ? '<div class="bp-row bp-remove" data-kind="__remove" title="Take apart: highlights what you made or built; click to take it apart for half its materials (docs/43)"><span class="bp-name">Take apart</span><span class="bp-cost">X</span></div>' : "";
-  const hint = tab === "terrain" ? "Click one, then click or drag on the ground to paint. N or Esc to close." : "Click one, then click the ground. N or Esc to close.";
+  const remove = shown === "build" ? '<div class="bp-row bp-remove" data-kind="__remove" title="Take apart: highlights what you made or built; click to take it apart for half its materials (docs/43)"><span class="bp-name">Take apart</span><span class="bp-cost">X</span></div>' : "";
+  const hint = shown === "terrain" ? "Click one, then click or drag on the ground to paint. N or Esc to close." : "Click one, then click the ground. N or Esc to close.";
   const keep = listEl.scrollTop;
-  set(tabsEl, tabs.length > 1 ? tabs.map((t) => `<button type="button" class="bp-tab${t.id === tab ? " on" : ""}" data-tab="${t.id}">${esc(t.label)}</button>`).join("") : "");
+  set(tabsEl, tabs.length > 1 ? tabs.map((t) => `<button type="button" class="bp-tab${t.id === shown ? " on" : ""}" data-tab="${t.id}">${esc(t.label)}</button>`).join("") : "");
   tabsEl.hidden = tabs.length <= 1;
   if (set(listEl, list)) listEl.scrollTop = keep; // the rebuild keeps the place the player scrolled to
   set(footEl, remove);

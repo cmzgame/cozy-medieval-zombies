@@ -5843,6 +5843,16 @@ check("terrain paints the ground by the command a guest sends: grass over dirt, 
     assert(fl(4, 5) === "floor_grass", "water was laid under the player's own feet");
     paint("terrain_water", 7, 1);
     assert(fl(8, 1) === "floor_grass", "water was laid under an item by the command");
+    // A corpse lying there refuses water too (its loot must not end up on a tile no one walks), and takes dirt.
+    const lying = gameMod.state.zombies.find((q) => !q.dead && !q.corpse);
+    Object.assign(lying, { dead: true, corpse: true, gx: x + 6, gy: y + 4, layer: 0, burning: false, cremate: false });
+    me.gx = x + 4; me.gy = y + 8;
+    paint("terrain_water", 6, 4);
+    paint("terrain_water_shallow", 6, 4);
+    const corpseKept = fl(6, 4) === "floor_grass";
+    paint("terrain_dirt", 6, 4);
+    assert(corpseKept && fl(6, 4) === "floor_dirt", `water over a corpse: ${corpseKept ? "refused" : "laid"}; dirt over it: ${fl(6, 4)}`);
+    lying.gx = x + 100; // out of the way again
     me.gx = x + 2; me.gy = y + 8;
     // A laid floor is refused, upstairs is refused, a stair's tile is refused.
     mapMod.buildFloor(x + 6, y + 6, "floor_wood", 0, { free: true });
@@ -5859,6 +5869,52 @@ check("terrain paints the ground by the command a guest sends: grass over dirt, 
   } finally {
     rulesImport.rules.freeBuilding = free0;
   }
+});
+check("a terrain entry that forgot `dev` is no terrain (never paintable with Free building off), the tab and the ground's table are checked by validate-data, and painting inside a room changes no room (rooms read walls and earth, never a floor)", () => {
+  const orig = read("data/build.json");
+  const free0 = rulesImport.rules.freeBuilding;
+  try {
+    rulesImport.rules.freeBuilding = false;
+    placementImport.setBuildData({ ...orig, terrain_nodev: { ...orig.terrain_dirt, dev: false } });
+    assert(placementImport.isTerrainBuild("terrain_dirt") && !placementImport.isTerrainBuild("terrain_nodev"), "a terrain entry without dev is terrain");
+    const at = openGrass(6, 6);
+    assert(at, "no open grass");
+    const [x, y] = at;
+    placementImport.setBuildData({ ...orig, terrain_nodev: { ...orig.terrain_dirt, dev: false } });
+    const me = gameMod.state.player;
+    me.gx = x + 2; me.gy = y + 3; me.layer = 0;
+    placementImport.performPlacement(me, { kind: "build", what: "terrain_nodev", tx: x, ty: y, tx2: x + 1, ty2: y + 1 });
+    assert(mapMod.peekTile(x, y).floor === "floor_grass", "an entry without dev painted with Free building off");
+  } finally {
+    placementImport.setBuildData(orig);
+    rulesImport.rules.freeBuilding = free0;
+  }
+  // A room is found by its walls (and earth): painting its floor leaves its tiles, its id, and the count as they were.
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  let spot = null;
+  for (let dy = -30; dy <= 30 && !spot; dy++) for (let dx = -30; dx <= 30 && !spot; dx++) {
+    const px = Math.round(me.gx) + dx;
+    const py = Math.round(me.gy) + dy;
+    const t = mapMod.peekTile(px, py, 0);
+    if (t && mapMod.roomAt(px, py) > 0 && !t.prop && !t.rug) spot = [px, py];
+  }
+  assert(spot, "no room near the spawn");
+  const [rx, ry] = spot;
+  const id = mapMod.roomAt(rx, ry);
+  const size = mapMod.getRoom(id).size;
+  const count = mapMod.roomCount();
+  const free1 = rulesImport.rules.freeBuilding;
+  try {
+    rulesImport.rules.freeBuilding = true;
+    me.gx = rx; me.gy = ry; me.layer = 0;
+    for (const [what, a, b] of [["terrain_dirt", 0, 0], ["terrain_water_shallow", 1, 0], ["terrain_nospawn", 0, 1]]) placementImport.performPlacement(me, { kind: "build", what, tx: rx + a, ty: ry + b, tx2: rx + a, ty2: ry + b });
+    assert(mapMod.peekTile(rx, ry).floor === "floor_dirt", "nothing painted in the room");
+    assert(mapMod.roomAt(rx, ry) === id && mapMod.getRoom(id).size === size && mapMod.roomCount() === count, `the room moved: ${id} of ${size}, now ${mapMod.roomAt(rx, ry)} of ${mapMod.getRoom(id) && mapMod.getRoom(id).size}, ${count} rooms, now ${mapMod.roomCount()}`);
+  } finally {
+    rulesImport.rules.freeBuilding = free1;
+  }
+  return `an entry without dev refused; room ${id} of ${size} tiles kept through paints inside it (${count} rooms)`;
 });
 check("a terrain drag is at most 24 tiles a side and reaches 12 tiles (an entry's `reach`), by the same command: a 25-wide drag is refused outright, a 24-wide one paints what is in reach, a tile past the reach stays", () => {
   const at = openGrass(26, 3);
