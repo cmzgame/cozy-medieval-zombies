@@ -335,6 +335,42 @@ export async function run(game) {
     const n = red((d) => d.corner && d.corner.vx === vx && d.corner.vy === vy && map.drawLayerNow() === 1); // the ground's own corner at that vertex (the lower hill's notch) left out
     row("the upper hill's front corner piece, at a vertex whose own chunk the first storey does not hold, drawn: its pixels in the frame", !!corner && !held[0] && held[1] && held[2] && n > 100,
       `${corner ? corner.frame : "no corner"} at the chunks' corner; the first storey holds its own chunk ${held[0]}, the west ${held[1]}, the north ${held[2]}; ${n} px`);
+    // 6. Nothing is walled in (last: the ramp's landing grows a chunk of the first storey, and the corner row above needs that one not held) with a ramp: a body, an item, a rug, or a prop on the ground under its landing refuses it (that tile gets three
+    // walls that are never taken apart), and clearing it lets it build.
+    {
+      const clear = (x, y) => {
+        const t = map.peekTile(x, y, 0);
+        return !!t && !t.prop && !t.n && !t.w && !t.rug && !(t.items && t.items.length) && map.isWalkableTile(x, y) && !map.stairAt(x, y, 0) && !map.peekTile(x, y, 1);
+      };
+      let patch = null;
+      for (let ax = X0 + 16; ax <= X0 + 60 && !patch; ax += 2) for (let ay = Y0 + 4; ay <= Y0 + 40 && !patch; ay += 2) {
+        map.ensureAround(ax, ay, 2);
+        let ok = true;
+        for (let y = ay - 4; y <= ay + 4 && ok; y++) for (let x = ax - 1; x <= ax + 1 && ok; x++) ok = clear(x, y);
+        if (ok) patch = [ax, ay];
+      }
+      if (!patch) {
+        row("open ground for a ramp's landing test", false, "none east of the hill");
+      } else {
+        const [px, py] = patch; // the ramp's low tile; its landing (px, py - 3)
+        const cmd = { kind: "build", what: "stair_ramp_stone", tx: px, ty: py, dir: "n" };
+        const built = () => map.stairs().some((q) => q.built && q.at[0] === px && q.at[1] === py && q.layer === 0);
+        const attempt = () => { G.placement.performPlacement(me, cmd); for (let i = 0; i < 45 && me.action; i++) G.loop.advance(1); return built(); };
+        const stay = (x, y) => { me.layer = 0; me.rise = 0; me.auto = null; G.teleport(x, y); G.loop.advance(1 / 60); };
+        stay(px, py - 3); // the builder on the landing's ground tile: in reach (3 tiles from the low tile), and sealed in if it went up
+        const withBody = attempt();
+        stay(px, py + 1.6);
+        const stoneEntry = G.items.makeEntry("stone", 1);
+        map.dropItem(px, py - 3, stoneEntry, 0);
+        const withItem = attempt();
+        const why = map.stairBuildProblem(px, py, "n", 0, "ramp_stone");
+        map.tileAt(px, py - 3, 0).items = null;
+        const clearBuilt = attempt();
+        const sidesOn = map.landingSideEdges(map.stairs().find((q) => q.built && q.at[0] === px && q.at[1] === py) || { landing: [0, 0], dir: "n" }).length;
+        row("a ramp is refused while a body stands on the ground under its landing, or an item lies there, and builds once it is clear (nothing is walled in)", !withBody && !withItem && why === "Something is in the way" && clearBuilt && sidesOn === 3,
+          `with the builder on it: built ${withBody}; with an item: built ${withItem} (${why}); cleared: built ${clearBuilt}`);
+      }
+    }
   } finally {
     G.rules.set({ freeBuilding: saved.free, zombieAggro: saved.aggro });
     G.clock.setHour(saved.hour);

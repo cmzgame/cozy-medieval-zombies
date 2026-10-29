@@ -1,20 +1,25 @@
 {
  "anchorVertex": "top",
  "images": {
-  "north_plain": "data/art/village/wall_stone_north_plain.png",
-  "west_plain": "data/art/village/wall_stone_west_plain.png"
+  "north_plain": "data/art/village/wall_ramp_side_north_plain.png",
+  "west_plain": "data/art/village/wall_ramp_side_west_plain.png"
  },
  "anchors": {
-  "north_plain": [8.0, 100.0],
-  "west_plain": [40.0, 100.0]
+  "north_plain": [
+   8.0,
+   100.0
+  ],
+  "west_plain": [
+   40.0,
+   100.0
+  ]
  },
  "wall": {
   "height": 96,
   "thickness": 16,
-  "color": "#7b7670",
+  "color": "#6e6a66",
   "material": "stone",
-  "post": "post_stone",
   "solid": true
  },
- "note": "dev art (Michael, 2026-10-29: the Stone ramp brings its own solid sides for the free landing tile): the square-edged stone wall's plain face, 96 tall, no lip and no corner piece; laid by map.buildStair on the landing's open ground edges, never taken apart, no door, window, or painting in it (`wall.solid`). Art round 11 replaces the picture with the ramp's own square rock side."
+ "note": "the Stone ramp's own side for its landing tile (art round 11): bare cliff rock in the ramp's strata, a plain straight face on the edge line (not 8 px out as a cliff's is), 96 tall, a flat top course, no lip, no top strip drawn (the landing's floor is the top), no post (omit wall.post). The same picture serves both of an edge's sides: its face shows where the camera sees it (the edge's +Y face for north, +X for west), and the rock behind it lies on the edge's near side (north: Y -8 to 0, west: X -8 to 0)."
 }

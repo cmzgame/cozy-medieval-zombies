@@ -2580,7 +2580,7 @@ export function wallRule(sprite) {
   let def = null;
   try { def = getDef(sprite); } catch { def = null; }
   const w = (def && def.wall) || {};
-  r = { seeThrough: !!w.seeThrough, fence: !!w.fence, cliff: !!w.cliff, solid: !!w.solid || !!w.cliff }; // `solid`: no opening, nothing hung on it (a cliff's, and a ramp's own side: wall_ramp_side) // a cliff (art round 10): bare rock, no opening stamped in it, nothing hung on it
+  r = { seeThrough: !!w.seeThrough, fence: !!w.fence, cliff: !!w.cliff, solid: !!w.solid || !!w.cliff, side: !!w.solid && !w.cliff }; // `solid`: no opening, nothing hung on it (a cliff's, and a ramp's own side: wall_ramp_side) // a cliff (art round 10): bare rock, no opening stamped in it, nothing hung on it
   wallRules.set(sprite, r);
   return r;
 }
@@ -2711,10 +2711,16 @@ function builtStairRecord(x0, y0, dir, material, layer, free) {
 // across its run, no prop, rug, or item), the tile before its foot walkable, its landing above open (the void, or a floor a player laid)
 // with nothing on it, and its stairwell void. Stairs climb away from the camera (Primary's default, Michael to confirm: climbing east or
 // south the treads fold onto one line on screen).
-export function stairBuildProblem(x0, y0, dir, layer = 0) {
+export function stairBuildProblem(x0, y0, dir, layer = 0, material = "wood") {
   if (dir === "e" || dir === "s") return "Stairs climb away from the camera";
   const rec = builtStairRecord(x0, y0, dir, "wood", layer, false);
   if (!rec) return "Not here";
+  if (stairKind(material).ramp) {
+    // A ramp walls the ground under its landing on three sides (landingSideEdges), never to be taken apart: nothing may stand on that tile
+    // when it goes up, or be sealed in with it (a body is the placement's to refuse, which only it can see).
+    const g = tileAt(rec.landing[0], rec.landing[1], layer);
+    if (g && (g.prop || g.rug || (g.items && g.items.length))) return "Something is in the way";
+  }
   if (layer < 0) return "Not here";
   const up = layer + 1;
   const [bx, by] = rec.before;
@@ -2753,7 +2759,7 @@ export function landingSideEdges(rec) {
 // Build it: its landing's planks laid on the storey above (part of its cost, never taken up), the stairwell over its three tiles left void,
 // its record kept on its low tile's chunk. A built stair never comes up (ruled). Returns the stair, or null.
 export function buildStair(x0, y0, dir, material, layer = 0, { free = false } = {}) {
-  if (stairBuildProblem(x0, y0, dir, layer)) return null;
+  if (stairBuildProblem(x0, y0, dir, layer, material)) return null;
   const rec = builtStairRecord(x0, y0, dir, material, layer, free);
   const up = layer + 1;
   const land = growTile(rec.landing[0], rec.landing[1], up);

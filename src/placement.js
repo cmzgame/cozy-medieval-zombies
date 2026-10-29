@@ -471,10 +471,15 @@ function stairTilesOf(x, y, dir) {
 function stairBlock(player, what, x, y, dir) {
   if (buildData[what].dev && !rules.freeBuilding) return "Stairs are not in the game yet"; // Free building only for now
   const L = layerOf(player);
-  const why = map.stairBuildProblem(x, y, dir, L);
+  const why = map.stairBuildProblem(x, y, dir, L, buildData[what].material || "wood");
   if (why) return why;
-  const { tiles } = stairTilesOf(x, y, dir);
+  const { tiles, landing } = stairTilesOf(x, y, dir);
   if (stations.bodyOnTiles(tiles, L)) return "Someone is in the way";
+  if (map.stairKind(buildData[what].material || "wood").ramp) {
+    // The ground under a ramp's landing is walled on three sides with the ramp (map.landingSideEdges): no body is sealed in with it.
+    if (stations.bodyOnTiles([landing], L)) return "Someone is in the way";
+    if (stations.bodyOnTiles([landing], L, true)) return "A body lies there";
+  }
   return shortfall(player, what);
 }
 function stairReason(player, what, x, y, dir) {
@@ -730,7 +735,7 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   const over = buildData[what] && buildData[what].over;
   if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
   if (buildData[what] && buildData[what].dev && !rules.freeBuilding) return isCliffBuild(what) ? "Cliffs are not in the game yet" : "Not in the game yet"; // Free building only (a guest's command too)
-  if (existing && ["door", "window"].includes(kind) && existing.kind === "wall" && map.wallRule(existing.sprite).solid) return "Not in a cliff"; // bare rock (art round 10): no opening stamped in it
+  if (existing && ["door", "window"].includes(kind) && existing.kind === "wall" && map.wallRule(existing.sprite).solid) return map.wallRule(existing.sprite).cliff ? "Not in a cliff" : "Not in solid rock"; // bare rock (art round 10): no opening stamped in it
   if (existing && over && existing.sprite !== over) return "Only in a fence";
   if (existing && !map.canStampOver(existing, kind)) return "Already a wall";
   const stairWhy = map.stairEdgeProblem(tx, ty, edge, L); // never across a stair's run or top, nor round its stairwell (the review of #549)
