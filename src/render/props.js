@@ -75,6 +75,9 @@ export function emitGhost(ghost) {
     const t = ghost.target;
     if (t.type === "round") {
       rings.emitRingGhost(t.ring, tint, GHOST_FLAGS()); // a ring is taken apart whole (docs/50 section 5)
+    } else if (t.type === "wall" && t.wall.gate) {
+      // A castle gate is taken apart whole: every edge of it washed, shut (docs/02, 2026-10-29).
+      for (const m of map.gateMembers(t.tx, t.ty, t.edge, t.layer || 0)) makeWall({ ...m.wall, open: false }, m.edge, m.tx, m.ty, true, false, tint).emit();
     } else if (t.type === "wall") {
       const shut = { ...t.wall, open: false, shutter: t.wall.kind === "window" ? "closed" : null };
       makeWall(shut, t.edge, t.tx, t.ty, true, false, tint).emit();
@@ -98,6 +101,15 @@ export function emitGhost(ghost) {
     // A stair (docs/49 section 5): its three tiles, each a step higher, and its landing a storey up.
     ghost.tiles.forEach(([tx, ty], k) => emitGhostTile(tx, ty, (k + 1) * 32, tint));
     emitGhostTile(ghost.landing[0], ghost.landing[1], map.STOREY, tint);
+    return;
+  }
+  if (ghost.kind === "gate") {
+    // A castle gate as it would stand (docs/02, 2026-10-29): one wall on each edge of its run, drawn by the real wall code, each its window of the picture.
+    for (let k = 0; k < ghost.span; k++) {
+      const wall = map.createWall("door", ghost.sprite);
+      wall.gate = { i: k };
+      makeWall(wall, ghost.edge, ghost.edge === "n" ? ghost.tx + k : ghost.tx, ghost.edge === "n" ? ghost.ty : ghost.ty + k, true, false, tint).emit();
+    }
     return;
   }
   if (ghost.kind === "wall") {

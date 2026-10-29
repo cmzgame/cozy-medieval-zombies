@@ -250,6 +250,9 @@ function cursorGrid(player) {
 // or one laid earlier in the same drag, may be laid, so a floor grows out from a lone landing.
 export const isFloorBuild = (what) => !!(buildData[what] && buildData[what].kind === "floor");
 export const isStairBuild = (what) => !!(buildData[what] && buildData[what].kind === "stair");
+// A castle gate (Michael, 2026-10-29: "Free building only ... Agreed, for now"; instant and free like the Stone ramp): stamped over the 2 or 3 plain stone
+// wall edges of one run, shut; E opens it like a door (docs/54). Never charged, timed, or tooled; offered only while Free building is on (`dev`).
+export const isGateBuild = (what) => !!(buildData[what] && buildData[what].kind === "gate");
 // A stair on the Terrain tab (the Stone ramp) is a landform: placed outright like the ground's paints, with no bar, no cost, and no tool
 // (Michael, 2026-10-29: "make ramps build immediately for now just for building"); the Build tab's stairs stay timed and priced.
 export const isInstantStair = (what) => isStairBuild(what) && !!buildData[what].dev && buildData[what].tab === "terrain";
@@ -523,6 +526,71 @@ function startStairBuild(player, what, x, y, dir) {
   else action.perform();
 }
 
+
+// ---- castle gates (docs/02, 2026-10-29; docs/54) ----
+// The run a gate would take for the edge under the cursor: the hovered edge and the one along it on the side of the edge the cursor is nearer, for
+// a gate two wide; the hovered edge in the middle of three. Returns { tx, ty, edge } of the first edge of the run (the smallest tx on a north run, ty on a west).
+function gateRunAt(what, g) {
+  const span = (map.wallRule(buildData[what].sprite).gate || { span: 2 }).span;
+  const e = pickEdge(g.gx, g.gy);
+  const along = e.edge === "n" ? g.gx - e.tx : g.gy - e.ty; // -0.5 to 0.5 along the hovered edge
+  const back = span === 3 ? 1 : along < 0 ? 1 : 0; // edges of the run before the hovered one
+  return { tx: e.edge === "n" ? e.tx - back : e.tx, ty: e.edge === "n" ? e.ty : e.ty - back, edge: e.edge, span };
+}
+const gateEdges = (what, tx, ty, edge) => {
+  const span = (map.wallRule(buildData[what].sprite).gate || { span: 1 }).span;
+  return Array.from({ length: span }, (_, k) => [edge === "n" ? tx + k : tx, edge === "n" ? ty : ty + k]);
+};
+// Why a castle gate may not be built on the run that begins at (tx, ty, edge) now, or "" (the host's and a guest's alike).
+function gateBlock(player, what, tx, ty, edge) {
+  if (!rules.freeBuilding) return "Castle gates are not in the game yet"; // Free building only (a guest's command too)
+  const L = layerOf(player);
+  const why = map.gateProblem(tx, ty, edge, buildData[what].sprite, L);
+  if (why) return why;
+  const edges = gateEdges(what, tx, ty, edge);
+  if (edges.some(([x, y]) => distToEdge(player.gx, player.gy, x, y, edge) < EDGE_CLEARANCE)) return "Step back";
+  if (stations.bodyAcrossSegments(edges.map(([x, y]) => edgeSegment(x, y, edge)), L)) return "Someone is in the way";
+  return "";
+}
+function gateReason(player, what, tx, ty, edge) {
+  const reach = Math.min(...gateEdges(what, tx, ty, edge).map(([x, y]) => { const [mx, my] = map.edgeMid(x, y, edge); return Math.hypot(player.gx - mx, player.gy - my); }));
+  if (reach > BUILD_REACH) return "Too far";
+  return gateBlock(player, what, tx, ty, edge);
+}
+function gateGhost(player, what) {
+  if (!input.getMouse().inside) return null;
+  const r = gateRunAt(what, cursorGrid(player));
+  const reason = gateReason(player, what, r.tx, r.ty, r.edge);
+  return { kind: "gate", what, sprite: buildData[what].sprite, span: r.span, tx: r.tx, ty: r.ty, edge: r.edge, layer: layerOf(player), ok: reason === "", reason };
+}
+// Placed at once and free, as the Stone ramp is: no bar, no cost, no tool; everything checked again as it lands.
+function startGateBuild(player, what, tx, ty, edge) {
+  const d = buildData[what];
+  const span = gateEdges(what, tx, ty, edge).length;
+  const [mx, my] = map.edgeMid(tx + (edge === "n" ? (span - 1) / 2 : 0), ty + (edge === "w" ? (span - 1) / 2 : 0), edge); // the middle of its run
+  const action = {
+    kind: "build",
+    label: `Building ${d.label.toLowerCase()}`,
+    tiles: map.edgeTiles(tx, ty, edge),
+    mx,
+    my,
+    range: BUILD_REACH + 1.6,
+    duration: 0,
+    enabled: true,
+    simple: false,
+    perform() {
+      const why = gateBlock(player, what, tx, ty, edge);
+      if (why) {
+        showMessage(why);
+        return false;
+      }
+      return map.buildGate(tx, ty, edge, d.sprite, layerOf(player), { free: true });
+    },
+  };
+  if (startAction) startAction(player, action);
+  else action.perform();
+}
+
 // A door or a window may be of another wood than the wall it goes into (#334): the entries of kind door or window that are not a fence's gate.
 export const takesLeaf = (what) => ["door", "window"].includes(wallKindOf(what)) && !(buildData[what] && buildData[what].over);
 
@@ -611,7 +679,7 @@ export function putDownTarget(player) {
 
 // What a build costs now: nothing while Free building is on.
 export function costOf(what) {
-  if (rules.freeBuilding || isInstantStair(what)) return {};
+  if (rules.freeBuilding || isInstantStair(what) || isGateBuild(what)) return {};
   return (buildData[what] && buildData[what].cost) || {};
 }
 
@@ -1081,7 +1149,7 @@ function removeGhost(player) {
 // The entry that builds this wall, by its kind and its sprite both (a built fence is a "wall" but no log wall; a gate is a
 // "door" in the fence's sprite), else the kind's own entry (a door built into a stone wall is a door).
 function buildEntryOf(wall) {
-  const id = Object.keys(buildData).find((k) => wallKindOf(k) === wall.kind && buildData[k].sprite === wall.sprite);
+  const id = Object.keys(buildData).find((k) => (wall.gate ? isGateBuild(k) : wallKindOf(k) === wall.kind) && buildData[k].sprite === wall.sprite);
   return buildData[id] || buildData[wall.kind] || null;
 }
 
@@ -1331,6 +1399,7 @@ function buildGhost(player) {
   const what = state.build.what;
   if (isRoundBuild(what)) return roundGhost(player, what);
   if (isStairBuild(what)) return stairGhost(player, what);
+  if (isGateBuild(what)) return gateGhost(player, what);
   if (isPropBuild(what)) {
     // A prop on the tiles under the cursor (the Fireplace along the wall it backs onto, its facing from that wall; the fire pit centred on the
     // cursor), drawn as the carried prop's ghost is, with its own line.
@@ -1475,6 +1544,15 @@ export function tryConfirm(player) {
       else startStairBuild(player, g.what, g.x, g.y, g.dir);
       return true;
     }
+    if (g.kind === "gate") {
+      if (!g.ok) {
+        showMessage(g.reason);
+        return true;
+      }
+      if (sender) sender({ kind: "build", what: g.what, tx: g.tx, ty: g.ty, edge: g.edge });
+      else startGateBuild(player, g.what, g.tx, g.ty, g.edge);
+      return true;
+    }
     if (!g.ok) {
       showMessage(g.reason);
       return true;
@@ -1598,6 +1676,21 @@ export function performPlacement(player, cmd) {
       return true;
     }
     startStairBuild(player, cmd.what, tx, ty, dir);
+    return true;
+  }
+  if (cmd.kind === "build" && typeof cmd.what === "string" && isGateBuild(cmd.what)) {
+    // A castle gate (docs/54): the first edge of its run and the run's direction, on the player's storey, by the rules the host's own click meets.
+    const tx = Math.round(Number(cmd.tx));
+    const ty = Math.round(Number(cmd.ty));
+    const edge = cmd.edge === "n" || cmd.edge === "w" ? cmd.edge : null;
+    if (!edge || !Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    if (player.action) return true;
+    const why = gateReason(player, cmd.what, tx, ty, edge);
+    if (why) {
+      showMessage(why);
+      return true;
+    }
+    startGateBuild(player, cmd.what, tx, ty, edge);
     return true;
   }
   if (cmd.kind === "build" && typeof cmd.what === "string" && isRoundBuild(cmd.what)) {
@@ -1785,6 +1878,11 @@ export function prompt() {
     if (!g.ok) return { label: g.reason, mx: g.x, my: g.y, progress: null, enabled: false };
     if (isInstantStair(g.what)) return { label: "Click to place · Esc cancel", mx: g.x, my: g.y, progress: null, enabled: true };
     return { label: `Click to build (${costText(g.what)}) · Esc cancel`, mx: g.x, my: g.y, progress: null, enabled: true };
+  }
+  if (g.kind === "gate") {
+    const [mx, my] = map.edgeMid(g.tx + (g.edge === "n" ? (g.span - 1) / 2 : 0), g.ty + (g.edge === "w" ? (g.span - 1) / 2 : 0), g.edge);
+    if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
+    return { label: "Click to place the gate at once · Esc cancel", mx, my, progress: null, enabled: true };
   }
   if (g.kind === "round") {
     const [mx, my] = [g.x0 + (g.n - 1) / 2, g.y0 + (g.n - 1) / 2];

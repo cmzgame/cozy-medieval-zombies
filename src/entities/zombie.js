@@ -15,7 +15,7 @@ import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
 import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles, sideOf, addr, layerOf, stairStep, stairsOn, stairAlong } from "../map.js";
-import { lineOfSight, openingOnLine } from "../visibility.js";
+import { lineOfSight, lineOfReach, openingOnLine } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
 import { getSheet } from "../assets.js";
@@ -327,6 +327,8 @@ function startBreach(z, target) {
 // where its strikers stand: Michael, 2026-10-17, "they should be allowed to bite over fences, otherwise exploitable"; #174).
 function biteReach(z, e) {
   if (e && (e.layer || 0) !== (z.layer || 0)) return -1; // a bite never crosses a storey (docs/49 section 9)
+  // Nor across a shut castle gate: its bars pass sight, not a bite (docs/02, 2026-10-29). Looked for only close in, where a bite could land.
+  if (e && Math.hypot(e.gx - z.gx, e.gy - z.gy) <= T.contact + T.fenceBiteExtra + 0.5 && !lineOfReach(z.gx, z.gy, e.gx, e.gy, z.layer || 0)) return -1;
   const f = z.press;
   if (!f || !e || tileAt(f.tx, f.ty)[f.edge] !== f.wall) return T.contact;
   if (sideOf(f.tx, f.ty, f.edge, z.gx, z.gy) === sideOf(f.tx, f.ty, f.edge, e.gx, e.gy)) return T.contact; // only across the fence, never on one's own side of it
@@ -865,7 +867,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         break;
       }
       // A bite in reach beats a door; a goal that moved rooms drops the breach.
-      if (z.seesNow && distTo(z, tgt) <= T.contact) {
+      if (z.seesNow && distTo(z, tgt) <= Math.min(T.contact, biteReach(z, tgt))) { // in reach: a bite lands, not through a shut gate
         z.breach = null;
         z.state = "chase";
         break;
@@ -1106,7 +1108,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     case "attack": {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
-        if (distTo(z, tgt) <= biteReach(z, tgt) + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy, z.layer || 0)) {
+        if (distTo(z, tgt) <= biteReach(z, tgt) + 0.2 && lineOfReach(z.gx, z.gy, tgt.gx, tgt.gy, z.layer || 0)) {
           if (tgt.kind === "player") emit("playerHit", { zombie: z, damage: T.damage, victim: tgt });
           else emit("villagerHit", { zombie: z, villager: tgt, damage: T.damage });
         }

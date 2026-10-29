@@ -167,7 +167,10 @@ export function makeCode() {
 // player laid) and `stairs` ([lx, ly, dir, material, free?], a stair a player built, by its low tile); the `place` command's `build` names a
 // floor's rectangle (tx, ty, tx2, ty2) or a stair's low tile and `dir`, and its `remove` may name `{ type: "floor", tx, ty }`. An older
 // guest would drop a built stair's record (no stair to climb, its stairwell a hole) and an older host the new commands.
-export const PROTOCOL = 26;
+// 27 (2026-10-29, docs/54, castle gates): a door-kind wall may carry `gate` ({ i }, its place in a castle gate of 2 or 3 edges, one wall on each edge of
+// the run, all with one `open`), in a chunk's record as in the save; the `place` command's `build` names a gate by its first edge (`what`, tx, ty, edge). An
+// older guest would draw each edge as a door with no picture and let the dead bite and a blow through the bars, and an older host drops the build.
+export const PROTOCOL = 27;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).

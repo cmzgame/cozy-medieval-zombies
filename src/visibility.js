@@ -5,11 +5,11 @@
 // by an opaque prop in any tile it passes through. Glass passes sight, so a
 // window reveals a wedge of the far side and nothing else.
 
-import { wallBetween, blocksSight, tileAt, edgeBetween } from "./map.js";
+import { wallBetween, blocksSight, blocksReach, tileAt, edgeBetween } from "./map.js";
 
 const MAX_STEPS = 400;
 
-export function lineOfSight(ax, ay, bx, by, layer = 0) { // on one layer (docs/49): the ray with heights across storeys is step 4's
+export function lineOfSight(ax, ay, bx, by, layer = 0, blocks = blocksSight) { // on one layer (docs/49): the ray with heights across storeys is step 4's; `blocks` is what stops the ray (sight; or reach, below)
   let ix = Math.round(ax);
   let iy = Math.round(ay);
   const tx = Math.round(bx);
@@ -27,12 +27,12 @@ export function lineOfSight(ax, ay, bx, by, layer = 0) { // on one layer (docs/4
   while ((ix !== tx || iy !== ty) && guard++ < MAX_STEPS) {
     if (tMaxX < tMaxY) {
       const nx = ix + stepX;
-      if (blocksSight(wallBetween(ix, iy, nx, iy, layer))) return false;
+      if (blocks(wallBetween(ix, iy, nx, iy, layer))) return false;
       ix = nx;
       tMaxX += tDeltaX;
     } else {
       const ny = iy + stepY;
-      if (blocksSight(wallBetween(ix, iy, ix, ny, layer))) return false;
+      if (blocks(wallBetween(ix, iy, ix, ny, layer))) return false;
       iy = ny;
       tMaxY += tDeltaY;
     }
@@ -42,6 +42,12 @@ export function lineOfSight(ax, ay, bx, by, layer = 0) { // on one layer (docs/4
     }
   }
   return true;
+}
+
+// The same ray for a blow or a bite: stopped by what stops sight, and by a shut castle gate's bars too (docs/02, 2026-10-29: bites and melee do not pass a
+// closed gate, though sight and arrows do).
+export function lineOfReach(ax, ay, bx, by, layer = 0) {
+  return lineOfSight(ax, ay, bx, by, layer, blocksReach);
 }
 
 // The window or door a line of sight passes through, or null: the first opening that is not a wall on the way (a window with

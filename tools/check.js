@@ -6183,6 +6183,161 @@ check("a cliff takes no door or window (\"Not in a cliff\", the command a guest 
     rulesImport.rules.freeBuilding = free0;
   }
 });
+// ---- the castle gates (Michael, 2026-10-29, docs/54): the map-level pieces, as far as they run under Node (the pictures, the cursor, and the dead's steps are the pane's: check("gates")) ----
+const { lineOfReach: lineOfReachMod } = await import("../src/visibility.js");
+check("castle gates: built over plain stone edges by the command a guest sends (Free building only, free, at once), shut, one wall on each edge with its place in the run; refused over a door, a window, a painting, a torch, a gap, another gate, or a log wall; taken apart whole, the plain wall back; a gate across a chunk's edge is whole and its record round-trips", () => {
+  const at = openGrass(14, 6);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const made = [];
+  try {
+    for (let i = 0; i < 14; i++) { mapMod.buildWall(x + i, y + 2, "n", "wall", "wall_stone"); made.push([x + i, y + 2, "n"]); }
+    me.gx = x + 1.9; me.gy = y + 3.2; me.layer = 0;
+    rulesImport.rules.freeBuilding = false;
+    placementImport.performPlacement(me, { kind: "build", what: "gate_stone_2", tx: x + 1, ty: y + 2, edge: "n" });
+    assert(!mapMod.wallBetween(x + 1, y + 2, x + 1, y + 1).gate, "a gate was built with Free building off");
+    assert(placementImport.paletteKinds().every((k) => !placementImport.isGateBuild(k.id)), "a gate is offered with Free building off");
+    rulesImport.rules.freeBuilding = true;
+    const offered = placementImport.paletteKinds().filter((k) => placementImport.isGateBuild(k.id));
+    assert(offered.length === 2 && offered.every((k) => k.group === "Castle" && k.dev && placementImport.costText(k.id) === "free"), `the palette's gates: ${offered.map((k) => k.id)}`);
+    placementImport.performPlacement(me, { kind: "build", what: "gate_stone_2", tx: x + 1, ty: y + 2, edge: "n" });
+    assert(!me.action, "a gate is a timed build");
+    const g2 = mapMod.gateMembers(x + 1, y + 2, "n", 0);
+    assert(g2.length === 2 && g2.every((m, k) => m.wall.kind === "door" && m.wall.gate.i === k && m.wall.sprite === "wall_stone_gate_2" && !m.wall.open && m.wall.under === "wall_stone" && m.wall.built && m.wall.free && m.wall.hp === Infinity), "the 2-wide gate");
+    // What a door is to a body and a path, and what a gate is besides.
+    const w = g2[0].wall;
+    assert(mapMod.blocksMove(w) && !mapMod.wayOpen(w) && !mapMod.canStep(x + 1, y + 2, x + 1, y + 1), "a shut gate stops a body and a path");
+    assert(mapMod.transmission(w) === 1 && !mapMod.blocksSight(w) && lineOfSight(x + 1, y + 3, x + 1, y), "sight and light pass a shut gate");
+    assert(mapMod.blocksReach(w) && !lineOfReachMod(x + 1, y + 3, x + 1, y) && !mapMod.blocksReach({ kind: "wall", sprite: "wall_fence", boards: { near: [], far: [] } }), "a blow and a bite do not");
+    assert(archeryMod.wallStops(w, 30) === false && archeryMod.wallStops(w, 60) === false && archeryMod.wallStops(w, 85) === true, "a shot passes under the crown, shut");
+    assert(!mapMod.needsBreaking(w) && mapMod.damageOpening(w, 1, 999) === null && w.hp === Infinity && !w.broken, "the dead break nothing of it");
+    assert(!mapMod.canStampOver(w, "door") && !mapMod.canStampOver(w, "window") && !mapMod.canBuildWall(x + 1, y + 2, "n", "door"), "no door nor window over a gate");
+    assert(mapMod.addBoard(w, 1) === false || w.boards.near.length === 0, "a gate takes no board");
+    // Open and shut as one.
+    assert(mapMod.setGateOpen(x + 2, y + 2, "n", true, 0) && g2.every((m) => m.wall.open) && mapMod.wayOpen(w) && !mapMod.blocksMove(w), "opened from its second edge: both edges open");
+    assert(!mapMod.blocksReach(w) && archeryMod.wallStops(w, 30) === false && archeryMod.wallStops(w, 85) === true, "open: a blow passes and the stone over the crown still stops a shot");
+    mapMod.setGateOpen(x + 1, y + 2, "n", false, 0);
+    // Refusals, in their words, each leaving the wall as it was.
+    const keep = (xx) => JSON.stringify(mapMod.peekTile(xx, y + 2).n && [mapMod.peekTile(xx, y + 2).n.kind, mapMod.peekTile(xx, y + 2).n.sprite]);
+    const refused = (label, what, tx, why) => {
+      const was = [tx, tx + 1, tx + 2].map(keep).join();
+      me.gx = tx + 0.9; me.gy = y + 3.2;
+      placementImport.performPlacement(me, { kind: "build", what, tx, ty: y + 2, edge: "n" });
+      assert([tx, tx + 1, tx + 2].map(keep).join() === was, `${label}: built`);
+      const got = mapMod.gateProblem(tx, y + 2, "n", `wall_stone_gate_${what.endsWith("3") ? 3 : 2}`, 0);
+      assert(got === why, `${label}: "${got}", expected "${why}"`);
+    };
+    refused("over a gate", "gate_stone_2", x + 1, "Already a gate");
+    refused("over a gap", "gate_stone_2", x + 14, "Over a stone wall");
+    mapMod.destroyWall(x + 6, y + 2, "n"); mapMod.buildWall(x + 6, y + 2, "n", "wall", "wall_log");
+    refused("over a log wall", "gate_stone_2", x + 5, "Over a plain stone wall");
+    mapMod.destroyWall(x + 6, y + 2, "n"); mapMod.buildWall(x + 6, y + 2, "n", "wall", "wall_stone");
+    mapMod.buildWall(x + 6, y + 2, "n", "door", "wall_stone");
+    refused("over a door", "gate_stone_2", x + 5, "Over a plain stone wall");
+    mapMod.destroyWall(x + 6, y + 2, "n", true);
+    mapMod.buildWall(x + 6, y + 2, "n", "window", "wall_stone");
+    refused("over a window", "gate_stone_2", x + 5, "Over a plain stone wall");
+    mapMod.destroyWall(x + 6, y + 2, "n", true);
+    const w6 = mapMod.peekTile(x + 6, y + 2).n;
+    w6.hangings = [{ item: "painting_small_oak", slot: "top", span: 1 }];
+    refused("over a painting", "gate_stone_2", x + 5, "Take what hangs there down first");
+    delete w6.hangings;
+    w6.bracket = { side: 1, torch: true, lit: false };
+    refused("over a torch", "gate_stone_2", x + 5, "Take the torch down first");
+    delete w6.bracket;
+    // The 3-wide gate, and a gate across a chunk's edge: its two chunks both carry it, and a record read back gives it as it was.
+    const C = mapMod.CHUNK;
+    const cornerX = Math.ceil((x + 3) / C) * C;
+    for (let i = -3; i <= 3; i++) if (!mapMod.peekTile(cornerX + i, y + 2).n) { mapMod.buildWall(cornerX + i, y + 2, "n", "wall", "wall_stone"); made.push([cornerX + i, y + 2, "n"]); }
+    me.gx = cornerX + 0.5; me.gy = y + 3.2;
+    placementImport.performPlacement(me, { kind: "build", what: "gate_stone_3", tx: cornerX - 1, ty: y + 2, edge: "n" });
+    const g3 = mapMod.gateMembers(cornerX, y + 2, "n", 0);
+    assert(g3.length === 3 && g3.map((m) => m.tx).join() === [cornerX - 1, cornerX, cornerX + 1].join() && g3.every((m) => m.wall.sprite === "wall_stone_gate_3"), `the 3-wide gate: ${g3.length}`);
+    mapMod.takeTouched();
+    mapMod.setGateOpen(cornerX, y + 2, "n", true, 0);
+    const touched = mapMod.takeTouched().map((t) => t.join(","));
+    const cA = [Math.floor((cornerX - 1) / C), Math.floor((y + 2) / C)];
+    const cB = [Math.floor(cornerX / C), Math.floor((y + 2) / C)];
+    assert(cA[0] !== cB[0] && touched.includes(cA.join(",")) && touched.includes(cB.join(",")), `across a chunk's edge: touched ${touched}`);
+    const textOf = () => [cA, cB].map((c) => JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(c[0], c[1], false, 0)).walls)).join("|");
+    const before = textOf();
+    for (const c of [cA, cB]) mapMod.installChunk(JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(c[0], c[1], false, 0)))));
+    assert(textOf() === before && mapMod.gateMembers(cornerX + 1, y + 2, "n", 0).length === 3 && mapMod.gateMembers(cornerX, y + 2, "n", 0).every((m) => m.wall.open), "its record read back is the gate as it stood");
+    // Taken apart whole by the command a guest sends, aimed at one edge.
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "wall", tx: cornerX + 1, ty: y + 2, edge: "n" } });
+    assert([cornerX - 1, cornerX, cornerX + 1].every((xx) => { const ww = mapMod.peekTile(xx, y + 2).n; return ww && ww.kind === "wall" && ww.sprite === "wall_stone" && !ww.gate; }), "taking an edge apart did not take the gate whole");
+    mapMod.destroyWall(x + 1, y + 2, "n", true);
+    assert([x + 1, x + 2].every((xx) => { const ww = mapMod.peekTile(xx, y + 2).n; return ww && ww.kind === "wall" && ww.sprite === "wall_stone" && !ww.gate; }), "a destroyed gate left a hole or a half");
+    return "built, refused (gate, gap, log, door, window, painting, torch), open and shut as one, across a chunk's edge, taken apart whole";
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+    for (const [xx, yy, e] of made) if (mapMod.peekTile(xx, yy) && mapMod.peekTile(xx, yy)[e]) mapMod.destroyWall(xx, yy, e, true);
+  }
+});
+check("castle gates: a room closed by a gate is a room and sealed (the gate bounds the fill though it passes sight, and a fence bounds none), the dead have no door of it to break, and the flags on the definition are what decide each ruling", () => {
+  const at = openGrass(6, 6);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const rule = mapMod.wallRule("wall_stone_gate_2").gate;
+  const was = { ...rule };
+  const made = [];
+  try {
+    rulesImport.rules.freeBuilding = true;
+    const lay = (xx, yy, e, sprite = "wall_stone") => { mapMod.buildWall(xx, yy, e, "wall", sprite); made.push([xx, yy, e]); };
+    for (let i = 0; i < 2; i++) { lay(x + i, y, "n"); lay(x + i, y + 2, "n"); }
+    for (let j = 0; j < 2; j++) { lay(x, y + j, "w"); lay(x + 2, y + j, "w"); }
+    mapMod.roomsIfDirty();
+    assert(mapMod.tileAt(x, y + 1).room > 0, "walls on every side are no room");
+    me.gx = x + 0.5; me.gy = y - 1.1; me.layer = 0;
+    placementImport.performPlacement(me, { kind: "build", what: "gate_stone_2", tx: x, ty: y, edge: "n" });
+    const gm = mapMod.gateMembers(x, y, "n", 0);
+    assert(gm.length === 2, "no gate");
+    const room = mapMod.getRoom(mapMod.tileAt(x, y + 1).room);
+    assert(room && room.openings.some((o) => o.tx === x && o.ty === y && o.edge === "n") && mapMod.roomSealed(room), "the shut gate is a room's sealed opening");
+    assert(mapMod.breachTargets(room, x + 0.5, y - 3, 0, true).length === 0, "the dead have a gate to break");
+    // The control: a door in the same place is a breach target; a fence in its place bounds no room at all.
+    mapMod.destroyWall(x, y, "n", true);
+    mapMod.buildWall(x, y, "n", "door", "wall_stone");
+    const doored = mapMod.getRoom(mapMod.tileAt(x, y + 1).room);
+    assert(doored && mapMod.breachTargets(doored, x + 0.5, y - 3, 0, true).length === 1, "a door of the same room is not a breach target");
+    mapMod.destroyWall(x, y, "n", true);
+    mapMod.destroyWall(x + 1, y, "n", false);
+    mapMod.buildWall(x, y, "n", "wall", "wall_fence");
+    mapMod.buildWall(x + 1, y, "n", "wall", "wall_fence");
+    assert(mapMod.tileAt(x, y + 1).room === 0, "a fence bounds a room");
+    // The flags: each ruling flipped on the definition, then restored.
+    mapMod.destroyWall(x, y, "n"); mapMod.destroyWall(x + 1, y, "n");
+    lay(x, y, "n"); lay(x + 1, y, "n");
+    rule.deadBreak = true;
+    const soft = mapMod.createWall("door", "wall_stone_gate_2");
+    soft.gate = { i: 0 };
+    const breakable = mapMod.needsBreaking(soft) && Number.isFinite(soft.hp);
+    Object.assign(rule, was);
+    const hard = mapMod.createWall("door", "wall_stone_gate_2");
+    hard.gate = { i: 0 };
+    assert(breakable && !mapMod.needsBreaking(hard) && hard.hp === Infinity, "deadBreak: the flag is not what decides whether the dead break it");
+    rule.shotsPass = false;
+    const stopped = archeryMod.wallStops(hard, 30);
+    Object.assign(rule, was);
+    rule.bitesPass = true;
+    const reaches = !mapMod.blocksReach(hard);
+    Object.assign(rule, was);
+    rule.grille = false;
+    const sees = mapMod.transmission(hard);
+    Object.assign(rule, was);
+    assert(stopped === true && reaches && sees === 0 && archeryMod.wallStops(hard, 30) === false && mapMod.blocksReach(hard) && mapMod.transmission(hard) === 1, `the flags: shots stopped ${stopped}, bites pass ${reaches}, sight ${sees}`);
+    return "a gate-closed room is a sealed room with nothing for the dead to break; a door there is a breach target, a fence bounds no room; the four flags each decide their ruling";
+  } finally {
+    Object.assign(rule, was);
+    rulesImport.rules.freeBuilding = free0;
+    for (const [xx, yy, e] of made) if (mapMod.peekTile(xx, yy) && mapMod.peekTile(xx, yy)[e]) mapMod.destroyWall(xx, yy, e, true);
+    for (const e of [[x, y, "n"], [x + 1, y, "n"]]) if (mapMod.peekTile(e[0], e[1])[e[2]]) mapMod.destroyWall(...e);
+  }
+});
 // The artist's hill (tools/art-gen/round10/cliffs/gen.py HILL): an L with a two-wide notch, a step each side of it, a back L, a step on the
 // right, its plateau a floor on layer 1, a stone ramp climbing north to the landing 'L'. Laid on open grass at (x, y).
 const CLIFF_HILL = ["............", "......####..", "..########..", "..########..", "..#########.", "..#L#..####."];

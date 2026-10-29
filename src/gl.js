@@ -248,7 +248,7 @@ export function redrawSheet(sheet) {
 export function frameUV(sheet, name) {
   const f = sheet.frames[name];
   if (!f) return null;
-  const p = place(sheet);
+  const p = place(sheet.sliceOf || sheet); // a slice of a wider picture (render/walls.js gateSlice) shares its whole sheet's place in the atlas
   if (!p || p.page >= pageCap) return emptyUV;
   return [p.ax + f[0], p.ay + f[1], p.ax + f[0] + f[2], p.ay + f[1] + f[3], p.page, sheet.soft ? 1 : 0]; // the sixth: a soft sheet's frame, drawn in the translucent pass (docs/51)
 }

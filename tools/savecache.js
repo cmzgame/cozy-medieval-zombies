@@ -88,6 +88,27 @@ if (map.canBuildWall(px + 7, py + 5, "n")) {
   map.buildWall(px + 7, py + 5, "n", "window", "wall_mahogany", "wall_spruce"); did("a window of another wood built");
   map.destroyWall(px + 7, py + 5, "n"); did("a window of another wood taken down");
 }
+// A castle gate (docs/54): a gate built over two plain stone edges that stand in two chunks, opened and shut as one, and taken apart whole; every edge
+// of it is touched, so both chunks' saved copies are made again.
+{
+  let spot = null;
+  const C = map.CHUNK;
+  for (let dy = -30; dy <= 30 && !spot; dy++) for (let dx = -30; dx <= 30 && !spot; dx++) {
+    const x = Math.ceil((px + dx) / C) * C - 1;
+    const y = py + dy;
+    if ([-1, 0, 1, 2].every((k) => { const t = map.peekTile(x + k, y); return t && !t.prop && !t.rug && !t.n && map.isWalkableTile(x + k, y) && map.isWalkableTile(x + k, y - 1) && quiet(x + k, y); })) spot = [x, y];
+  }
+  if (!spot) fail("no open ground across a chunk's edge for a castle gate");
+  for (let k = -1; k <= 2; k++) map.buildWall(spot[0] + k, spot[1], "n", "wall", "wall_stone");
+  did("a stone run laid across a chunk's edge");
+  if (!map.buildGate(spot[0], spot[1], "n", "wall_stone_gate_2", 0, { free: true })) fail("the castle gate was not built");
+  did("a castle gate built across a chunk's edge");
+  map.setGateOpen(spot[0] + 1, spot[1], "n", true, 0); did("a castle gate opened");
+  map.setGateOpen(spot[0], spot[1], "n", false, 0); did("a castle gate shut");
+  map.destroyWall(spot[0] + 1, spot[1], "n", true); did("a castle gate taken apart whole");
+  for (let k = -1; k <= 2; k++) map.destroyWall(spot[0] + k, spot[1], "n");
+  did("the stone run taken down");
+}
 // A round room (docs/50): its edges walls carrying its id on every chunk it stands on, a door stamped at a door point keeping the ring
 // under it, and the whole taken down; the record is made from the walls, so the walls' marks are the save's.
 {

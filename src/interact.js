@@ -770,7 +770,8 @@ const toolName = (verb) => { const t = toolFor(verb); return t ? aName(t.id) : "
 // Doors and windows: open and close, board and pull (docs/09). Nobody climbs through a window (Michael, 2026-10-16).
 function openingActions(o, player) {
   const w = o.wall;
-  const name = w.kind === "door" ? "door" : "shutters";
+  const gate = map.isGate(w); // a castle gate (docs/02, 2026-10-29): E opens and shuts the whole of it, and it is never boarded
+  const name = gate ? "gate" : w.kind === "door" ? "door" : "shutters";
   const side = map.sideOf(o.tx, o.ty, o.edge, player.gx, player.gy);
   const mine = side > 0 ? w.boards.near : w.boards.far;
   const theirs = side > 0 ? w.boards.far : w.boards.near;
@@ -784,7 +785,7 @@ function openingActions(o, player) {
     if (theirs.length) parts.push(`${theirs.length} far side`);
     out.push(act({ ...base, kind: "opening", label: `${name}: boarded (${parts.join(", ")})`, enabled: false }));
   } else if (w.broken) {
-    out.push(act({ ...base, kind: "opening", label: w.kind === "door" ? "A broken doorway" : "Broken shutters", enabled: false }));
+    out.push(act({ ...base, kind: "opening", label: gate ? "A broken gate" : w.kind === "door" ? "A broken doorway" : "Broken shutters", enabled: false }));
   } else {
     out.push(act({
       ...base,
@@ -792,6 +793,7 @@ function openingActions(o, player) {
       simple: true,
       label: open ? `Close ${name}` : `Open ${name}`,
       perform() {
+        if (gate) return map.setGateOpen(o.tx, o.ty, o.edge, !w.open, map.layerOf(w.at)); // every edge of the gate at once, each touched
         if (w.kind === "door") w.open = !w.open;
         else w.shutter = w.shutter === "open" ? "closed" : "open";
         map.touch(o.tx, o.ty, map.layerOf(w.at)); // the wall's own tile on its layer, so the save and the wire carry it (docs/31/05, item 6; it touched nothing before)
@@ -802,7 +804,7 @@ function openingActions(o, player) {
   const planks = countAll(player, "plank");
   const noHammer = toolProblem(player, tuning.world.boardTool); // the tool rule (#215): boarding and pulling are hammer work
   const need = noHammer ? toolName(tuning.world.boardTool) : "";
-  if (mine.length < map.BOARDS_PER_SIDE && !map.isFence(w)) { // a fence takes no boards, a gate included (map.addBoard)
+  if (mine.length < map.BOARDS_PER_SIDE && !map.isFence(w) && !gate) { // a fence takes no boards, a gate included (map.addBoard), nor does a castle gate
     out.push(act({
       ...base,
       kind: "board",
@@ -1250,7 +1252,8 @@ function openingsAtScreen(sx, sy) {
   for (const dy of [0, WALL_FACE / 2, WALL_FACE]) {
     const g = iso.toGrid(sx, sy + dy);
     for (const o of map.openingsNear(g.gx, g.gy, 2.5)) {
-      const k = `${o.edge}@${o.tx},${o.ty}`;
+      const gs = o.wall.gate ? map.gateStart(o.tx, o.ty, o.edge, o.wall) : null; // a castle gate is one thing under the cursor: its first edge's key
+      const k = gs ? `gate:${o.edge}@${gs[0]},${gs[1]}` : `${o.edge}@${o.tx},${o.ty}`;
       if (seen.has(k)) continue;
       const p = iso.toScreen(o.mx, o.my);
       const dx = sx - p.x;

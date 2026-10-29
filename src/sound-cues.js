@@ -346,6 +346,7 @@ function scanOpenings(S, play) {
       for (const edge of ["n", "w"]) {
         const w = t[edge];
         if (!w || (w.kind !== "door" && w.kind !== "window")) continue;
+        if (w.gate && w.gate.i) continue; // a castle gate creaks once, at its first edge, not once for each of its edges
         const key = `${x},${y},${edge}`;
         seen.add(key);
         const now = { open: w.kind === "door" ? !!w.open : w.shutter === "open", broken: !!w.broken };

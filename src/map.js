@@ -1194,6 +1194,7 @@ export function edgeMid(tx, ty, edge) {
 export function canStampOver(existing, kind) {
   if (!existing) return true;
   if (kind !== "door" && kind !== "window") return false;
+  if (existing.gate) return false; // a castle gate is taken apart whole (removeGate), never stamped over, even broken
   if (existing.kind === "wall" && wallRule(existing.sprite).solid) return false; // no door or window in a cliff (art round 10, Free building's) nor in a ramp's own side
   if (existing.kind === "wall") return kind === "door" || !wallRule(existing.sprite).seeThrough; // a window is no use in a fence or bars
   return existing.kind === kind && !!existing.broken;
@@ -1329,6 +1330,12 @@ function releaseHangings(tx, ty, edge, layer = 0) {
 // Take a wall, door, or window off an edge, and whatever hangs on it (its
 // boards go with it, a torch bracket is forgotten and the torch in it falls to the floor, a painting falls to the floor).
 export function destroyWall(tx, ty, edge, restoreUnder = false, layer = 0) {
+  const w0 = peekTile(tx, ty, layer);
+  if (w0 && w0[edge] && w0[edge].gate) return removeGate(tx, ty, edge, layer); // a castle gate comes apart whole, each edge giving its plain wall back (never a hole)
+  return destroyEdge(tx, ty, edge, restoreUnder, layer);
+}
+
+function destroyEdge(tx, ty, edge, restoreUnder = false, layer = 0) {
   const t = growTile(tx, ty, layer);
   const wall = t[edge];
   if (!wall) return false;
@@ -1681,6 +1688,161 @@ export function removeRing(id) {
   return taken;
 }
 
+// ---- castle gates (Michael, 2026-10-29; docs/02, docs/54) ----
+// A castle gate is a door-kind wall on each of the 2 or 3 consecutive edges of one run, each carrying `gate: { i }` (its place in the run, 0 the
+// first: the smallest tx on a north run, ty on a west) and the gate's sprite (`wall_stone_gate_2`, whose definition says `wall.gate`). One open
+// state is kept on all of them (setGateOpen, the only place it changes), so every path that reads a door reads a gate (bodies, rooms, light, the
+// save, the chunk delta, the sync check) and the rest is the flags of the definition: a portcullis passes sight and light when shut (`grille`)
+// but never a body; the dead cannot break it (`deadBreak: false`); bites and blows do not pass its bars (`bitesPass: false`); shots do
+// (`shotsPass`); fire does not spread through it (`fireSpreads: false`, vacuous: nothing here spreads); `swing` seconds to rise or fall. A later
+// ruling flips a flag in the definition's data, not code, as a villager's `immune` does.
+
+// The gate rule of a wall, or null: the definition's `wall.gate` of a wall carrying a `gate` record.
+export function gateOf(wall) {
+  return wall && wall.gate ? wallRule(wall.sprite).gate : null;
+}
+export const isGate = (wall) => !!wall && !!wall.gate;
+
+function gateFlag(wall, flag) {
+  const g = gateOf(wall);
+  return g ? g[flag] : undefined;
+}
+
+// A shut gate whose bars pass sight and light (`grille`).
+function gateGrille(wall) {
+  return !!wall && !!wall.gate && gateFlag(wall, "grille") !== false;
+}
+
+// A gate the dead cannot break (`deadBreak` not true): needsBreaking and damageOpening leave it alone, and they never target it.
+export function gateHolds(wall) {
+  return !!wall && !!wall.gate && gateFlag(wall, "deadBreak") !== true;
+}
+
+// The health a gate's edge is made with: Infinity when the dead cannot break it, else its definition's `hp`; undefined for a wall that is no gate.
+function gateHp(kind, sprite) {
+  const g = kind === "door" ? wallRule(sprite).gate : null;
+  if (!g) return undefined;
+  return g.deadBreak === true ? g.hp || DOOR_HP * 4 : Infinity;
+}
+
+// The height below which shots (arrows, spells, thrown things) pass the edge: a castle gate whose definition says `shotsPass` lets them through
+// its arch (shut or open) up to the crown; 0 for anything else.
+export function gateShotHeight(wall) {
+  const g = gateOf(wall);
+  return g && g.shotsPass !== false && !boarded(wall) ? (g.opening && g.opening.crown) || 78 : 0;
+}
+
+// The seconds a gate takes to rise or fall (its definition's `swing`), for the drawing.
+export function gateSwing(wall) {
+  const g = gateOf(wall);
+  return (g && Number(g.swing)) || 1.2;
+}
+
+// The first edge of the gate that the wall at (tx, ty, edge) is one of: [x, y].
+export function gateStart(tx, ty, edge, wall) {
+  const i = (wall && wall.gate && wall.gate.i) || 0;
+  return edge === "n" ? [tx - i, ty] : [tx, ty - i];
+}
+
+// Every edge of the gate that the wall at (tx, ty, edge) is one of, in order: [{ tx, ty, edge, wall }] (those loaded; a stale record, a sprite
+// that is no longer the first's, is left out).
+export function gateMembers(tx, ty, edge, layer = 0) {
+  const t0 = peekTile(tx, ty, layer);
+  const w0 = t0 && t0[edge];
+  if (!w0 || !w0.gate) return [];
+  const span = (gateOf(w0) && gateOf(w0).span) || 1;
+  const [sx, sy] = gateStart(tx, ty, edge, w0);
+  const out = [];
+  for (let k = 0; k < span; k++) {
+    const x = edge === "n" ? sx + k : sx;
+    const y = edge === "n" ? sy : sy + k;
+    const t = peekTile(x, y, layer);
+    const w = t && t[edge];
+    if (!w || !w.gate || w.gate.i !== k || w.sprite !== w0.sprite) continue;
+    out.push({ tx: x, ty: y, edge, wall: w });
+  }
+  return out;
+}
+
+// Open or shut the whole gate the wall at (tx, ty, edge) is part of: every edge of it, each touched so the save and the wire carry it. Returns whether it was a gate.
+export function setGateOpen(tx, ty, edge, open, layer = 0) {
+  const members = gateMembers(tx, ty, edge, layer);
+  for (const m of members) {
+    m.wall.open = !!open;
+    touch(m.tx, m.ty, layer);
+  }
+  return members.length > 0;
+}
+
+// A gate given way whole (its flag `deadBreak` turned on): every edge broken and open.
+function breakGate(wall) {
+  const at = wall.at;
+  if (!at) return;
+  const layer = layerOf(at);
+  const tile = peekTile(at[0], at[1], layer);
+  const edge = tile && tile.n === wall ? "n" : "w";
+  for (const m of gateMembers(at[0], at[1], edge, layer)) {
+    m.wall.broken = true;
+    m.wall.open = true;
+    m.wall.hp = 0;
+    touch(m.tx, m.ty, layer);
+  }
+}
+
+// Why a gate of `sprite` may not stand on the run that begins at the edge (tx, ty, edge) on `layer`, or "": each of its edges is a plain wall of the
+// gate's run (stone), one that is a wall and nothing more (no door, window, or other gate, nothing hung on it, no torch in a bracket, no round room's
+// curve), and each fit for a door (both its tiles clear, no stair across it).
+export function gateProblem(tx, ty, edge, sprite, layer = 0) {
+  const rule = wallRule(sprite);
+  const g = rule.gate;
+  if (!g) return "Not a gate";
+  for (let k = 0; k < g.span; k++) {
+    const x = edge === "n" ? tx + k : tx;
+    const y = edge === "n" ? ty : ty + k;
+    const w = tileAt(x, y, layer)[edge];
+    if (!w) return "Over a stone wall";
+    if (w.gate) return "Already a gate";
+    if (w.kind !== "wall" || w.sprite !== rule.run) return "Over a plain stone wall";
+    if (w.round) return "Not on a round room";
+    if (w.hangings && w.hangings.length) return "Take what hangs there down first";
+    if (w.bracket) return "Take the torch down first";
+    if (!canBuildWall(x, y, edge, "door", layer)) return "No room";
+  }
+  return "";
+}
+
+// Build a gate of `sprite` on the run beginning at (tx, ty, edge): its edges stamped over the plain walls (each remembers the wall it replaced, which
+// taking the gate apart puts back), shut. Returns whether it was built.
+export function buildGate(tx, ty, edge, sprite, layer = 0, { free = false } = {}) {
+  if (gateProblem(tx, ty, edge, sprite, layer)) return false;
+  const g = wallRule(sprite).gate;
+  for (let k = 0; k < g.span; k++) {
+    const x = edge === "n" ? tx + k : tx;
+    const y = edge === "n" ? ty : ty + k;
+    const t = growTile(x, y, layer);
+    const existing = t[edge];
+    const wall = createWall("door", sprite);
+    wall.gate = { i: k };
+    wall.under = existing.sprite;
+    if (existing.built) wall.underBuilt = true;
+    if (existing.free) wall.underFree = true;
+    wall.built = true;
+    if (free) wall.free = true;
+    wall.at = addr(x, y, layer);
+    t[edge] = wall;
+    touch(x, y, layer);
+  }
+  for (let k = 0; k < g.span; k++) rebuildRoomsAround(edge === "n" ? tx + k : tx, edge === "n" ? ty : ty + k, edge, layer);
+  return true;
+}
+
+// Take the gate that a wall is one of apart whole: every edge destroyed, the plain wall it was stamped into put back on each. Returns whether it was a gate.
+export function removeGate(tx, ty, edge, layer = 0) {
+  const members = gateMembers(tx, ty, edge, layer);
+  for (const m of members) destroyEdge(m.tx, m.ty, m.edge, true, layer);
+  return members.length > 0;
+}
+
 // ---- fences (Michael, 2026-10-17, #147; 2026-10-18, #174): the dead strike one down ----
 // A fence, or a gate (a door in a fence), has hit points like a door: `fenceHp`, a gate `fenceGateFactor` of it (`createWall`). A dead one
 // at it STRIKES it, on the attack animation and the bite's cooldown, each strike taking `zombie.fenceStrike` hit points (`strikeFence`),
@@ -1743,7 +1905,7 @@ export function createWall(kind, sprite) {
     open: false,
     shutter: kind === "window" ? "closed" : null,
     boards: { near: [], far: [] }, // hit points per board, outermost last
-    hp: wallRule(sprite).fence === true ? fenceLimit({ kind }) : kind === "wall" ? Infinity : kind === "door" ? DOOR_HP : SHUTTER_HP, // a door and a window always break, whatever they are made of: every entrance is one the dead can break; a fence has hit points too
+    hp: wallRule(sprite).fence === true ? fenceLimit({ kind }) : kind === "wall" ? Infinity : gateHp(kind, sprite) ?? (kind === "door" ? DOOR_HP : SHUTTER_HP), // a door and a window always break, whatever they are made of: every entrance is one the dead can break; a fence has hit points too
     broken: false,
   };
 }
@@ -1765,7 +1927,7 @@ function boardsOn(wall, side) {
 // Nail a board on a side, if there is room. Planks are free until the inventory. Never on a fence, a gate included (Michael,
 // 2026-10-24: "I would not allow boards on fences period"): the one door through which every board passes, the host's and a guest's.
 export function addBoard(wall, side) {
-  if (isFence(wall)) return false;
+  if (isFence(wall) || wall.gate) return false; // nor on a castle gate
   const b = boardsOn(wall, side);
   if (b.length >= BOARDS_PER_SIDE) return false;
   b.push(BOARD_HP);
@@ -1785,6 +1947,7 @@ export function pullBoard(wall, side) {
 // Hit the stack from a side. Returns "board", "leaf", or null for what broke,
 // after taking `amount` off whatever stands first in attack order.
 export function damageOpening(wall, side, amount) {
+  if (gateHolds(wall)) return null; // the dead break no closed gate (a flag on its definition, docs/02, 2026-10-29)
   const mine = boardsOn(wall, side);
   const theirs = boardsOn(wall, -side);
   let broke = null;
@@ -1811,6 +1974,7 @@ export function damageOpening(wall, side, amount) {
       broke = "board";
     }
   }
+  if (broke === "leaf" && wall.gate) breakGate(wall); // a gate gives way whole: every edge of it a way through
   if (broke) touchWall(wall);
   else if (amount) unsavedWall(wall); // its health, which the wire does not send short of a break, is saved
   return broke;
@@ -1820,7 +1984,7 @@ export function damageOpening(wall, side, amount) {
 // shutters are closed and whole or that carries boards (they batter one open to see in, never to pass, #134).
 export function needsBreaking(wall) {
   if (!wall) return false;
-  if (wall.kind === "door") return !wayOpen(wall);
+  if (wall.kind === "door") return !wayOpen(wall) && !gateHolds(wall); // a castle gate the dead cannot break is nothing for them to break (docs/02, 2026-10-29)
   return boarded(wall) || (wall.shutter === "closed" && !wall.broken);
 }
 
@@ -2492,11 +2656,17 @@ export function transmission(wall) {
   if (wall.kind === "wall") return wallRule(wall.sprite).seeThrough ? 1 : 0; // a fence or bars: sight and light pass
   if (wall.broken) return 1;
   if (wall.kind === "window") return wall.shutter === "closed" ? openingTunables.shutterLeak : 1;
-  return wall.open || wallRule(wall.sprite).seeThrough ? 1 : 0; // a shut gate in a fence still passes sight
+  return wall.open || wallRule(wall.sprite).seeThrough || gateGrille(wall) ? 1 : 0; // a shut gate in a fence still passes sight, and a shut portcullis (bars: it stops bodies, not sight or light)
 }
 
 export function blocksSight(wall) {
   return transmission(wall) < 0.5;
+}
+
+// Whether a blow or a bite is stopped by what stands on an edge: whatever stops sight, and a shut castle gate whose definition says its bars
+// stop them (`bitesPass: false`, docs/02, 2026-10-29: "Agreed"), so a swing or a bite does not pass a closed portcullis as it passes a fence.
+export function blocksReach(wall) {
+  return blocksSight(wall) || (!!wall && !!wall.gate && !wayOpen(wall) && gateFlag(wall, "bitesPass") === false);
 }
 
 // Openings (doors and windows) within `r` tiles of (gx, gy), nearest first.
@@ -2572,7 +2742,8 @@ export function floorRule(id) {
 }
 
 // What a wall material allows (docs/30 step 0): `wall.seeThrough` (a fence, bars,
-// a parapet: sight and light pass, bodies do not, and it bounds no room).
+// a parapet: sight and light pass, bodies do not, and it bounds no room). `wall.run` names the run a sprite is one piece of, so a gate and the wall
+// beside it are one run and grow no post between them (render/walls.js sameRun); `wall.gate` makes it a castle gate (docs/02, 2026-10-29), below.
 const wallRules = new Map();
 export function wallRule(sprite) {
   let r = wallRules.get(sprite);
@@ -2580,7 +2751,7 @@ export function wallRule(sprite) {
   let def = null;
   try { def = getDef(sprite); } catch { def = null; }
   const w = (def && def.wall) || {};
-  r = { seeThrough: !!w.seeThrough, fence: !!w.fence, cliff: !!w.cliff, solid: !!w.solid || !!w.cliff, side: !!w.solid && !w.cliff }; // `solid`: no opening, nothing hung on it (a cliff's, and a ramp's own side: wall_ramp_side) // a cliff (art round 10): bare rock, no opening stamped in it, nothing hung on it
+  r = { seeThrough: !!w.seeThrough, fence: !!w.fence, cliff: !!w.cliff, solid: !!w.solid || !!w.cliff, side: !!w.solid && !w.cliff, run: w.run || sprite, gate: w.gate || null }; // `solid`: no opening, nothing hung on it (a cliff's, and a ramp's own side: wall_ramp_side) // a cliff (art round 10): bare rock, no opening stamped in it, nothing hung on it
   wallRules.set(sprite, r);
   return r;
 }
