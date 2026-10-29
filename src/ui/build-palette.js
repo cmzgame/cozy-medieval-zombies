@@ -127,7 +127,7 @@ export function render(player) {
     const short = placement.shortfall(player, k.id);
     const leaf = active === k.id && placement.takesLeaf(k.id) ? `<div class="bp-sub">${placement.leafHint(placement.buildLeaf(), placement.state.ghost && placement.state.ghost.carriedLeaf)}</div>` : "";
     const sw = placement.swatchOf(k);
-    const how = k.kind === "terrain" ? "Click, then click or drag on the ground to paint" : "Click to build";
+    const how = k.kind === "terrain" ? "Click, then click or drag on the ground to paint" : placement.isInstantStair(k.id) ? "Click, then click the ground to place it at once" : "Click to build";
     const right = sw ? `<span class="bp-sw" style="background:${esc(sw)}"></span>` : `<span class="bp-cost">${placement.costText(k.id)}</span>`;
     return `<div class="bp-row${short ? " short" : ""}${active === k.id ? " active" : ""}" data-kind="${k.id}" title="${esc(k.label)}: ${esc(short || how)}"><span class="bp-name">${esc(k.label)}</span>${right}</div>${leaf}`;
   };

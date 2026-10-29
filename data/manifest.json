@@ -1,8 +1,8 @@
 {
-  "version": "3185160b",
+  "version": "2063e631",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
-    "data/build.json": {"size": 14075, "stamp": "c53d8211"},
+    "data/build.json": {"size": 14224, "stamp": "5099e811"},
     "data/combat.json": {"size": 6412, "stamp": "2bc2110b"},
     "data/crops.json": {"size": 2313, "stamp": "36c5359c"},
     "data/dyes.json": {"size": 2539, "stamp": "b65fc8c1"},
@@ -1328,6 +1328,7 @@
     "data/sprites/wall_parts_stone.json": {"size": 1590, "stamp": "ec72d3b0"},
     "data/sprites/wall_parts_winterpine.json": {"size": 1672, "stamp": "9e860f70"},
     "data/sprites/wall_parts_wood.json": {"size": 1578, "stamp": "6f85ffd6"},
+    "data/sprites/wall_ramp_side.json": {"size": 775, "stamp": "11fd6544"},
     "data/sprites/wall_spruce.json": {"size": 1619, "stamp": "5e28fe8d"},
     "data/sprites/wall_stone.json": {"size": 1462, "stamp": "781724b9"},
     "data/sprites/wall_winterpine.json": {"size": 1708, "stamp": "b4ab6eab"},

@@ -1,0 +1,20 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "north_plain": "data/art/village/wall_stone_north_plain.png",
+  "west_plain": "data/art/village/wall_stone_west_plain.png"
+ },
+ "anchors": {
+  "north_plain": [8.0, 100.0],
+  "west_plain": [40.0, 100.0]
+ },
+ "wall": {
+  "height": 96,
+  "thickness": 16,
+  "color": "#7b7670",
+  "material": "stone",
+  "post": "post_stone",
+  "solid": true
+ },
+ "note": "dev art (Michael, 2026-10-29: the Stone ramp brings its own solid sides for the free landing tile): the square-edged stone wall's plain face, 96 tall, no lip and no corner piece; laid by map.buildStair on the landing's open ground edges, never taken apart, no door, window, or painting in it (`wall.solid`). Art round 11 replaces the picture with the ramp's own square rock side."
+}
