@@ -2108,6 +2108,10 @@ export function setSleepers(entries) {
   woken.length = 0;
   for (const [k, list] of entries) sleepers.set(Number(k), list);
 }
+// A floor whose id was renamed: a saved chunk or a frame from before the rename names the old id, and it comes back as the new one (the pink, 2026-10-28:
+// "No random spawn" became "Random spawn", docs/02). One line, here: every chunk a save or a guest brings in goes through installChunk.
+const RENAMED_FLOORS = { floor_nospawn: "floor_randomspawn" };
+
 
 // A saved chunk in place of the one the file and the seed would grow. The
 // authored props the load made for these tiles are superseded by the saved ones.
@@ -2143,10 +2147,13 @@ export function installChunk(d) {
   }
   const tiles = new Array(CHUNK * CHUNK);
   let i = 0;
-  for (const [floor, n] of d.floors) for (let j = 0; j < n; j++) tiles[i++] = createTile(floor);
+  for (const [floor, n] of d.floors) for (let j = 0; j < n; j++) tiles[i++] = createTile(RENAMED_FLOORS[floor] || floor); // a floor a save or a frame names by an old id comes back as its new one
   for (const [lx, ly, edge, w] of d.walls) tiles[ly * CHUNK + lx][edge] = { ...w, at: addr(cx * CHUNK + lx, cy * CHUNK + ly, layer) };
   for (const [lx, ly, list] of d.items) tiles[ly * CHUNK + lx].items = list;
-  for (const [lx, ly, under, free] of d.built || []) tiles[ly * CHUNK + lx].built = free ? { under, free: true } : { under }; // a laid floor (docs/49 section 5)
+  for (const [lx, ly, was, free] of d.built || []) {
+    const under = RENAMED_FLOORS[was] || was; // the floor a laid one covers comes back by its new id too
+    tiles[ly * CHUNK + lx].built = free ? { under, free: true } : { under }; // a laid floor (docs/49 section 5)
+  }
   // The tiles of props anchored on a neighbour (#341): stood again from the registry when the prop is there and still covers the tile. A prop not
   // in it yet (its anchor's chunk comes later in a restore or a frame) stands on this tile when that chunk's installProp runs.
   for (const [lx, ly, id] of d.parts || []) {

@@ -19,6 +19,7 @@ import { reachProblem } from "./reach.js";
 import { REACH } from "./stations.js"; // the click's reach, as the hive's
 import { player as T, potions as PT } from "./tuning.js";
 import { world } from "./world.js";
+import { rules } from "./rules.js"; // the world's Unlimited mana switch (a dev rule beside Free building, Michael 2026-10-28)
 import { showMessage } from "./ui/prompt.js";
 
 export const NOT_ENOUGH = "Not enough mana.";
@@ -32,12 +33,17 @@ export const manaOf = (player) => (Number.isFinite(player.mana) ? player.mana : 
 // The cost of what a launcher casts (archery.launcherOf: a spell carries its book's `mana`), 0 for anything else.
 export const costOf = (launcher) => (launcher && launcher.kind === "spell" && Number.isFinite(launcher.mana) ? Math.max(0, launcher.mana) : 0);
 
+// The world's Unlimited mana rule (a dev switch beside Free building; Michael, 2026-10-28): on, a cast is never refused and never spends, and the
+// bar reads full. It is the world's rule, so a guest's cast follows the host's (the rules ride in the save and in the frames), and a guest's
+// own prediction of the refusal flash (player-controller.js) reads the same rule through `canPay`.
+export const unlimited = () => !!rules.unlimitedMana;
+
 // Whether the bar can pay `cost` now.
-export const canPay = (player, cost) => !(cost > 0) || manaOf(player) >= cost - 1e-9;
+export const canPay = (player, cost) => !(cost > 0) || unlimited() || manaOf(player) >= cost - 1e-9;
 
 // Take `cost` from the bar (the release of a spell). Returns whether it was paid.
 export function spend(player, cost) {
-  if (!(cost > 0)) return true;
+  if (!(cost > 0) || unlimited()) return true;
   if (!canPay(player, cost)) return false;
   player.mana = Math.max(0, manaOf(player) - cost);
   return true;
@@ -59,6 +65,10 @@ export function update(player, dt) {
   if (player.manaFlash > 0) player.manaFlash = Math.max(0, player.manaFlash - dt);
   const max = maxOf(player);
   const now = manaOf(player);
+  if (unlimited()) { // the bar reads full, in the record every client draws from; a potion or the altar changes nothing
+    if (player.mana !== max) player.mana = max;
+    return;
+  }
   if (now < max) player.mana = Math.min(max, now + T.manaRegen * dt);
   else if (player.mana !== now) player.mana = now;
 }

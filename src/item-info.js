@@ -15,6 +15,7 @@ import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
 import * as farming from "./farming.js";
 import { buildKinds } from "./placement.js";
+import { rules as worldRules } from "./rules.js"; // the Unlimited mana rule: a spell costs nothing while it is on
 import { isWoodWall } from "./woods.js";
 import * as dye from "./dye.js";
 import { holdsWater, isTainted } from "./water.js"; // clean or tainted (docs/44)
@@ -217,7 +218,7 @@ function shotLines(def) {
   if (s) {
     out.push(line(`Cast ${s.name} (left button, a staff in the other hand): ${byDraw(s.damage)}, up to ${tiles(s.range ?? shot.range)}.`));
     // Its cost (docs/47 section 5): paid when the spell is released; refused before the draw when the bar cannot pay.
-    if (s.mana > 0) out.push(line(`Costs ${s.mana} mana a cast, spent when it is released.`));
+    if (s.mana > 0) out.push(line(worldRules.unlimitedMana ? `Costs ${s.mana} mana a cast, but Unlimited mana is on: it costs nothing.` : `Costs ${s.mana} mana a cast, spent when it is released.`));
     const burst = [s.contact ? "on the first of the dead or wild game it meets" : "", s.landRadius ? `within ${tiles(s.landRadius)} of where it lands` : ""].filter(Boolean);
     // A spell passes a tame animal by (archery.bodyAt, docs/45 section 2): the dead and wild game are what it meets.
     if (burst.length) out.push(line(`${s.name} bursts ${burst.join(", or ")}; it passes tame animals by.`));

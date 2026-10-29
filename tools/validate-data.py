@@ -619,6 +619,34 @@ for path in sorted(glob.glob("data/maps/*.json")):
         if "loot" in p and p["loot"] not in loot_tables:
             fail(f"{path}: the {p['sprite']} at {p['tile']} names a loot table {p['loot']!r} that does not exist")
 
+# The maps the game ships (data/maps.json; src/maps.js, the Worlds screen's picker; Michael, 2026-10-28): every map file is listed, every entry has
+# its file, the entry's display name is the file's own `name`, its kind is "play" or "test", and a map's spawn stands inside its bounds (the
+# pane's check("maps") reads the grown tile under the flat map's spawn).
+maps_list = load("data/maps.json")
+map_files = {os.path.splitext(os.path.basename(p))[0]: p for p in glob.glob("data/maps/*.json")}
+for mid, entry in maps_list.items():
+    if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", mid):
+        fail(f"maps.json: {mid!r} is not a plain map id")
+    if mid not in map_files:
+        fail(f"maps.json: {mid!r} has no file data/maps/{mid}.json")
+        continue
+    mj = load(map_files[mid])
+    if entry.get("name") != mj.get("name"):
+        fail(f"maps.json: {mid!r} is named {entry.get('name')!r} but its file says {mj.get('name')!r}")
+    if entry.get("kind") not in ("play", "test"):
+        fail(f"maps.json: {mid!r} kind must be 'play' or 'test'")
+    if not entry.get("blurb"):
+        fail(f"maps.json: {mid!r} needs a blurb, the one line the new-world step shows")
+    bx, by, bw, bh = mj["bounds"]
+    sx, sy = mj["spawn"]
+    if not (bx <= sx < bx + bw and by <= sy < by + bh):
+        fail(f"{map_files[mid]}: the spawn {mj['spawn']} is outside the bounds {mj['bounds']}")
+for mid in map_files:
+    if mid not in maps_list:
+        fail(f"maps.json: data/maps/{mid}.json is not listed")
+if "valley" not in maps_list or maps_list["valley"].get("kind") != "play":
+    fail("maps.json: the valley is a map for play and the picker's default")
+
 # Farming (#194): every crop's seed and harvest items exist (the seed tagged `seed`), its stage days and counts make sense, its three
 # stage sprites exist and say which crop and stage they are, and the soil's numbers are positive.
 crops = load("data/crops.json")

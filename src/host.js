@@ -166,7 +166,7 @@ export function backNow(hash) {
 export function worldInfo() {
   const me = self();
   const st = store();
-  return { name: st.name || "a world", host: me ? me.name || me.id : null };
+  return { name: st.name || "a world", host: me ? me.name || me.id : null, map: cfg.map ? cfg.map() : null }; // `map`: the map file's id, so a guest on another map goes there first (main.js followHostMap; Michael, 2026-10-28)
 }
 
 // The host's side of the wire's hooks (net.js): the joins, the saves on a join and a leave, dormancy, stepping

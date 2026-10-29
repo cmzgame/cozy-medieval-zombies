@@ -242,7 +242,7 @@ if (makeOnly) {
 }
 
 // ---- the host ----
-host.init({ cap: () => tuning.world.playerCapServer, store: () => store, save: () => requestSave("an event"), self: () => null, arrived: () => {} });
+host.init({ map: () => mapName, cap: () => tuning.world.playerCapServer, store: () => store, save: () => requestSave("an event"), self: () => null, arrived: () => {} });
 host.install();
 
 let stopping = false;

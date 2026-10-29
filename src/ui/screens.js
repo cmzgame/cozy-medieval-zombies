@@ -246,6 +246,7 @@ function listen(el) {
     else if (sel.dataset.lookKey && youApi) youApi.setLook({ [sel.dataset.lookKey]: JSON.parse(sel.value) });
     else if ("handed" in sel.dataset && youApi && youApi.setHanded) youApi.setHanded(JSON.parse(sel.value)); // right- or left-handed (Michael, 2026-10-25)
     else if (sel.dataset.sandbox) sandboxSet(sel.dataset.sandbox, JSON.parse(sel.value));
+    else if ("newmap" in sel.dataset) newMapSet(JSON.parse(sel.value));
     else return;
     render();
   });
@@ -344,7 +345,7 @@ function stepBack() {
     if (creation && creation.step > 1) { creation.step--; render(); return; }
     const c = creation;
     creation = null;
-    if (c && c.for === "new") show("newworld", { name: c.name, rules: c.rules, devChest: c.devChest, touched: true });
+    if (c && c.for === "new") show("newworld", { name: c.name, rules: c.rules, devChest: c.devChest, map: c.map, touched: true });
     else if (c && c.for === "join") show("join", { code: c.code });
     else if (c && c.for === "respawn") show("dead", data);
     else show("worlds");
@@ -435,15 +436,15 @@ function go(where, ds = {}) {
   else if (where === "rejoin") startRejoin(ds.code, ds.name || "");
   else if (where === "wait-cancel") { stopWait(); show("worlds"); }
   // A new world: its name, then a character for it.
-  else if (where === "newworld") show("newworld", { name: worldsApi ? worldsApi.defaultName() : "" });
+  else if (where === "newworld") show("newworld", { name: worldsApi ? worldsApi.defaultName("valley") : "" });
   // A switch of the Sandbox: kept in the page's data with the name typed so far, and drawn again.
   else if (where === "sandbox") sandboxSet(ds.rule, ds.value === "true");
   else if (where === "newworld-next") {
     const field = root.querySelector("#world-name");
-    const name = (field && field.value.trim()) || (worldsApi ? worldsApi.defaultName() : "A world");
+    const name = (field && field.value.trim()) || (worldsApi ? worldsApi.defaultName(data.map || "valley") : "A world");
     const now = sandboxNow();
     if (kitProblem(now.rules)) { showKitProblem(); return; } // a kit that does not fit is refused, with its word, before the world is made
-    beginCreation({ for: "new", name, rules: now.rules, devChest: now.devChest });
+    beginCreation({ for: "new", name, rules: now.rules, devChest: now.devChest, map: data.map || "valley" });
   }
   // The host's World rules, from the pause menu: a switch changes the world at once.
   else if (where === "world-rule") {
@@ -492,7 +493,25 @@ function sandboxSet(key, value) {
   const now = sandboxNow();
   if (key === "devChest") now.devChest = !!value;
   else now.rules[key] = value;
-  show("newworld", { name: field ? field.value : data.name, rules: now.rules, devChest: now.devChest, touched: true });
+  show("newworld", { name: field ? field.value : data.name, rules: now.rules, devChest: now.devChest, map: data.map, touched: true });
+}
+
+// The map for the new world chosen (Michael, 2026-10-28): kept with the rest of the step, and the page drawn again.
+function newMapSet(id) {
+  const field = root.querySelector("#world-name");
+  const now = sandboxNow();
+  const was = field ? field.value : data.name;
+  const name = worldsApi && was === worldsApi.defaultName(data.map || "valley") ? worldsApi.defaultName(id) : was; // a name left as the default follows the map chosen
+  show("newworld", { name, rules: now.rules, devChest: now.devChest, map: id, touched: true });
+}
+
+// The map choice as a dropdown: the maps for play, then the test maps under their own heading.
+function mapSelectHtml(cur) {
+  const list = worldsApi && worldsApi.maps ? worldsApi.maps() : [];
+  const opt = (m) => `<option value='${esc(JSON.stringify(m.id))}'${m.id === cur ? " selected" : ""}>${esc(m.name)}</option>`;
+  const play = list.filter((m) => m.kind === "play");
+  const test = list.filter((m) => m.kind === "test");
+  return `<select data-newmap id="world-map">${play.map(opt).join("")}${test.length ? `<optgroup label="Test maps">${test.map(opt).join("")}</optgroup>` : ""}</select>`;
 }
 
 // Why the extra starting items cannot be the kit (kit.js), or "": an unknown item, a bad count, or no room in the starting bag.
@@ -635,7 +654,7 @@ function finishCreation() {
   creation = null;
   if (!c || !c.identityId) return;
   if (identitiesApi) identitiesApi.setLast(c.identityId);
-  if (c.for === "new" && worldsApi) worldsApi.create(c.name, c.identityId, { rules: c.rules, devChest: c.devChest });
+  if (c.for === "new" && worldsApi) worldsApi.create(c.name, c.identityId, { rules: c.rules, devChest: c.devChest, map: c.map });
   else if (c.for === "join" && wireApi) wireApi.joinAs(c.identityId);
   else if (c.for === "respawn" && worldsApi) worldsApi.respawn(c.identityId);
 }
@@ -878,7 +897,7 @@ function worldRows() {
   const mainFor = (w) => {
     if (w.home === "server") return button("server-play", "Play", id(w), "big");
     if (w.home === "arriving") return canMove ? button("bring-home", "Finish bringing it home", id(w), "big") : "";
-    return w.playable ? button("play", w.dead ? "New character" : "Play", id(w), "big") : "";
+    return button("play", w.dead ? "New character" : "Play", id(w), "big");
   };
   const restFor = (w) => {
     const inPlay = h.inWorld && h.worldId === w.worldId;
@@ -891,7 +910,7 @@ function worldRows() {
     name: esc(w.name),
     badge: w.home === "server" ? "on the server" : w.home === "arriving" ? "on its way home" : "",
     who: w.myCharacter ? (w.dead ? `${esc(w.myCharacter)} died` : `as ${esc(w.myCharacter)}`) : "no survivor yet",
-    meta: [esc(w.label), lastPlayed(w.savedAt), code(w) ? `code <code>${esc(code(w))}</code>` : "", w.playable ? "" : `on another map (${esc(w.mapName)})`],
+    meta: [esc(w.label), lastPlayed(w.savedAt), code(w) ? `code <code>${esc(code(w))}</code>` : "", `<span class="world-map">${esc(w.mapLabel || w.mapName || "")}</span>`],
     main: mainFor(w),
     rest: restFor(w),
   })).join("")}</div>`;
@@ -1080,6 +1099,8 @@ function render() {
       if (shown !== raw) data.rules = { ...sandboxNow().rules, extraKit: shown };
     }
     const now = sandboxNow();
+    const mapChoice = data.map || "valley";
+    const mapPicked = worldsApi && worldsApi.maps ? worldsApi.maps().find((m) => m.id === mapChoice) : null;
     // What changes later (the pause menu's World rules) is set apart from what is chosen once, when the world is made
     // and baked into it (Trees, Starting population, the dev chest): Michael, #130, "some settings are tweakable on the fly,
     // some are baked into the world".
@@ -1095,6 +1116,7 @@ function render() {
         <h1>New world</h1>
         <div class="sub">A name for it, how it plays, then a character for it.</div>
         <div class="setting"><span class="setting-label">Name</span><span class="control"><input id="world-name" type="text" maxlength="40" value="${esc(data.name || "")}" autocomplete="off" spellcheck="false"></span></div>
+        <div class="setting"><span class="setting-label">Map<small class="help">${esc(mapPicked && mapPicked.blurb ? mapPicked.blurb : "Where the world is made. Chosen now and cannot be changed afterwards.")}</small></span><span class="control">${mapSelectHtml(mapChoice)}</span></div>
         <h2>How it plays</h2>
         <div class="sub">You can change these later from the pause menu.</div>
         ${liveRows}
@@ -1153,6 +1175,7 @@ function render() {
       <div class="screen">
         <h1>${here.role ? "Menu" : "Paused"}</h1>
         <div class="sub">${where}</div>
+        ${here.mapName ? `<div class="sub pause-map">Map: ${esc(here.mapName)}</div>` : ""}
         <div class="sub">${here.role ? "The world goes on while you are here; your character stands still." : "Esc to resume"}</div>
         <div class="screen-buttons">${button("resume", "Resume")}${here.role === "guest" ? "" : button("save", "Save world")}${here.role === "guest" ? "" : button("host", here.role === "host" ? "Open to friends: on" : "Open to friends: off")}${here.ownedCode ? button("owner", "Owner", ` data-code="${esc(here.ownedCode)}"`) : ""}${button("rules", "World rules")}${button("character", "Character")}${button("settings", "Settings")}${button("controls", "Controls")}${button("exit", "Exit game")}</div>
       </div>`;

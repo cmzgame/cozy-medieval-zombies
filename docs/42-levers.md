@@ -72,7 +72,8 @@ Two kinds:
 
 ### A world's rules (`src/settings.js`, groups `rules` and `sandbox`)
 - **Village stations:** the world rule `villageStations` (`src/rules.js`, the Sandbox step's "Village stations"), Fixed by default, or Movable and craftable; chosen when a world is made (2026-10-25, `43` section 5; built, #409). Its recipes are the rows of `data/recipes.json` that name `rule: "villageStations"`.
-- **Zombie aggro**, on (2026-10-15). **Survival**, on (2026-10-13). **Free building**, off. **Multi-hit**, off, "the easy button" (2026-10-12).
+- **Zombie aggro**, on (2026-10-15). **Survival**, on (2026-10-13). **Free building**, off. **Multi-hit**, off, "the easy button" (2026-10-12). **Unlimited mana**, off (2026-10-28, `02`): the `unlimitedMana` rule, a dev switch beside Free building (`src/rules.js`, `src/mana.js`): on, a cast costs nothing and the bar reads full.
+- **The flat grass map** (2026-10-28, `02`): `data/maps/flat.json` from `tools/mapgen/flat.py`, `bounds` 512 by 512 (a size, not a rule: the bounds are the tiles the game keeps once grown and saves; a whole walked map is some 1,000 chunks and about 130 KB of save), no `wild` rule, so beyond it is the same grass, evictable; the maps the page offers are `data/maps.json`.
 - **Trees** and **Starting population**, chosen when the world is made and fixed after (2026-10-16).
 - **Dev chest**, on; **Dev bag**, off; **Extra starting items**, none: the Sandbox step's testing choices (2026-10-16).
 - **Combat difficulty and infection, one dial** (2026-10-12): someday; today `infection.chance` 0.2 in `data/combat.json` is its only part, and tainted water's 1%, `water.infectionChance` in `data/tuning.json`, joins it (2026-10-25, `44`).

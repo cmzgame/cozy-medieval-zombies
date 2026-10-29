@@ -3889,6 +3889,151 @@ check("mana: the bar and its regeneration in the host's step alone; the Fireball
   }
 });
 
+const settingsMod = await import("../src/settings.js");
+check("unlimited mana (a dev rule beside Free building, Michael 2026-10-28): off by default and a registry rule; on, a cast is never refused and spends nothing and the bar reads full; off again, 'Not enough mana.'; a guest's prediction reads the same rule; the rule rides in the save and the world's rules, and an owner of a server world may set it", () => {
+  
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  const last = () => said[said.length - 1] || "";
+  try {
+    const entry = settingsMod.REGISTRY.find((e) => e.key === "unlimitedMana");
+    assert(entry && entry.group === "rules" && entry.label === "Unlimited mana" && entry.help && settingsMod.isSwitch(entry), "the registry's row");
+    assert(settingsMod.REGISTRY.findIndex((e) => e.key === "freeBuilding") < settingsMod.REGISTRY.indexOf(entry), "Unlimited mana is not after Free building");
+    assert(rulesImport.DEFAULTS.unlimitedMana === false && rulesImport.rules.unlimitedMana === false && !rulesImport.FIXED.includes("unlimitedMana"), "off by default, and changeable in play");
+    assert(/RULE_KEYS = \[[^\]]*"unlimitedMana"/.test(fs.readFileSync(path.join(root, "server/relay.js"), "utf8")), "a server world's owner cannot set it");
+    me.hands.main = itemsMod.makeEntry("staff_of_fire");
+    me.hands.off = itemsMod.makeEntry("book_of_fire");
+    const L = archeryMod.launcherOf(me);
+    const cost = manaMod.costOf(L);
+    assert(cost === 20, `the Fireball costs ${cost}`);
+    // Off: refused at 0, as ever.
+    me.recover = 0;
+    me.mana = 0;
+    said.length = 0;
+    assert(archeryMod.beginDraw(me, L, "script") === false && last() === "Not enough mana.", "off: a cast at 0 was not refused");
+    // On: the cast is paid at 0 and spends nothing; the bar reads full after the host's step.
+    rulesImport.rules.unlimitedMana = true;
+    me.recover = 0;
+    me.mana = 0;
+    said.length = 0;
+    assert(manaMod.canPay(me, cost) && manaMod.spend(me, cost) && me.mana === 0, `on: canPay/spend at 0 (mana ${me.mana})`);
+    assert(archeryMod.beginDraw(me, L, "script") === true && me.mana === 0 && !said.includes("Not enough mana."), `on: the draw at 0 mana: said ${said.join("/")}`);
+    me.draw.c = 1;
+    const flew = archeryMod.releaseDraw(me, { aimAt: [me.gx + 5, me.gy] });
+    assert(flew && flew.projectile === "fireball" && me.mana === 0, `on: the release spent mana: ${me.mana}`);
+    for (let i = 0; i < 3; i++) gameMod.step(1 / 60, null);
+    assert(me.mana === me.maxMana, `on: the bar reads ${me.mana}, not full`);
+    // A guest's prediction (controller `predict`) flashes nothing while it is on, and flashes at 0 when it is off.
+    me.recover = 0;
+    me.mana = 0;
+    me.manaFlash = 0;
+    controllerMod.controlPlayer(me, S.zombies, 1 / 60, { clicked: true, leftDown: true, aimAt: [me.gx + 4, me.gy] }, true);
+    assert(me.manaFlash === 0, `on: a guest's prediction flashed the bar (${me.manaFlash})`);
+    // The rule rides in the save, and a restored world has it.
+    const saved = JSON.parse(JSON.stringify(gameMod.serialize()));
+    assert(saved.rules && saved.rules.unlimitedMana === true, "the save does not carry the rule");
+    rulesImport.rules.unlimitedMana = false;
+    gameMod.restore(saved, json);
+    assert(rulesImport.rules.unlimitedMana === true, "the restored world lost the rule");
+    // Off again: refused, the line, the flash; and a save from before the rule restores it off.
+    rulesImport.rules.unlimitedMana = false;
+    const me2 = gameMod.state.player;
+    me2.hands.main = itemsMod.makeEntry("staff_of_fire");
+    me2.hands.off = itemsMod.makeEntry("book_of_fire");
+    me2.recover = 0;
+    me2.mana = 0;
+    said.length = 0;
+    assert(archeryMod.beginDraw(me2, archeryMod.launcherOf(me2), "script") === false && last() === "Not enough mana." && me2.manaFlash > 0, "off again: the cast at 0 was not refused");
+    const old = JSON.parse(JSON.stringify(saved));
+    delete old.rules.unlimitedMana;
+    gameMod.restore(old, json);
+    assert(rulesImport.rules.unlimitedMana === false, "a save from before the rule came back with it on");
+    return "off by default; on at 0 mana the cast is paid, nothing spent, the bar full, a guest's prediction quiet; off again refused; in the save and the owner's keys";
+  } finally {
+    rulesImport.rules.unlimitedMana = false;
+    archeryMod.reset();
+    promptMod.setMessageSink(null);
+  }
+});
+
+// ---- the maps the game ships and the map picker (Michael, 2026-10-28) ----
+const mapsMod = await import("../src/maps.js");
+check("the maps list builds from the data: data/maps.json names every map file and only those, each by its file's own name, the plays first and the test maps after; an address for a map change keeps the page's test switches and clears the old hand-off", () => {
+  const list = read("data/maps.json");
+  const files = fs.readdirSync(path.join(root, "data/maps")).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort();
+  assert(Object.keys(list).sort().join() === files.join(), `listed ${Object.keys(list)}, on disk ${files}`);
+  for (const id of files) assert(list[id].name === read(`data/maps/${id}.json`).name && ["play", "test"].includes(list[id].kind) && list[id].blurb, `${id}'s entry`);
+  mapsMod.load(list);
+  const all = mapsMod.all();
+  assert(all[0].id === "valley" && all[1].id === "flat" && all.slice(0, 2).every((m) => m.kind === "play") && all.slice(2).map((m) => m.id).join() === "square,staging", `the order: ${all.map((m) => m.id)}`);
+  assert(mapsMod.nameOf("flat") === "Flat grass" && mapsMod.nameOf("valley") === "The valley" && mapsMod.nameOf("gone") === "gone" && mapsMod.exists("staging") && !mapsMod.exists("../x") && !mapsMod.exists("gone"), "names and existence");
+  const here = { pathname: "/index.html", search: "?nosave&mute&relay=none&map=valley&world=old&jumped=1", hash: "" };
+  const to = mapsMod.addressFor(here, "flat", { world: "w1" });
+  const q = new URLSearchParams(to.slice(to.indexOf("?")));
+  assert(to.startsWith("/index.html?") && q.get("map") === "flat" && q.get("world") === "w1" && q.has("nosave") && q.has("mute") && q.get("relay") === "none" && !q.has("jumped"), `the address: ${to}`);
+  const again = new URLSearchParams(mapsMod.addressFor(here, "square").split("?")[1]);
+  assert(again.get("map") === "square" && !again.has("world"), "an old world mark survived a change with none");
+  return `${all.length} maps: ${all.map((m) => m.id).join(", ")}; ${to}`;
+});
+check("the flat map is all plain grass: a generated file with nothing in it but a dev chest and the guide at the spawn, no zones, scatter, wild, forage, resources, or dead; the grown ground round the spawn and far from it is grass with no prop; a world on it saves small and comes back", () => {
+  const j = read("data/maps/flat.json");
+  assert(j.name === "Flat grass" && j.floor === "floor_grass" && j.bounds[2] >= 256 && j.bounds[3] >= 256, `${j.name} ${j.bounds}`);
+  assert(!j.features.length && !j.sets.length && !j.scatter.length && !Object.keys(j.zones).length && !j.wild && !j.forage && !j.resources && !(j.reserve || []).length && !j.zombies.length && !(j.animals || []).length, "the file holds more than grass");
+  assert(j.props.length === 1 && j.props[0].sprite === "dev_chest" && j.villagers.length === 1 && j.villagers[0].guide === true, "the file's props or villagers");
+  const [sx, sy] = j.spawn;
+  assert(sx === j.bounds[2] / 2 && sy === j.bounds[3] / 2 && Math.hypot(j.villagers[0].tile[0] - sx, j.villagers[0].tile[1] - sy) <= 3 && Math.abs(j.props[0].tile[0] - sx) <= 3, "the spawn, the guide, and the chest are not together in the middle");
+  gameMod.create({ json: j, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  assert(S.zombies.length === 0 && S.villagers.length === 1 && S.info.name === "Flat grass", `${S.zombies.length} dead, ${S.villagers.length} villagers`);
+  const props = [...mapMod.allProps()];
+  assert(props.length === 1 && props[0].sprite === "dev_chest", `props: ${props.map((p) => p.sprite)}`);
+  const M = mapMod;
+  M.ensureAround(sx, sy, 6);
+  M.ensureAround(sx + 200, sy - 200, 2);
+  M.ensureAround(2, 2, 2); // the corner of the bounds
+  M.ensureAround(j.bounds[2] + 80, j.bounds[3] + 80, 2); // and beyond them
+  let tiles = 0;
+  const bad = [];
+  for (const [cx, cy] of [[sx, sy], [sx + 200, sy - 200], [2, 2], [j.bounds[2] + 80, j.bounds[3] + 80]]) {
+    for (let y = cy - 20; y <= cy + 20; y++) for (let x = cx - 20; x <= cx + 20; x++) {
+      const t = M.peekTile(x, y);
+      tiles++;
+      if (!t || t.floor !== "floor_grass" || (t.prop && t.prop.sprite !== "dev_chest") || t.n || t.w) bad.push(`${x},${y}`);
+    }
+  }
+  assert(!bad.length, `not plain grass: ${bad.slice(0, 5)}`);
+  assert(M.isWalkableTile(sx, sy), "the spawn is not walkable");
+  const text = JSON.stringify(gameMod.serialize());
+  const back = JSON.parse(text);
+  gameMod.restore(back, j);
+  assert(gameMod.state.players.length === 1 && gameMod.state.villagers.length === 1, "the restored flat world");
+  return `${tiles} tiles read at the spawn, 200 tiles off, the corner, and 80 beyond the bounds: all grass; ${j.bounds[2]} by ${j.bounds[3]} tiles; a world with ${M.chunkCount()} chunks saves in ${(text.length / 1024).toFixed(0)} KB`;
+});
+check("a chunk record from before the pink's rename (floor_nospawn) comes back as floor_randomspawn, drawn and walked, never as nothing", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const M = mapMod;
+  const C = M.CHUNK;
+  const X = 40 * C + 3;
+  const Y = 40 * C + 3;
+  M.ensureAround(X, Y, 1);
+  const c = M.getChunk(Math.floor(X / C), Math.floor(Y / C), false, 0);
+  const rec = JSON.parse(JSON.stringify(M.serializeChunk(c)));
+  assert(rec.floors.length >= 1, "no floors in the record");
+  rec.floors = [["floor_nospawn", 5], ...rec.floors.map(([f, n]) => [f, n]).slice(0, 1).map(([f, n]) => [f, n - 5 > 0 ? n - 5 : n])];
+  const total = rec.floors.reduce((s, [, n]) => s + n, 0);
+  if (total !== C * C) rec.floors = [["floor_nospawn", 5], ["floor_grass", C * C - 5]];
+  M.installChunk(rec);
+  const t = M.peekTile(Math.floor(X / C) * C + 2, Math.floor(Y / C) * C);
+  assert(t.floor === "floor_randomspawn" && M.isWalkableTile(Math.floor(X / C) * C + 2, Math.floor(Y / C) * C), `the old id came back as ${t.floor}`);
+  const ground = read("data/ground.json");
+  assert(ground.floors.floor_randomspawn === "laid" && !("floor_nospawn" in ground.floors), "ground.json names the new id only");
+  return "a stored floor_nospawn is a floor_randomspawn on install (map.js RENAMED_FLOORS), walkable";
+});
+
 // Potions, step 2 (docs/47 sections 2 to 4, 8 and 9, #481): the vials made (one clay into two unfired vials at the workbench, one fired into a
 // clay vial at an oven), the witch's cauldron on the map (carried by no one, not a village station, its recipes open with Village stations off,
 // a fire that burns logs and cooks nothing), your own made at the anvil with a smith's hammer carried, set down by the host's call and a
@@ -5775,9 +5920,9 @@ check("the build palette's tabs are data: every entry's `tab` is a known one, ev
   }
   assert(!bad.length, bad.join("; "));
   const terrain = Object.entries(build).filter(([, b]) => b.tab === "terrain").map(([id]) => id);
-  for (const want of ["terrain_grass", "terrain_dirt", "terrain_cobble", "terrain_water_shallow", "terrain_water", "terrain_nospawn", "wall_cliff", "wall_cliff_grass", "floor_cliff_top", "floor_cliff_grass", "stair_ramp_stone"]) assert(terrain.includes(want), `${want} is not on the Terrain tab`);
+  for (const want of ["terrain_grass", "terrain_dirt", "terrain_cobble", "terrain_water_shallow", "terrain_water", "terrain_randomspawn", "wall_cliff", "wall_cliff_grass", "floor_cliff_top", "floor_cliff_grass", "stair_ramp_stone"]) assert(terrain.includes(want), `${want} is not on the Terrain tab`);
   assert(!terrain.some((id) => /^(wall|wall_\w+|door|window|fence|gate|floor_wood|floor_stone|stair_wood|stair_stone|fireplace|fire_pit|feed_trough|round_stone)$/.test(id) && !/cliff|ramp/.test(id)), "a Build entry is on the Terrain tab");
-  const pink = read("data/sprites/floor_nospawn.json");
+  const pink = read("data/sprites/floor_randomspawn.json");
   assert(pink.mapColor && pink.mapColor.toLowerCase() === pink.placeholder.color.toLowerCase() && pink.walk === undefined && /nothing reads it/.test(pink.note), "the pink floor's definition");
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(pink.mapColor.slice(i, i + 2), 16));
   assert(r > 220 && b > 140 && g < 130 && r > g * 1.8, `the pink is not pink: ${pink.mapColor}`);
@@ -5822,10 +5967,10 @@ check("terrain paints the ground by the command a guest sends: grass over dirt, 
     paint("terrain_cobble", 7, 7);
     assert(fl(7, 7) === "floor_cobble" && mapMod.peekTile(x + 7, y + 7).prop === chest, "cobble under a prop was refused");
     paint("terrain_cobble", 7, 7);
-    paint("terrain_nospawn", 5, 1);
+    paint("terrain_randomspawn", 5, 1);
     paint("terrain_water_shallow", 5, 2);
     paint("terrain_water", 5, 3);
-    assert([fl(5, 1), fl(5, 2), fl(5, 3)].join() === "floor_nospawn,floor_water_shallow,floor_water" && mapMod.isWalkableTile(x + 5, y + 1) && mapMod.isWalkableTile(x + 5, y + 2) && !mapMod.isWalkableTile(x + 5, y + 3), `the pink walks, the shallows walk, the water does not: ${[fl(5, 1), fl(5, 2), fl(5, 3)]}`);
+    assert([fl(5, 1), fl(5, 2), fl(5, 3)].join() === "floor_randomspawn,floor_water_shallow,floor_water" && mapMod.isWalkableTile(x + 5, y + 1) && mapMod.isWalkableTile(x + 5, y + 2) && !mapMod.isWalkableTile(x + 5, y + 3), `the pink walks, the shallows walk, the water does not: ${[fl(5, 1), fl(5, 2), fl(5, 3)]}`);
     // Water of either kind is refused under what stands or lies there and under a body; the pink and the dirt are not.
     mapMod.dropItem(x + 7, y + 1, { id: "stick", count: 1 });
     mapMod.buildWall(x + 7, y + 3, "n", "wall", "wall_log", null, 0);
@@ -5908,7 +6053,7 @@ check("a terrain entry that forgot `dev` is no terrain (never paintable with Fre
   try {
     rulesImport.rules.freeBuilding = true;
     me.gx = rx; me.gy = ry; me.layer = 0;
-    for (const [what, a, b] of [["terrain_dirt", 0, 0], ["terrain_water_shallow", 1, 0], ["terrain_nospawn", 0, 1]]) placementImport.performPlacement(me, { kind: "build", what, tx: rx + a, ty: ry + b, tx2: rx + a, ty2: ry + b });
+    for (const [what, a, b] of [["terrain_dirt", 0, 0], ["terrain_water_shallow", 1, 0], ["terrain_randomspawn", 0, 1]]) placementImport.performPlacement(me, { kind: "build", what, tx: rx + a, ty: ry + b, tx2: rx + a, ty2: ry + b });
     assert(mapMod.peekTile(rx, ry).floor === "floor_dirt", "nothing painted in the room");
     assert(mapMod.roomAt(rx, ry) === id && mapMod.getRoom(id).size === size && mapMod.roomCount() === count, `the room moved: ${id} of ${size}, now ${mapMod.roomAt(rx, ry)} of ${mapMod.getRoom(id) && mapMod.getRoom(id).size}, ${count} rooms, now ${mapMod.roomCount()}`);
   } finally {
@@ -5954,18 +6099,18 @@ check("a painted tile is saved and sent with its chunk, and a wild chunk holding
     const c = mapMod.getChunk(Math.floor(X / C), Math.floor(Y / C), false, 0);
     assert(c && c.wild, "the far chunk is not wild");
     me.gx = X; me.gy = Y + 1; me.layer = 0;
-    placementImport.performPlacement(me, { kind: "build", what: "terrain_nospawn", tx: X + 1, ty: Y, tx2: X + 1, ty2: Y });
+    placementImport.performPlacement(me, { kind: "build", what: "terrain_randomspawn", tx: X + 1, ty: Y, tx2: X + 1, ty2: Y });
     const t = mapMod.peekTile(X + 1, Y);
-    assert(t.floor === "floor_nospawn" && !t.built && c.dirty, `painted ${t.floor}, dirty ${c.dirty}`);
+    assert(t.floor === "floor_randomspawn" && !t.built && c.dirty, `painted ${t.floor}, dirty ${c.dirty}`);
     const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(c)));
     mapMod.setFloor(X + 1, Y, "floor_grass", 0);
     mapMod.installChunk(rec);
-    assert(mapMod.peekTile(X + 1, Y).floor === "floor_nospawn", "the chunk's record did not bring the painted tile back");
+    assert(mapMod.peekTile(X + 1, Y).floor === "floor_randomspawn", "the chunk's record did not bring the painted tile back");
     const neighbour = [Math.floor(X / C) + 3, Math.floor(Y / C)];
     mapMod.ensureAround(neighbour[0] * C + 3, neighbour[1] * C + 3, 0);
     assert(mapMod.getChunk(neighbour[0], neighbour[1], false, 0), "no neighbouring wild chunk to compare");
     mapMod.evictFar(-4000, -4000, 2);
-    assert(mapMod.getChunk(Math.floor(X / C), Math.floor(Y / C), false, 0) && mapMod.peekTile(X + 1, Y).floor === "floor_nospawn", "the painted chunk was evicted");
+    assert(mapMod.getChunk(Math.floor(X / C), Math.floor(Y / C), false, 0) && mapMod.peekTile(X + 1, Y).floor === "floor_randomspawn", "the painted chunk was evicted");
     assert(!mapMod.getChunk(neighbour[0], neighbour[1], false, 0), "the untouched wild chunk beside it was not evicted (the comparison proves nothing)");
     return "the pink tile came back from its chunk's record, and the chunk stayed through evictFar while its untouched neighbour went";
   } finally {

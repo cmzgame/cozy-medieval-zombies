@@ -1,0 +1,42 @@
+{
+ "name": "Flat grass",
+ "floor": "floor_grass",
+ "bounds": [
+  0,
+  0,
+  512,
+  512
+ ],
+ "features": [],
+ "sets": [],
+ "zones": {},
+ "scatter": [],
+ "spawn": [
+  256,
+  256
+ ],
+ "zombies": [],
+ "props": [
+  {
+   "sprite": "dev_chest",
+   "tile": [
+    254,
+    256
+   ]
+  }
+ ],
+ "villagers": [
+  {
+   "tile": [
+    258,
+    257
+   ],
+   "name": "Wyn",
+   "wardrobe": 6,
+   "line": "Ask me anything, if you are stuck.",
+   "immune": true,
+   "talk": "guide",
+   "guide": true
+  }
+ ]
+}
