@@ -15,10 +15,15 @@ import * as map from "./map.js";
 // The wall if it is a battlement's.
 export const battlementOf = (w) => (w && w.kind === "wall" && map.wallRule(w.sprite).battlement ? w : null);
 
-// Whether tile (x, y) has a floor of its own on `layer` (the walkway's floor; the ground floor of layer 0 is always one).
+// Whether tile (x, y) has a floor of its own on `layer` (the walkway's floor; the ground floor of layer 0 is always one), or is the stairwell of a
+// stair coming up to the walkway there: its hole is the walkway's own and the parapet is its rail (Michael, 2026-10-29: "It needs a wall walk to
+// stand on" beside stairs running along the wall, where the stairwell's tiles are void).
 export function floored(x, y, layer) {
   const t = map.peekTile(x, y, layer);
-  return !!t && !map.isEngineFloor(t.floor);
+  if (!t) return false;
+  if (!map.isEngineFloor(t.floor)) return true;
+  const h = map.stairAt(x, y, layer);
+  return !!(h && h.well);
 }
 
 // "far", "near", or null (floors on both sides of the edge, on neither, or on the ground: no side to stand on) for the edge (tx, ty, edge) on `layer`.

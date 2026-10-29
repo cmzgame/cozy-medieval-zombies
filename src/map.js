@@ -1595,6 +1595,10 @@ export function ringProblem(x0, y0, n, layer = 0) {
   for (const [x, y] of s.stepped) {
     const t = peekTile(x, y, layer);
     if (!t) return "Too far from anyone"; // a chunk not grown: nothing is built where no one is
+    if (layer > 0 && isEngineFloor(t.floor)) { // upstairs, an empty tile is the void: say which, since the ground's wording ("empty ground") hides it (Michael's playtest, 2026-10-29)
+      const h = stairAt(x, y, layer);
+      return h && h.well ? "A stairwell is under it: keep the ring off the stair's hole" : "A round room upstairs needs a floor under all of it";
+    }
     if (floorRule(t.floor).walk !== 1 || floorRule(t.floor).drink) return "Not on water or empty ground";
     if (t.prop || t.rug) return "Something is in the way";
     if (t.items && t.items.length) return "Clear the floor first";
