@@ -1195,6 +1195,7 @@ export function canStampOver(existing, kind) {
   if (!existing) return true;
   if (kind !== "door" && kind !== "window") return false;
   if (existing.gate) return false; // a castle gate is taken apart whole (removeGate), never stamped over, even broken
+  if (existing.kind === "wall" && wallRule(existing.sprite).battlement) return false; // no door or window in a battlement (art round 13)
   if (existing.kind === "wall" && wallRule(existing.sprite).solid) return false; // no door or window in a cliff (art round 10, Free building's) nor in a ramp's own side
   if (existing.kind === "wall") return kind === "door" || !wallRule(existing.sprite).seeThrough; // a window is no use in a fence or bars
   return existing.kind === kind && !!existing.broken;
@@ -2752,7 +2753,7 @@ export function wallRule(sprite) {
   let def = null;
   try { def = getDef(sprite); } catch { def = null; }
   const w = (def && def.wall) || {};
-  r = { seeThrough: !!w.seeThrough, fence: !!w.fence, cliff: !!w.cliff, solid: !!w.solid || !!w.cliff, side: !!w.solid && !w.cliff, run: w.run || sprite, gate: w.gate || null }; // `solid`: no opening, nothing hung on it (a cliff's, and a ramp's own side: wall_ramp_side) // a cliff (art round 10): bare rock, no opening stamped in it, nothing hung on it
+  r = { seeThrough: !!w.seeThrough, fence: !!w.fence, cliff: !!w.cliff, solid: !!w.solid || !!w.cliff, side: !!w.solid && !w.cliff, run: w.run || sprite, gate: w.gate || null, battlement: !!w.battlement }; // `battlement`: a castle's parapet on a walkway's outer edge (src/battlements.js, art round 13); `solid`: no opening, nothing hung on it (a cliff's, and a ramp's own side: wall_ramp_side) // a cliff (art round 10): bare rock, no opening stamped in it, nothing hung on it
   wallRules.set(sprite, r);
   return r;
 }

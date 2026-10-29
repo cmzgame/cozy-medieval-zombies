@@ -7443,6 +7443,110 @@ check("round rooms: the inside skirt (Michael, 2026-10-27) covers every point in
   return out.join("; ");
 });
 
+// ---- the battlements (art round 13, Michael 2026-10-29: "make sure the whole of the battlement sits outside the walkway"; Free building's) ----
+const battMod = await import("../src/battlements.js");
+check("the battlements: the side is read from the floors of the wall's own layer (far: the walkway south of an n edge or east of a w edge; near: north or west), never stored; none on the ground, none with floor on both sides or neither; the corners (outer and inner) and the free ends are classified from the neighbouring edges; the palette entry is `dev` and the command a guest sends refused with Free building off", () => {
+  const at = openGrass(6, 6);
+  assert(at, "no open grass");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const floor = (a, b) => {
+    const t = mapMod.growTile(a, b, 1);
+    t.floor = "floor_stone";
+    mapMod.touch(a, b, 1);
+  };
+  const made = [];
+  const lay = (tx, ty, edge) => { if (mapMod.buildWall(tx, ty, edge, "wall", "wall_battlement", null, 1)) made.push([tx, ty, edge]); };
+  const floors = [];
+  try {
+    const rule = mapMod.wallRule("wall_battlement");
+    assert(rule.battlement && rule.seeThrough && !rule.fence && !rule.solid && !rule.cliff, `its rule: ${JSON.stringify(rule)}`);
+    // The walkway: a ring of floor on layer 1, 5 by 5 (x..x+4, y..y+4), its hole open.
+    for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) if (i === 0 || j === 0 || i === 4 || j === 4) { floor(x + i, y + j); floors.push([x + i, y + j]); }
+    // The sides: the ring's outer edges.
+    const sides = [];
+    for (let i = 0; i < 5; i++) {
+      sides.push(battMod.sideOf(x + i, y, "n", 1), battMod.sideOf(x + i, y + 5, "n", 1), battMod.sideOf(x, y + i, "w", 1), battMod.sideOf(x + 5, y + i, "w", 1));
+    }
+    const want = ["far", "near", "far", "near"];
+    assert(sides.every((s, k) => s === want[k % 4]), `the outer sides: ${sides.join(",")}`);
+    assert(battMod.sideOf(x, y, "n", 0) === null, "a side on the ground");
+    assert(battMod.sideOf(x, y + 2, "n", 1) === null && battMod.problem(x, y + 2, "n", 1) === "Only along the outer edge of a wall walk", `floor on both sides: ${battMod.problem(x, y + 2, "n", 1)}`); // (x, y + 1) and (x, y + 2), the ring's west column
+    assert(battMod.problem(x + 9, y + 9, "n", 1) === "It needs a wall walk to stand on" && battMod.problem(x, y, "n", 0) === "It needs a wall walk to stand on", "neither / the ground");
+    // The command a guest sends: refused with Free building off, built with it on, on every outer edge.
+    const palette = (on) => { rulesImport.rules.freeBuilding = on; return placementImport.paletteKinds().some((k) => k.id === "battlement_stone"); };
+    assert(!palette(false) && palette(true), "the palette entry follows Free building");
+    const entry = placementImport.paletteKinds().find((k) => k.id === "battlement_stone");
+    assert(entry.dev && entry.group === "Castle" && placementImport.tabOf(entry) === "build" && placementImport.costText("battlement_stone") === "free", "the entry: dev, Castle, Build tab, free");
+    me.layer = 1; me.rise = 0;
+    const put = (tx, ty, edge, px, py) => { me.gx = px; me.gy = py; placementImport.performPlacement(me, { kind: "build", what: "battlement_stone", tx, ty, edge }); };
+    rulesImport.rules.freeBuilding = false;
+    put(x + 1, y, "n", x + 1.5, y + 0.6);
+    assert(!mapMod.peekTile(x + 1, y, 1).n, "built with Free building off");
+    rulesImport.rules.freeBuilding = true;
+    for (let i = 0; i < 5; i++) {
+      put(x + i, y, "n", x + i, y + 0.6);
+      put(x + i, y + 5, "n", x + i, y + 4);
+      put(x, y + i, "w", x + 0.6, y + i);
+      put(x + 5, y + i, "w", x + 4, y + i);
+    }
+    let n = 0;
+    for (let i = 0; i < 5; i++) for (const w of [mapMod.peekTile(x + i, y, 1).n, mapMod.peekTile(x + i, y + 5, 1).n, mapMod.peekTile(x, y + i, 1).w, mapMod.peekTile(x + 5, y + i, 1).w]) if (w && w.kind === "wall" && w.sprite === "wall_battlement") n++;
+    assert(n === 20, `${n} of 20 outer edges stand`);
+    for (let i = 0; i < 5; i++) { made.push([x + i, y, "n"], [x + i, y + 5, "n"], [x, y + i, "w"], [x + 5, y + i, "w"]); }
+    // Refusals, each leaving nothing: floor on both sides, no floor at all, the ground, a door over one.
+    put(x, y + 2, "n", x + 0.5, y + 2.4);
+    put(x + 9, y + 9, "n", x + 9, y + 9.4);
+    me.layer = 0;
+    put(x + 7, y, "n", x + 7, y + 0.6);
+    me.layer = 1;
+    assert(!mapMod.peekTile(x, y + 2, 1).n && !(mapMod.peekTile(x + 9, y + 9, 1) || {}).n && !(mapMod.peekTile(x + 7, y, 0) || {}).n, "a refused battlement stood");
+    placementImport.performPlacement(me, { kind: "build", what: "door", tx: x + 1, ty: y, edge: "n" });
+    assert(mapMod.peekTile(x + 1, y, 1).n.kind === "wall", "a door was stamped into a battlement");
+    // The frames: the artist's names by side and run (plain variants by the edge's hash), the corners and no ends on a closed ring.
+    const def = getDef("wall_battlement");
+    const nm = (tx, ty, e) => battMod.edgeFrame(def, tx, ty, e, 1, (f) => !!def.images[f]);
+    assert([nm(x + 1, y, "n"), nm(x + 1, y + 5, "n"), nm(x, y + 1, "w"), nm(x + 5, y + 1, "w")].every((f, k) => f.startsWith(["north_far", "north_near", "west_far", "west_near"][k])), "the frame names by side and run");
+    const corners = [[x, y], [x + 5, y], [x, y + 5], [x + 5, y + 5]].map(([vx, vy]) => (battMod.vertexAt(vx, vy, 1) || {}).frame);
+    assert(corners.join() === "corner_outer_n,corner_outer_e,corner_outer_w,corner_outer_s", `the four outer corners: ${corners}`);
+    assert(battMod.vertexAt(x + 2, y, 1) === null && battMod.vertexAt(x + 2, y + 5, 1) === null, "a vertex inside a straight run has no piece");
+    // An inner corner and the free ends: an L of walkway (x+7.., y), its notch's corner and its cut pictures, and a lone run's two ends.
+    const L = [];
+    for (let j = 0; j < 2; j++) for (let i = 0; i < 4; i++) L.push([x + 7 + i, y + 7 + j]);
+    for (let j = 2; j < 4; j++) for (let i = 0; i < 2; i++) L.push([x + 7 + i, y + 7 + j]);
+    const has = new Set(L.map(([a, b]) => `${a},${b}`));
+    for (const [a, b] of L) { floor(a, b); floors.push([a, b]); }
+    for (const [a, b] of L) {
+      if (!has.has(`${a},${b - 1}`)) lay(a, b, "n");
+      if (!has.has(`${a},${b + 1}`)) lay(a, b + 1, "n");
+      if (!has.has(`${a - 1},${b}`)) lay(a, b, "w");
+      if (!has.has(`${a + 1},${b}`)) lay(a + 1, b, "w");
+    }
+    const ix = x + 9;
+    const iy = y + 9;
+    const inner = battMod.vertexAt(ix, iy, 1);
+    assert(inner && inner.frame === "corner_inner_n" && inner.inner, `the L's notch corner: ${inner && inner.frame}`);
+    assert(nm(ix, iy, "n") === "north_near_late" && nm(ix, iy, "w") === "west_near_late", `its edges' cuts: ${nm(ix, iy, "n")}, ${nm(ix, iy, "w")}`);
+    assert(nm(ix - 1, iy, "n") !== undefined && !/late|early/.test(nm(ix + 1, iy, "n")), "an edge beside it is plain");
+    // A lone run: its two ends.
+    floor(x + 12, y); floors.push([x + 12, y]);
+    lay(x + 12, y, "n");
+    const e1 = battMod.vertexAt(x + 12, y, 1);
+    const e2 = battMod.vertexAt(x + 13, y, 1);
+    assert(e1 && e1.frame === "end_E_far" && e2 && e2.frame === "end_W_far", `a lone run's ends: ${e1 && e1.frame}, ${e2 && e2.frame}`);
+    // Blocks bodies, passes sight and light, is no fence, stops an arrow low and not high; the walkway's whole tile is walkable.
+    const wall = mapMod.peekTile(x + 1, y, 1).n;
+    assert(mapMod.blocksMove(wall) && mapMod.transmission(wall) === 1 && !mapMod.isFence(wall), "block / sight / fence");
+    return "sides, refusals, the build, frames, corners, inner corner with its cuts, ends, and its rules";
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+    me.layer = 0;
+    for (const [tx, ty, e] of made) { try { mapMod.destroyWall(tx, ty, e, false, 1); } catch { /* gone */ } }
+    for (const [a, b] of floors) { try { mapMod.takeUpFloor(a, b, 1); } catch { /* gone */ } }
+  }
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

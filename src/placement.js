@@ -22,6 +22,7 @@ import { emit } from "./events.js";
 import * as iso from "./iso.js";
 import * as input from "./input.js";
 import * as map from "./map.js";
+import * as battlements from "./battlements.js"; // a battlement's walkway rule (art round 13)
 import * as inventory from "./inventory.js";
 import * as items from "./items.js";
 import { idleFrame, getDef, getSheet } from "./assets.js";
@@ -758,6 +759,7 @@ export function wallKindOf(what) {
 }
 
 // A palette entry that builds a cliff (art round 10, Free building only): its wall's definition says `wall.cliff`.
+export const isBattlementBuild = (what) => !!(buildData[what] && buildData[what].sprite && map.wallRule(buildData[what].sprite).battlement);
 export const isCliffBuild = (what) => !!(buildData[what] && buildData[what].sprite && map.wallRule(buildData[what].sprite).cliff);
 
 // A build entry that stands a prop on its tiles, not a wall on an edge (the Fireplace, the fire pit, the feeding trough): `kind: "prop"`, its `sprite`.
@@ -803,6 +805,11 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   const over = buildData[what] && buildData[what].over;
   if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
   if (buildData[what] && buildData[what].dev && !rules.freeBuilding) return isCliffBuild(what) ? "Cliffs are not in the game yet" : "Not in the game yet"; // Free building only (a guest's command too)
+  if (isBattlementBuild(what)) {
+    const why = battlements.problem(tx, ty, edge, L); // a wall walk to stand on, the floor on one side of the edge alone (art round 13)
+    if (why) return why;
+  }
+  if (existing && ["door", "window"].includes(kind) && existing.kind === "wall" && map.wallRule(existing.sprite).battlement) return "Not in a battlement";
   if (existing && ["door", "window"].includes(kind) && existing.kind === "wall" && map.wallRule(existing.sprite).solid) return map.wallRule(existing.sprite).cliff ? "Not in a cliff" : "Not in solid rock"; // bare rock (art round 10): no opening stamped in it
   if (existing && over && existing.sprite !== over) return "Only in a fence";
   if (existing && !map.canStampOver(existing, kind)) return "Already a wall";

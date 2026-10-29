@@ -1,0 +1,173 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "north_far_plain": "data/art/village/battlement_north_far_plain.png",
+  "north_far_plain_1": "data/art/village/battlement_north_far_plain_1.png",
+  "north_far_plain_2": "data/art/village/battlement_north_far_plain_2.png",
+  "north_far_loop": "data/art/village/battlement_north_far_loop.png",
+  "north_far_late": "data/art/village/battlement_north_far_late.png",
+  "north_far_early": "data/art/village/battlement_north_far_early.png",
+  "north_near_plain": "data/art/village/battlement_north_near_plain.png",
+  "north_near_plain_1": "data/art/village/battlement_north_near_plain_1.png",
+  "north_near_plain_2": "data/art/village/battlement_north_near_plain_2.png",
+  "north_near_loop": "data/art/village/battlement_north_near_loop.png",
+  "north_near_late": "data/art/village/battlement_north_near_late.png",
+  "north_near_early": "data/art/village/battlement_north_near_early.png",
+  "west_far_plain": "data/art/village/battlement_west_far_plain.png",
+  "west_far_plain_1": "data/art/village/battlement_west_far_plain_1.png",
+  "west_far_plain_2": "data/art/village/battlement_west_far_plain_2.png",
+  "west_far_loop": "data/art/village/battlement_west_far_loop.png",
+  "west_far_late": "data/art/village/battlement_west_far_late.png",
+  "west_far_early": "data/art/village/battlement_west_far_early.png",
+  "west_near_plain": "data/art/village/battlement_west_near_plain.png",
+  "west_near_plain_1": "data/art/village/battlement_west_near_plain_1.png",
+  "west_near_plain_2": "data/art/village/battlement_west_near_plain_2.png",
+  "west_near_loop": "data/art/village/battlement_west_near_loop.png",
+  "west_near_late": "data/art/village/battlement_west_near_late.png",
+  "west_near_early": "data/art/village/battlement_west_near_early.png"
+ },
+ "anchors": {
+  "north_far_plain": [
+   0.0,
+   52.0
+  ],
+  "north_far_plain_1": [
+   0.0,
+   52.0
+  ],
+  "north_far_plain_2": [
+   0.0,
+   52.0
+  ],
+  "north_far_loop": [
+   0.0,
+   52.0
+  ],
+  "north_far_late": [
+   0.0,
+   52.0
+  ],
+  "north_far_early": [
+   0.0,
+   52.0
+  ],
+  "north_near_plain": [
+   16.0,
+   44.0
+  ],
+  "north_near_plain_1": [
+   16.0,
+   44.0
+  ],
+  "north_near_plain_2": [
+   16.0,
+   44.0
+  ],
+  "north_near_loop": [
+   16.0,
+   44.0
+  ],
+  "north_near_late": [
+   16.0,
+   44.0
+  ],
+  "north_near_early": [
+   16.0,
+   44.0
+  ],
+  "west_far_plain": [
+   47.0,
+   52.0
+  ],
+  "west_far_plain_1": [
+   47.0,
+   52.0
+  ],
+  "west_far_plain_2": [
+   47.0,
+   52.0
+  ],
+  "west_far_loop": [
+   47.0,
+   52.0
+  ],
+  "west_far_late": [
+   47.0,
+   52.0
+  ],
+  "west_far_early": [
+   47.0,
+   52.0
+  ],
+  "west_near_plain": [
+   31.0,
+   44.0
+  ],
+  "west_near_plain_1": [
+   31.0,
+   44.0
+  ],
+  "west_near_plain_2": [
+   31.0,
+   44.0
+  ],
+  "west_near_loop": [
+   31.0,
+   44.0
+  ],
+  "west_near_late": [
+   31.0,
+   44.0
+  ],
+  "west_near_early": [
+   31.0,
+   44.0
+  ]
+ },
+ "wall": {
+  "height": 28,
+  "thickness": 0,
+  "color": "#7b7670",
+  "material": "stone",
+  "seeThrough": true,
+  "battlement": true,
+  "name": "battlement",
+  "corners": "wall_battlement_vertices"
+ },
+ "faces": {
+  "north_far": [
+   "north_far_plain",
+   "north_far_plain_1",
+   "north_far_plain_2"
+  ],
+  "north_near": [
+   "north_near_plain",
+   "north_near_plain_1",
+   "north_near_plain_2"
+  ],
+  "west_far": [
+   "west_far_plain",
+   "west_far_plain_1",
+   "west_far_plain_2"
+  ],
+  "west_near": [
+   "west_near_plain",
+   "west_near_plain_1",
+   "west_near_plain_2"
+  ]
+ },
+ "special": {
+  "loop": {
+   "north_far": "north_far_loop",
+   "north_near": "north_near_loop",
+   "west_far": "west_far_loop",
+   "west_near": "west_near_loop"
+  },
+  "chance": 0.1
+ },
+ "cut": {
+  "late": "the picture for an edge whose west/north vertex is an inner corner (its first 16 belong to the corner)",
+  "early": "the same for its east/south vertex"
+ },
+ "note": "a castle battlement (art round 13): a parapet 28 high with merlons 44 high, 16 thick, wholly on the OUTSIDE of the edge line (half on the wall's top ledge, half hanging over its outer face on a slab and stepped corbels); the walkway's tile keeps its whole diamond. `<north|west>_<far|near>_*`: far = the walkway is south/east of the edge (outside north/west, the camera's far side: the merlons' inner faces are seen), near = the walkway is north/west (outside south/east: the outer faces and the corbels are seen). Anchors at the tile's top vertex at the walkway's floor, as wall_stone's. Written for a wall on layer 1 (the floor surface 96 over the ground), standing on the village stone wall.. Wired (docs/02, 2026-10-29): which side the walkway is on is derived from the floors of the wall's own layer (src/battlements.js), never stored; the depth plane is the edge line (far) or 16 beyond it (near); no cap, no post (vertex pieces by src/battlements.js)."
+}
