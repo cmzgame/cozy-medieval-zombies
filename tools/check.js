@@ -6061,7 +6061,7 @@ check("a terrain entry that forgot `dev` is no terrain (never paintable with Fre
   }
   return `an entry without dev refused; room ${id} of ${size} tiles kept through paints inside it (${count} rooms)`;
 });
-check("a terrain drag is at most 24 tiles a side and reaches 12 tiles (an entry's `reach`), by the same command: a 25-wide drag is refused outright, a 24-wide one paints what is in reach, a tile past the reach stays", () => {
+check("a terrain drag is at most 24 tiles a side and Free building waives the reach (2026-10-29, `FREE_REACH`), by the same command: a 25-wide drag is refused outright, a 24-wide one paints all 24 even from its far end", () => {
   const at = openGrass(26, 3);
   assert(at, "no open grass 26 by 3");
   const [x, y] = at;
@@ -6080,8 +6080,8 @@ check("a terrain drag is at most 24 tiles a side and reaches 12 tiles (an entry'
     for (let i = 0; i < 26; i++) mapMod.setFloor(x + i, y + 1, "floor_grass", 0);
     placementImport.performPlacement(me, { kind: "build", what: "terrain_dirt", tx: x, ty: y + 1, tx2: x + 23, ty2: y + 1 });
     const near = dirt();
-    assert(mapMod.peekTile(x + 11, y + 1).floor === "floor_dirt" && mapMod.peekTile(x + 14, y + 1).floor === "floor_grass" && near > 10 && near < 24, `from the drag's end only ${near} were in reach (tile 11 ${mapMod.peekTile(x + 11, y + 1).floor}, tile 14 ${mapMod.peekTile(x + 14, y + 1).floor})`);
-    return `a 25-wide drag refused, a 24-wide one painted 24; from one end ${near} of 24 were in reach (12 tiles)`;
+    assert(near === 24 && mapMod.peekTile(x + 14, y + 1).floor === "floor_dirt", `from the drag's end ${near} of 24 were painted (tile 14 ${mapMod.peekTile(x + 14, y + 1).floor}): Free building has no reach limit`);
+    return `a 25-wide drag refused, a 24-wide one painted 24; from one end ${near} of 24 painted (no reach under Free building)`;
   } finally {
     rulesImport.rules.freeBuilding = free0;
   }

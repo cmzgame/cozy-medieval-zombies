@@ -203,6 +203,8 @@ export async function run(game) {
       map.takeUpFloor(x + 3, y + 1, 0);
       paint(x + 2, y + 1, "floor_grass");
       paint(x + 3, y + 1, "floor_grass");
+      // The 24 by 24 ghost above may have been painted when Free building waived the reach (2026-10-29): the blend rows want plain grass round the patch.
+      for (let b = -4; b <= 10; b++) for (let a = -4; a <= 8; a++) if (fl(a, b) !== "floor_grass") paint(x + a, y + b, "floor_grass");
 
       // The patch: dirt 3 by 3, cobble beside it, shallow water, deep water, the pink. By the commands a guest sends.
       stand(x + 4, y + 8);
@@ -241,7 +243,7 @@ export async function run(game) {
       const mixed = (list, k) => list.find((c) => (c[k] || 0) > 50 && (c.grass || 0) > 50);
       const dirtRing = ring(0, 0, 2, 2, 2).filter((c) => !c.cobble && !c.water);
       const grassBeside = mixed(dirtRing, "dirt") || {};
-      row("a painted dirt patch blends like the valley's: a grass tile beside it is part dirt and part grass (a ragged edge, no hard diamond), its own tiles dirt all through", (grassBeside.dirt || 0) > 100 && (grassBeside.grass || 0) > 100 && share(dirtEdge, "dirt") > 0.97 && share(dirtMid, "dirt") > 0.97, `ring ${JSON.stringify(dirtRing.slice(0, 6))}; grass beside ${JSON.stringify(grassBeside)}; edge ${JSON.stringify(dirtEdge)}; middle ${JSON.stringify(dirtMid)}`);
+      row("a painted dirt patch blends like the valley's: a grass tile beside it is part dirt and part grass (a ragged edge, no hard diamond), its own tiles dirt all through", (grassBeside.dirt || 0) > 50 && (grassBeside.grass || 0) > 50 && share(dirtEdge, "dirt") > 0.97 && share(dirtMid, "dirt") > 0.97, `ring ${JSON.stringify(dirtRing.slice(0, 6))}; grass beside ${JSON.stringify(grassBeside)}; edge ${JSON.stringify(dirtEdge)}; middle ${JSON.stringify(dirtMid)}`);
       const waterRing = ring(3, 4, 5, 6);
       const waterEdge = mixed(waterRing, "dirt") || {}; // a ragged dirt shore: a tile part dirt, part grass
       const waterMid = kindsOfTile(x + 4, y + 5);

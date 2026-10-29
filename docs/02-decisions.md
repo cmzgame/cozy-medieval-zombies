@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Free building has no reach limit to build or take apart (48 tiles; lines of sight kept; 2026-10-29, `02` "Free building has no reach limit").
 - A castle battlement (a short stone parapet with merlons, art round 13) is Free building's alone for now, placed at once and free on a tile edge of a floor on layer 1 or higher with the walkway's floor on one side of the edge and none on the other, its stone wholly on the side with no floor ("margin, not padding"), so the walkway tile keeps its whole diamond; which side the walkway is on, the variant, and the corners and ends are read from the floors and the neighbouring edges, never saved; sight and light pass it, bodies and the dead do not, the dead cannot strike it down (2026-10-29, Castle battlements)
 - A castle gate (a 2 or 3 wide stone gate with an animated portcullis, art round 12) is Free building's alone for now, placed at once and free over 2 or 3 plain stone wall edges, opened and shut with E like a door; closed, its bars pass sight, light, and shots but stop a body, a blow, and a bite, and still bound a room; the dead cannot break it (Michael: "I will probably overrule this later, but fine for now"); each of these is a flag on the gate's definition, so a later ruling flips data, not code (2026-10-29, Castle gates)
 - The pink floor is **Random spawn**: a tag for where random things can spawn (trees, the dead), for the hand-built map; it does nothing yet, nothing reads it, and where the bounded map's dead come from may be this tile or a square of its own, not decided (2026-10-28, The pink is Random spawn; overturns "No random spawn")
@@ -329,6 +330,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-29 — Free building has no reach limit (Michael)
+
+Michael, asked whether the build distance was gone ("I am still getting 'too far away'?"), 2026-10-29, from his build-mode list: "make everything in the build menu instant, and remove restrictions on how close I need to be to build? If I can see it, I can stamp it." **Free building waives the reach to build and to take apart** (`placement.js` `FREE_REACH` 48 tiles, inside the grown ring of four chunks; `buildReach`, `removeReach`): every build, a drag's floors and terrain, stairs, gates, battlements, round rooms, the palette's props, and the removal tool; the lines of sight the tests already kept stay (a made prop or a floor ghost is not put through a wall; a built wall is by distance alone, as before), so "if I can see it" holds for what had a line test, and the authority validates a guest's command by the same functions. With Free building off, nothing changes (`BUILD_REACH`, `REMOVE_REACH` 2.6). Everything instant in the menu is not done: walls and floors still take their seconds, the ramp, the gates, and the battlement are instant already.
 
 ### 2026-10-29 — Castle battlements: the parapet of a wall walk, wholly outside the walkway (Michael)
 
