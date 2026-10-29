@@ -240,11 +240,11 @@ function playersOf(save) {
   return Object.entries(save.owners || {}).map(([hash, id]) => ({ playerId: id, name: (byId.get(id) && byId.get(id).name) || id, owner: hash === OWNER_HASH, dead: !!(byId.get(id) && byId.get(id).dead) }));
 }
 
-// The rules an owner may set: the four, each true or false (src/rules.js), nothing else ("Zombies attack villagers" is gone: every
+// The rules an owner may set: the five, each true or false (src/rules.js), nothing else ("Zombies attack villagers" is gone: every
 // villager is immune, Michael 2026-10-28; a meta that still holds it has it dropped here). A world's meta also holds the
 // three it was made with (Trees, Starting population, Village stations: a world moved up from a browser carries them), shown to its owner
 // and never changed by one (`withFixed`).
-const RULE_KEYS = ["zombieAggro", "multiHit", "survival", "freeBuilding"];
+const RULE_KEYS = ["zombieAggro", "multiHit", "survival", "freeBuilding", "unlimitedMana"];
 const POPULATIONS = ["none", "low", "standard", "high"];
 function cleanRules(raw, withFixed = false) {
   const out = {};

@@ -1,0 +1,6 @@
+{
+  "valley": {"name": "The valley", "kind": "play", "blurb": "The game: the village, its farms and forests, and the dead."},
+  "flat": {"name": "Flat grass", "kind": "play", "blurb": "A giant plain of plain grass, for building a map by hand. A dev chest and the guide stand at the spawn."},
+  "square": {"name": "Village square", "kind": "test", "blurb": "The proving ground: a small village the checks run in."},
+  "staging": {"name": "The staging clearing", "kind": "test", "blurb": "A clearing made only for pictures."}
+}

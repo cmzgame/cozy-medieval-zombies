@@ -212,6 +212,27 @@ export async function run(game, opts = {}) {
     const after = me.mana;
     step(90);
     row("a cast paid for spends its 20 on the release: the Fireball flies and the cast sounds", !!flew && flew.projectile === "fireball" && Math.abs(before - after - fb.mana) < 1e-9 && (!snd || heard("cast") === 1), `${flew ? flew.projectile : "nothing"}; ${before.toFixed(3)} -> ${after.toFixed(3)}; ${heard("cast")} cast`);
+    // Unlimited mana (Michael, 2026-10-28; the world's dev rule beside Free building): on, the same cast at 0 mana is paid and spends nothing, no line,
+    // and the HUD's bar reads full; put back off after (and in the finally).
+    G.rules.set({ unlimitedMana: true });
+    me.recover = 0;
+    me.mana = 0;
+    clearMessage();
+    const onPress = A.press();
+    step(45);
+    const onFlew = A.release();
+    step(30);
+    drawHud();
+    row("with Unlimited mana on, a cast at 0 mana is paid: the draw starts, the Fireball flies, no refusal line, nothing spent, and the HUD's bar reads 100 / 100", onPress !== false && !!onFlew && onFlew.projectile === "fireball" && message() !== mana.NOT_ENOUGH && me.mana === me.maxMana && manaEl().querySelector(".hud-mana-text").textContent === `${me.maxMana} / ${me.maxMana}`, `press ${onPress}; ${onFlew ? onFlew.projectile : "nothing"}; mana ${me.mana}; "${manaEl().querySelector(".hud-mana-text").textContent}"`);
+    G.rules.set({ unlimitedMana: false });
+    me.recover = 0;
+    me.mana = 0;
+    clearMessage();
+    const offPress = A.press();
+    step();
+    row("and off again at 0 mana the same cast is refused: \"Not enough mana.\"", offPress === false && message() === mana.NOT_ENOUGH, `press ${offPress}; "${message()}"`);
+    me.mana = 100;
+    step(90);
     me.hands.main = null;
     me.hands.off = null;
     A.setAim(null);
@@ -296,6 +317,7 @@ export async function run(game, opts = {}) {
     card.hide();
     A.cancel();
     A.setAim(null);
+    G.rules.set({ unlimitedMana: false }); // Unlimited mana is a dev rule: never left on by a check
     me.hands.main = saved.main;
     me.hands.off = saved.off;
     const keeping = !!(opts.keep && kept);

@@ -69,7 +69,7 @@ export async function run(game) {
     row("Build holds walls, openings, props, floors, and stairs under three headings, with Take apart; the cliffs and the ground are not here", buildGroups.join() === "Walls and openings,Props,Floors and stairs" && buildNames.includes("Log wall") && buildNames.includes("Door") && buildNames.includes("Plank floor") && buildNames.includes("Stone stair") && !buildNames.some((n) => /Cliff|ramp|Grass|Dirt|Water/.test(n)) && !palEl().querySelector(".bp-foot").hidden, `${buildGroups.join(" | ")}; ${buildNames.length} rows`);
     tabBtns[1].click();
     const terrNames = names();
-    row("a click on Terrain shows the ground's surfaces, the water, and the landforms, each under its heading, with no Take apart", groups().join() === "Ground,Water,Landforms" && terrNames.join() === "Grass,Dirt,Cobblestone,No random spawn,Shallow water,Water,Cliff wall,Grassy cliff wall,Cliff top,Grassy cliff top,Stone ramp" && palEl().querySelector(".bp-foot").hidden && bp.currentTab() === "terrain", `${groups().join(" | ")}; ${terrNames.join(", ")}`);
+    row("a click on Terrain shows the ground's surfaces, the water, and the landforms, each under its heading, with no Take apart", groups().join() === "Ground,Water,Landforms" && terrNames.join() === "Grass,Dirt,Cobblestone,Random spawn,Shallow water,Water,Cliff wall,Grassy cliff wall,Cliff top,Grassy cliff top,Stone ramp" && palEl().querySelector(".bp-foot").hidden && bp.currentTab() === "terrain", `${groups().join(" | ")}; ${terrNames.join(", ")}`);
     const sw = [...listEl().querySelectorAll(".bp-sw")].map((e) => e.style.background);
     row("each terrain row shows its floor's colour, the pink one pink; every row has a title", sw.length === 6 && /255, 95, 180|#ff5fb4/i.test(sw[3]) && rowsOf().every((r) => r.title && r.title.includes(r.querySelector(".bp-name").textContent)), `${sw.length} swatches, the fourth ${sw[3]}`);
     bp.close();
@@ -207,10 +207,10 @@ export async function run(game) {
       // The patch: dirt 3 by 3, cobble beside it, shallow water, deep water, the pink. By the commands a guest sends.
       stand(x + 4, y + 8);
       G.rules.set({ freeBuilding: true });
-      const set = [["terrain_dirt", 0, 0, 2, 2], ["terrain_cobble", 4, 0, 4, 2], ["terrain_water_shallow", 0, 4, 2, 4], ["terrain_water", 3, 4, 5, 6], ["terrain_nospawn", 0, 6, 1, 7]];
+      const set = [["terrain_dirt", 0, 0, 2, 2], ["terrain_cobble", 4, 0, 4, 2], ["terrain_water_shallow", 0, 4, 2, 4], ["terrain_water", 3, 4, 5, 6], ["terrain_randomspawn", 0, 6, 1, 7]];
       for (const [what, a, b, a2, b2] of set) for (let j = Math.min(b, b2); j <= Math.max(b, b2); j++) for (let i = Math.min(a, a2); i <= Math.max(a, a2); i++) painted.set(`${x + i},${y + j}`, painted.get(`${x + i},${y + j}`) || [x + i, y + j, "floor_grass"]);
       for (const s of set) cmd(...s);
-      row("the patch is painted by the guest's command: dirt, cobble, shallow water, water, the pink, each a floor change with no built record", fl(1, 1) === "floor_dirt" && fl(4, 1) === "floor_cobble" && fl(1, 4) === "floor_water_shallow" && fl(4, 5) === "floor_water" && fl(0, 6) === "floor_nospawn" && ![[1, 1], [4, 1], [1, 4], [4, 5], [0, 6]].some(([a, b]) => map.peekTile(x + a, y + b, 0).built), [fl(1, 1), fl(4, 1), fl(1, 4), fl(4, 5), fl(0, 6)].join());
+      row("the patch is painted by the guest's command: dirt, cobble, shallow water, water, the pink, each a floor change with no built record", fl(1, 1) === "floor_dirt" && fl(4, 1) === "floor_cobble" && fl(1, 4) === "floor_water_shallow" && fl(4, 5) === "floor_water" && fl(0, 6) === "floor_randomspawn" && ![[1, 1], [4, 1], [1, 4], [4, 5], [0, 6]].some(([a, b]) => map.peekTile(x + a, y + b, 0).built), [fl(1, 1), fl(4, 1), fl(1, 4), fl(4, 5), fl(0, 6)].join());
       // The bake: which kind each pixel of a tile is (ground.kindMap), and the frame's own pixels.
       const ids = G.ground.kindNames();
       const ownerOf = (px, py) => {

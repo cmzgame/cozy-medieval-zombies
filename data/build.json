@@ -261,18 +261,18 @@
     "dev": true,
     "note": "Terrain tab (Michael, 2026-10-28: split the build menu in two, Build and Terrain): paints the ground's floor outright by a drag (up to 24 tiles a side), a tile at a time, no cost and no `built` record, so there is nothing to take apart; cobbles, inside a dirt verge as the valley's roads are; ground only, Free building only; `seconds` 0 (instant) and `reach` 12 tiles are a world-editing tool's, Primary's defaults"
   },
-  "terrain_nospawn": {
-    "label": "No random spawn",
-      "already": "That is already marked no-spawn ground",
+  "terrain_randomspawn": {
+    "label": "Random spawn",
+      "already": "That is already random-spawn ground",
     "kind": "terrain",
     "tab": "terrain",
     "group": "Ground",
-    "sprite": "floor_nospawn",
+    "sprite": "floor_randomspawn",
     "cost": {},
     "seconds": 0,
     "reach": 12,
     "dev": true,
-    "note": "Terrain tab (Michael, 2026-10-28: split the build menu in two, Build and Terrain): paints the ground's floor outright by a drag (up to 24 tiles a side), a tile at a time, no cost and no `built` record, so there is nothing to take apart; bubblegum pink, on purpose: a tag for the hand-built map (Michael, 2026-10-28); it marks a tile where nothing random may spawn and does nothing else yet; its future use is the scatter, the trees, and the spawns skipping a tile that carries it; ground only, Free building only; `seconds` 0 (instant) and `reach` 12 tiles are a world-editing tool's, Primary's defaults"
+    "note": "Terrain tab (Michael, 2026-10-28: split the build menu in two, Build and Terrain): paints the ground's floor outright by a drag (up to 24 tiles a side), a tile at a time, no cost and no `built` record, so there is nothing to take apart; bubblegum pink, on purpose: a tag for the hand-built map (Michael, 2026-10-28, who swapped its meaning the same day from No random spawn): it marks a tile where random things CAN spawn (trees, the dead, whatever the map's scatter and spawn rules later place) and does nothing else yet: nothing reads it; ground only, Free building only; `seconds` 0 (instant) and `reach` 12 tiles are a world-editing tool's, Primary's defaults"
   },
   "terrain_water_shallow": {
     "label": "Shallow water",

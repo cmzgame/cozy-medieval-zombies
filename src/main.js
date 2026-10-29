@@ -91,13 +91,15 @@ import { createInventoryActions, createRemoteInventoryActions } from "./ui/inven
 import * as identities from "./identities.js"; // identities, the browser id, friends' worlds (docs/31/09)
 import * as rng from "./rng.js";
 import * as rules from "./rules.js";
+import * as maps from "./maps.js"; // the maps the game ships and the address of a map change (Michael, 2026-10-28)
 import * as tuning from "./tuning.js";
 const feel = tuning.feel; // the feel numbers (data/tuning.json)
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
 // The map: the valley (docs/29, 30) unless the URL says `?map=square` (the old proving ground, which the checks still use).
-const MAP_NAME = new URLSearchParams(window.location.search).get("map") || "valley";
-const MAP_FILE = `data/maps/${/^[a-z0-9_-]+$/.test(MAP_NAME) ? MAP_NAME : "valley"}.json`;
+// The map is read once, at boot, and a page has one; the interface changes it by a reload onto `?map=` (maps.js, `goToMap` below).
+const MAP_NAME = /^[a-z][a-z0-9_-]{0,31}$/.test(new URLSearchParams(window.location.search).get("map") || "") ? new URLSearchParams(window.location.search).get("map") : "valley";
+const MAP_FILE = `data/maps/${MAP_NAME}.json`;
 const ZOOM_PACE = 0.3; // seconds between wheel steps that count
 let lastZoomAt = 0;
 
@@ -408,9 +410,92 @@ async function enterNewWorld(name, identity, { keep = true, rules: chosenRules =
   }
 }
 
-// A world of this browser's, put back, as the character this browser made there.
+// ---- changing the map (Michael, 2026-10-28: "a map loader from the website interface") ----
+// The map is read at boot, so choosing another is a reload onto `?map=<id>` (maps.js builds the address, keeping the test switches). What the
+// page is to do on arrival rides in the address when it holds no secret (`world=<id>` plays that world) and in this tab's sessionStorage when it
+// does (`make=1`: a new world's name, identity, and rules; `rejoin=1`: a join's code and owner key). `arrive()` below reads it once, at boot's end.
+const HANDOFF_KEY = "cmz.handoff";
+let navigateTo = (url) => { window.location.assign(url); }; // the checks swap it for a recorder: a test page must not leave
+function goToMap(id, handoff = {}, payload = null) {
+  shell.worldBegin(`Going to ${maps.nameOf(id)}`);
+  shell.worldStage("Changing the map", 0.5);
+  try {
+    if (payload) sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(payload));
+    else sessionStorage.removeItem(HANDOFF_KEY);
+  } catch { /* no storage in this tab: a world to play still travels in the address */ }
+  navigateTo(maps.addressFor(window.location, id, handoff));
+}
+function takePayload() {
+  try {
+    const raw = sessionStorage.getItem(HANDOFF_KEY);
+    sessionStorage.removeItem(HANDOFF_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+// What a reload onto a map was for, done now that the page is on it: a world played, a world made, a world joined. Nothing in the address
+// is trusted past a plain id: an unknown world or identity falls to the Worlds screen with a word.
+async function arrive() {
+  const world = URLQ.get("world");
+  const payload = takePayload();
+  const toWorlds = (note) => screens.show("worlds", { note });
+  if (world) {
+    if (!(await playWorld(world))) toWorlds("That world could not be opened here.");
+  } else if (URLQ.has("make")) {
+    const identity = payload && identities.get(payload.identityId);
+    if (!identity) return toWorlds("The new world could not be made: its identity was not found.");
+    await enterNewWorld(String(payload.name || "A world").slice(0, 40), identity, { rules: payload.rules || null, devChest: !!payload.devChest });
+  } else if (URLQ.has("rejoin")) {
+    if (!payload || !payload.code) return toWorlds("The join could not be taken up again.");
+    joinWorld(String(payload.code), payload.ownerKey || null);
+  }
+}
+const arriving = () => !!(URLQ.get("world") || URLQ.has("make") || URLQ.has("rejoin"));
+
+// A guest whose host's world is on another map than this page's (the welcome names it): the join is taken up again on the host's map,
+// by a reload that keeps the code (and the owner key, for a world of mine on the server). Once is the limit: a page that arrived this way
+// and still differs refuses with a word, never reloads in a loop.
+function followHostMap(hostMap) {
+  const code = net.status().code;
+  if (!maps.exists(hostMap) || URLQ.has("jumped")) {
+    if (net.isGuest()) net.leave();
+    if (net.onTheWire()) net.close();
+    shell.worldHide();
+    toSite("worlds");
+    screens.show("worlds", { note: maps.exists(hostMap) ? `That world is on ${maps.nameOf(hostMap)} and this page could not move there. Reload the game and join again.` : `That world is on a map (${hostMap}) this version of the game does not have.` });
+    return;
+  }
+  const owned = identities.owned().find((o) => o.code === code);
+  if (net.isGuest()) net.leave(); // the host's grace for my character begins; the rejoin finds it by this browser's id
+  if (TEST_WORLD) goToMap(hostMap, { jumped: 1 }); // a test page keeps its own `?join=` in the address
+  else goToMap(hostMap, { rejoin: 1, jumped: 1 }, { code, ownerKey: owned ? owned.ownerKey : null });
+}
+
+// A new world from the Worlds screen's steps, on the map it chose (`options.map`, the valley when it names none): on this page's map it is made now,
+// on another the page goes there with the choices and makes it on arrival (`arrive`). Returns whether it began.
+function createWorld(name, identityId, options = {}) {
+  const identity = identities.get(identityId);
+  if (!identity) return false;
+  const { map: chosen, ...rest } = options;
+  const want = chosen || "valley";
+  if (want === MAP_NAME || !maps.exists(want)) {
+    enterNewWorld(name, identity, rest);
+    return true;
+  }
+  goToMap(want, { make: 1 }, { name, identityId, rules: rest.rules || null, devChest: rest.devChest ?? null });
+  return true;
+}
+
+// A world of this browser's, put back, as the character this browser made there. One saved on another map is played by going there.
 async function playWorld(worldId) {
   const row = save.listWorlds().find((r) => r.worldId === worldId);
+  if (row && row.mapName && row.mapName !== MAP_NAME) {
+    if (!maps.exists(row.mapName)) {
+      screens.show("worlds", { note: `${row.name || "That world"} is on a map (${row.mapName}) this version of the game does not have.` });
+      return false;
+    }
+    goToMap(row.mapName, { world: worldId });
+    return true;
+  }
   shell.worldBegin(`Reading ${(row && row.name) || "the world"}`); // the loading screen (#107)
   try {
     return await playWorldBehindScreen(worldId);
@@ -795,6 +880,8 @@ function here() {
   const guest = st.role === "guest";
   return {
     inWorld,
+    map: MAP_NAME, // the page's map (maps.js): the pause menu names it (Michael, 2026-10-28); a guest's page is on the host's
+    mapName: maps.nameOf(MAP_NAME),
     joining: awaitingWelcome, // in the stand-in, waiting for the host's world (#111)
     name: currentWorld ? currentWorld.name : guest ? (joinedWorld && joinedWorld.name) || st.code : "",
     myCharacter: inWorld && client.me ? client.me.name || client.me.id : "",
@@ -1452,6 +1539,7 @@ async function boot() {
       assets.setManifest(manifestJson);
     } },
     { name: "data", label: "Reading the data", weight: 2, async run() {
+      maps.load(await assets.loadJson("data/maps.json")); // the maps the game ships, for the interface (Michael, 2026-10-28)
       woods.setTones(await optionalJson("data/wood_tones.json")); // the woods' tones, for a door or window of another wood than its wall (#334)
       const [itemsJson, buildJson, combatJson, posesJson, lootJson, wardrobesJson, interactionsJson] = await Promise.all([
         assets.loadJson("data/items.json"),
@@ -1748,16 +1836,19 @@ async function boot() {
         },
         // The worlds flow (docs/31/09): this browser's worlds and the friends' worlds it has joined.
         worlds: {
-          list: () => save.listWorlds().map((r) => ({ ...r, playable: r.mapName === MAP_NAME })),
+          // Every world is playable from any page: one on another map is played by a reload onto its map (playWorld; Michael, 2026-10-28), so its row names the map and is never "unplayable".
+          list: () => save.listWorlds().map((r) => ({ ...r, playable: true, mapLabel: maps.nameOf(r.mapName || "valley") })),
+          maps: () => maps.all(), // the maps the game ships, the plays first (the new-world step's choice)
+          currentMap: () => MAP_NAME,
           friends: () => identities.joined(),
           play: (worldId) => { playWorld(worldId); },
           remove: (worldId) => save.deleteWorld(worldId), // a promise: the screen re-renders when it settles
           forget: (code) => identities.forgetJoined(code),
-          create: (name, identityId, options = {}) => { const identity = identities.get(identityId); if (identity) enterNewWorld(name, identity, options); },
+          create: (name, identityId, options = {}) => createWorld(name, identityId, options),
           sandbox: sandboxChoices, // the Sandbox step's first choices (#109)
           setWorldRules, // the host's, from the pause menu
           respawn: (identityId) => respawn(identities.get(identityId)),
-          defaultName: () => `${MAP_NAME === "valley" ? "The valley" : MAP_NAME}, ${new Date().toLocaleDateString(undefined, { day: "numeric", month: "short" })}`,
+          defaultName: (mapId) => `${maps.nameOf(mapId || MAP_NAME)}, ${new Date().toLocaleDateString(undefined, { day: "numeric", month: "short" })}`,
           here,
           leave: exitGame, // the old name, kept for the checks
           exitGame,
@@ -1906,7 +1997,7 @@ async function boot() {
       });
       // The host's answers to the world's events, and the routing of a message or a log line said while a guest's
       // player acts (host.js): once, here, as this page may host.
-      host.init({ cap: () => tuning.world.playerCapBrowser, store: ownersStore, save: () => saveWorld(), self: () => client.me, arrived: (p) => refreshFigureOf(p, true) });
+      host.init({ map: () => MAP_NAME, cap: () => tuning.world.playerCapBrowser, store: ownersStore, save: () => saveWorld(), self: () => client.me, arrived: (p) => refreshFigureOf(p, true) });
       host.install();
       // After the menu's own listener, so a menu closed by Escape is seen first.
       window.addEventListener("keydown", (e) => {
@@ -1938,6 +2029,7 @@ async function boot() {
   net.setIdentity({ name: testIdentity().name || null, look: lookOf(testIdentity()), handed: handedOf(testIdentity().handed) }); // the wire's identity until a join picks one
   net.init({ host: TEST_WORLD ? url.get("host") : null, join: joinCode, lag: urlLag }, {
     restore: async (snap, playerId, world) => {
+      if (world && world.map && world.map !== MAP_NAME) { followHostMap(world.map); return; } // the host's world is on another map: this page goes there first (Michael, 2026-10-28)
       shell.worldStage("Receiving the world", 0.4);
       shell.worldNoCancel(); // the world is here: Leave is the way out now (the review of #115)
       awaitingWelcome = false;
@@ -2052,7 +2144,7 @@ async function boot() {
   if (net.isGuest()) {
     started = false;
     showMessage("Joining the host's world…", 4);
-  } else screens.show(window.__wantPage || "title"); // nothing runs behind it (docs/31/09): Worlds is where a world is chosen; a page asked for while loading opens now (index.html, #111)
+  } else if (!arriving()) screens.show(window.__wantPage || "title"); // (a reload onto a map for a world to play, make, or join shows nothing: `arrive` below) nothing runs behind it (docs/31/09): Worlds is where a world is chosen; a page asked for while loading opens now (index.html, #111)
   window.__siteReady = true; // the site's buttons are the screens' from here
   // Autosave: every AUTOSAVE seconds of game time, and when the tab is hidden or left (the parent's rule).
   const autosave = () => {
@@ -2082,6 +2174,7 @@ async function boot() {
   });
   window.addEventListener("pagehide", autosave);
   await shell.finish(); // the screen goes once the first frame is under it
+  if (arriving() && !net.isGuest()) arrive().catch((err) => { console.error(err); shell.worldHide(); screens.show("worlds", { note: "The map changed, but the world could not be opened." }); }); // the world a map change was for (Michael, 2026-10-28)
   // A test join from the URL (`?join=`) still waiting for its welcome: the joining screen over the stand-in (#107).
   if (net.isGuest() && !joinedWorld) { awaitingWelcome = true; showJoining(net.status().code); }
 
@@ -2103,6 +2196,8 @@ async function boot() {
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
     // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
     away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
+    // The map picker, for check("maps"): the page's map, the address a change would go to is recorded and not followed while `navigator` is set.
+    maps: { module: maps, current: MAP_NAME, goTo: goToMap, createWorld, setNavigator: (fn) => { navigateTo = fn || ((url) => { window.location.assign(url); }); }, followHostMap, takePayload, key: HANDOFF_KEY },
     worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId, options = {}) => enterNewWorld(name, identities.get(identityId), options), setWorldRules, sandbox: sandboxChoices, test: () => enterNewWorld("", testIdentity(), { keep: false, rules: testRules(), devChest: !!settings.get("devChest") }), play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, full: host.full, awayNow: host.awayNow, backNow: host.backNow, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {

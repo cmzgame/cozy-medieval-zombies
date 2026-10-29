@@ -17,6 +17,7 @@ export const DEFAULTS = {
   multiHit: !!settings.DEFAULTS.multiHit, // a swing hits everyone in its wedge, or the nearest
   survival: !!settings.DEFAULTS.survival, // hunger and thirst drain
   freeBuilding: !!settings.DEFAULTS.freeBuilding, // building costs nothing
+  unlimitedMana: !!settings.DEFAULTS.unlimitedMana, // a cast costs no mana and the bar reads full (mana.js), for testing spells
   trees: settings.DEFAULTS.trees !== false, // the world has trees (#130): off, none are placed when it is made or a chunk is grown
   population: settings.DEFAULTS.population, // "none", "low", "standard", or "high": how many of the dead it starts with (#130)
   villageStations: !!settings.DEFAULTS.villageStations, // the village's stations fixed, or movable and craftable (docs/43 section 5)

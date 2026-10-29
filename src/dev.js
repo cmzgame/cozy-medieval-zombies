@@ -78,6 +78,7 @@ export function createDevApi(ctx) {
     game: ctx.game, // the world's state and step (game.js); hashText for the determinism check
     save: ctx.save, // the worlds store (save.js): snapshot, listWorlds, readWorld, writeWorld, deleteWorld
     worlds: ctx.worlds, // the client's worlds flow (main.js; docs/31/09): create(name, identityId), play(worldId), leave(), respawn(identityId), here(), setOpen(on), save()
+    maps: ctx.maps, // the map picker (main.js, maps.js): module, current, goTo, createWorld, setNavigator(fn) (a recorder in place of the reload), followHostMap
     identities: ctx.identities, // identities.js: list, add, update, remove, clientId
     restoreWorld: host("restoreWorld", ctx.restoreWorld), // the world put back from a snapshot, the client refreshed (main.js)
     addPlayer: host("addPlayer", ctx.addPlayer), // a second player at (gx, gy), standing: __game.addPlayer(x, y) (docs/31/03)

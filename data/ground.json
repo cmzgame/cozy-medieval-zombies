@@ -10,7 +10,7 @@
   "floor_water_shallow": "laid",
     "floor_wood": "laid",
     "floor_stone": "laid",
-    "floor_nospawn": "laid"
+    "floor_randomspawn": "laid"
   },
   "terrain": {
     "dirt":   { "priority": 1, "texture": "ground_dirt", "threshold": [0.15, 0.3], "lip": 0.18, "lipBand": 0.06, "includes": ["cobble", "water"] },
