@@ -16,6 +16,7 @@ import * as depth from "./depth.js"; // the walls' faces, caps, leaves, and post
 import { emitHangings } from "./paintings.js"; // what hangs on a wall's face (#326)
 import { sheetFor } from "../woods.js"; // a door or window of another wood than its wall (#334)
 import * as cliffs from "../cliffs.js"; // a cliff's pictures by its edges and its plateau (art round 10)
+import * as battlements from "../battlements.js"; // a castle battlement's pictures by the floors and the neighbouring edges (art round 13)
 
 // ---- walls ----
 
@@ -431,7 +432,7 @@ function postBase(tx, ty, nE, nW, wS, wN) {
 // whether it is translucent with a near wall.
 export function postAt(tx, ty, playerRoom) {
   const v = vertexAt(tx, ty, playerRoom);
-  return v && !v.corner ? v : null;
+  return v && !v.corner && !v.batt ? v : null;
 }
 // What stands at the vertex: null, a post ({ sheet, near, thin }), or a cliff's corner piece ({ corner }), the four edges read once and the
 // corner asked only where a cliff wall meets the vertex (the review of #561: an empty vertex costs its four reads, as before the cliffs).
@@ -439,11 +440,16 @@ function vertexAt(tx, ty, playerRoom) {
   // No post where a ring meets itself: its step corners and its door points' ends (docs/50 section 4; the playtest, 2026-10-27); nor for a
   // buried cliff edge (art round 10: plateau on both its sides, drawn as nothing).
   // A ramp's own side (`wall.solid` and no cliff: wall_ramp_side, art round 11) stands post-less: its picture is the whole face.
-  const straight = (w, x, y, e) => (w && !map.drawnByRing(w) && !(cliffs.cliffWallOf(w) && cliffs.buried(x, y, e, map.drawLayerNow())) && !map.wallRule(w.sprite).side ? w : null);
+  // A battlement (art round 13) has no post: its corners and ends are pieces of their own (battlements.vertexAt), asked only where one meets the vertex.
+  const straight = (w, x, y, e) => (w && !map.drawnByRing(w) && !(cliffs.cliffWallOf(w) && cliffs.buried(x, y, e, map.drawLayerNow())) && !map.wallRule(w.sprite).side && !map.wallRule(w.sprite).battlement ? w : null);
   const nE = straight(map.tileAt(tx, ty).n, tx, ty, "n");
   const nW = straight(map.tileAt(tx - 1, ty).n, tx - 1, ty, "n");
   const wS = straight(map.tileAt(tx, ty).w, tx, ty, "w");
   const wN = straight(map.tileAt(tx, ty - 1).w, tx, ty - 1, "w");
+  if (battlements.battlementOf(map.tileAt(tx, ty).n) || battlements.battlementOf(map.tileAt(tx - 1, ty).n) || battlements.battlementOf(map.tileAt(tx, ty).w) || battlements.battlementOf(map.tileAt(tx, ty - 1).w)) {
+    const batt = battlements.vertexAt(tx, ty, map.drawLayerNow());
+    if (batt) return { batt };
+  }
   if (!nE && !nW && !wS && !wN) return null;
   // A cliff's corner piece stands there in place of a post (art round 10): asked only where a cliff wall meets the vertex.
   if (cliffs.cliffWallOf(nE) || cliffs.cliffWallOf(nW) || cliffs.cliffWallOf(wS) || cliffs.cliffWallOf(wN)) {
@@ -633,6 +639,11 @@ export function postDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
     const v = vertexAt(tx, ty, playerRoom);
     if (!v) continue;
+    if (v.batt) {
+      const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
+      out.push(makeBattlementVertex(tx, ty, v.batt, vis, postStack(tx, ty)));
+      continue;
+    }
     if (v.corner) {
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
       out.push(makeCliffCorner(tx, ty, v.corner, vis));
@@ -842,6 +853,84 @@ function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
   };
 }
 
+// ---- battlements (art round 13, Michael 2026-10-29; src/battlements.js) ----
+// A castle battlement is a wall piece wholly on the outside of its edge line, so it has no thickness to centre on that line and no cap: its
+// picture is the whole of it (the stone's tops are drawn in it), its walkway side read from the floors of its own layer (`far`: the stone behind
+// the walkway, `near`: in front of it). Its depth is the plane of the face its picture shows: the edge line itself for far (the merlons'
+// inner faces), 16 units beyond it for near (the outer faces, the corbels); the artist's depth maps are not read (planar depth, small errors
+// at the far merlons' tops). A near battlement fades as the walls of the viewer's room do, where the viewer stands on the walkway behind it.
+let viewerAt = null; // { x, y, layer }: the viewer's tile and storey, for the near battlement's fade
+export function setViewerAt(v) {
+  viewerAt = v;
+}
+// Whether the near battlement on (tx, ty, edge) is translucent: the viewer stands on the walkway tile behind it or the one beside that.
+function battlementFades(tx, ty, edge) {
+  const v = viewerAt;
+  if (!v || v.layer !== map.drawLayerNow()) return false;
+  const across = edge === "n" ? [tx, ty - 1] : [tx - 1, ty];
+  if (battlements.sideOf(tx, ty, edge, v.layer) !== "near") return false;
+  return edge === "n" ? v.y === across[1] && Math.abs(v.x - across[0]) <= 1 : v.x === across[0] && Math.abs(v.y - across[1]) <= 1;
+}
+function makeBattlement(wall, sheet, edge, tx, ty, vis, stub, ghostTint, stack) {
+  const lift = stack && stack.onWall ? STACK_BIAS : 0;
+  const L = map.drawLayerNow();
+  const side = battlements.sideOf(tx, ty, edge, L);
+  const has = (n) => !!sheet.frames[n];
+  const name = side ? battlements.edgeFrame(getDef(wall.sprite), tx, ty, edge, L, has) : ghostTint ? `${edge === "n" ? "north" : "west"}_far_plain` : null; // a ghost with no side shows the far piece, red
+  const sortDepth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
+  const p = iso.toScreen(tx, ty);
+  const x = Math.round(p.x) + shakeOffset(tx, ty, edge);
+  const y = Math.round(p.y);
+  const alpha = stub ? NEAR_WALL_ALPHA : 1;
+  const flags = ghostTint ? GHOST_FLAGS() : vis ? gl.FLAG_NOFOG : 0;
+  const wa = edge === "n" ? [tx - 0.4, ty - 0.2] : [tx - 0.2, ty - 0.4];
+  const wb = edge === "n" ? [tx + 0.4, ty - 0.2] : [tx - 0.2, ty + 0.4];
+  const face = depth.wallSurface(edge, tx, ty, side === "near" ? 32 : 0);
+  return {
+    key: sortDepth * 1000,
+    kind: "wall",
+    wall: { tx, ty, edge }, // check("depth") finds its drawable
+    stack,
+    faded: !!stub,
+    battlement: name, // the frame drawn (check("battlements") reads it)
+    emit() {
+      if (!name) return;
+      gl.surface(face, lift, DEPTH_ROOM.wall);
+      gl.layer(L_FACE);
+      wallPartQuad(sheet, name, x, y, { wa, wb, tint: ghostTint || [1, 1, 1, alpha], flags });
+      gl.layer(null);
+    },
+  };
+}
+
+// A battlement's corner or free end at the vertex (vx, vy): its picture anchored on the vertex itself, on the plane of the face it shows (a
+// corner's block: a ridge at its front corner, half a tile out on each near arm; an end's half merlon: its run's plane).
+function makeBattlementVertex(vx, vy, b, vis, stack) {
+  const lift = stack && stack.onWall ? STACK_BIAS : 0;
+  return {
+    key: (vx + vy - 1) * 1000 + 0.5,
+    kind: "wall",
+    post: { tx: vx, ty: vy }, // check("depth") finds its drawable
+    stack,
+    battlement: b.frame, // the frame drawn (check("battlements") reads it)
+    emit() {
+      const cs = getSheet("wall_battlement_vertices");
+      const f = cs && cs.frames[b.frame];
+      if (!f) return;
+      const a = (cs.frameAnchors && cs.frameAnchors[b.frame]) || cs.anchor;
+      const p = iso.toScreen(vx - 0.5, vy - 0.5);
+      const surf = b.kind === "corner"
+        ? depth.ridge(vx - 0.5 + (b.wNear ? 0.5 : 0), vy - 0.5 + (b.nNear ? 0.5 : 0))
+        : b.edge === "n" ? depth.planeY(vy - 0.5 + (b.near ? 0.5 : 0)) : depth.planeX(vx - 0.5 + (b.near ? 0.5 : 0));
+      gl.surface(surf, lift, DEPTH_ROOM.post);
+      const w = [vx - 0.5, vy - 0.5];
+      gl.layer(L_FACE);
+      gl.quad(p.x - a[0], p.y - a[1], f[2], f[3], gl.frameUV(cs, b.frame), { world: [w, w, w, w], heights: [f[3], f[3], 0, 0], flags: vis ? gl.FLAG_NOFOG : 0 });
+      gl.layer(null);
+    },
+  };
+}
+
 export function wallDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
     const t = map.tileAt(tx, ty);
@@ -849,14 +938,16 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
     if (t.n && !map.drawnByRing(t.n) && !(cliffs.cliffWallOf(t.n) && cliffHidden(tx, ty, "n", t.n))) {
       const far = map.tileAt(tx, ty - 1);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
-      const stub = isNearWall(tx, ty, "n", playerRoom);
-      out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
+      const bat = battlements.battlementOf(t.n);
+      const stub = bat ? battlementFades(tx, ty, "n") : isNearWall(tx, ty, "n", playerRoom);
+      out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub && !bat ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
     }
     if (t.w && !map.drawnByRing(t.w) && !(cliffs.cliffWallOf(t.w) && cliffHidden(tx, ty, "w", t.w))) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
-      const stub = isNearWall(tx, ty, "w", playerRoom);
-      out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
+      const bat = battlements.battlementOf(t.w);
+      const stub = bat ? battlementFades(tx, ty, "w") : isNearWall(tx, ty, "w", playerRoom);
+      out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub && !bat ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
     }
   }
 }
@@ -887,6 +978,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
   const lift = stack && stack.onWall ? STACK_BIAS : 0;
   const under = !!(stack && stack.under); // under a floor of the storey above: drawn without its cap
   const sheet = sheetFor(wall); // the wall's own sheet, or its shut leaves recoloured and its open ones another wood's (#334)
+  if (sheet.wall && sheet.wall.battlement) return makeBattlement(wall, sheet, edge, tx, ty, vis, stub, ghostTint, stack);
   const variant = wallVariant(wall);
   const gateSheet = wall.gate && sheet.wall ? gateSlice(sheet, edge === "n" ? "north" : "west", wall.gate.i) : null; // a castle gate edge draws its window of the gate's picture
   const sortDepth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;

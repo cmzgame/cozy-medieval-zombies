@@ -1,0 +1,236 @@
+{
+ "images": {
+  "corner_outer_n": "data/art/village/battlement_corner_outer_n.png",
+  "corner_outer_s": "data/art/village/battlement_corner_outer_s.png",
+  "corner_outer_e": "data/art/village/battlement_corner_outer_e.png",
+  "corner_outer_w": "data/art/village/battlement_corner_outer_w.png",
+  "corner_inner_n": "data/art/village/battlement_corner_inner_n.png",
+  "corner_inner_s": "data/art/village/battlement_corner_inner_s.png",
+  "corner_inner_e": "data/art/village/battlement_corner_inner_e.png",
+  "corner_inner_w": "data/art/village/battlement_corner_inner_w.png",
+  "end_E_far": "data/art/village/battlement_end_E_far.png",
+  "end_E_near": "data/art/village/battlement_end_E_near.png",
+  "end_S_far": "data/art/village/battlement_end_S_far.png",
+  "end_S_near": "data/art/village/battlement_end_S_near.png",
+  "end_W_far": "data/art/village/battlement_end_W_far.png",
+  "end_W_near": "data/art/village/battlement_end_W_near.png",
+  "end_N_far": "data/art/village/battlement_end_N_far.png",
+  "end_N_near": "data/art/village/battlement_end_N_near.png"
+ },
+ "anchors": {
+  "corner_outer_n": [
+   15.0,
+   60.0
+  ],
+  "corner_outer_s": [
+   16.0,
+   44.0
+  ],
+  "corner_outer_e": [
+   -1.0,
+   52.0
+  ],
+  "corner_outer_w": [
+   32.0,
+   52.0
+  ],
+  "corner_inner_n": [
+   16.0,
+   44.0
+  ],
+  "corner_inner_s": [
+   16.0,
+   60.0
+  ],
+  "corner_inner_e": [
+   32.0,
+   52.0
+  ],
+  "corner_inner_w": [
+   0.0,
+   52.0
+  ],
+  "end_E_far": [
+   8.0,
+   56.0
+  ],
+  "end_E_near": [
+   24.0,
+   48.0
+  ],
+  "end_S_far": [
+   15.0,
+   56.0
+  ],
+  "end_S_near": [
+   -1.0,
+   48.0
+  ],
+  "end_W_far": [
+   0.0,
+   52.0
+  ],
+  "end_W_near": [
+   16.0,
+   44.0
+  ],
+  "end_N_far": [
+   24.0,
+   52.0
+  ],
+  "end_N_near": [
+   8.0,
+   44.0
+  ]
+ },
+ "anchorAt": "vertex",
+ "corners": {
+  "outer_n": {
+   "arms": [
+    [
+     "E",
+     "far"
+    ],
+    [
+     "S",
+     "far"
+    ]
+   ],
+   "plateau": "S",
+   "image": "corner_outer_n"
+  },
+  "outer_s": {
+   "arms": [
+    [
+     "W",
+     "near"
+    ],
+    [
+     "N",
+     "near"
+    ]
+   ],
+   "plateau": "N",
+   "image": "corner_outer_s"
+  },
+  "outer_e": {
+   "arms": [
+    [
+     "W",
+     "far"
+    ],
+    [
+     "S",
+     "near"
+    ]
+   ],
+   "plateau": "W",
+   "image": "corner_outer_e"
+  },
+  "outer_w": {
+   "arms": [
+    [
+     "E",
+     "near"
+    ],
+    [
+     "N",
+     "far"
+    ]
+   ],
+   "plateau": "E",
+   "image": "corner_outer_w"
+  },
+  "inner_n": {
+   "arms": [
+    [
+     "E",
+     "near"
+    ],
+    [
+     "S",
+     "near"
+    ]
+   ],
+   "plateau": "NEW",
+   "image": "corner_inner_n"
+  },
+  "inner_s": {
+   "arms": [
+    [
+     "W",
+     "far"
+    ],
+    [
+     "N",
+     "far"
+    ]
+   ],
+   "plateau": "ESW",
+   "image": "corner_inner_s"
+  },
+  "inner_e": {
+   "arms": [
+    [
+     "W",
+     "near"
+    ],
+    [
+     "S",
+     "far"
+    ]
+   ],
+   "plateau": "NES",
+   "image": "corner_inner_e"
+  },
+  "inner_w": {
+   "arms": [
+    [
+     "E",
+     "far"
+    ],
+    [
+     "N",
+     "near"
+    ]
+   ],
+   "plateau": "NWS",
+   "image": "corner_inner_w"
+  }
+ },
+ "ends": {
+  "end_E_far": {
+   "run leaves the vertex toward": "E",
+   "side": "far"
+  },
+  "end_E_near": {
+   "run leaves the vertex toward": "E",
+   "side": "near"
+  },
+  "end_S_far": {
+   "run leaves the vertex toward": "S",
+   "side": "far"
+  },
+  "end_S_near": {
+   "run leaves the vertex toward": "S",
+   "side": "near"
+  },
+  "end_W_far": {
+   "run leaves the vertex toward": "W",
+   "side": "far"
+  },
+  "end_W_near": {
+   "run leaves the vertex toward": "W",
+   "side": "near"
+  },
+  "end_N_far": {
+   "run leaves the vertex toward": "N",
+   "side": "far"
+  },
+  "end_N_near": {
+   "run leaves the vertex toward": "N",
+   "side": "near"
+  }
+ },
+ "note": "the vertex pieces of the battlement (art round 13), anchored on the vertex at the walkway's floor, as a post (no +16). Corners are named as the cliffs' (outer_<where the vertex sits on the walkway's tile>, inner_<where it sits on the notch tile>) and need the same classification (src/cliffs.js cornerBase, read on the floor of the SAME layer). Each is the 16 x 16 block that turns the corner, in the quadrant opposite the walkway (outer) or in the notch (inner); the straight pictures at its two ends are unchanged, except at an inner corner where the two edges use their `late` / `early` pictures. An `end` piece completes the half merlon beyond a run's free end."
+}

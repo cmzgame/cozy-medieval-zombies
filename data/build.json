@@ -396,5 +396,14 @@
     "group": "Castle",
     "hint": "Click, then click a plain stone wall: a 3-tile gate with a portcullis replaces the wall at once; E opens and shuts it",
     "note": "docs/09 (Michael, 2026-10-29: \"Free building only\", \"Agreed, for now\"): a 3-tile castle gate stamped over 3 plain stone wall edges in a row, shut, placed at once and free as the Stone ramp is (no bar, no cost, no tool); E opens and shuts it like a door; taking it apart puts the plain wall back"
+  },
+  "battlement_stone": {
+    "label": "Battlement",
+    "kind": "wall",
+    "sprite": "wall_battlement",
+    "dev": true,
+    "group": "Castle",
+    "hint": "Click an edge of a wall walk's floor, upstairs: a parapet with merlons stands on the edge outside the walkway, which stays whole",
+    "note": "docs/09 (Michael, 2026-10-29: \"design me a short stone wall with these merlons ... make sure the whole of the battlement sits outside the walkway\", art round 13 approved): a castle's parapet, a short stone wall wholly on the outside of a tile edge of a floor on layer 1 or higher, with the walkway's floor on one side of the edge and none on the other (src/battlements.js); its side, its variant, and its corners and ends are read from the floors and the neighbouring edges, never saved; sight and light pass it, bodies and the dead do not, and the dead cannot strike it down; placed at once and free as the Stone ramp is (no bar, no cost, no tool); Free building only"
   }
 }
