@@ -29,6 +29,9 @@ export const ANIMS = {
   wave: { fps: 4, loop: true, frames: 2 },
   // The cowering (docs/43 section 7): a villager's alone (an immune one with the dead near), arms up; posed from data/poses.json `cower`.
   cower: { fps: 8, loop: true, frames: 2 },
+  // The climb (docs/53 step 6b, `49` section 4b): the player's alone, on a ladder, two frames alternating the hands and the feet; the dev pose
+  // until the art pass draws one.
+  climb: { fps: 4, loop: true, frames: 2 },
 };
 
 // ---- the attack keyframes, as data (docs/14) ----
@@ -187,7 +190,7 @@ export function animsFor(spec) {
   // left off, which makes the sheet 27 percent narrower and so five fit across the
   // atlas where three did (docs/19: the atlas is the budget).
   if (spec.noCarry) {
-    const { carry_idle, carry_walk, present, shove, wave, ...rest } = out; // the held-out pose, the shove, and the wave are the player's alone too (docs/32; docs/41 step 2; docs/43 section 7)
+    const { carry_idle, carry_walk, present, shove, wave, climb, ...rest } = out; // the held-out pose, the shove, the wave, and the climb are the player's alone too (docs/32; docs/41 step 2; docs/43 section 7; docs/53 step 6b)
     out = rest;
   } else {
     if (POSES.wave && POSES.wave.frames && POSES.wave.frames.length) out = { ...out, wave: { ...ANIMS.wave, fps: POSES.wave.fps ?? ANIMS.wave.fps, frames: POSES.wave.frames.length } };
@@ -374,6 +377,13 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.lying = true;
       }
       break;
+    case "climb":
+      // On a ladder, facing it (docs/53 step 6b): one hand reaching up and the other at the rung below, the feet alternating, swapped each frame.
+      p.armPitch = i % 2 ? [120, 160] : [160, 120];
+      p.armOut = [1, 1];
+      p.lift = i % 2 ? [0, 3] : [3, 0];
+      p.stride = [0, 0];
+      break;
     case "carry_idle":
       p.bob = i === 1 ? 1 : 0;
       p.armPitch = [170, 170];
@@ -389,7 +399,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
   }
   // Holding: the arm comes forward and stays there, except the main arm in
   // the attack, the off arm in the off hand's, and both arms when carrying or dying.
-  const fixed = anim === "die" || anim.startsWith("carry");
+  const fixed = anim === "die" || anim.startsWith("carry") || anim === "climb"; // both hands on the ladder, whatever is held
   if (holding.off && !fixed && !p.offOwn) {
     p.armPitch[0] = HOLD_PITCH;
     p.armOut[0] = HOLD_OUT;

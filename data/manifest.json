@@ -1,8 +1,8 @@
 {
-  "version": "4ec7fdab",
+  "version": "c7a21e17",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
-    "data/build.json": {"size": 17009, "stamp": "54a5b6de"},
+    "data/build.json": {"size": 17733, "stamp": "e9f51b10"},
     "data/combat.json": {"size": 6412, "stamp": "2bc2110b"},
     "data/crops.json": {"size": 2313, "stamp": "36c5359c"},
     "data/dyes.json": {"size": 2539, "stamp": "b65fc8c1"},
@@ -18,7 +18,7 @@
     "data/recipes.json": {"size": 29951, "stamp": "96de3315"},
     "data/references.json": {"size": 899, "stamp": "81bd77a4"},
     "data/sounds.json": {"size": 9612, "stamp": "adccf546"},
-    "data/tuning.json": {"size": 7374, "stamp": "28591269"},
+    "data/tuning.json": {"size": 7411, "stamp": "721a2605"},
     "data/wardrobes.json": {"size": 9067, "stamp": "ce830859"},
     "data/wood_tones.json": {"size": 5576, "stamp": "380f20b5"},
     "data/art/character/character_body.json": {"size": 17235, "stamp": "2b1fcf24"},
@@ -1264,6 +1264,7 @@
     "data/sprites/herb_woad.json": {"size": 740, "stamp": "646dcc27"},
     "data/sprites/herb_wolfsbane.json": {"size": 688, "stamp": "d8f80e77"},
     "data/sprites/herb_yarrow.json": {"size": 667, "stamp": "00f13f70"},
+    "data/sprites/ladder_wood.json": {"size": 330, "stamp": "914f4a81"},
     "data/sprites/lantern_post.json": {"size": 148, "stamp": "ea05063c"},
     "data/sprites/lectern.json": {"size": 201, "stamp": "f66311d9"},
     "data/sprites/loom.json": {"size": 214, "stamp": "95f448b2"},

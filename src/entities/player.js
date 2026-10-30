@@ -23,6 +23,7 @@ import { emit } from "../events.js";
 import { bagOf, beltOf, waterContainers } from "../inventory.js";
 import { getItem } from "../items.js";
 import { canReach, reachProblem } from "../reach.js"; // one reach test, distance and a clear line (#208)
+import * as ladders from "./ladders.js"; // a ladder's climb (docs/53 step 6b)
 
 
 export function createPlayer(gx, gy, { id = null } = {}) {
@@ -242,6 +243,7 @@ export function setSiegeQuery(fn) {
 }
 
 export function startSleep(player, bed) {
+  if (player.ladder) return; // never asleep on a ladder (the review of #608)
   player.sleeping = { bed: bed.id, since: loop.simTime(), hour: clock.getHour() };
   player.moving = false;
   player.sprinting = false;
@@ -386,6 +388,16 @@ export function updatePlayer(player, dt, snap = IDLE) {
   if (player.sleeping) {
     updateSleep(player, dt);
     playAnimation(player.anim, "idle");
+    advanceAnimation(player.anim, sheet, dt);
+    return;
+  }
+
+  // On a ladder (docs/53 step 6b): the climb moves the body, the walk inputs are ignored, the needs run on.
+  if (player.ladder) {
+    updateNeeds(player, dt);
+    player.moving = false;
+    ladders.step(player, dt);
+    playAnimation(player.anim, player.ladder ? "climb" : "idle");
     advanceAnimation(player.anim, sheet, dt);
     return;
   }

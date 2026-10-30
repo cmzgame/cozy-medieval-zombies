@@ -281,6 +281,7 @@ export const isStairBuild = (what) => !!(buildData[what] && buildData[what].kind
 export const isGateBuild = (what) => !!(buildData[what] && buildData[what].kind === "gate");
 // A stair on the Terrain tab (the Stone ramp) is a landform: placed outright like the ground's paints, with no bar, no cost, and no tool
 // (Michael, 2026-10-29: "make ramps build immediately for now just for building"); the Build tab's stairs stay timed and priced.
+export const isLadderBuild = (what) => !!(buildData[what] && buildData[what].kind === "ladder"); // a ladder (docs/53 step 6b)
 export const isInstantStair = (what) => isStairBuild(what) && !!buildData[what].dev && buildData[what].tab === "terrain";
 const MAX_DRAG = 12; // tiles a side of a floor's drag
 
@@ -553,6 +554,56 @@ function startStairBuild(player, what, x, y, dir) {
 }
 
 
+// ---- ladders (docs/53 step 6b): one tile, leaning on its far edge toward the player's facing (north or west), Free building only ----
+function ladderBlock(player, what, x, y, dir) {
+  if (buildData[what].dev && !rules.freeBuilding) return "Ladders are not in the game yet"; // Free building only for now, as the stairs
+  const L = layerOf(player);
+  const why = map.ladderBuildProblem(x, y, dir, L);
+  if (why) return why;
+  if (stations.bodyOnTiles([[x, y]], L)) return "Someone is in the way";
+  return shortfall(player, what);
+}
+function ladderReason(player, what, x, y, dir) {
+  const why = reachProblem(player, [[x, y]], buildReach() + 0.5, layerOf(player)); // by distance and a clear line, as a stair
+  if (why) return why === TOO_FAR ? "Too far" : why;
+  return ladderBlock(player, what, x, y, dir);
+}
+function ladderGhost(player, what) {
+  if (!input.getMouse().inside) return null;
+  const g = cursorGrid(player);
+  const x = Math.round(g.gx);
+  const y = Math.round(g.gy);
+  const dir = stairDirFrom(player, x, y);
+  const reason = ladderReason(player, what, x, y, dir);
+  const d = { n: [0, -1], w: [-1, 0], s: [0, 1], e: [1, 0] }[dir];
+  return { kind: "ladder", what, x, y, dir, landing: [x + d[0], y + d[1]], layer: layerOf(player), ok: reason === "", reason };
+}
+function startLadderBuild(player, what, x, y, dir) {
+  const d = buildData[what];
+  const action = {
+    kind: "build",
+    label: `Building ${d.label.toLowerCase()}`,
+    tiles: [[x, y]],
+    mx: x,
+    my: y,
+    range: buildReach() + 0.6,
+    duration: d.seconds || 0,
+    enabled: true,
+    simple: false,
+    perform() {
+      const why = ladderBlock(player, what, x, y, dir);
+      if (why) {
+        showMessage(why);
+        return false;
+      }
+      spend(player, what);
+      return !!map.buildLadder(x, y, dir, layerOf(player), { free: !!rules.freeBuilding });
+    },
+  };
+  if (startAction) startAction(player, action);
+  else action.perform();
+}
+
 // ---- castle gates (docs/02, 2026-10-29; docs/09) ----
 // The run a gate would take for the edge under the cursor: the hovered edge and the one along it on the side of the edge the cursor is nearer, for
 // a gate two wide; the hovered edge in the middle of three. Returns { tx, ty, edge } of the first edge of the run (the smallest tx on a north run, ty on a west).
@@ -686,7 +737,7 @@ export function canPutDown(player, tx, ty) {
       const L = layerOf(player); // on the player's own storey (docs/49)
       const t = map.tileAt(x, y, L);
       if (t.prop || !map.isWalkableTile(x, y, L)) return false;
-      if (map.stairAt(x, y, L) || map.landingAt(x, y, L)) return false; // never on a stair's step or its landing (the review of #549)
+      if (map.stairAt(x, y, L) || map.landingAt(x, y, L) || map.ladderAt(x, y, L)) return false; // never on a stair's step or its landing (the review of #549), nor a ladder's (#608)
       if (map.besideDoor(x, y, L)) return false; // a door's two tiles stay clear: the dead go for it and need to stand there (#134)
       if (map.curveCrossed(x, y, L)) return false; // no furniture where a ring's curve crosses (Michael, 2026-10-26, docs/50)
       if (stations.bodyOnTiles([[x, y]], L)) return false; // no body, the carrier's or another's, within a body's reach of it: it would be trapped inside
@@ -1151,6 +1202,11 @@ function removalTargetHere(sx, sy, layer) {
   const e = pickEdge(g0.gx, g0.gy);
   const ew = map.tileAt(e.tx, e.ty, layer)[e.edge];
   if (ew && ew.built && !walls.has(ew)) consider({ type: "wall", tx: e.tx, ty: e.ty, edge: e.edge, wall: ew, layer }, e.tx + e.ty - 0.75);
+  // A ladder a player built (docs/53 step 6b): its tile on this floor, or its hole or its landing from above.
+  if (!best) {
+    const lh = map.ladderAt(cx, cy, layer);
+    if (lh && lh.l.built) best = { type: "ladder", l: lh.l, tx: lh.l.at[0], ty: lh.l.at[1], layer: lh.l.layer, depth: cx + cy - 1 };
+  }
   // A stair a player built (docs/53 step 6: stairs come up with Free building): its steps on this floor, or its landing from above.
   if (!best) {
     const on = map.stairAt(cx, cy, layer);
@@ -1172,6 +1228,10 @@ function removalTargetHere(sx, sy, layer) {
 
 function targetReach(player, t) {
   if (t.type === "round") return nearestOutline(player, t.ring.x0, t.ring.y0, t.ring.n).d;
+  if (t.type === "ladder") { // from its floor its tile, from above its landing
+    const [x, y] = layerOf(player) === t.l.layer ? t.l.at : t.l.landing;
+    return Math.hypot(player.gx - x, player.gy - y);
+  }
   if (t.type === "stair") { // from its foot's floor its steps, from above its landing
     const near = layerOf(player) === t.s.layer ? [t.s.before, ...t.s.tiles] : [t.s.landing];
     return Math.min(...near.map(([x, y]) => Math.hypot(player.gx - x, player.gy - y)));
@@ -1187,7 +1247,7 @@ function targetReach(player, t) {
 // Why a removal is out of reach, or "": a wall you built by distance alone (Michael, 2026-10-18: removing a wall is fine from either side of it);
 // a made prop by distance and a clear line, so a chest or a station cannot be taken down through a wall (#227).
 function removeReachProblem(player, t) {
-  if (t.type === "wall" || t.type === "round" || t.type === "floor" || t.type === "stair") return targetReach(player, t) > removeReach() ? "Too far" : "";
+  if (t.type === "wall" || t.type === "round" || t.type === "floor" || t.type === "stair" || t.type === "ladder") return targetReach(player, t) > removeReach() ? "Too far" : "";
   const why = reachProblem(player, t.prop.tiles, removeReach(), t.prop.layer || 0);
   return why === TOO_FAR ? "Too far" : why || "";
 }
@@ -1222,8 +1282,13 @@ function stairEntryOf(s) {
   const id = Object.keys(buildData).find((k) => isStairBuild(k) && (buildData[k].material || "wood") === s.material);
   return id ? buildData[id] : null;
 }
+function ladderEntry() {
+  const id = Object.keys(buildData).find((k) => isLadderBuild(k));
+  return id ? buildData[id] : null;
+}
 function targetName(t) {
   if (t.type === "prop") return propName(t.prop.sprite);
+  if (t.type === "ladder") return ((ladderEntry() || {}).label || "ladder").toLowerCase();
   if (t.type === "stair") {
     const d = stairEntryOf(t.s);
     return d ? d.label.toLowerCase() : "stair";
@@ -1253,6 +1318,11 @@ function targetName(t) {
 // cloth) gives nothing back: which item it was is not kept.
 export function partsOf(t) {
   if (t.type === "round") return ringParts(t.ring);
+  if (t.type === "ladder") {
+    const d = ladderEntry();
+    const back = !d || t.l.free ? [] : Object.entries(d.cost || {}).map(([id, n]) => ({ id, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
+    return { back, tool: (d && d.tool) || tuning.world.boardTool };
+  }
   if (t.type === "stair") {
     const d = stairEntryOf(t.s);
     const back = !d || t.s.free ? [] : Object.entries(d.cost || {}).map(([id, n]) => ({ id, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
@@ -1313,6 +1383,17 @@ function asRing(t) {
 // Why this player may not take it apart now, or "": what it holds, the tool, the reach.
 export function takeApartProblem(player, t) {
   t = asRing(t);
+  if (t && t.type === "ladder") {
+    const L = layerOf(player);
+    if (L !== t.l.layer && L !== t.l.layer + 1) return "There is nothing there.";
+    if (!rules.freeBuilding) return "Ladders come apart only in Free building";
+    const living = stations.allBodies().filter((c) => c && !c.dead && !c.corpse);
+    const climbing = living.some((c) => c.ladder && c.ladder.id === t.l.id);
+    const why = map.ladderTakeUpProblem(t.l, living) || (climbing || stations.bodyOnTiles([t.l.at], t.l.layer, true) || stations.bodyOnTiles([t.l.landing], t.l.layer + 1, true) ? "Someone is on it" : ""); // a corpse too
+    if (why) return why;
+    const tool = partsOf(t).tool;
+    return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);
+  }
   if (t && t.type === "stair") {
     const L = layerOf(player);
     if (L !== t.s.layer && L !== t.s.layer + 1) return "There is nothing there.";
@@ -1377,6 +1458,10 @@ export function takeApart(player, t) {
 function destroy(t) {
   if (t.type === "stair") {
     map.removeStair(t.s); // its landing's own planks with it, what lay on them falling (docs/53 step 6)
+    return;
+  }
+  if (t.type === "ladder") {
+    map.removeLadder(t.l); // its landing's own planks with it (docs/53 step 6b)
     return;
   }
   if (t.type === "floor") {
@@ -1488,6 +1573,7 @@ function buildGhost(player) {
   const what = state.build.what;
   if (isRoundBuild(what)) return roundGhost(player, what);
   if (isStairBuild(what)) return stairGhost(player, what);
+  if (isLadderBuild(what)) return ladderGhost(player, what);
   if (isGateBuild(what)) return gateGhost(player, what);
   if (isPropBuild(what)) {
     // A prop on the tiles under the cursor (the Fireplace along the wall it backs onto, its facing from that wall; the fire pit centred on the
@@ -1624,12 +1710,13 @@ export function tryConfirm(player) {
       }
       return true;
     }
-    if (g.kind === "stair") {
+    if (g.kind === "stair" || g.kind === "ladder") {
       if (!g.ok) {
         showMessage(g.reason);
         return true;
       }
       if (sender) sender({ kind: "build", what: g.what, tx: g.x, ty: g.y, dir: g.dir });
+      else if (g.kind === "ladder") startLadderBuild(player, g.what, g.x, g.y, g.dir);
       else startStairBuild(player, g.what, g.x, g.y, g.dir);
       return true;
     }
@@ -1681,6 +1768,7 @@ function addressOf(t) {
   if (t.type === "round") return { type: "round", id: t.ring.id };
   if (t.type === "floor") return { type: "floor", tx: t.tx, ty: t.ty };
   if (t.type === "stair") return { type: "stair", tx: t.s.at[0], ty: t.s.at[1], layer: t.s.layer }; // by its low tile and its own floor
+  if (t.type === "ladder") return { type: "ladder", tx: t.l.at[0], ty: t.l.at[1], layer: t.l.layer }; // by its tile and its own floor
   return t.type === "prop" ? { type: "prop", id: t.prop.id } : { type: "wall", tx: t.tx, ty: t.ty, edge: t.edge };
 }
 
@@ -1688,6 +1776,10 @@ function addressOf(t) {
 // checked here against the guest's player, the refusal said to it through the acting player.
 export function performPlacement(player, cmd) {
   if (!player || !cmd) return false;
+  if (player.ladder) { // nothing is placed, built, or taken apart from a ladder (the review of #608)
+    showMessage("Not while on a ladder.");
+    return true;
+  }
   if (cmd.kind === "rug") {
     // A guest laying a rug from its bag (the host's own click calls placeRug directly): the same reach and fit, the refusal said through the acting player.
     rugs.placeRug(player, cmd.uid, cmd.tx, cmd.ty, cmd.facing);
@@ -1762,6 +1854,21 @@ export function performPlacement(player, cmd) {
       return true;
     }
     startStairBuild(player, cmd.what, tx, ty, dir);
+    return true;
+  }
+  if (cmd.kind === "build" && typeof cmd.what === "string" && isLadderBuild(cmd.what)) {
+    // A ladder (docs/53 step 6b): its tile and the way it leans, on the player's storey.
+    const tx = Math.round(Number(cmd.tx));
+    const ty = Math.round(Number(cmd.ty));
+    const dir = ["n", "w", "s", "e"].includes(cmd.dir) ? cmd.dir : null;
+    if (!dir || !Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    if (player.action) return true;
+    const why = ladderReason(player, cmd.what, tx, ty, dir);
+    if (why) {
+      showMessage(why);
+      return true;
+    }
+    startLadderBuild(player, cmd.what, tx, ty, dir);
     return true;
   }
   if (cmd.kind === "build" && typeof cmd.what === "string" && isGateBuild(cmd.what)) {
@@ -1842,6 +1949,12 @@ export function performPlacement(player, cmd) {
       const tx = Math.round(Number(a.tx));
       const ty = Math.round(Number(a.ty));
       if (Number.isFinite(tx) && Number.isFinite(ty)) t = { type: "floor", tx, ty, layer: layerOf(player) };
+    } else if (a.type === "ladder") {
+      // A ladder by its tile, on the player's floor or the one under it (its landing's side).
+      const tx = Math.round(Number(a.tx));
+      const ty = Math.round(Number(a.ty));
+      const l = map.ladders().find((q) => q.built && q.at[0] === tx && q.at[1] === ty && (q.layer === layerOf(player) || q.layer + 1 === layerOf(player)));
+      if (l) t = { type: "ladder", l, tx, ty, layer: l.layer };
     } else if (a.type === "stair") {
       // A stair by its low tile, on the player's floor or the one under it (its landing's side): the built stair standing there now.
       const tx = Math.round(Number(a.tx));
@@ -1965,6 +2078,10 @@ export function prompt() {
     const n = g.tiles.length;
     if (g.terrain) return { label: g.dragging ? `Release to paint ${g.good} of ${n} tiles · Esc cancel` : "Click to paint · drag for more · Esc cancel", mx, my, progress: null, enabled: true };
     return { label: g.dragging ? `Release to lay ${g.good} of ${n} (${costText(g.what)} a tile) · Esc cancel` : `Click to lay (${costText(g.what)}) · drag for more · Esc cancel`, mx, my, progress: null, enabled: true };
+  }
+  if (g.kind === "ladder") {
+    if (!g.ok) return { label: g.reason, mx: g.x, my: g.y, progress: null, enabled: false };
+    return { label: `Click to build (${costText(g.what)}) · Esc cancel`, mx: g.x, my: g.y, progress: null, enabled: true };
   }
   if (g.kind === "stair") {
     if (!g.ok) return { label: g.reason, mx: g.x, my: g.y, progress: null, enabled: false };

@@ -16,6 +16,10 @@ import * as mana from "./mana.js"; // a spell's cost: a guest's prediction flash
 // shield show at once; what touches anything but the player is the host's alone and skipped: the pokes (main.js makes
 // a guest's own), the hit itself (combat.tryAttack's `predict`), the bow's draw and loose, and the shove's push (its recovery and pose are predicted, docs/41 step 2).
 export function controlPlayer(player, zombies, dt, s, predict = false) {
+  if (player.ladder) { // both hands on a ladder (docs/53 step 6b; the review of #608): no swing, guard, draw, or throw
+    player.blocking = false;
+    return;
+  }
   // The right button held with a shield in the off hand raises the guard (docs/21): you can
   // still swing, stab, or throw from behind it, for much less damage (the shield's `attackMult`).
   // It is not held through carrying. It does hold with the bag open (the world goes on

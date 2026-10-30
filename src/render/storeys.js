@@ -587,6 +587,42 @@ export function stairDrawables(tilesL, L, bias, out, only = null) {
   }
 }
 
+// ---- ladders (docs/53 step 6b), dev art until the art pass draws one ----
+// A ladder on layer L whose tile is among `tilesL`: two rails from its tile's floor to a hand over the storey above, against its tile's far
+// edge, and a rung every 16 px between them, each on the plane just in front of that edge, in the wood of the dev stairs.
+const LADDER_GAP = 0.12; // tiles in front of the far edge the ladder leans on
+const LADDER_HALF = 0.28; // tiles from its middle to each rail
+const LADDER_RAIL = 0.07; // a rail's width, in tiles
+export function ladderDrawables(tilesL, L, bias, out) {
+  const list = map.ladders().filter((l) => l.layer === L);
+  if (!list.length) return;
+  const inView = new Set(tilesL.map(([x, y]) => `${x},${y}`));
+  for (const l of list) {
+    if (!inView.has(`${l.at[0]},${l.at[1]}`)) continue;
+    out.push({ key: (l.at[0] + l.at[1]) * 1000 + 0.4, kind: "ladder", vis: true, rect: null, canOcclude: false, occluder: false, emit: () => emitLadder(l, bias) });
+  }
+}
+function emitLadder(l, bias) {
+  const shade = STAIR_SHADES.wood;
+  const world = l.at;
+  const top = map.STOREY + 12;
+  const north = l.dir === "n";
+  const c = north ? l.at[1] - 0.5 + LADDER_GAP : l.at[0] - 0.5 + LADDER_GAP; // the plane's line across the run
+  const mid = north ? l.at[0] : l.at[1];
+  const P = (u, h) => (north ? at(u, c, h) : at(c, u, h));
+  gl.surface(north ? planeY(c) : planeX(c), bias + 0.6, 1);
+  for (const side of [-1, 1]) {
+    const u0 = mid + side * LADDER_HALF - LADDER_RAIL / 2;
+    const u1 = u0 + LADDER_RAIL;
+    gl.poly([P(u0, top), P(u1, top), P(u1, 0), P(u0, 0)], side < 0 ? shade.left : shade.right, { world, heights: [top, top, 0, 0] });
+  }
+  for (let h = 12; h <= map.STOREY; h += 16) {
+    const u0 = mid - LADDER_HALF;
+    const u1 = mid + LADDER_HALF;
+    gl.poly([P(u0, h + 2), P(u1, h + 2), P(u1, h - 1), P(u0, h - 1)], shade.top, { world, heights: [h + 2, h + 2, h - 1, h - 1] });
+  }
+}
+
 // ---- an upper floor's picture, per chunk ----
 
 const bakes = new Map(); // chunk key -> { sheet, v }: its picture and the chunk's version it was made at

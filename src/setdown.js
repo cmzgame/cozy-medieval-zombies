@@ -37,7 +37,7 @@ export function standProblem(rule, tx, ty, layer = 0) {
   if (rule === "natural") return L ? "It grows only in the ground" : trees.standProblem(tx, ty); // a sapling: open grass outdoors, no wall beside it (docs/46 step 3)
   const t = map.peekTile(tx, ty, L);
   if (!t || !map.isWalkableTile(tx, ty, L) || t.prop || t.rug) return "No room";
-  if (map.stairAt(tx, ty, L) || map.landingAt(tx, ty, L)) return "No room"; // never on a stair's step or its landing (the review of #549)
+  if (map.stairAt(tx, ty, L) || map.landingAt(tx, ty, L) || map.ladderAt(tx, ty, L)) return "No room"; // never on a stair's step or its landing (the review of #549), nor a ladder's (#608)
   const curve = map.ringFurnitureProblem(tx, ty, L); // a tile a ring's curve crosses holds no furniture (Michael, 2026-10-26, docs/50)
   if (curve) return curve;
   if (rule === "outdoors" && t.room > 0) return "Outdoors only";
@@ -87,7 +87,7 @@ export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite), l
       const y = ty + dy;
       const t = map.peekTile(x, y, L);
       if (!t || !map.isWalkableTile(x, y, L) || t.prop || t.rug) return "No room";
-      if (map.stairAt(x, y, L) || map.landingAt(x, y, L)) return "No room";
+      if (map.stairAt(x, y, L) || map.landingAt(x, y, L) || map.ladderAt(x, y, L)) return "No room";
       const curve = map.ringFurnitureProblem(x, y, L);
       if (curve) return curve;
       if (onWater(t)) return "Not on water";

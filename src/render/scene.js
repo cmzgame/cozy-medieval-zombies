@@ -22,7 +22,7 @@ import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/4
 import { postDrawables, setStoreyView, setViewerAt, wallDrawables } from "./walls.js";
 import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
-import { emitFadedFloors, emitFloors, faderFor, flatHere, hiderFor, layersFor, liftOf, setFlatBias, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
+import { emitFadedFloors, emitFloors, faderFor, flatHere, hiderFor, ladderDrawables, layersFor, liftOf, setFlatBias, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
 import { cover as coverTuning } from "../tuning.js"; // the cover rule's levers (docs/53 section 6.2)
 
 // The night, as before: tunables Michael picks by eye, live on
@@ -308,6 +308,7 @@ export function renderScene(args) {
         propDrawables(tilesT, visL, drawables);
         floorItemDrawables(tilesT, visL, drawables);
         stairDrawables(tilesT, L, DEPTH_BIAS.prop, drawables, fadeHere ? (s) => mine(s.tiles[1][0], s.tiles[1][1]) : null); // the stairs on this layer (docs/49 section 11)
+        ladderDrawables(tilesT, L, DEPTH_BIAS.prop, drawables); // the ladders on this layer (docs/53 step 6b)
         // The bodies on this layer, each a further `rise` up when it is on a stair, its picture made and drawn at that height.
         const mineBody = (e) => (e.layer || 0) === L && !hidden(Math.round(e.gx), Math.round(e.gy), L) && mine(e.gx, e.gy); // a body on a hidden storey is not drawn (the review of #534)
         entityDrawables(entities.filter((e) => !e.rise && mineBody(e)), visL, drawables, drawAll, player);

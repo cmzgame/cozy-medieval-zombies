@@ -299,7 +299,12 @@ export const potions = {
   between: 10,
 };
 
-const sections = { zombie, player, villager, world, population, sight, cover, feel, floaters, objectHighlight, hoverCard, work, water, resources, trees, potions };
+// A ladder's climb (docs/53 step 6b, `49` section 4b): the seconds a storey takes, up or down (*default* 1.5, Michael's to tune, docs/42).
+export const ladder = {
+  climbSeconds: 1.5,
+};
+
+const sections = { zombie, player, villager, world, population, sight, cover, ladder, feel, floaters, objectHighlight, hoverCard, work, water, resources, trees, potions };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {
