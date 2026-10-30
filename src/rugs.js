@@ -42,20 +42,21 @@ export const aNameOf = (sprite) => (sprite.startsWith("tree_") || /^crop_/.test(
 // Why a rug of this sprite and facing cannot lie with its top tile at (tx, ty), or "": a tile with no ground to lie on (water, an unloaded edge), another rug, a prop that cannot be
 // lifted away (so the rug could never be taken up), or a wall between two of its tiles (it fits within a room or the open ground, never across a wall). Furniture that can be lifted
 // is fine on the tiles, and so are items and bodies.
-export function fitProblem(sprite, facing, tx, ty) {
+// On a storey (`layer`, docs/53 step 6) the same on that floor: never over the void or a stair.
+export function fitProblem(sprite, facing, tx, ty, layer = 0) {
   const [w, h] = footprintFor(sprite, facing);
   for (let dy = 0; dy < h; dy++) {
     for (let dx = 0; dx < w; dx++) {
       const x = tx + dx;
       const y = ty + dy;
-      const t = map.peekTile(x, y);
-      if (!t) return "No room";
+      const t = map.peekTile(x, y, layer);
+      if (!t || map.isEngineFloor(t.floor) || map.stairAt(x, y, layer)) return "No room";
       if (map.floorRule(t.floor).walk === false) return "No room";
       if (t.rug) return "A rug is already there";
       // Only under what can be lifted away (a table, a chest, a bed, a chair, a barrel): under a tree, an anvil, a crop, or a cart it could never come up again.
       if (t.prop && getDef(t.prop.sprite).carry !== true) return `There is ${aNameOf(t.prop.sprite)} in the way`;
-      if (dx > 0 && map.wallBetween(x - 1, y, x, y)) return "A wall is in the way";
-      if (dy > 0 && map.wallBetween(x, y - 1, x, y)) return "A wall is in the way";
+      if (dx > 0 && map.wallBetween(x - 1, y, x, y, layer)) return "A wall is in the way";
+      if (dy > 0 && map.wallBetween(x, y - 1, x, y, layer)) return "A wall is in the way";
     }
   }
   return "";
@@ -89,7 +90,7 @@ export function placeRug(player, uid, tx, ty, facing) {
   if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
   const facings = facingsOf(sprite);
   if (!facings.includes(facing)) facing = facings[0];
-  const why = reachFor(player, sprite, facing, tx, ty) || fitProblem(sprite, facing, tx, ty);
+  const why = reachFor(player, sprite, facing, tx, ty) || fitProblem(sprite, facing, tx, ty, player.layer || 0); // on the player's own floor (docs/53 step 6)
   if (why) {
     showMessage(why);
     return false;
@@ -106,7 +107,7 @@ export function placeRug(player, uid, tx, ty, facing) {
 // The furniture standing on a laid rug, or null: anything in a `prop` slot on its tiles (a table, a chest, a barrel).
 export function standingOn(rug) {
   for (const [x, y] of rug.tiles) {
-    const t = map.peekTile(x, y);
+    const t = map.peekTile(x, y, rug.layer || 0);
     if (t && t.prop) return t.prop;
   }
   return null;
@@ -138,7 +139,7 @@ export function pickUp(player, rug) {
 }
 
 // The rug on a tile, or null.
-export function rugAt(x, y) {
-  const t = map.peekTile(x, y);
+export function rugAt(x, y, layer = 0) {
+  const t = map.peekTile(x, y, layer);
   return (t && t.rug) || null;
 }

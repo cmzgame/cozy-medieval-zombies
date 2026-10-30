@@ -3,7 +3,7 @@
 // asks here, on the host where it is performed, so a guest's command meets the same test as the host's own click. A leaf module (it imports only
 // visibility), so the verbs, the stations, and the panels can all use it.
 
-import { lineOfSight } from "./visibility.js";
+import { lineOfReach } from "./visibility.js";
 
 export const TOO_FAR = "Too far away.";
 export const WALL_IN_THE_WAY = "There is a wall in the way.";
@@ -28,7 +28,7 @@ export function reachProblem(player, tiles, range, layer = (player && player.lay
   if ((layer || 0) !== ((player && player.layer) || 0)) return OTHER_FLOOR;
   const { tile, distance } = nearestTile(player, tiles);
   if (!tile || distance > range) return TOO_FAR;
-  if (!lineOfSight(player.gx, player.gy, tile[0], tile[1], (player && player.layer) || 0)) return WALL_IN_THE_WAY;
+  if (!lineOfReach(player.gx, player.gy, tile[0], tile[1], (player && player.layer) || 0)) return WALL_IN_THE_WAY; // a shut gate's bars stop a hand as they stop a blow (docs/53 step 6; a cell is a cell)
   return null;
 }
 

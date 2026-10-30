@@ -101,9 +101,18 @@ export function vertexAt(vx, vy, layer) {
 }
 
 // A straight battlement edge's picture by name: `<north|west>_<far|near>_<plain|plain_1|plain_2|loop|late|early>`. A plain variant by a hash of
-// the edge (any meets any), the arrow-loop one for about a tenth of them (`special.chance`), and `late` / `early` where the edge's first / last
+// the edge (any meets any), the arrow-loop one at `special.chance` of them, spread evenly (`loopAt`), and `late` / `early` where the edge's first / last
 // 16 belong to an inner corner at its west or north / east or south vertex. null with no side. `def` is the wall's definition, `has` whether its
 // sheet has a frame.
+// Whether an edge of a run takes the arrow loop: one in every block of round(1 / chance) edges along its line, at a spot in the block by a hash
+// of the block (docs/53 step 6: a hash alone gave a run of forty anything from none to one in five; `#578`). Pure, from the edge alone.
+export function loopAt(tx, ty, edge, chance) {
+  if (!(chance > 0)) return false;
+  const P = Math.max(1, Math.round(1 / chance));
+  const [i, line] = edge === "n" ? [tx, ty] : [ty, tx];
+  const block = Math.floor(i / P);
+  return ((i % P) + P) % P === Math.floor(map.hash2(block, line, edge === "n" ? 9 : 10) * P);
+}
 export function edgeFrame(def, tx, ty, edge, layer, has = () => true) {
   const side = sideOf(tx, ty, edge, layer);
   if (!side) return null;
@@ -114,7 +123,7 @@ export function edgeFrame(def, tx, ty, edge, layer, has = () => true) {
   const cut = innerA && innerA.inner ? "late" : innerB && innerB.inner ? "early" : null;
   if (cut && has(`${key}_${cut}`)) return `${key}_${cut}`;
   const loop = def.special && def.special.loop && def.special.loop[key];
-  if (loop && has(loop) && map.hash2(tx, ty, edge === "n" ? 9 : 10) < (def.special.chance || 0)) return loop;
+  if (loop && has(loop) && loopAt(tx, ty, edge, def.special.chance || 0)) return loop;
   const faces = ((def.faces && def.faces[key]) || []).filter(has);
   return faces.length ? faces[Math.floor(map.hash2(tx, ty, edge === "n" ? 7 : 8) * faces.length)] : `${key}_plain`;
 }

@@ -82,6 +82,11 @@ export function emitGhost(ghost) {
     } else if (t.type === "wall") {
       const shut = { ...t.wall, open: false, shutter: t.wall.kind === "window" ? "closed" : null };
       makeWall(shut, t.edge, t.tx, t.ty, true, false, tint).emit();
+    } else if (t.type === "stair") {
+      // A stair taken apart (docs/53 step 6): each step's tread washed at its height, and its landing, drawn from the floor the ghost is on.
+      const base = ((t.s.layer || 0) - (ghost.layer || 0)) * map.STOREY;
+      t.s.tiles.forEach(([x, y], k) => emitGhostTile(x, y, base + 32 * (k + 1), tint));
+      emitGhostTile(t.s.landing[0], t.s.landing[1], base + map.STOREY, tint);
     } else if (t.type === "floor") {
       emitGhostTile(t.tx, t.ty, 0, tint); // a laid floor tile (docs/49 section 5, #549), drawn as the floor's own ghost is, on the player's floor
     } else if (t.prop) {
