@@ -287,7 +287,7 @@ function wearAction(entry, tx, ty, player) {
       const old = player.worn[def.wear];
       if (old) {
         player.worn[def.wear] = null;
-        if (def.wear === "back" || !stow(player, old)) map.dropItem(tx, ty, old);
+        if (def.wear === "back" || !stow(player, old)) map.dropItem(tx, ty, old, player.layer || 0); // on the floor it was taken from
       }
       player.worn[def.wear] = entry;
       return true;
@@ -404,7 +404,7 @@ function pickUpAction(entry, tx, ty, player, simple) {
       }
       map.takeItem(tx, ty, entry, player.layer || 0);
       if (!takeIn(player, entry)) {
-        map.dropItem(tx, ty, entry);
+        map.dropItem(tx, ty, entry, player.layer || 0); // put back on the floor it was taken from
         return false;
       }
       return true;

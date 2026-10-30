@@ -1314,7 +1314,7 @@ function stepGame(dt) {
     axis: input.moveAxis(),
     sprint: input.isDown("ShiftLeft") || input.isDown("ShiftRight"),
     aim: { x: mouse.x - o.x, y: mouse.y - o.y }, // the cursor relative to the chest, a vector a host can read (net.js)
-    aimAt: archery.aimPoint(client.me, mouse), // the ground point the cursor means, for a bow drawn on a host (net.js)
+    aimAt: archery.aimPoint(client.me, { mouse, seen: visible }), // the floor point the cursor means, its layer the highest floor in my sight under it (docs/53 step 2), for a bow drawn on a host (net.js)
     clicked,
     clickSpent,
     keys,

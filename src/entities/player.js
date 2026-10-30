@@ -4,7 +4,7 @@
 
 import * as floaters from "../floaters.js"; // the floating numbers over heads (#294)
 import * as iso from "../iso.js";
-import { moveCircle, canStepOn, floorSpeedAt, propById, roomAt, stairStep } from "../map.js";
+import { moveCircle, canStepOn, floorSpeedAt, propById, roomAt, stairStep, STOREY } from "../map.js";
 import { findPath } from "../pathfind.js";
 import { getSheet, getDef } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
@@ -94,9 +94,10 @@ export function damagePlayer(player, amount) {
 }
 
 
+// The point on screen a facing and an aim are read from: the chest as drawn, lifted by the body's storey and its rise (docs/53 step 2).
 export function aimOrigin(player) {
   const p = iso.toScreen(player.gx, player.gy);
-  return { x: p.x, y: p.y - T.aimY };
+  return { x: p.x, y: p.y - T.aimY - STOREY * (player.layer || 0) - (player.rise || 0) };
 }
 
 // ---- needs ----

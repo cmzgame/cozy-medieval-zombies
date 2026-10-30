@@ -253,11 +253,19 @@ function screenAngleBetween(ax, ay, bx, by) {
 // to BODY_SLACK when its feet are a full body height lower on screen). The arc
 // is measured in screen space from the chest against sample points up the
 // zombie's body, so a sprite inside the drawn wedge is hit. Point blank always hits.
+// A body's height on screen: its storey and its rise, as it is drawn (docs/53 step 2: the aim's origin is lifted the same).
+const liftOf = (e) => 96 * ((e && e.layer) || 0) + ((e && e.rise) || 0);
+// A point on screen as drawn: the ground point lifted by the body's height.
+function drawnAt(e) {
+  const p = iso.toScreen(e.gx, e.gy);
+  return { x: p.x, y: p.y - liftOf(e) };
+}
+
 export function inWedge(player, weapon, z) {
   const feet = Math.hypot(z.gx - player.gx, z.gy - player.gy);
   if (feet <= BLOW.pointBlank) return true;
-  const pf = iso.toScreen(player.gx, player.gy);
-  const zs = iso.toScreen(z.gx, z.gy);
+  const pf = drawnAt(player);
+  const zs = drawnAt(z);
   const slack = Math.max(0, Math.min(1, (zs.y - pf.y) / BODY_TOP)) * BODY_SLACK;
   if (feet > weapon.range + slack + 1e-6) return false; // inclusive: a zombie exactly at reach is in reach
   const half = (weapon.arc * Math.PI) / 180 / 2;
@@ -275,7 +283,7 @@ export function inWedge(player, weapon, z) {
 
 // The samples of a zombie's body on screen, for the hit-shape overlay.
 export function bodySamples(z) {
-  const zs = iso.toScreen(z.gx, z.gy);
+  const zs = drawnAt(z);
   const out = [];
   for (const sy of BODY_SAMPLES) for (const dx of [-BODY_HALF_W, 0, BODY_HALF_W]) out.push([Math.round(zs.x + dx), Math.round(zs.y - sy)]);
   return out;
@@ -287,14 +295,16 @@ export function bodySamples(z) {
 export function wedgePolygon(player, weapon, range = weapon.range, arc = weapon.arc) {
   const half = (arc * Math.PI) / 180 / 2;
   const o = aimOrigin(player);
-  const feet = iso.toScreen(player.gx, player.gy);
+  const feet = drawnAt(player);
+  const up = liftOf(player);
   const g = iso.screenDirToGrid(player.aim.sx, player.aim.sy);
   const theta0 = Math.atan2(g.gy, g.gx);
   const pts = [[feet.x, feet.y]];
   const STEPS = 72;
   for (let i = -STEPS / 2; i <= STEPS / 2; i++) {
     const th = theta0 + (i / STEPS) * Math.PI;
-    const p = iso.toScreen(player.gx + Math.cos(th) * range, player.gy + Math.sin(th) * range);
+    const g0 = iso.toScreen(player.gx + Math.cos(th) * range, player.gy + Math.sin(th) * range);
+    const p = { x: g0.x, y: g0.y - up }; // the ground circle on the player's own floor
     if (screenAngleBetween(player.aim.sx, player.aim.sy, p.x - o.x, p.y - o.y) <= half) pts.push([p.x, p.y]);
   }
   return pts;

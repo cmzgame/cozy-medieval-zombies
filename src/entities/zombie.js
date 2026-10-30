@@ -125,7 +125,7 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
   // The dead then know where the blow came from, when they are hunting at all.
   if (from && rules.zombieAggro) {
     z.aggro = true;
-    z.lastSeen = addr(from[0], from[1], z.layer || 0); // a tile address names its layer off the ground (docs/49 section 12): a blow is on one layer
+    z.lastSeen = addr(from[0], from[1], Number.isInteger(from[2]) ? from[2] : z.layer || 0); // a tile address names its layer off the ground (docs/49 section 12): a blow by hand is on its own layer, a shot names the archer's (docs/53 step 2)
     z.sincePlayer = 0;
     // A player's blow it lives through is a first-hand turn to a player (docs/48): the pull, made at the top of its next step, where the
     // list of the dead is (a killing blow returned above and calls no one).
