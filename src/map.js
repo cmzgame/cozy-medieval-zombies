@@ -1017,7 +1017,9 @@ export function restage(prop, sprite, regrowAt) {
 export function removeProp(prop) {
   const layer = prop.layer || 0;
   for (const [tx, ty] of prop.tiles) {
-    const t = tileAt(tx, ty, layer);
+    // growTile, not tileAt: a tile on an ungrown neighbour chunk (#341) must be grown to clear the
+    // authored prop from it, or the ghost stands again when the neighbour grows (#582).
+    const t = growTile(tx, ty, layer);
     if (t.prop === prop) t.prop = null;
     if (t.rug === prop) t.rug = null;
   }
