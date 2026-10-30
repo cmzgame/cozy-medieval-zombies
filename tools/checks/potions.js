@@ -285,27 +285,35 @@ export async function run(game, opts = {}) {
     row("twenty seconds over the lit fire: one healing potion in the cauldron's output", !!brewed && !(witch.queue && witch.queue.length), witch.output ? witch.output.items.map(id).join(",") : "no output");
     stationPanel.close();
 
-    // ---- drinking by the real keys, the bag's double-click, the buff in the row ----
+    // ---- drinking by the real keys: the utility slot's still (step 4, #483, made a potion and a poison holdable, docs/47 section 7: a main
+    // or an off-hand slot's key draws one into that hand instead, below), the bag's double-click, the buff in the row ----
     bag.items.length = 0;
-    belt[0] = mk("healing_potion");
-    belt[1] = mk("poison");
-    belt[2] = mk("healing_potion");
+    belt[2] = mk("healing_potion"); // the utility slot: still drinks
     me.potionAt = null;
     me.hp = 40;
     render();
     const slotEl = (i) => document.querySelector(`#hotbar .inv-item[data-slot="belt:${i}"]`);
-    const c0 = slotEl(0) ? await hoverText(slotEl(0)) : "(no slot)";
-    row("a potion's card on a belt slot leads with what its key does there", /From this main-hand slot: drunk\./.test(c0), c0);
+    const c0 = slotEl(2) ? await hoverText(slotEl(2)) : "(no slot)";
+    row("a potion's card on the utility slot leads with what its key does there", /From the utility slot: drunk\./.test(c0), c0);
     card.hide();
     clearMessage();
-    press(1);
-    row("key 1 drinks the healing potion: health up by its number, the clay vial back in the slot", Math.abs(me.hp - (40 + P.heal)) < 0.5 && id(belt[0]) === "clay_vial", `hp ${me.hp}; slot 1 ${id(belt[0])}; "${message()}"`);
+    press(3);
+    row("key 3 drinks the healing potion: health up by its number, the clay vial back in the slot", Math.abs(me.hp - (40 + P.heal)) < 0.5 && id(belt[2]) === "clay_vial", `hp ${me.hp}; slot 3 ${id(belt[2])}; "${message()}"`);
+    belt[2] = mk("healing_potion");
     clearMessage();
     press(3);
     row("key 3 within ten seconds is refused with its line, the potion kept", message() === potions.TOO_SOON && id(belt[2]) === "healing_potion" && Math.abs(me.hp - (40 + P.heal)) < 0.5, `"${message()}"`);
+    // From step 4 (#483): a main or an off-hand slot's key draws it into that hand, as any held thing's does, never drinking or saying the poison's line there any more.
+    belt[0] = mk("healing_potion");
+    belt[1] = mk("poison");
+    clearMessage();
+    press(1);
+    row("key 1 now draws the healing potion into the main hand (step 4, #483)", !!(me.hands.main && me.hands.main.id === "healing_potion") && !belt[0], `main ${id(me.hands.main)}; slot 1 ${id(belt[0])}; "${message()}"`);
     clearMessage();
     press(2);
-    row("key 2 on a poison says its line and drinks nothing", message() === potions.POISON_WORD && id(belt[1]) === "poison", `"${message()}"`);
+    row("key 2 now draws the poison into the off hand (step 4, #483)", !!(me.hands.off && me.hands.off.id === "poison") && !belt[1], `off ${id(me.hands.off)}; slot 2 ${id(belt[1])}; "${message()}"`);
+    me.hands.main = null;
+    me.hands.off = null;
     for (let i = 0; i < 60 * (P.between + 0.5); i++) G.loop.advance(1 / 60);
     const sp = mk("stamina_potion");
     intoBag(me, sp);

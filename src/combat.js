@@ -79,10 +79,12 @@ export function setCombatData(data) {
 // The combo window reads the sim's clock (loop.simTime), not a clock of this module's advanced per
 // player (docs/31/05, item 13); the kick is an event the owning client answers with its camera.
 
-// What the main-hand item does as a weapon, else fists.
+// What the main-hand item does as a weapon, else fists; null for a potion or a poison (docs/47 section 7), held to throw from the
+// other mode, never to swing: the left button does nothing with one in the main hand, not even a fist (combat.swingFromLeft, tryAttack).
 export function weaponOf(player) {
   const e = player.hands.main;
   const def = e && items.getItem(e.id);
+  if (def && (def.potion || def.poison)) return null;
   return def && def.weapon ? def.weapon : FISTS;
 }
 
@@ -184,7 +186,8 @@ export function guardedMult(player) {
 }
 
 export function holdsWeapon(player) {
-  return weaponOf(player) !== FISTS;
+  const w = weaponOf(player);
+  return !!w && w !== FISTS;
 }
 
 // The zombies a blow reaches: everything in the wedge, or only the nearest one
@@ -496,6 +499,7 @@ export function tryShove(player, zombies, predict = false) {
 export function swingTargets(player, zombies) {
   if (!canAct(player, true)) return [];
   const w = nextSwingWeapon(player);
+  if (!w) return []; // a potion or a poison in the main hand swings nothing (docs/47 section 7)
   const near = zombies.filter((z) => Math.abs(z.gx - player.gx) <= w.range + BODY_SLACK + 1 && Math.abs(z.gy - player.gy) <= w.range + BODY_SLACK + 1);
   return blowTargets(player, w, near);
 }

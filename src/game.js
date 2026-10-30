@@ -161,6 +161,7 @@ function wireAnimals() {
   animal.resetSnares(map.allProps()); // the snares this world has, set before it was saved
   animal.setDefs((id) => { try { return getDef(id); } catch { return null; } }); // what a feeding trough is (a definition's `feed`)
   archery.setTargets(() => [...S.zombies, ...S.animals]);
+  archery.setSplashBodies(() => ({ players: S.players, villagers: S.villagers })); // a thrown potion's splash (docs/47 section 7)
   combat.setAnimals(() => S.animals);
   animal.setAnimalList(() => S.animals);
 }

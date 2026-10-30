@@ -184,6 +184,16 @@ function shotLines(def) {
     if (!th.vanish) out.push(line(`It lands to be picked up again, or stays in the body it hits${th.breakChance ? `; it may break (${Math.round(th.breakChance * 100)}%)` : ""}.`));
     if (th.ignite) out.push(burnLine());
   }
+  // A thrown potion's or poison's splash (docs/47 section 7): always the other mode, since it has no swing to share the left button with.
+  if (th && th.splash) {
+    const r = th.splash.radius ?? th.splash;
+    out.push(line(`Throw (middle button or Q): shatters where it lands, up to ${tiles(th.range ?? shot.range)}, splashing ${tiles(r * 2)} across.`));
+    if (def.potion === "heal") out.push(line(`Heals ${POTIONS.heal} at once in every player and villager it splashes.`));
+    else if (def.potion === "stamina") out.push(line(`Fills stamina in every player it splashes, coming back ${POTIONS.staminaMult === 2 ? "twice" : `${POTIONS.staminaMult} times`} as fast for ${POTIONS.staminaSeconds} seconds.`));
+    else if (def.potion === "mana") out.push(line(`Restores ${POTIONS.mana} mana at once in every player and villager it splashes.`));
+    else if (def.poison) out.push(line(`Splashes every one of the dead and every wild animal within reach; never a player, a villager, or a tame animal.`));
+    if (def.potion) out.push(line(`A splash counts as a drink: a player within ${POTIONS.between} seconds of one gets nothing from it.`));
+  }
   if (def.bow) {
     const b = def.bow;
     out.push(line(`Draw and release (left button): ${byDraw(b.damage ?? shot.damage)}, up to ${tiles(b.range ?? shot.range)}.`));

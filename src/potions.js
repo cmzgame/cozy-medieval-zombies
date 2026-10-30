@@ -51,18 +51,47 @@ export function drinkProblem(player, entry) {
   return "";
 }
 
+// The three kinds' raw numbers, shared by a drink (apply, below) and a splash (splashEffect, docs/47 section 7): heal touches hp alone, so it
+// works on a villager as on a player; mana only a body that carries one (a villager has none, so a mana splash on one does nothing, read
+// from the entity it is, never a field invented for the occasion); stamina only ever reaches a player (the splash's own caller leaves
+// villagers out of its list, "villagers have no stamina").
+function heal(body) {
+  const hp0 = body.hp;
+  body.hp = Math.min(body.maxHp, body.hp + P.heal);
+  if (body.hp !== hp0) floaters.heal(body, body.hp - hp0); // the green number, what was gained
+}
+function restoreMana(body) {
+  if (typeof body.mana !== "number") return;
+  body.mana = Math.min(body.maxMana, body.mana + P.mana); // the bar of #480 (src/mana.js), up to the player's own most
+}
+function fillStamina(body) {
+  body.stamina = body.maxStamina;
+  body.winded = false;
+  body.buffs = { ...(body.buffs || {}), stamina: { left: P.staminaSeconds } }; // a second potion later starts the time again, it does not add
+}
 function apply(player, kind) {
-  if (kind === "heal") {
-    const hp0 = player.hp;
-    player.hp = Math.min(player.maxHp, player.hp + P.heal);
-    floaters.heal(player, player.hp - hp0); // the green number, what was gained
-  } else if (kind === "stamina") {
-    player.stamina = player.maxStamina;
-    player.winded = false;
-    player.buffs = { ...(player.buffs || {}), stamina: { left: P.staminaSeconds } }; // a second potion later starts the time again, it does not add
-  } else if (kind === "mana") {
-    player.mana = Math.min(player.maxMana, player.mana + P.mana); // the bar of #480 (src/mana.js), up to the player's own most
-  }
+  if (kind === "heal") heal(player);
+  else if (kind === "stamina") fillStamina(player);
+  else if (kind === "mana") restoreMana(player);
+}
+
+// A thrown potion's splash (docs/47 section 7), on anyone within it, a player or a villager alike: the same raw numbers a drink gives, pure
+// (never a cooldown; a player's is splashDrink's, below). `body.dead` or no health at all (never splashed): nothing.
+export function splashEffect(body, kind) {
+  if (!body || body.dead || !(body.hp > 0)) return;
+  if (kind === "heal") heal(body);
+  else if (kind === "mana") restoreMana(body);
+  else if (kind === "stamina") fillStamina(body);
+}
+
+// A splash reaching a player (docs/47 section 7): "a splash counts as a drink" by the same `between` rule a drink keeps, per player
+// independently ("a splash at your own feet is no way round the rule"): one within the cooldown gets nothing from it and the cooldown runs
+// on unchanged; one it does help has the effect and the cooldown starts again from now. Returns whether it helped.
+export function splashDrink(player, kind) {
+  if (!player || player.dead || !(player.hp > 0) || waitLeft(player) > 0) return false;
+  splashEffect(player, kind);
+  player.potionAt = loop.simTime();
+  return true;
 }
 
 // Whether the stamina buff is on this player now (player.staminaRegenMult reads it; the debuff row shows it).

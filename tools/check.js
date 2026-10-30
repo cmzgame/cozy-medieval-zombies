@@ -4133,44 +4133,37 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     const uv = stationsMod.recipe("unfired_vial");
     const cv = stationsMod.recipe("clay_vial");
     assert(uv.station === "workbench" && uv.in[0].id === "clay" && uv.in[0].count === 1 && uv.out.count === 2 && cv.station === "oven" && cv.fire && cv.in[0].id === "unfired_vial" && cv.out.id === "clay_vial", `${JSON.stringify(uv)} ${JSON.stringify(cv)}`);
-    // Drinking: a belt key, the vial back in its slot; ten seconds between, refused with the line.
+    // Drinking: the utility slot's key, the vial back in its slot; ten seconds between, refused with the line. (From step 4, #483: a main or
+    // an off-hand slot's key draws a potion into that hand instead of drinking it, check("splash")'s.)
     clear();
     const belt = inventoryMod.beltOf(me);
-    belt[0] = mk("healing_potion");
+    belt[2] = mk("healing_potion");
     me.hp = 50;
     loopMod.setSimTime(1000);
     me.potionAt = null;
-    assert(interactMod.beltPress(me, 0) === "drunk" && me.hp === 90 && me.potionAt === 1000 && belt[0] && belt[0].id === "clay_vial", `the main-hand slot's key: ${me.hp}, ${belt[0] && belt[0].id}`);
+    assert(interactMod.beltPress(me, 2) === "drunk" && me.hp === 90 && me.potionAt === 1000 && belt[2] && belt[2].id === "clay_vial", `the utility slot's key: ${me.hp}, ${belt[2] && belt[2].id}`);
     belt[2] = mk("healing_potion");
     loopMod.setSimTime(1009.9);
     assert(interactMod.beltPress(me, 2) === "refused" && last() === "You can't drink another potion yet." && me.hp === 90 && belt[2].id === "healing_potion", `within ten seconds: ${last()}`);
     loopMod.setSimTime(1010);
     me.hp = 30;
     assert(interactMod.beltPress(me, 2) === "drunk" && me.hp === 70 && belt[2].id === "clay_vial", `the utility slot's key after ten seconds: ${me.hp}`);
-    // Every slot's key drinks (until step 4, a potion is not holdable); its card says so.
+    // Its card, on the utility slot, says so.
     const leather = mk("good_belt");
     const wasBelt = me.worn.waist;
     me.worn.waist = leather;
     const lb = inventoryMod.beltOf(me);
-    const rows = [];
-    for (let i = 0; i < lb.length; i++) {
-      lb[i] = mk("healing_potion");
-      loopMod.setSimTime(2000 + i * 20);
-      me.hp = 10;
-      rows.push(`${inventoryMod.beltRole(i)}:${interactMod.beltPress(me, i)}:${lb[i].id}`);
-    }
-    assert(rows.every((r) => /:drunk:clay_vial$/.test(r)), `every slot's key: ${rows.join(", ")}`);
-    lb[3] = mk("healing_potion");
-    assert(itemInfoMod.textOf(itemInfoMod.cardFor(lb[3], { beltRole: "main" }))[2] === "From this main-hand slot: drunk.", itemInfoMod.textOf(itemInfoMod.cardFor(lb[3], { beltRole: "main" })).join(" | "));
+    lb[2] = mk("healing_potion");
+    assert(itemInfoMod.textOf(itemInfoMod.cardFor(lb[2], { beltRole: "utility" }))[2] === "From the utility slot: drunk.", itemInfoMod.textOf(itemInfoMod.cardFor(lb[2], { beltRole: "utility" })).join(" | "));
     me.worn.waist = wasBelt;
-    // The slot's menu and a double-click on it.
-    belt[1] = mk("stamina_potion");
+    // The slot's menu and a double-click on it: the utility slot's still, since a main or an off-hand slot's now reads Equip (step 4, check("splash")'s).
+    belt[2] = mk("stamina_potion");
     loopMod.setSimTime(3000);
     me.stamina = 5;
-    const menu = interactMod.slotMenu(me, "belt:1").map((m) => m.label);
+    const menu = interactMod.slotMenu(me, "belt:2").map((m) => m.label);
     assert(menu.includes("Drink") && !menu.some((l) => l.startsWith("Equip")), `the slot's menu: ${menu.join(", ")}`);
     const acts = invActionsMod.createInventoryActions(() => me);
-    assert(acts.useSlot("belt:1") === true && me.stamina === me.maxStamina && potionsMod.staminaBuffed(me) && me.buffs.stamina.left === 30 && belt[1].id === "clay_vial", `the double-click on the slot: ${me.stamina}, ${JSON.stringify(me.buffs)}`);
+    assert(acts.useSlot("belt:2") === true && me.stamina === me.maxStamina && potionsMod.staminaBuffed(me) && me.buffs.stamina.left === 30 && belt[2].id === "clay_vial", `the double-click on the slot: ${me.stamina}, ${JSON.stringify(me.buffs)}`);
     // The buff: regeneration doubled, in the row in gold, run down by the host's step.
     const base = (() => { const b = me.buffs; me.buffs = null; const k = playerMod.staminaRegenMult(me); me.buffs = b; return k; })();
     assert(playerMod.staminaRegenMult(me) === base * 2, `regeneration ${playerMod.staminaRegenMult(me)} against ${base}`);
@@ -4225,19 +4218,22 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     potionsMod.drinkFrom(me, mana2, { kind: "bag", bag });
     assert(me.mana === me.maxMana && me.maxMana === tuningMod.player.mana, `mana capped: ${me.mana} of ${me.maxMana}`);
     me.mana = mana0;
-    // The poisons: never drunk, the line from every slot and a double-click, no Drink in a menu.
+    // The poisons: never drunk, the utility slot's key and card say so (step 4, #483: a main or an off-hand slot's key now draws one into
+    // that hand instead, check("splash")'s), no Drink in a menu.
     clear();
-    belt[0] = mk("poison");
-    belt[2] = mk("strong_poison");
+    belt[2] = mk("poison");
     const pw = "Poison isn't for drinking. Use it on a blade or on arrows.";
     said.length = 0;
-    assert(interactMod.beltPress(me, 0) === "none" && last() === pw && interactMod.beltPress(me, 2) === "none" && said.filter((t) => t === pw).length === 2 && belt[0].id === "poison", `the poison's keys: ${said.join(" / ")}`);
+    assert(interactMod.beltPress(me, 2) === "none" && last() === pw && belt[2].id === "poison", `the poison's key: ${last()}`);
+    said.length = 0;
+    belt[2] = mk("strong_poison");
+    assert(interactMod.beltPress(me, 2) === "none" && last() === pw && belt[2].id === "strong_poison", `the strong poison's key: ${last()}`);
     const pz = give("poison", 1);
-    assert(!interactMod.itemMenu(me, pz, bag, null).some((m) => m.label.startsWith("Drink")) && !interactMod.slotMenu(me, "belt:0").some((m) => m.label.startsWith("Drink")), "a poison has a Drink");
+    assert(!interactMod.itemMenu(me, pz, bag, null).some((m) => m.label.startsWith("Drink")) && !interactMod.slotMenu(me, "belt:2").some((m) => m.label.startsWith("Drink")), "a poison has a Drink");
     said.length = 0;
     assert(acts.use(pz, bag) === true && last() === pw && bag.items.includes(pz), `the poison's double-click: "${last()}"`);
-    const pcard = itemInfoMod.textOf(itemInfoMod.cardFor(belt[0], { beltRole: "off" }));
-    assert(pcard[2] === "From this off-hand slot: carried only." && pcard.filter((l) => /on a blade or arrows/.test(l)).length === 1 && pcard.filter((l) => /never drunk/.test(l)).length === 1, `the poison's card on a slot says Use and never drunk once: ${pcard.join(" | ")}`);
+    const pcard = itemInfoMod.textOf(itemInfoMod.cardFor(belt[2], { beltRole: "utility" }));
+    assert(pcard[2] === `From the utility slot: stored. ${pw} Its menu equips it.` && pcard.filter((l) => /on a blade or arrows/.test(l)).length === 1 && pcard.filter((l) => /never drunk/.test(l)).length === 1, `the poison's card on a slot says Use and never drunk once: ${pcard.join(" | ")}`);
     // A double-click on a potion in a chest's grid drinks nothing (only your own bag, belt, and hands); drinkFrom refuses a place that does not hold it.
     const chestBag = inventoryMod.createBag(3, 2, "chest");
     const inChest = mk("healing_potion");
@@ -4527,6 +4523,169 @@ check("poison: the blade tag, a coat and poisoned arrows by Use (a guest's comma
     if (host) host.done();
     promptMod.setMessageSink(null);
     logMod.setSink(null);
+  }
+});
+
+// Throwing potions, step 4 (docs/47 section 7, #483): every potion and poison `hands: "either"` with a `thrown` block (`button: "alt"`, the
+// main hand's other mode, as the spear's; a left click swings nothing, not even fists, combat.weaponOf's null); a hand slot's key draws it,
+// the utility slot's still drinks it or says the poison's line; it shatters on landing (the vial never lands, never lodges) with an effect
+// `splash.radius` tiles across: healing and mana help every player and villager it reaches (a villager has no mana to restore), stamina only
+// a player; poison stacks on every one of the dead and every wild animal it reaches, never a player, a villager, or a tame animal; a splash
+// counts as a drink, potions.waitLeft's rule, per player independently; the cards; a guest's replica draws the burst and the stain from the
+// landed flight's projectile name alone, nothing new on the wire.
+const villagerMod2 = villagerMod; // the file's own, above (poison's check)
+check("splash: potions and poisons held and thrown, the shatter, the splash healing, restoring, and filling the right players and villagers, poison on the dead and wild game, never a player, a villager, or a tame animal, a splash as a drink per player, the vial never returned, the cards, a guest's replica", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false, survival: true } });
+  const S = gameMod.state;
+  const me = S.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  const last = () => said[said.length - 1] || "";
+  try {
+    const mk = (id, n = 1, props = {}) => itemsMod.makeEntry(id, n, props);
+    const card = (id, e = mk(id)) => itemInfoMod.textOf(itemInfoMod.cardFor(e));
+    const has = (id, text) => card(id).includes(text);
+    const bag = inventoryMod.bagOf(me);
+    const belt = inventoryMod.beltOf(me);
+    const clear = () => { bag.items.length = 0; belt.fill(null); me.hands.main = null; me.hands.off = null; };
+
+    // The data: holdable, the other mode, the splash's reach, on every potion and poison.
+    for (const id of ["healing_potion", "stamina_potion", "mana_potion", "poison", "strong_poison"]) {
+      const d = itemsMod.getItem(id);
+      assert(d.hands === "either" && d.thrown && d.thrown.button === "alt" && d.thrown.splash && d.thrown.splash.radius === 0.75, `${id}: ${JSON.stringify(d.thrown)}`);
+    }
+
+    // Holdable: a hand slot's key draws it into that hand, as any held thing's; the utility slot's still drinks or says the poison's line.
+    clear();
+    belt[0] = mk("healing_potion"); // a main-hand slot
+    assert(interactMod.beltPress(me, 0) === "drawn" && me.hands.main && me.hands.main.id === "healing_potion" && !belt[0], `the main-hand slot's key: ${me.hands.main && me.hands.main.id}`);
+    belt[1] = mk("poison"); // an off-hand slot
+    assert(interactMod.beltPress(me, 1) === "drawn" && me.hands.off && me.hands.off.id === "poison" && !belt[1], `the off-hand slot's key: ${me.hands.off && me.hands.off.id}`);
+    // A left click swings nothing with a potion in the main hand: no weapon, not even fists.
+    me.attackCooldown = 0;
+    me.stamina = me.maxStamina;
+    assert(combatMod.weaponOf(me) === null && combatMod.swingFromLeft(me, S.zombies) === null && me.attackCooldown === 0 && me.stamina === me.maxStamina, "a potion in the main hand swung");
+    belt[2] = mk("poison"); // the utility slot
+    said.length = 0;
+    assert(interactMod.beltPress(me, 2) === "none" && last() === potionsMod.POISON_WORD, `the utility slot's key still says the line: ${last()}`);
+    clear();
+
+    // Open ground east of the spawn, nothing on it, outdoors.
+    const open = mapMod.nearestWalkable(Math.round(me.gx) + 4, Math.round(me.gy), (x, y) => {
+      for (let dx = -2; dx <= 8; dx++) for (let dy = -3; dy <= 3; dy++) { const t = mapMod.peekTile(x + dx, y + dy); if (!t || mapMod.roomAt(x + dx, y + dy) !== 0 || t.prop || !mapMod.isWalkableTile(x + dx, y + dy)) return true; }
+      return false;
+    });
+    me.gx = open[0];
+    me.gy = open[1];
+    S.zombies.length = 0;
+    S.animals.length = 0;
+    const throwAt = (shooter, x, y, c) => { shooter.recover = 0; shooter.draw = { t: 1, c, source: "script" }; shooter.aimOverride = [x, y]; const f = archeryMod.releaseDraw(shooter, {}); shooter.aimOverride = null; for (let i = 0; i < 180 && archeryMod.arrowsInFlight().length; i++) gameMod.step(1 / 60, null); return f; };
+    const approx = (a, b, e = 0.05) => Math.abs(a - b) < e; // a few steps of the world's own passive regen between the throw and the read
+
+    // A fresh helped player, one out of reach, and a villager, around where a soft toss (just above the minimum draw) lands, under a tile
+    // from the thrower, the thrower's own splash too.
+    const near = gameMod.addPlayer(me.gx + 0.6, me.gy, {});
+    const far = gameMod.addPlayer(me.gx + 2, me.gy, {});
+    const villager = villagerMod2.createVillager(me.gx + 0.5, me.gy + 0.3, { id: "splash_test_v" });
+    S.villagers.push(villager);
+
+    // ---- the heal splash: every player and villager it reaches, the thrower too, never one past its radius ----
+    me.hands.main = mk("healing_potion");
+    me.hp = 10;
+    near.hp = 10;
+    far.hp = 10;
+    villager.hp = 10;
+    const f1 = throwAt(me, me.gx + 1, me.gy, 0.2); // a soft toss: it lands under a tile away, within the thrower's own splash
+    assert(f1 && f1.landAt && Math.hypot(f1.landAt[0] - me.gx, f1.landAt[1] - me.gy) < 0.75, `the soft throw did not land within the thrower's own splash: ${JSON.stringify(f1 && f1.landAt)}`);
+    assert(me.hands.main === null, "the hand did not empty");
+    const tile = [Math.round(f1.landAt[0]), Math.round(f1.landAt[1])];
+    assert(!mapMod.itemsAt(tile[0], tile[1]).some((e) => e.id === "healing_potion" || e.id === "clay_vial"), "the thrown potion left an item where it shattered");
+    const landTime = loopMod.simTime();
+    assert(approx(me.hp, 50) && me.potionAt === landTime && approx(near.hp, 50) && near.potionAt === landTime && approx(villager.hp, 50) && villager.potionAt == null, `the splash: me ${me.hp}/${me.potionAt}, near ${near.hp}/${near.potionAt}, villager ${villager.hp}/${villager.potionAt}`);
+    assert(approx(far.hp, 10) && far.potionAt == null, `past the radius: ${far.hp}/${far.potionAt}`);
+    // A splash counts as a drink, per player independently: one within the cooldown gets nothing and keeps its old stamp; a fresh player still does.
+    me.hands.main = mk("healing_potion");
+    me.hp = 10;
+    near.hp = 10;
+    const fresh = gameMod.addPlayer(me.gx + 0.6, me.gy, {});
+    fresh.hp = 10;
+    throwAt(me, me.gx + 1, me.gy, 0.2);
+    const landTime2 = loopMod.simTime();
+    assert(approx(me.hp, 10) && me.potionAt === landTime, `the thrower's own cooldown was no way round the rule: hp ${me.hp}, stamp ${me.potionAt} (was ${landTime})`);
+    assert(approx(near.hp, 10) && near.potionAt === landTime, `one within the cooldown got a splash: hp ${near.hp}, stamp ${near.potionAt} (was ${landTime})`);
+    assert(approx(fresh.hp, 50) && fresh.potionAt === landTime2, `a fresh player did not: hp ${fresh.hp}`);
+
+    // ---- stamina: a player only, filled and buffed; a villager untouched (it has no stamina) ----
+    loopMod.setSimTime(loopMod.simTime() + 15); // past everyone's ten seconds
+    me.hands.main = mk("stamina_potion");
+    me.stamina = 5;
+    near.stamina = 5;
+    throwAt(me, me.gx + 1, me.gy, 0.2);
+    assert(me.stamina === me.maxStamina && potionsMod.staminaBuffed(me) && near.stamina === near.maxStamina && potionsMod.staminaBuffed(near), `the stamina splash: me ${me.stamina}, near ${near.stamina}`);
+    assert(typeof villager.stamina === "undefined" && !villager.buffs, "a stamina splash touched a villager, which has none");
+
+    // ---- mana: a player's bar, and a villager's too by the doc's words, which has none to restore ----
+    loopMod.setSimTime(loopMod.simTime() + 15);
+    me.hands.main = mk("mana_potion");
+    me.mana = 10;
+    near.mana = 10;
+    throwAt(me, me.gx + 1, me.gy, 0.2);
+    assert(Math.abs(me.mana - 60) < 0.2 && Math.abs(near.mana - 60) < 0.2, `the mana splash: me ${me.mana}, near ${near.mana}`); // 10 + 50, a little regen drift allowed
+    assert(typeof villager.mana === "undefined", "a mana splash invented a mana field on a villager");
+
+    // ---- poison: the dead and wild game it reaches, never a player, a villager, or a tame animal ----
+    loopMod.setSimTime(loopMod.simTime() + 15);
+    const zNear = zombieMod.createZombie(me.gx + 0.6, me.gy - 0.2);
+    const zFar = zombieMod.createZombie(me.gx + 2, me.gy);
+    S.zombies.push(zNear, zFar);
+    const deer = animalMod.createAnimal("deer", me.gx + 0.6, me.gy, { home: [me.gx, me.gy] }); // wild
+    const cow = animalMod.createAnimal("cow", me.gx + 0.5, me.gy + 0.3, { home: [me.gx, me.gy] }); // tame
+    S.animals.push(deer, cow);
+    assert(animalMod.isWild(deer) && !animalMod.isWild(cow), "the deer and the cow are not wild and tame as this test needs");
+    me.hands.main = mk("strong_poison");
+    throwAt(me, me.gx + 1, me.gy, 0.2);
+    assert(zNear.poison && zNear.poison.tier === 2 && zNear.poison.stacks === 1, `the near one of the dead: ${JSON.stringify(zNear.poison)}`);
+    assert(!zFar.poison, "the far one of the dead was poisoned");
+    assert(deer.poison && deer.poison.tier === 2 && deer.poison.cls === "thrown", `the wild deer: ${JSON.stringify(deer.poison)}`);
+    assert(!cow.poison, "the tame cow was poisoned");
+    assert(!me.poison && !near.poison && !villager.poison, "a player or a villager was poisoned");
+
+    // The save and the sync part already carry a potion's effect (potionAt, mana, stamina, hp) and a poison's (the dead's and the animals'
+    // own records), which this step changes nothing about: proved once, lightly.
+    const parts0 = gameMod.syncParts();
+    loopMod.setSimTime(loopMod.simTime() + 15);
+    me.hands.main = mk("healing_potion");
+    me.hp = 10;
+    throwAt(me, me.gx + 1, me.gy, 0.2);
+    const parts1 = gameMod.syncParts();
+    assert(parts0.players !== parts1.players, "the splash's heal and potionAt are not in the sync part");
+
+    // The cards.
+    assert(has("healing_potion", "Throw (middle button or Q): shatters where it lands, up to 9 tiles, splashing 1.5 tiles across.") && has("healing_potion", "Heals 40 at once in every player and villager it splashes.") && has("healing_potion", "A splash counts as a drink: a player within 10 seconds of one gets nothing from it."), card("healing_potion").join(" | "));
+    assert(has("stamina_potion", "Fills stamina in every player it splashes, coming back twice as fast for 30 seconds."), card("stamina_potion").join(" | "));
+    assert(has("mana_potion", "Restores 50 mana at once in every player and villager it splashes."), card("mana_potion").join(" | "));
+    assert(has("poison", "Splashes every one of the dead and every wild animal within reach; never a player, a villager, or a tame animal."), card("poison").join(" | "));
+
+    // A guest's replica (headless, no browser needed, archery.flightStore/applyFlights/stepFlights taking their own store): the burst and the
+    // stain come from the landed flight's own launch record alone, with nothing new added to it (no PROTOCOL bump: the splash's effect is
+    // the host's, reaching a guest through the player's, the dead's, and the animals' records it already carries).
+    archeryMod.reset();
+    const a = archeryMod.shoot(me, [1, 0], 1, 1, { projectile: "healing_potion", item: { ...mk("healing_potion"), uid: "guest_replica_test" } });
+    const launch = archeryMod.launchRecord(a, 0);
+    assert(Object.keys(launch).every((k) => ["id", "l", "p", "x", "y", "dx", "dy", "s", "T", "H", "z0", "v", "f", "e", "t"].includes(k)), `the launch record grew a field: ${Object.keys(launch).join(",")}`);
+    while (!a.done) archeryMod.update(1 / 60);
+    const end = archeryMod.endRecord(a);
+    const store = archeryMod.flightStore();
+    archeryMod.applyFlights(store, { go: [launch] }, 0);
+    archeryMod.stepFlights(store, 0);
+    assert(store.shown.length === 1, "the guest's replica did not see the flight launched");
+    archeryMod.applyFlights(store, { end: [end] }, 0);
+    archeryMod.stepFlights(store, end[1] + 1);
+    assert(store.splashes.length === 1 && store.splashes[0].color === itemsMod.getItem("healing_potion").color, `the guest's replica splash: ${JSON.stringify(store.splashes)}, wanted ${itemsMod.getItem("healing_potion").color}`);
+
+    return `the data on all five; a hand slot draws, the utility slot drinks or says the line, a left click swings nothing; a soft throw lands under the thrower, the vial never lying there; heals and restores mana in every player and villager it splashes, fills stamina in every player alone; a splash as a drink per player, the thrower's own cooldown no exception; poison on the dead and the wild deer, never the far one, the tame cow, a player, or a villager; the sync part; the cards; a guest's replica from the launch record alone`;
+  } finally {
+    promptMod.setMessageSink(null);
   }
 });
 

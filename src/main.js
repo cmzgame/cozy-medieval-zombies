@@ -1464,6 +1464,7 @@ function render() {
     visible,
     entities: [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals], // the animals drawn as any entity, from their own sheets (docs/45); every player, not mine alone (Michael's first real join, 2026-10-13: the other player was a name with no body)
     arrows: archery.arrowsInFlight(),
+    splashes: archery.splashesNow(), // a thrown potion's or poison's burst and stain (docs/47 section 7)
     fire: burning.all(),
     marker: settings.get("aimGuide") ? archery.getMarker(client.me) : null, // the viewer's own Aim guide (docs/20, 02 2026-10-16)
     playerRoom,

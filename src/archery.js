@@ -19,6 +19,7 @@ import { damageZombie, isDown } from "./entities/zombie.js";
 import { damageAnimal, isWild } from "./entities/animal.js"; // game shot, and stock only when aimed at (docs/45 section 2)
 import * as burn from "./burn.js";
 import * as poison from "./poison.js"; // a poisoned arrow's hit, and a coated spear's landing hit (docs/47 section 6)
+import * as potions from "./potions.js"; // a thrown potion's splash (docs/47 section 7)
 import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
 import { countAll, takeAll, detach } from "./inventory.js";
 import { release, wearPerShot } from "./items.js";
@@ -275,6 +276,10 @@ export function update(dt) {
     flares[i].t += dt;
     if (flares[i].t >= tunables.flareSeconds) flares.splice(i, 1);
   }
+  for (let i = splashes.length - 1; i >= 0; i--) {
+    splashes[i].t += dt;
+    if (splashes[i].t >= SPLASH_SECONDS) splashes.splice(i, 1);
+  }
   for (let i = flying.length - 1; i >= 0; i--) {
     const a = flying[i];
     a.t += dt;
@@ -305,6 +310,16 @@ function land(a, met = null) {
   const gx = a.x0 + a.dx * d;
   const gy = a.y0 + a.dy * d;
   a.landAt = [gx, gy]; // where it came down, which a guest's flight ends at (net.js, endRecord)
+  // A thrown potion's or poison's splash (docs/47 section 7): it shatters where it lands, the vial gone, never a single-target hit (no
+  // `damage` of its own to deal) — the area alone, within its item's own `thrown.splash.radius`. Reaches the thrower too, standing in it.
+  const sdef = splashItemOf(a.projectile);
+  const sradius = sdef && sdef.thrown && sdef.thrown.splash && sdef.thrown.splash.radius;
+  if (sradius > 0) {
+    splashAt(gx, gy, sradius, sdef);
+    splashes.push({ gx, gy, t: 0, layer: a.layer || 0, color: sdef.color || "#ffffff" }); // the burst and the stain (cosmetic; render/entities.js)
+    emit("arrowLanded", { arrow: a, gx, gy, hit: null, kept: false, broken: false, stoppedBy: a.stopWhy });
+    return;
+  }
   const ground = angleIndex([(a.dx - a.dy) * iso.HW, (a.dx + a.dy) * iso.HH]);
   // A shot that came down on its own (not stopped short) hurts the body at the
   // landing point, if one is there (docs/20: hits are checked at landing only).
@@ -467,7 +482,7 @@ export function endRecord(a) {
 }
 
 export function flightStore() {
-  return { byId: new Map(), shown: [], flares: [], clock: null, stats: { go: 0, again: 0, end: 0 } };
+  return { byId: new Map(), shown: [], flares: [], splashes: [], clock: null, stats: { go: 0, again: 0, end: 0 } };
 }
 
 // A frame's flights (`news`: { go: [launch records], end: [end records] }) at the frame's host time `h`.
@@ -514,6 +529,15 @@ export function stepFlights(store, R) {
         const at = a.landAt || groundAt(a, stop);
         store.flares.push({ gx: at[0], gy: at[1], t: age - stop, born: a.born + stop });
       }
+      // A thrown potion's or poison's splash (docs/47 section 7): drawn by every guest the same way, from the landed flight's own
+      // projectile name alone, the colour never travelling the wire (splashItemOf).
+      if (down) {
+        const sdef = splashItemOf(a.projectile);
+        if (sdef) {
+          const at = a.landAt || groundAt(a, stop);
+          store.splashes.push({ gx: at[0], gy: at[1], t: age - stop, born: a.born + stop, layer: a.layer || 0, color: sdef.color || "#ffffff" });
+        }
+      }
       a.done = true;
       store.byId.delete(a.id);
       continue;
@@ -532,6 +556,11 @@ export function stepFlights(store, R) {
     const f = store.flares[i];
     f.t = R - f.born;
     if (f.t >= tunables.flareSeconds || f.t < -2) store.flares.splice(i, 1);
+  }
+  for (let i = store.splashes.length - 1; i >= 0; i--) {
+    const s = store.splashes[i];
+    s.t = R - s.born;
+    if (s.t >= SPLASH_SECONDS || s.t < -2) store.splashes.splice(i, 1);
   }
 }
 
@@ -569,6 +598,54 @@ export function projectileLights() {
 const flares = [];
 export function flaresNow() {
   return replica ? replica.flares : flares;
+}
+
+// ---- a thrown potion's or poison's splash (docs/47 section 7): cosmetic only, never in the world's hash ----
+//
+// A burst of the potion's colour and a stain on the ground, fading over SPLASH_SECONDS: made the moment the flight lands, on the authority
+// in `land` (below) beside the real effect, and on a guest in `stepFlights` the moment its drawn flight comes down, as a fireball's flare is
+// (`flaresNow`, above) — the colour read from the projectile's own name, which every client already has from the launch record, so nothing
+// new travels the wire for it. `splashesNow` is what render/entities.js draws.
+export const SPLASH_SECONDS = 2; // docs/47 section 7: "a stain on the ground that fades in two seconds"; fixed, not a lever
+const splashes = [];
+export function splashesNow() {
+  return replica ? replica.splashes : splashes;
+}
+
+// The item a flight's projectile is, when it is a potion's or a poison's splash, else null (an arrow, a spear, the fireball): read from the
+// item registry alone (a thrown potion's or poison's `thrown.projectile` is its own id, main.js's #483), so a guest's replica, which only
+// ever has the projectile's name from the launch record, can tell what splashes and in what colour too, with nothing new on the wire.
+function splashItemOf(projectile) {
+  try {
+    const def = getItem(projectile);
+    return def && (def.potion || def.poison) ? def : null;
+  } catch {
+    return null; // not every projectile name is an item id ("arrow", "fireball", "knife_spin")
+  }
+}
+
+// What the splash of a thrown potion or poison does, at its landing point, within `radius` tiles: the authority's alone, called once from
+// `land` below. Healing and mana help every player and every villager there (a villager has no mana to restore, docs/47 section 7); stamina
+// only a player (villagers have none); poison stacks on every one of the dead and every *wild* animal there, never a player, a villager, or
+// a tame animal ("a harmful splash never hurts" is a law, not an oversight).
+function splashAt(gx, gy, radius, def) {
+  if (def.potion) {
+    const { players = [], villagers = [] } = splashBodiesOf() || {};
+    for (const p of players) if (Math.hypot(p.gx - gx, p.gy - gy) <= radius) potions.splashDrink(p, def.potion);
+    if (def.potion !== "stamina") for (const v of villagers) if (Math.hypot(v.gx - gx, v.gy - gy) <= radius) potions.splashEffect(v, def.potion);
+  } else if (def.poison) {
+    const tier = def.poison.tier;
+    for (const z of targets()) {
+      if (z.dead || (z.kind === "animal" && !isWild(z))) continue; // never a tame animal (docs/47 section 7)
+      if (Math.hypot(z.gx - gx, z.gy - gy) <= radius) poison.apply(z, tier, "thrown");
+    }
+  }
+}
+
+// The players and villagers a splash may help, from game.js (as `setTargets` gives the dead and the animals); empty until the world sets it.
+let splashBodiesOf = () => ({ players: [], villagers: [] });
+export function setSplashBodies(fn) {
+  splashBodiesOf = fn;
 }
 
 // The fireball's picture (data/art/items/fireball.png, the design agent's: 64 px cells, a row per direction with row k
@@ -809,6 +886,7 @@ export function spinFrame(a, spin) {
 export function reset() {
   flying.length = 0;
   flares.length = 0;
+  splashes.length = 0;
   launched.length = 0;
   replica = null;
 }
@@ -844,7 +922,9 @@ export function launcherOf(player) {
     const ad = getItem(ammo);
     return { ...common, ...def.bow, kind: "bow", button: "primary", ammo, projectile: ammo, ignite: !!(ad && ad.ignite), poison: poison.arrowTier(ad) };
   }
-  if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", button: def.weapon ? "alt" : "primary", ammo: null, projectile: def.thrown.projectile || def.id };
+  // A potion or a poison names its own button (docs/47 section 7): the other mode, as the spear's throw is, though it has no weapon block to
+  // swing with (combat.weaponOf refuses it on the main hand's primary button).
+  if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", button: def.thrown.button || (def.weapon ? "alt" : "primary"), ammo: null, projectile: def.thrown.projectile || def.id };
   return null;
 }
 
