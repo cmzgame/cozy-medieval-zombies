@@ -8017,6 +8017,38 @@ check("the battlements: the side is read from the floors of the wall's own layer
   }
 });
 
+// The layer audit (docs/53 step 0, section 6.5): no call in the simulation leaves its layer to a default of the ground or the drawn storey,
+// beyond the allow list of those known on 2026-10-30, each named with the step that gives it its layer. The list only shrinks: a new
+// layer-less call fails, and so does an entry with more calls than remain (take it down as the step lands).
+{
+  const audit = await import("./layer-audit.js");
+  const allow = read("tools/layer-audit-allow.json").calls;
+  check("layer audit: no simulation read leaves its layer to a default, beyond the allow list", () => {
+    const found = audit.grouped(audit.audit());
+    const key = (o) => `${o.file}  ${o.call}`;
+    const left = new Map(allow.map((a) => [key(a), a]));
+    assert(left.size === allow.length, "the allow list names a call twice");
+    const bad = allow.filter((a) => ![1, 2, 3, 4, 5, 6, 7, "ground"].includes(a.step) || !(a.n >= 1));
+    assert(!bad.length, `allow-list entries with no step of docs/53 or no count: ${bad.map(key).join("; ")}`);
+    const fresh = [];
+    for (const g of found) {
+      const a = left.get(key(g));
+      if (!a) { fresh.push(`${g.file}:${g.lines.join(",")} ${g.call}`); continue; }
+      if (g.n > a.n) fresh.push(`${g.file}:${g.lines.join(",")} ${g.call} (${g.n}, the list allows ${a.n})`);
+      left.delete(key(g));
+      if (g.n < a.n) left.set(key(g), { ...a, n: a.n - g.n, stale: true });
+    }
+    const stale = [...left.values()].map((a) => `${a.file} ${a.call} (step ${a.step})`);
+    assert(!fresh.length, `layer-less calls not on the list: ${fresh.join("; ")}`);
+    assert(!stale.length, `the list names calls that are gone; take them off tools/layer-audit-allow.json: ${stale.join("; ")}`);
+    const fns = audit.layered();
+    assert(["tileAt", "peekTile", "wallBetween", "lineOfSight", "itemsAt", "roomAt", "lightAt", "openingsNear"].every((n) => [...fns.values()].some((f) => f.name === n)), "the scan lost a layered function");
+    const steps = {};
+    for (const a of allow) steps[a.step] = (steps[a.step] || 0) + a.n;
+    return `${fns.size} layered functions; ${allow.reduce((t, a) => t + a.n, 0)} calls allowed, by step: ${Object.entries(steps).map(([k, v]) => `${k} ${v}`).join(", ")}`;
+  });
+}
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;
