@@ -15,7 +15,7 @@ import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
 import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles, sideOf, addr, layerOf, stairStep, STOREY } from "../map.js";
-import { lineOfReach, openingOnLine, trace, eyeOf, chestOf, EYE } from "../visibility.js";
+import { lineOfReach, openingOnLine, trace, eyeOf, chestOf, reachLayer, EYE } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
 import { getSheet } from "../assets.js";
@@ -258,16 +258,16 @@ function goalRoom(z) {
 // rooms deep (doors only, the windows of the rooms between would get them nothing). `want` is the room they are after,
 // kept on the target so the breach is not dropped for leading into a room that is not it.
 function wayIn(z, room, want, seen = new Set([room.id]), depth = 0) {
-  const doors = breachTargets(room, z.gx, z.gy, 0, depth === 0);
+  const doors = breachTargets(room, z.gx, z.gy, 0, depth === 0, z.layer || 0);
   // The opening they saw the player use comes first (Michael, #147: "the dead go where they saw you go"), among those they can
   // walk to, then the nearest.
-  const known = (c) => depth === 0 && !!z.siege && z.siege.openings.some((o) => o.tx === c.tx && o.ty === c.ty && o.edge === c.edge);
+  const known = (c) => depth === 0 && !!z.siege && z.siege.openings.some((o) => o.tx === c.tx && o.ty === c.ty && o.edge === c.edge && (o.layer || 0) === (c.layer || 0)); // on its own floor (the review of #606)
   const direct = doors.find((c) => known(c) && canReach(z, c.stand)) || doors.find((c) => canReach(z, c.stand));
   if (direct) return direct;
   if (depth >= 3) return null;
   let best = null;
   for (const c of doors) {
-    const from = tileAt(c.stand[0], c.stand[1]).room;
+    const from = tileAt(c.stand[0], c.stand[1], layerOf(c.stand)).room; // the room on the stand's own floor (docs/53 step 5)
     if (c.wall.kind !== "door" || from <= 0 || seen.has(from)) continue;
     seen.add(from);
     const outer = getRoom(from);
@@ -291,10 +291,10 @@ function fenceWay(z, goal) {
     let py = start[1];
     for (const [nx, ny] of path) {
       if (Math.abs(nx - px) + Math.abs(ny - py) === 1) {
-        const w = wallBetween(px, py, nx, ny);
+        const w = wallBetween(px, py, nx, ny, z.layer || 0);
         if (isFence(w) && !wayOpen(w)) {
           const [ex, ey, edge] = edgeBetween(px, py, nx, ny);
-          return { wall: w, tx: ex, ty: ey, edge, stand: [px, py] };
+          return { wall: w, tx: ex, ty: ey, edge, stand: addr(px, py, z.layer || 0) };
         }
       }
       px = nx;
@@ -325,12 +325,13 @@ function startBreach(z, target) {
 
 // How far a bite reaches: `contact`, and a little more across a fence the dead one is striking from its reach (a fence's thickness and
 // where its strikers stand: Michael, 2026-10-17, "they should be allowed to bite over fences, otherwise exploitable"; #174).
-function biteReach(z, e) {
-  if (e && (e.layer || 0) !== (z.layer || 0)) return -1; // a bite never crosses a storey (docs/49 section 9)
+export function biteReach(z, e) {
+  const RL = e ? reachLayer(z, e) : z.layer || 0; // a bite never crosses a storey (docs/49 section 9), but across a stair's top (docs/53 step 5)
+  if (RL === null) return -1;
   // Nor across a shut castle gate: its bars pass sight, not a bite (docs/02, 2026-10-29). Looked for only close in, where a bite could land.
-  if (e && Math.hypot(e.gx - z.gx, e.gy - z.gy) <= T.contact + T.fenceBiteExtra + 0.5 && !lineOfReach(z.gx, z.gy, e.gx, e.gy, z.layer || 0)) return -1;
+  if (e && Math.hypot(e.gx - z.gx, e.gy - z.gy) <= T.contact + T.fenceBiteExtra + 0.5 && !lineOfReach(z.gx, z.gy, e.gx, e.gy, RL)) return -1;
   const f = z.press;
-  if (!f || !e || tileAt(f.tx, f.ty)[f.edge] !== f.wall) return T.contact;
+  if (!f || !e || tileAt(f.tx, f.ty, z.layer || 0)[f.edge] !== f.wall) return T.contact;
   if (sideOf(f.tx, f.ty, f.edge, z.gx, z.gy) === sideOf(f.tx, f.ty, f.edge, e.gx, e.gy)) return T.contact; // only across the fence, never on one's own side of it
   const [mx, my] = edgeMid(f.tx, f.ty, f.edge);
   return Math.hypot(mx - z.gx, my - z.gy) <= T.fenceReach ? T.contact + T.fenceBiteExtra : T.contact;
@@ -519,7 +520,7 @@ function startSearch(z) {
 const hashId = (id) => [...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
 function rememberOpening(s, o, layer = 0) {
-  if (s.openings.some((k) => k.tx === o.tx && k.ty === o.ty && k.edge === o.edge)) return;
+  if (s.openings.some((k) => k.tx === o.tx && k.ty === o.ty && k.edge === o.edge && (k.layer || 0) === layer)) return; // a door over a door is another opening (the review of #606)
   s.openings.push(layer ? { tx: o.tx, ty: o.ty, edge: o.edge, layer } : { tx: o.tx, ty: o.ty, edge: o.edge }); // its layer off the ground (docs/49 section 12)
   if (s.openings.length > 4) s.openings.shift();
 }
@@ -547,11 +548,11 @@ function noteSighting(z, p) {
   if (z.seenRoom === 0) { // its last sighting had the player out in the open, this one has them in: they went in by a door near them
     // The door the line from where it last saw them outside to where it sees them now crosses, which is the one they went through
     // when two doors stand close; failing that (a sighting through a window), the door nearest them.
-    const crossed = z.lastOut ? openingOnLine(z.lastOut[0], z.lastOut[1], p.gx, p.gy) : null;
-    const door = crossed && crossed.wall.kind === "door" ? crossed : openingsNear(p.gx, p.gy, 1.6).find((o) => o.wall.kind === "door");
+    const crossed = z.lastOut && layerOf(z.lastOut) === PL ? openingOnLine(z.lastOut[0], z.lastOut[1], p.gx, p.gy, PL) : null; // on the player's own floor (docs/53 step 5)
+    const door = crossed && crossed.wall.kind === "door" ? crossed : openingsNear(p.gx, p.gy, 1.6, PL).find((o) => o.wall.kind === "door");
     if (door) rememberOpening(s, door, PL);
   }
-  const win = openingOnLine(z.gx, z.gy, p.gx, p.gy);
+  const win = (z.layer || 0) === PL ? openingOnLine(z.gx, z.gy, p.gx, p.gy, PL) : null; // a window it saw them through, on one floor; across floors it is no window of theirs
   if (win && win.wall.kind === "window") rememberOpening(s, win, PL);
   z.seenRoom = room;
 }
@@ -766,16 +767,16 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           // A waiter with a fence or a gate between it and its target strikes that instead of standing (Michael, 2026-10-24, #385:
           // the dead "get near the fence ... and just stand there"; a siege keeps its pressure on a fence). Its cooldown over and no
           // token to be had, it goes back to pressing; the press hands it back here when a token is free.
-          const across = z.attackCooldown <= 0 ? z.press || fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy) : null;
+          const across = z.attackCooldown <= 0 ? z.press || ((tgt.layer || 0) === (z.layer || 0) ? fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy, 0.8, z.layer || 0) : null) : null;
           // Only a fence or a gate still standing and shut, within its reach, with its target on the far side (the review of #389:
           // a press left from an older fence, an open gate, or a fence beside them on their own side is no reason to strike).
           const between = (f) => {
-            if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall || wayOpen(f.wall)) return false;
+            if (!f || tileAt(f.tx, f.ty, z.layer || 0)[f.edge] !== f.wall || wayOpen(f.wall)) return false;
             const [mx, my] = edgeMid(f.tx, f.ty, f.edge);
             return Math.hypot(mx - z.gx, my - z.gy) <= T.fenceReach && sideOf(f.tx, f.ty, f.edge, z.gx, z.gy) !== sideOf(f.tx, f.ty, f.edge, tgt.gx, tgt.gy);
           };
           if (between(across)) {
-            startPress(z, { wall: across.wall, tx: across.tx, ty: across.ty, edge: across.edge, stand: across.stand || tileOf(z) });
+            startPress(z, { wall: across.wall, tx: across.tx, ty: across.ty, edge: across.edge, stand: across.stand || addr(Math.round(z.gx), Math.round(z.gy), z.layer || 0) });
             break;
           }
           show(z, "idle");
@@ -793,10 +794,10 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       const arrived = moveToward(z, dt, goal, others);
       // Against a fence (or a shut gate) with the player in sight beyond it and no way round: it strikes it (the `press` state,
       // Michael, 2026-10-18, #174: an attack with a damage number and the bite's cooldown, as on a player; a crowd is more strikers).
-      if (z.pathFailed && z.seesNow) {
-        const f = fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy);
+      if (z.pathFailed && z.seesNow && (tgt.layer || 0) === (z.layer || 0)) { // a fence toward one on another floor is no way to them
+        const f = fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy, 0.8, z.layer || 0);
         if (f) {
-          startPress(z, { wall: f.wall, tx: f.tx, ty: f.ty, edge: f.edge, stand: tileOf(z) });
+          startPress(z, { wall: f.wall, tx: f.tx, ty: f.ty, edge: f.edge, stand: addr(Math.round(z.gx), Math.round(z.gy), z.layer || 0) });
           break;
         }
       }
@@ -806,13 +807,37 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       // in searches paths), and not again for T.noWayTime after finding none.
       if (z.pathFailed && z.repathTimer > repathTimer0 && !(z.noWay > 0)) {
         const roomId = goalRoom(z);
-        const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
+        const ZL = z.layer || 0;
+        const here = tileAt(Math.round(z.gx), Math.round(z.gy), ZL).room;
+        // The goal on another floor with no way there found (docs/53 step 5): the way into its own room first (its doors, by the stairs
+        // that reach its floor); else, shut in a room of its own (not the one under the goal), out of it by its door, toward the room under
+        // the goal or to a stair outside; else, outside, the room under a goal above it, by its door, as if the goal were there (`want`).
+        // Already in the room under it, or with none of these, it stands where it sees them, and searches once it does not.
+        if (layerOf(goal) !== ZL) {
+          let target = roomId > 0 && getRoom(roomId) ? wayIn(z, getRoom(roomId), roomId) : null;
+          if (target) target.want = roomId;
+          const under = layerOf(goal) > ZL ? tileAt(goal[0], goal[1], ZL).room : 0; // only a goal above has a room under it (the review of #606)
+          if (!target && here > 0 && here !== under && getRoom(here)) {
+            target = breachTarget(getRoom(here), z.gx, z.gy, under, false, ZL);
+            if (target && under > 0) target.want = under;
+          } else if (!target && here === 0 && under > 0 && getRoom(under)) {
+            target = wayIn(z, getRoom(under), under);
+            if (target) target.want = under;
+          }
+          if (target) {
+            startBreach(z, target);
+            break;
+          }
+          z.noWay = T.noWayTime;
+          if (!z.seesNow) startSearch(z);
+          break;
+        }
         // Shut in a room with the goal elsewhere: break out of this one
         // first. Outside with the goal in a room: break into that one.
         let target = null;
         if (here > 0 && here !== roomId) {
           const room = getRoom(here);
-          target = room ? breachTarget(room, z.gx, z.gy, roomId) : null; // out by the door that leads toward the goal's room
+          target = room ? breachTarget(room, z.gx, z.gy, roomId, false, z.layer || 0) : null; // out by the door that leads toward the goal's room
           if (!target && roomId > 0 && getRoom(roomId)) target = wayIn(z, getRoom(roomId), roomId); // every door of this room is already open: out by it, then in
         } else if (roomId > 0 && here !== roomId) {
           const room = getRoom(roomId);
@@ -828,7 +853,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         let across = null;
         const goalHouse = roomId > 0 && here !== roomId ? getRoom(roomId) : null;
         if (goalHouse) {
-          for (const c of breachTargets(goalHouse, z.gx, z.gy, 0, true).slice(0, 4)) {
+          for (const c of breachTargets(goalHouse, z.gx, z.gy, 0, true, z.layer || 0).slice(0, 4)) {
             across = fenceWay(z, c.stand);
             if (across) break;
           }
@@ -845,7 +870,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           break;
         }
       }
-      const atSighting = Math.hypot(z.lastSeen[0] - z.gx, z.lastSeen[1] - z.gy) <= T.arrived;
+      const atSighting = layerOf(z.lastSeen) === (z.layer || 0) && Math.hypot(z.lastSeen[0] - z.gx, z.lastSeen[1] - z.gy) <= T.arrived; // under it on the floor below is not at it (docs/53 step 5)
       if (!z.seesNow && (arrived || atSighting || z.pathFailed)) startSearch(z);
       break;
     }
@@ -863,9 +888,11 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       }
       // Keep at it while the goal is still on the other side of this opening:
       // in the room it leads into, or anywhere but the room it leads out of.
-      const roomId = goalRoom(z);
-      const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
-      const stillWanted = here > 0 ? roomId !== here : roomId === (b.want || tileAt(b.into[0], b.into[1]).room);
+      // The goal's room on the opening's own floor: the goal's own room, or, with the goal a floor away, the room under it (docs/53 step 5).
+      const BL = layerOf(b.stand);
+      const roomId = z.lastSeen && layerOf(z.lastSeen) !== BL ? tileAt(Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1]), BL).room : goalRoom(z);
+      const here = (z.layer || 0) === BL ? tileAt(Math.round(z.gx), Math.round(z.gy), BL).room : 0; // on its way up or down to it, it is in none of that floor's rooms
+      const stillWanted = here > 0 ? roomId !== here : roomId === (b.want || tileAt(b.into[0], b.into[1], BL).room);
       if (!z.aggro || !stillWanted) {
         z.breach = null;
         z.state = z.aggro ? "chase" : "idle";
@@ -875,7 +902,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       const mx = b.edge === "n" ? b.tx : b.tx - 0.5;
       const my = b.edge === "n" ? b.ty - 0.5 : b.ty;
       const dEdge = Math.hypot(mx - z.gx, my - z.gy);
-      if (dEdge > T.breachReach) {
+      if ((z.layer || 0) !== BL || dEdge > T.breachReach) { // under it or over it is not at it: up or down to its own floor first (the review of #606)
         moveToward(z, dt, b.stand, others);
         if (z.pathFailed) {
           // Cannot even reach the opening: give the search a go instead.
@@ -939,7 +966,8 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         show(z, "idle");
         z.idleTimer -= dt;
         if (z.idleTimer <= 0) {
-          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], T.searchRadius, roomOf(z), z.layer || 0);
+          const SL = layerOf(z.lastSeen); // round the sighting on its own floor, reached by a stair when it is another (docs/53 step 5)
+          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], T.searchRadius, SL === (z.layer || 0) ? roomOf(z) : goalRoom(z), SL);
           if (target) repath(z, target);
           z.idleTimer = rng.range(0.8, 2.0);
         }
@@ -952,7 +980,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       const f = z.press;
       // A gate opened while it pressed is no longer across its way (Michael, 2026-10-24: he opened a gate the dead were striking and
       // they went on striking it): it walks through, as through a broken one.
-      if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall || wayOpen(f.wall) || !z.aggro) {
+      if (!f || tileAt(f.tx, f.ty, z.layer || 0)[f.edge] !== f.wall || wayOpen(f.wall) || !z.aggro) {
         z.press = null;
         z.state = z.aggro ? "chase" : "idle";
         z.repathTimer = 0;
@@ -1010,7 +1038,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     }
     case "pressHit": {
       const f = z.press;
-      if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall || wayOpen(f.wall)) { // gone while it swung (another's strike broke it), or a gate opened
+      if (!f || tileAt(f.tx, f.ty, z.layer || 0)[f.edge] !== f.wall || wayOpen(f.wall)) { // gone while it swung (another's strike broke it), or a gate opened
         z.press = null;
         z.state = "chase";
         z.repathTimer = 0;
@@ -1040,7 +1068,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       }
       const roomHere = tileAt(s.at[0], s.at[1], layerOf(s.at)).room;
       const room = roomHere > 0 ? getRoom(roomHere) : null;
-      const cands = room ? breachTargets(room, z.gx, z.gy, 0, true) : [];
+      const cands = room ? breachTargets(room, z.gx, z.gy, 0, true, z.layer || 0) : [];
       if (!cands.length) {
         // Nothing to break. If they can walk to the player (every opening already a way in, or the house is no room now),
         // go in after them; if not (a cell with a window and no door), wait at the opening they saw the player by, and keep
@@ -1056,16 +1084,17 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         }
         const k = s.openings.length ? s.openings[(s.idx >>> 0) % s.openings.length] : null;
         if (k) {
-          const outTile = edgeTiles(k.tx, k.ty, k.edge).find((t) => tileAt(t[0], t[1]).room !== roomHere);
-          if (outTile && Math.hypot(outTile[0] - z.gx, outTile[1] - z.gy) > 0.8) {
-            moveToward(z, dt, outTile, others);
+          const KL = k.layer || 0; // the opening's own floor (docs/53 step 5)
+          const outTile = edgeTiles(k.tx, k.ty, k.edge).find((t) => tileAt(t[0], t[1], KL).room !== roomHere);
+          if (outTile && ((z.layer || 0) !== KL || Math.hypot(outTile[0] - z.gx, outTile[1] - z.gy) > 0.8)) {
+            moveToward(z, dt, addr(outTile[0], outTile[1], KL), others);
             break;
           }
         }
         show(z, "idle");
         break;
       }
-      const known = cands.filter((c) => s.openings.some((k) => k.tx === c.tx && k.ty === c.ty && k.edge === c.edge));
+      const known = cands.filter((c) => s.openings.some((k) => k.tx === c.tx && k.ty === c.ty && k.edge === c.edge && (k.layer || 0) === (c.layer || 0)));
       const pool = known.length ? known : cands;
       if (clock.getElapsed() >= s.switchAt) {
         s.idx = (s.idx >>> 0) + 1;
@@ -1074,7 +1103,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       const c = pool[(s.idx >>> 0) % pool.length];
       const mx = c.edge === "n" ? c.tx : c.tx - 0.5;
       const my = c.edge === "n" ? c.ty - 0.5 : c.ty;
-      if (Math.hypot(mx - z.gx, my - z.gy) <= T.breachReach) {
+      if ((z.layer || 0) === layerOf(c.stand) && Math.hypot(mx - z.gx, my - z.gy) <= T.breachReach) { // at it on its own floor, never under it (the review of #606)
         z.lastSeen = s.at.slice();
         startBreach(z, { ...c, want: roomHere });
         break;
@@ -1097,7 +1126,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     case "attack": {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
-        if (distTo(z, tgt) <= biteReach(z, tgt) + 0.2 && lineOfReach(z.gx, z.gy, tgt.gx, tgt.gy, z.layer || 0)) {
+        if (distTo(z, tgt) <= biteReach(z, tgt) + 0.2 && lineOfReach(z.gx, z.gy, tgt.gx, tgt.gy, reachLayer(z, tgt) ?? (z.layer || 0))) {
           if (tgt.kind === "player") emit("playerHit", { zombie: z, damage: T.damage, victim: tgt });
           else emit("villagerHit", { zombie: z, villager: tgt, damage: T.damage });
         }

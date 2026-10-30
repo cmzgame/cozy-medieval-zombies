@@ -15,7 +15,7 @@ import * as iso from "./iso.js";
 import { setInfectionData } from "./infection.js";
 import { setBleedData } from "./bleed.js";
 import * as burn from "./burn.js";
-import { lineOfReach } from "./visibility.js";
+import { lineOfReach, reachLayer } from "./visibility.js";
 import * as items from "./items.js";
 import * as loop from "./loop.js";
 import { emit } from "./events.js";
@@ -197,7 +197,7 @@ function targetsIn(player, weapon, zombies, accept = () => true, limit = null) {
   // A blow does not go through a wall, a shut door, shut shutters, or a shut castle gate's bars: the same sight (and the gate's reach) that keeps the
   // dead from biting through them (Michael found a hit on a zombie behind a wall, with no outline,
   // because the dead one was in the fog).
-  const list = zombies.filter((z) => !z.dead && (z.layer || 0) === (player.layer || 0) && accept(z) && inWedge(player, weapon, z) && lineOfReach(player.gx, player.gy, z.gx, z.gy, player.layer || 0)); // a blow never crosses a storey (docs/49 section 8)
+  const list = zombies.filter((z) => !z.dead && reachLayer(player, z) !== null && accept(z) && inWedge(player, weapon, z) && lineOfReach(player.gx, player.gy, z.gx, z.gy, reachLayer(player, z))); // a blow never crosses a storey (docs/49 section 8), but across a stair's top (docs/53 step 5)
   const d = (z) => Math.hypot(z.gx - player.gx, z.gy - player.gy);
   if (limit != null) return list.sort((a, b) => d(a) - d(b)).slice(0, limit);
   const multi = rules.multiHit && weapon.multiHit !== false;

@@ -5,8 +5,8 @@
 // villagers share.
 
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, canStepOn, tileAt, roomAt, floorSpeedAt, addr, stairStep, layerOf, stairsOn } from "../map.js";
-import { findPath } from "../pathfind.js";
+import { moveCircle, isWalkableTile, canStepOn, tileAt, roomAt, floorSpeedAt, addr, stairStep, layerOf, stairsOn, worldVersion } from "../map.js";
+import { findPath, searchExhausted } from "../pathfind.js";
 import * as rng from "../rng.js";
 import { zombie as T } from "../tuning.js";
 
@@ -33,7 +33,9 @@ export function faceToward(e, dx, dy) {
 // Whether a body can walk from where it stands to a tile (a path exists as things are now: doors shut or boarded stop it).
 // On the body's own layer (docs/49 section 16, step 1: the stair's edge between layers is step 3's).
 export function canReach(e, tile) {
-  return findPath(tileOf(e), tile, canStepOn(e.layer || 0)) !== null;
+  const L = e.layer || 0;
+  if (layerOf(tile) !== L) return !!stairRoute(e, tile); // on another floor: by a stair whose far side reaches it (docs/53 step 5)
+  return findPath(tileOf(e), tile, canStepOn(L)) !== null;
 }
 
 export function repath(e, goalTile) {
@@ -51,19 +53,51 @@ export function repath(e, goalTile) {
 // where the body is a storey up (map.stairStep) and its next path is found on that layer. Down: a path to a landing on this layer, then
 // back over the top edge and down the three steps to the tile before the bottom. One storey a leg; with no stair to be had the path fails,
 // and the body stays and looks where it is.
-function repathByStair(e, goalTile) {
+// The stair to take toward a goal on another layer, or null: of the stairs this layer has toward it, the one with the shortest walk to it and,
+// where the goal is the next storey, a real path from its far end to the goal on that storey (docs/53 step 5: the dead at the gate walked
+// to the bluff's ramp, whose landing was nearest the walk as the crow flies and went nowhere near it); a stair whose far end cannot reach a
+// goal one storey away is never taken, so the path fails and the dead go for the door of the room under the goal instead (zombie.js). One whose
+// far side's search ran out of budget is not proven cut off: it stays, scored by the straight line behind every stair that reaches (the spec's
+// fallback to a landing whose region may touch the goal's). A goal two storeys or more away is scored by the straight line from the landing,
+// as before. The far side's search is bounded and kept per stair, goal, and world.
+const farPaths = new Map(); // "worldVersion|stair|goal" -> the far side's path length, -1 cut off, -2 unproven (the search's budget ran out)
+const FAR_SEARCH = 2000; // expansions for the far side's search
+function farLength(s, up, goalTile) {
+  const from = up ? s.landing : s.before;
+  const NL = up ? s.layer + 1 : s.layer;
+  const key = `${worldVersion}|${s.layer},${s.low[0]},${s.low[1]}|${up}|${goalTile[0]},${goalTile[1]},${layerOf(goalTile)}`;
+  let n = farPaths.get(key);
+  if (n === undefined) {
+    if (farPaths.size > 4000) farPaths.clear();
+    const p = layerOf(goalTile) === NL ? findPath([from[0], from[1]], [goalTile[0], goalTile[1]], canStepOn(NL), FAR_SEARCH) : null;
+    n = p ? p.length : layerOf(goalTile) === NL && searchExhausted() ? -2 : -1;
+    farPaths.set(key, n);
+  }
+  return n;
+}
+export function stairRoute(e, goalTile) { // { s, p, cost }: the stair, the path to it on this layer, and the whole walk's length
   const L = e.layer || 0;
   const up = layerOf(goalTile) > L;
   const from = tileOf(e);
+  const nextStorey = Math.abs(layerOf(goalTile) - L) === 1;
   let best = null;
   for (const { s, well } of stairsOn(L)) {
     if (up === well) continue; // up by a stair on this layer; down by one whose stairwell (and landing) is on this layer
     const end = up ? s.tiles[2] : s.landing;
     const p = findPath(from, end, canStepOn(L));
     if (!p) continue;
-    const cost = p.length + Math.hypot(goalTile[0] - (up ? s.landing[0] : s.before[0]), goalTile[1] - (up ? s.landing[1] : s.before[1]));
+    const far = nextStorey ? farLength(s, up, goalTile) : -1;
+    if (nextStorey && far === -1) continue; // its far side cannot reach the goal: no way there by it
+    const straight = Math.hypot(goalTile[0] - (up ? s.landing[0] : s.before[0]), goalTile[1] - (up ? s.landing[1] : s.before[1]));
+    const cost = p.length + (!nextStorey ? straight : far >= 0 ? far : straight + 10000); // unproven: behind every stair that reaches
     if (!best || cost < best.cost) best = { s, p, cost };
   }
+  return best;
+}
+function repathByStair(e, goalTile) {
+  const L = e.layer || 0;
+  const up = layerOf(goalTile) > L;
+  const best = stairRoute(e, goalTile);
   if (best) {
     const { s, p } = best;
     const onL = (L ? p.map(([x, y]) => addr(x, y, L)) : p);

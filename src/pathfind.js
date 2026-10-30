@@ -175,7 +175,13 @@ export function findPath(start, goal, canStep, maxExpansions = 1500) {
   }
 }
 
+// Whether the last search that returned null gave up at its budget rather than running out of tiles: the goal unproven, not cut off
+// (movement.js `stairRoute`, docs/53 step 5). A transient result read at once after the call, never state.
+let exhausted = false;
+export const searchExhausted = () => exhausted;
+
 function search(w, sx, sy, gx, gy, canStep, maxExpansions) {
+  exhausted = false;
   w.begin();
   const s0 = w.node(sx, sy);
   w.g[s0] = 0;
@@ -186,7 +192,10 @@ function search(w, sx, sy, gx, gy, canStep, maxExpansions) {
     const cur = w.pop();
     if (w.closed[cur]) continue;
     w.closed[cur] = 1;
-    if (++expansions > maxExpansions) return null;
+    if (++expansions > maxExpansions) {
+      exhausted = true;
+      return null;
+    }
     const cx = w.x[cur];
     const cy = w.y[cur];
 

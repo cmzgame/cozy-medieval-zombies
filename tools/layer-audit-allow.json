@@ -26,14 +26,6 @@
   {"file":"src/entities/villager.js","call":"roomAt(t[0], t[1])","n":1,"step":7},
   {"file":"src/entities/villager.js","call":"lineOfSight(p.gx, p.gy, v.gx, v.gy)","n":1,"step":7},
   {"file":"src/entities/villager.js","call":"lineOfSight(player.gx, player.gy, v.gx, v.gy)","n":1,"step":7},
-  {"file":"src/entities/zombie.js","call":"tileAt(c.stand[0], c.stand[1])","n":1,"step":5},
-  {"file":"src/entities/zombie.js","call":"wallBetween(px, py, nx, ny)","n":1,"step":5},
-  {"file":"src/entities/zombie.js","call":"tileAt(f.tx, f.ty)","n":4,"step":5},
-  {"file":"src/entities/zombie.js","call":"openingsNear(p.gx, p.gy, 1.6)","n":1,"step":5},
-  {"file":"src/entities/zombie.js","call":"fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy)","n":2,"step":5},
-  {"file":"src/entities/zombie.js","call":"tileAt(Math.round(z.gx), Math.round(z.gy))","n":2,"step":5},
-  {"file":"src/entities/zombie.js","call":"tileAt(b.into[0], b.into[1])","n":1,"step":5},
-  {"file":"src/entities/zombie.js","call":"tileAt(t[0], t[1])","n":1,"step":5},
   {"file":"src/farming.js","call":"lineOfSight(player.gx, player.gy, x, y)","n":1,"step":"ground"},
   {"file":"src/farming.js","call":"map.peekTile(x, y)","n":8,"step":"ground"},
   {"file":"src/farming.js","call":"map.isWalkableTile(x, y)","n":1,"step":"ground"},
@@ -109,7 +101,6 @@
   {"file":"src/trees.js","call":"map.peekTile(x + 1, y)","n":1,"step":"ground"},
   {"file":"src/trees.js","call":"map.dropItem(tx, ty, items.makeEntry(T.sapling.item, 1, tree ? { tree } : {}))","n":1,"step":"ground"},
   {"file":"src/trees.js","call":"map.touch(x, y)","n":1,"step":"ground"},
-  {"file":"src/visibility.js","call":"wallBetween(ix, iy, nx, ny)","n":1,"step":5},
   {"file":"src/water.js","call":"map.peekTile(x, y)","n":1,"step":"ground"},
   {"file":"src/water.js","call":"map.peekTile(px + dx, py + dy)","n":1,"step":"ground"}
  ]
