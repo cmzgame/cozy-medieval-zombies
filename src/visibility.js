@@ -160,15 +160,22 @@ const layerAtZ = (z) => Math.floor(z / STOREY);
 const footOf = (e) => STOREY * (e.layer || 0) + (e.rise || 0);
 
 // The floor a blow or a bite between two bodies is read on, or null when none can land: their own when they share one, and across a stair's
-// top (docs/53 step 5, the one exception to "on one layer"): one on a stair a floor below the other, their feet within half a storey, read on
-// the upper floor, where the stair's sides close its well.
+// top (docs/53 step 5, the one exception to "on one layer"): one on a stair's top step, the other on that stair's own landing a floor up, their
+// feet within half a storey, read on the upper floor, where the stair's sides close its well (the review of #606: never another tile beside it).
 export function reachLayer(a, b) {
   const la = a.layer || 0;
   const lb = b.layer || 0;
   if (la === lb) return la;
   if (Math.abs(la - lb) !== 1 || Math.abs(footOf(a) - footOf(b)) > STOREY / 2) return null;
   const low = la < lb ? a : b;
-  return stairAt(Math.round(low.gx), Math.round(low.gy), low.layer || 0) ? Math.max(la, lb) : null;
+  const high = low === a ? b : a;
+  const lx = Math.round(low.gx);
+  const ly = Math.round(low.gy);
+  const h = stairAt(lx, ly, low.layer || 0);
+  if (!h || h.well || !h.s) return null;
+  const top = h.s.tiles[h.s.tiles.length - 1];
+  const land = h.s.landing;
+  return top[0] === lx && top[1] === ly && land[0] === Math.round(high.gx) && land[1] === Math.round(high.gy) ? Math.max(la, lb) : null;
 }
 // A body's eye and chest as the points `trace` takes; `lean` lets the walk start or end at the opening the body stands at (below).
 export const eyeOf = (e) => ({ x: e.gx, y: e.gy, z: footOf(e) + EYE, layer: e.layer || 0, rise: e.rise || 0, lean: true });
