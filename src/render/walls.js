@@ -408,10 +408,15 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
 // over a tile, and the stair the viewer is on, if any.
 let aboveDrawn = null; // (x, y) => true when the storey above this layer is drawn over the tile
 let viewerStair = null; // the stair under the viewer's feet (rise above 0), or null
-export function setStoreyView(above, stair) {
+let hereHidden = null; // (x, y) => true when the hiding rule hides the tile on this layer: the walls and posts on its edges go with it (docs/53 section 6.2)
+export function setStoreyView(above, stair, hidden = null) {
   aboveDrawn = above;
   viewerStair = stair;
+  hereHidden = hidden;
 }
+// Whether the wall on (tx, ty, edge) stands on the edge of a hidden tile (either side), or the post at the top vertex of (tx, ty) does.
+const edgeHidden = (tx, ty, edge) => !!hereHidden && (hereHidden(tx, ty) || (edge === "n" ? hereHidden(tx, ty - 1) : hereHidden(tx - 1, ty)));
+const vertexHidden = (tx, ty) => !!hereHidden && (hereHidden(tx, ty) || hereHidden(tx - 1, ty) || hereHidden(tx, ty - 1) || hereHidden(tx - 1, ty - 1));
 // Whether the tile is the viewer's stair's: one of its steps on its own layer, or its stairwell on the layer above.
 function onViewerStair(x, y) {
   const s = viewerStair;
@@ -838,6 +843,7 @@ function makeCliffCorner(vx, vy, c, vis) {
 // Corner posts, and a cliff's corner pieces in their place.
 export function postDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
+    if (vertexHidden(tx, ty)) continue;
     const v = vertexAt(tx, ty, playerRoom);
     if (!v) continue;
     if (v.batt) {
@@ -995,7 +1001,7 @@ function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
         const pf = ps.frames.idle_0;
         if (pf) {
           const world = [[tx - 1, ty], [tx, ty - 1], [tx, ty - 1], [tx - 1, ty]];
-          if (lift) {
+          if (lift && !cut) {
             // A post standing on a post (the storeys' seam, Michael's playtest 2026-10-27): no foot of its own, its plinth over the one below's
             // top read as a stone band between the storeys. Its picture is drawn down to the foot's top, and the rows of shaft just over it
             // again below that, to the frame's foot, so the shaft runs on into the post below as one post two storeys tall.
@@ -1143,14 +1149,14 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
     const t = map.tileAt(tx, ty);
     // A ring's edges, and a door or a window at one of its door points, are drawn by its own drawables, in the curve (render/rings.js, docs/50 section 4).
-    if (t.n && !map.drawnByRing(t.n) && !(cliffs.cliffWallOf(t.n) && cliffHidden(tx, ty, "n", t.n))) {
+    if (t.n && !map.drawnByRing(t.n) && !(cliffs.cliffWallOf(t.n) && cliffHidden(tx, ty, "n", t.n)) && !edgeHidden(tx, ty, "n")) {
       const far = map.tileAt(tx, ty - 1);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
       const bat = battlements.battlementOf(t.n);
       const stub = bat ? battlementFades(tx, ty, "n") : isNearWall(tx, ty, "n", playerRoom);
       out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub && !bat && isOpening(t.n) ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
     }
-    if (t.w && !map.drawnByRing(t.w) && !(cliffs.cliffWallOf(t.w) && cliffHidden(tx, ty, "w", t.w))) {
+    if (t.w && !map.drawnByRing(t.w) && !(cliffs.cliffWallOf(t.w) && cliffHidden(tx, ty, "w", t.w)) && !edgeHidden(tx, ty, "w")) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
       const bat = battlements.battlementOf(t.w);

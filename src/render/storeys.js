@@ -143,7 +143,7 @@ export function hiderFor(viewer) {
   if (hideKept.key === key) return hideKept.hide;
   const byLayer = new Map(); // layer -> Set of keys
   const sigs = [];
-  const mark = (set, x, y) => { set.add(keyOf(x, y)); set.add(keyOf(x + 1, y)); set.add(keyOf(x, y + 1)); set.add(keyOf(x + 1, y + 1)); };
+  const mark = (set, x, y) => set.add(keyOf(x, y)); // the tile alone: the walls and posts on its edges go with it in the drawing (render/walls.js `edgeHidden`), never the tiles past it (the review of #603)
   const setOf = (k) => { let s = byLayer.get(k); if (!s) byLayer.set(k, (s = new Set())); return s; };
   const above = layersFor(L).filter((k) => k > L);
   // (1) The ceiling: the room's tiles with a floor over them, and the whole column over each.
@@ -152,7 +152,7 @@ export function hiderFor(viewer) {
     const ceil = room.filter(([x, y]) => { const t = map.peekTile(x, y, L + 1); return !!t && !map.isEngineFloor(t.floor); });
     if (ceil.length) {
       for (const k of above) { const set = setOf(k); for (const [x, y] of ceil) mark(set, x, y); }
-      sigs.push(`room${map.roomAt(vx, vy, L)}`);
+      sigs.push(`room${map.roomAt(vx, vy, L)}:${ceil.length}`);
     }
   }
   // (2) The slabs that cover the body: a slab whose box does not cover it is passed by whole; one that does is asked tile by tile.
@@ -208,10 +208,10 @@ export function boxCovers(body, X0, X1, Y0, Y1, Z0, Z1, cols = FADE_COLS) {
   return false;
 }
 // Whether something built covers the body on screen (docs/53 section 6.2, mechanism 4: what is seen but covered shows its shape): a wall
-// standing in front of it, on its own storey or the one under it (a cliff's face), or a plateau's edge, a few tiles toward the camera; never a
-// crop, a prop, or a tree, nor the near walls of the viewer's own room (`room`, [layer, id]), which are cut to the stub. A cheap test on the
-// grid; the pass itself draws the shape only where it is covered.
-export function structureCovers(body, room = null) {
+// standing in front of it, on its own storey or the one under it (a cliff's face) or on a storey over it, an upper floor in front of it, or a
+// plateau's edge, toward the camera; never the near walls of the viewer's own room (`room`, [layer, id]), which are cut to the stub, nor
+// anything the viewer's hiding rule hides (`hidden`). A cheap test on the grid; the pass itself draws the shape only where it is covered.
+export function structureCovers(body, room = null, hidden = null) {
   const L = (body && body.layer) || 0;
   const bx = Math.round(body.gx);
   const by = Math.round(body.gy);
@@ -221,12 +221,15 @@ export function structureCovers(body, room = null) {
     const far = edge === "n" ? [x, y - 1] : [x - 1, y];
     return map.roomAt(far[0], far[1], k) === room[1] && map.roomAt(x, y, k) !== room[1];
   };
-  for (const k of [L, L - 1]) {
+  const over = layersFor(L).filter((k) => k > L);
+  for (const k of [L, L - 1, ...over]) {
     const Z0 = k * map.STOREY;
-    for (let y = by - 1; y <= by + 6; y++) {
-      for (let x = bx - 1; x <= bx + 6; x++) {
+    const reach = 6 + Math.max(0, k - L) * 4; // a storey up covers a body further behind it on screen
+    for (let y = by - 1; y <= by + reach; y++) {
+      for (let x = bx - 1; x <= bx + reach; x++) {
         const t = map.peekTile(x, y, k);
-        if (!t) continue;
+        if (!t || (hidden && hidden(x, y, k))) continue;
+        if (k > L && !map.isEngineFloor(t.floor) && boxCovers(body, x - 0.5, x + 0.5, y - 0.5, y + 0.5, Z0, Z0 + 4, BODY_COLS)) return true; // an upper floor in front
         for (const edge of ["n", "w"]) {
           const w = t[edge];
           if (!w || map.wallRule(w.sprite).seeThrough || nearOfRoom(k, x, y, edge)) continue;

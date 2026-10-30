@@ -17,7 +17,7 @@ import { sight as sightTuning, cover as coverTuning, objectHighlight as highligh
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import { client } from "../client.js"; // the swing's targets, the client's own (#102)
 import { tintOf as poisonTintOf } from "../poison.js"; // a poisoned body's green (docs/47 section 6)
-import { structureCovers } from "./storeys.js"; // what covers a body, for its seen-but-covered shape (docs/53 section 6.2)
+import { structureCovers, hiderFor } from "./storeys.js"; // what covers a body, for its seen-but-covered shape (docs/53 section 6.2)
 
 export function projectileSheet(id) {
   try {
@@ -282,7 +282,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
     const surf = depth.figure(e.gx, e.gy);
     // Whose shape shows where it is covered: a player (yours, a friend's), and any body on another storey than yours that you see; the dead
     // on your own floor behind a tree or a wall stay hidden (the forest gives no laser vision, Michael 2026-10-11).
-    const xray = !drawAll && !!me && !probe.noCover && fade >= sightTuning.seenAt && (e.kind === "player" || (e.layer || 0) !== (me.layer || 0)) && !e.dead && structureCovers(e, viewerRoom(me));
+    const xray = !drawAll && !!me && !probe.noCover && fade >= sightTuning.seenAt && (e.kind === "player" || (e.layer || 0) !== (me.layer || 0)) && !e.dead && structureCovers(e, viewerRoom(me), hiderFor(me));
     out.push({
       key: (e.gx + e.gy) * 1000 + (e.dead ? 0 : 2), // where it stands: the depth buffer orders it against the walls and posts (docs/51)
       kind: "entity",
@@ -311,16 +311,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
           if (h.tip) frameQuad(getSheet("flame"), `flame_${flameFrame(1)}`, h.x + h.tip[0], h.y + h.tip[1] - 2, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
         };
         for (const h of held) if (!h.near) drawHeld(h);
-        if (xray) gl.holdOrder(true); // its shape at its own depth, one step with it: the pass's reversed test leaves its own pixels alone
         frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: bodyTint(e, dim), flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
-        if (xray) {
-          // Seen but covered (docs/53 section 6.2, mechanism 4): its shape again, a step nearer, in the seen-but-covered pass, which draws
-          // it only where something nearer covers it (a wall it stands behind, a cliff, a plateau).
-          gl.setPass(gl.PASS_XRAY);
-          frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: xrayColor(), flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID }, r.flip);
-          gl.setPass(gl.PASS_STAND);
-          gl.holdOrder(false);
-        }
         for (const h of held) if (h.near) drawHeld(h);
         if (carried) {
           // Each footprint slice at its offset from the anchor, lifted over the head.
@@ -336,6 +327,14 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
             }
           }
           gl.holdOrder(false);
+        }
+        if (xray) {
+          // Seen but covered (docs/53 section 6.2, mechanism 4): its shape again, the last of its pieces and so a step nearer than all of them
+          // (its body, what it holds, what it carries), in the seen-but-covered pass, which draws it only where something nearer than that
+          // covers it (a wall it stands behind, a cliff, a plateau): never over its own sword (the review of #603).
+          gl.setPass(gl.PASS_XRAY);
+          frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: xrayColor(), flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID }, r.flip);
+          gl.setPass(gl.PASS_STAND);
         }
       },
     });

@@ -290,7 +290,7 @@ export function renderScene(args) {
       setViewerAt(player && L === VL ? { x: Math.round(player.gx), y: Math.round(player.gy), layer: L } : null); // a near battlement fades where the viewer stands behind it (art round 13)
       // The walls' view of the storeys round this layer (render/walls.js): the storey above drawn over a tile (a wall under its floor draws no
       // cap), and the stair the viewer stands on (the walls along it fade).
-      setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) && !(faded.any && faded.layers.has(L + 1) && faded(x, y, L + 1)) : null, viewerStair); // a fading storey is no floor over a wall (the review of #551)
+      setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) && !(faded.any && faded.layers.has(L + 1) && faded(x, y, L + 1)) : null, viewerStair, L > VL ? (x, y) => hidden(x, y, L) : null); // a fading storey is no floor over a wall (the review of #551); a hidden tile's edge walls go with it (docs/53 section 6.2)
       // The drawables standing on `tilesT`, and the bodies, stairs, and flights whose tile `mine` takes.
       const visL = seenOn(L); // this layer's own sight
       const gather = (tilesT, mine) => {
