@@ -46,9 +46,12 @@ export function codeOnly(src) {
     const c = out[j];
     if (/[\w$)\]]/.test(c)) {
       const m = /([A-Za-z_$][\w$]*)$/.exec(out.slice(Math.max(0, j - 12), j + 1).join(""));
-      return !!(m && /^(return|typeof|case|in|of|void|delete|throw|new|else|do)$/.test(m[1]));
+      if (!m || !/^(return|typeof|case|in|of|void|delete|throw|new|else|do)$/.test(m[1])) return false;
+      let w = j - m[1].length;
+      while (w >= 0 && /\s/.test(out[w])) w--;
+      return w < 0 || out[w] !== "."; // `s.in / 2` is a property divided, not the keyword
     }
-    return c !== "}" || true;
+    return true; // after an operator, a bracket that opens, a comma, or a `}` that ends a block
   };
   const template = () => { // from just after a backtick (or a closing `}` of `${`) to the end of the template's text
     const a = i;
@@ -113,7 +116,46 @@ function argsAt(code, open) {
   return { count: seen ? count + 1 : 0, spread, end: code.length };
 }
 
-// Every exported function with a defaulted `layer`: its name, its module, and the layer's place among its arguments.
+// A module's imports (each local name bound to a module and its exported name; each namespace to its module), its re-exports, and its own functions.
+function moduleInfo(file, src, code) {
+  const r = rel(file);
+  const dir = path.dirname(file);
+  const res = (spec) => rel(path.resolve(dir, spec));
+  const names = new Map(); // local name -> [module, name]
+  const spaces = new Map(); // namespace -> module
+  const reexports = new Map(); // exported name -> [module, name]
+  const own = new Set(); // functions declared here
+  let m;
+  const spec = (k) => { const q = /(["'])([^"']+)\1/.exec(src.slice(k)); return q ? q[2] : ""; };
+  const nsRe = /import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s+/g;
+  while ((m = nsRe.exec(code))) spaces.set(m[1], res(spec(m.index + m[0].length)));
+  const namedRe = /(import|export)\s*\{([^}]*)\}\s*from\s+/g;
+  while ((m = namedRe.exec(code))) {
+    const from = res(spec(m.index + m[0].length));
+    for (const part of m[2].split(",")) {
+      const t = part.trim().split(/\s+as\s+/);
+      if (!t[0]) continue;
+      if (m[1] === "import") names.set(t[1] || t[0], [from, t[0]]);
+      else reexports.set(t[1] || t[0], [from, t[0]]);
+    }
+  }
+  const defRe = /(?:^|[^\w$.])function\s+([A-Za-z_$][\w$]*)\s*\(/g;
+  while ((m = defRe.exec(code))) own.add(m[1]);
+  return { file: r, names, spaces, reexports, own };
+}
+
+const infos = new Map();
+function infoOf(root, r) {
+  if (!infos.has(r)) {
+    const file = path.join(root, r);
+    if (!fs.existsSync(file)) return null;
+    const src = fs.readFileSync(file, "utf8");
+    infos.set(r, moduleInfo(file, src, codeOnly(src)));
+  }
+  return infos.get(r);
+}
+
+// Every exported function with a defaulted `layer`, keyed by its module and name, with the layer's place among its arguments.
 export function layered(root = ROOT) {
   const fns = new Map();
   for (const file of walk(path.join(root, "src"))) {
@@ -134,36 +176,52 @@ export function layered(root = ROOT) {
       }
       if (cur.trim()) params.push(cur);
       const at = params.findIndex((p) => /^\s*layer\s*=\s*(0|undefined|drawLayer)\s*$/.test(p)); // a default read from the thing itself (a prop's, a player's) is no trap, and null means every layer
-      if (at >= 0) fns.set(m[1], { name: m[1], file: rel(file), at });
+      if (at >= 0) fns.set(`${rel(file)}#${m[1]}`, { name: m[1], file: rel(file), at });
     }
   }
   return fns;
 }
 
+// The function a call names: through a namespace, an import, or the module's own, following re-exports.
+function resolve(root, info, ns, name) {
+  let target = null;
+  if (ns) target = info.spaces.has(ns) ? [info.spaces.get(ns), name] : null;
+  else if (info.names.has(name)) target = info.names.get(name);
+  else if (info.own.has(name)) target = [info.file, name];
+  for (let hop = 0; target && hop < 4; hop++) {
+    const t = infoOf(root, target[0]);
+    if (!t || t.own.has(target[1]) || !t.reexports.has(target[1])) break;
+    target = t.reexports.get(target[1]);
+  }
+  return target ? `${target[0]}#${target[1]}` : null;
+}
+
 // Every call in the simulation of one of those functions without its layer.
 export function audit(root = ROOT) {
+  infos.clear();
   const fns = layered(root);
   const found = [];
-  const names = [...fns.keys()].sort((a, b) => b.length - a.length).join("|");
   for (const file of walk(path.join(root, "src"))) {
     const r = rel(file);
     if (EXCUSED.some((x) => x.test(r))) continue;
     const src = fs.readFileSync(file, "utf8");
     const code = codeOnly(src);
-    const re = new RegExp(`(^|[^\\w$])((?:[A-Za-z_$][\\w$]*\\.)?)(${names})\\s*\\(`, "g");
+    const info = infoOf(root, r);
+    const re = /(^|[^\w$.])(?:([A-Za-z_$][\w$]*)\.)?([A-Za-z_$][\w$]*)\s*\(/g;
     let m;
     while ((m = re.exec(code))) {
-      const name = m[3];
-      const before = code.slice(Math.max(0, m.index - 20), m.index + m[1].length);
-      if (/function\s*$/.test(before)) continue; // the definition itself
-      if (m[2] && !/^(map|mapMod|M|light|lightMod|vis|visibility|movement|placement|reach|round|setdown|stations|campfire|world)\.$/.test(m[2])) continue; // a method of something else
       const open = m.index + m[0].length - 1;
+      re.lastIndex = m.index + m[1].length + 1;
+      const before = code.slice(Math.max(0, m.index - 20), m.index + m[1].length);
+      if (/function\s*$/.test(before)) continue; // a definition
+      const key = resolve(root, info, m[2], m[3]);
+      const fn = key && fns.get(key);
+      if (!fn) continue;
       const { count, spread, end } = argsAt(code, open);
-      re.lastIndex = open + 1;
-      if (spread || count > fns.get(name).at) continue;
+      if (spread || count > fn.at) continue;
       const line = src.slice(0, m.index).split("\n").length;
       const call = src.slice(m.index + m[1].length, end + 1).replace(/\s+/g, " ");
-      found.push({ file: r, line, name, call });
+      found.push({ file: r, line, name: m[3], call });
     }
   }
   return found;

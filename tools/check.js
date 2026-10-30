@@ -8027,6 +8027,9 @@ check("the battlements: the side is read from the floors of the wall's own layer
     const found = audit.grouped(audit.audit());
     const key = (o) => `${o.file}  ${o.call}`;
     const left = new Map(allow.map((a) => [key(a), a]));
+    assert(left.size === allow.length, "the allow list names a call twice");
+    const bad = allow.filter((a) => ![1, 2, 3, 4, 5, 6, 7, "ground"].includes(a.step) || !(a.n >= 1));
+    assert(!bad.length, `allow-list entries with no step of docs/53 or no count: ${bad.map(key).join("; ")}`);
     const fresh = [];
     for (const g of found) {
       const a = left.get(key(g));
@@ -8039,7 +8042,7 @@ check("the battlements: the side is read from the floors of the wall's own layer
     assert(!fresh.length, `layer-less calls not on the list: ${fresh.join("; ")}`);
     assert(!stale.length, `the list names calls that are gone; take them off tools/layer-audit-allow.json: ${stale.join("; ")}`);
     const fns = audit.layered();
-    assert(["tileAt", "peekTile", "wallBetween", "lineOfSight", "itemsAt", "roomAt", "lightAt", "openingsNear"].every((n) => fns.has(n)), "the scan lost a layered function");
+    assert(["tileAt", "peekTile", "wallBetween", "lineOfSight", "itemsAt", "roomAt", "lightAt", "openingsNear"].every((n) => [...fns.values()].some((f) => f.name === n)), "the scan lost a layered function");
     const steps = {};
     for (const a of allow) steps[a.step] = (steps[a.step] || 0) + a.n;
     return `${fns.size} layered functions; ${allow.reduce((t, a) => t + a.n, 0)} calls allowed, by step: ${Object.entries(steps).map(([k, v]) => `${k} ${v}`).join(", ")}`;
