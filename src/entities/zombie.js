@@ -866,7 +866,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           break;
         }
       }
-      const atSighting = Math.hypot(z.lastSeen[0] - z.gx, z.lastSeen[1] - z.gy) <= T.arrived;
+      const atSighting = layerOf(z.lastSeen) === (z.layer || 0) && Math.hypot(z.lastSeen[0] - z.gx, z.lastSeen[1] - z.gy) <= T.arrived; // under it on the floor below is not at it (docs/53 step 5)
       if (!z.seesNow && (arrived || atSighting || z.pathFailed)) startSearch(z);
       break;
     }
@@ -962,7 +962,8 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         show(z, "idle");
         z.idleTimer -= dt;
         if (z.idleTimer <= 0) {
-          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], T.searchRadius, roomOf(z), z.layer || 0);
+          const SL = layerOf(z.lastSeen); // round the sighting on its own floor, reached by a stair when it is another (docs/53 step 5)
+          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], T.searchRadius, SL === (z.layer || 0) ? roomOf(z) : goalRoom(z), SL);
           if (target) repath(z, target);
           z.idleTimer = rng.range(0.8, 2.0);
         }

@@ -8325,6 +8325,15 @@ check("height, step 5: the dead upstairs: the stair taken is the one whose far s
     assert(route && route.s === far, `the stair taken toward the walk: ${route ? (route.s === near ? "the near one, whose landing reaches nothing" : "another") : "none"}`);
     assert(movementMod.canReach(walker, goal), "the walk counts as out of reach by its stair");
     assert(!movementMod.canReach(walker, mapMod.addr(fx + 30, fy - 30, 1)), "a tile on layer 1 no stair reaches counts as reachable");
+    // One standing on the ground right under where it last saw the player (the pane's case, 2026-10-30) climbs to it, never taking itself
+    // to be at the sighting and searching the ground.
+    const under0 = zombie(fx - 3, fy - 3, 0);
+    under0.aggro = true;
+    under0.lastSeen = goal.slice();
+    under0.state = "chase";
+    let searched = false;
+    hunt(under0, 900, (z) => { if (z.state === "search" && (z.layer || 0) === 0) searched = true; return (z.layer || 0) === 0; });
+    assert(!searched && under0.layer === 1, `the one under the sighting: searched the ground ${searched}, on layer ${under0.layer}, state ${under0.state}`);
     // 2. An upstairs room on the far walk's floor, its door on the walk, a ground room under it with a door of its own. One on the walk
     // batters the upstairs door; one on the ground goes up the stair to it, and never strikes it, or the ground room's door, from below.
     const rx = fx - 7;
