@@ -19,6 +19,7 @@ import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
 import { renderScene, night, shakeFence } from "./render.js";
+import { tilesOf } from "./render/storeys.js"; // the tiles a storey is drawn over, which its sight is cast on (docs/53 section 6.1)
 import { createPlayer, aimOrigin, TAINTED_ONLY } from "./entities/player.js";
 import * as host from "./host.js"; // the authority's half of the game, shared with the server world (item 5's first step)
 import { lookOf } from "./host.js";
@@ -295,7 +296,7 @@ function afterWorldSet() {
   light.update();
   if (!glError) ground.invalidateAll();
   for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-  visible = visibility.computeSeen(client.me, tiles);
+  visible = visibility.computeSeen(client.me, tiles, (L) => tilesOf(tiles, L));
   lastAutosave = loop.simTime();
 }
 
@@ -1336,11 +1337,11 @@ function stepGame(dt) {
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
   // bulk of a step's cost and fed the catch-up spiral behind the freezes.
-  const key = `${px},${py},${client.me.layer || 0}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}|${V.w}x${V.h}`;
+  const key = `${px},${py},${client.me.layer || 0},${Math.round((client.me.rise || 0) / 8)}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion},${map.chunkCount()}|${V.w}x${V.h}`; // a climb, and a storey arriving, cast again (the review of #601)
   if (key !== visKey) {
     const t1 = performance.now();
     tiles = camera.viewportTiles(V.w, V.h);
-    visible = visibility.computeSeen(client.me, tiles); // every layer in view, mine by the flat walk (docs/53 section 6.1)
+    visible = visibility.computeSeen(client.me, tiles, (L) => tilesOf(tiles, L)); // every layer in view, mine by the flat walk (docs/53 section 6.1), each over the tiles it is drawn on
     visKey = key;
     timing.vis = performance.now() - t1;
   }
@@ -1420,7 +1421,7 @@ async function restoreWorld(snap) {
   soundCues.reset();
   light.update();
   if (!glError) ground.invalidateAll();
-  visible = visibility.computeSeen(at, tiles);
+  visible = visibility.computeSeen(at, tiles, (L) => tilesOf(tiles, L));
   lastAutosave = loop.simTime();
 }
 
@@ -1439,10 +1440,10 @@ function stepWithScreenUp(dt, guest) {
   const px = Math.round(player.gx);
   const py = Math.round(player.gy);
   playerRoom = map.roomAt(px, py);
-  const key = `${px},${py},${player.layer || 0}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}|${V.w}x${V.h}`;
+  const key = `${px},${py},${player.layer || 0},${Math.round((player.rise || 0) / 8)}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion},${map.chunkCount()}|${V.w}x${V.h}`;
   if (key !== visKey) {
     tiles = camera.viewportTiles(V.w, V.h);
-    visible = visibility.computeSeen(player, tiles); // every layer in view, mine by the flat walk (docs/53 section 6.1)
+    visible = visibility.computeSeen(player, tiles, (L) => tilesOf(tiles, L)); // every layer in view, mine by the flat walk (docs/53 section 6.1), each over the tiles it is drawn on
     visKey = key;
   }
   refreshFigure();
@@ -1727,7 +1728,7 @@ async function boot() {
         tiles = camera.viewportTiles(V.w, V.h);
         light.update();
         for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-        visible = visibility.computeSeen(client.me, tiles);
+        visible = visibility.computeSeen(client.me, tiles, (L) => tilesOf(tiles, L));
         setInWorld(true);
       }
     } },

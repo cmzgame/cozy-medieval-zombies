@@ -5,7 +5,7 @@
 // by an opaque prop in any tile it passes through. Glass passes sight, so a
 // window reveals a wedge of the far side and nothing else.
 
-import { wallBetween, blocksSight, blocksReach, tileAt, peekTile, blankTile, edgeBetween, transmission, gateShotHeight, wallRule, loadedChunks, STOREY, VOID, HOLE } from "./map.js";
+import { wallBetween, blocksSight, blocksReach, tileAt, peekTile, blankTile, edgeBetween, transmission, gateShotHeight, wallRule, loadedChunks, stairAt, stairAlong, riseOn, STOREY, VOID, HOLE } from "./map.js";
 import { getDef } from "./assets.js";
 import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
 import { sight as ST } from "./tuning.js";
@@ -225,15 +225,24 @@ function crossesPlane(x, y, z0, z1) {
   return false;
 }
 
+// The rise a body standing at the middle of tile (x, y) of layer L has: a stair's height there, else none (the review of #601: a body on a
+// stair is looked at where it stands, not at the stair's foot).
+function riseAtTile(x, y, L) {
+  const st = stairAt(x, y, L);
+  return st && !st.well ? riseOn(st.s, stairAlong(st.s, x, y).t) : 0;
+}
+
 // A tile of layer `L` seen by a viewer: on the viewer's own layer by the flat walk, else by `trace` from the eye to the chest of a body
-// standing there, at its middle or failing that at one of the four points near its corners (the screen's four-corner rule).
-export function tileSeen(viewer, tx, ty, L) {
+// standing there (on a stair, at its rise), at its middle or failing that at one of the four points near its corners (the screen's
+// four-corner rule); `corners` false asks the middle alone (the open air of a storey, which only lights a wall's face and a flight).
+export function tileSeen(viewer, tx, ty, L, corners = true) {
   const VL = viewer.layer || 0;
   if (L === VL && !viewer.rise) return tileVisible(viewer.gx, viewer.gy, tx, ty, VL);
   const eye = eyeOf(viewer);
-  const z = STOREY * L + CHEST;
-  if (trace(eye, { x: tx, y: ty, z, layer: L, rise: 0, lean: false })) return true;
-  for (const [dx, dy] of CORNERS) if (trace(eye, { x: tx + dx, y: ty + dy, z, layer: L, rise: 0, lean: false })) return true;
+  const rise = riseAtTile(tx, ty, L);
+  const z = STOREY * L + rise + CHEST;
+  if (trace(eye, { x: tx, y: ty, z, layer: L, rise, lean: false })) return true;
+  if (corners) for (const [dx, dy] of CORNERS) if (trace(eye, { x: tx + dx, y: ty + dy, z, layer: L, rise, lean: false })) return true;
   return false;
 }
 
@@ -256,22 +265,39 @@ export function seesIn(visible, x, y, L) {
   return visible.sees ? visible.sees(x, y, L) : visible.has(tileKey(Math.round(x), Math.round(y)));
 }
 
-export function computeSeen(viewer, tiles) {
+// `tilesFor(L)` is the tiles a layer is drawn over (the renderer's `tilesOf`: a storey's view is shifted by its lift), the view's own tiles
+// when absent. The eye is the viewer's tile centre at its own rise (on a stair, as high as it stands).
+export function computeSeen(viewer, tiles, tilesFor = null) {
   const VL = viewer.layer || 0;
-  const at = { gx: Math.round(viewer.gx), gy: Math.round(viewer.gy), layer: VL, rise: 0 };
+  const at = { gx: Math.round(viewer.gx), gy: Math.round(viewer.gy), layer: VL, rise: viewer.rise || 0 };
   const out = new Seen(VL);
-  out.set(VL, computeVisible(at.gx, at.gy, tiles, VL));
+  out.set(VL, computeVisible(at.gx, at.gy, tilesFor ? tilesFor(VL) : tiles, VL));
   if (VL < 0) return out;
   const layers = new Set([0]);
   for (const c of loadedChunks()) if (c.layer > 0) layers.add(c.layer);
   for (const L of layers) {
     if (L === VL) continue;
     const keys = new Set();
-    for (const [x, y] of tiles) {
+    const hidden = [];
+    for (const [x, y] of tilesFor ? tilesFor(L) : tiles) {
       if (L > 0 && !peekTile(x, y, L)) continue;
-      if (tileSeen(at, x, y, L)) keys.add(tileKey(x, y));
+      if (tileSeen(at, x, y, L, false)) keys.add(tileKey(x, y));
+      else hidden.push(x, y);
     }
+    // The four-corner rule, cheaply (the review of #601: four more rays for every hidden tile cost a wide view from a walk 30 ms): a tile
+    // whose middle is hidden is seen when a neighbour's middle is seen and nothing on the edge between them on its layer stops sight, so
+    // the slivers at a wall's end fill in and nothing is seen through a wall.
+    const add = [];
+    for (let i = 0; i < hidden.length; i += 2) {
+      const x = hidden[i];
+      const y = hidden[i + 1];
+      for (const [dx, dy] of NEIGHBOURS) {
+        if (keys.has(tileKey(x + dx, y + dy)) && !blocksSight(wallBetween(x, y, x + dx, y + dy, L))) { add.push(tileKey(x, y)); break; }
+      }
+    }
+    for (const k of add) keys.add(k);
     out.set(L, keys);
   }
   return out;
 }
+const NEIGHBOURS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
