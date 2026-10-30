@@ -70,6 +70,12 @@ It is still playable at [michaeldippold.github.io/medieval-zombie-survival](http
 
 A week later Michael tried the other half. **Cozy Zombie Game** was modern and isometric, "Project Zomboid boiled down to its essentials, wearing a cozy game's clothes". The world was a map of little diorama sets, a house, its yard, a street, a shop, a park, joined by doors that worked like teleport pads.
 
+The doors were the first thing Michael drew for an agent. Walking out of the house put you in the same corner of the yard you had walked in from, so your momentum carried you straight back inside:
+
+<img src="images/history/2026-09-14-door-sketch.png" alt="A crude paint drawing: a green square for the yard and a tan square for the inside, red arrows for where the doors were and pink arrows for where they should be" width="420">
+
+> "So the first thing you naturally do when you exit is press yourself into the corner to go back in. It's jarring. ... I have attached a crudely drawn image." (2026-09-14)
+
 In four days it built most of what a zombie game needs: dead that kept moving when you could not see them, searchable bodies, a grid inventory, hunger and thirst, death that turned you into one of them, and melee Michael could "micro" by dipping in and out. Above all it built light: night as moonlight, a flashlight the dead reacted to, rooms lit or dark, and shadows.
 
 > "I think this current version is the sweet spot. The circled corner is genuinely dark but not completely unseeable." (2026-09-17)
