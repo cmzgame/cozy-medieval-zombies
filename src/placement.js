@@ -182,9 +182,17 @@ function nearestOutline(player, x0, y0, n) {
   return best;
 }
 
+// A clear line to an edge's tiles, as the build's bar asks while it runs (interact.updateAction, with its 0.2 of slack): a wall built behind another
+// was accepted and then cancelled without a word (docs/53 section 4 line 12), so it is refused up front in the bar's own words (step 6).
+function edgeSight(player, tx, ty, edge, range) {
+  const why = reachProblem(player, map.edgeTiles(tx, ty, edge), range + 0.2, layerOf(player));
+  return why && why !== TOO_FAR ? why : "";
+}
+
 function roundReason(player, what, x0, y0, n) {
-  if (nearestOutline(player, x0, y0, n).d > buildReach()) return "Too far";
-  return roundBlock(player, what, x0, y0, n);
+  const near = nearestOutline(player, x0, y0, n);
+  if (near.d > buildReach()) return "Too far";
+  return edgeSight(player, near.tx, near.ty, near.edge, buildReach() + 0.6) || roundBlock(player, what, x0, y0, n);
 }
 
 function roundGhost(player, what) {
@@ -328,7 +336,7 @@ function floorPlan(player, what, x0, y0, x1, y1) {
   while (more) {
     more = false;
     for (const [x, y] of todo) {
-      if (ok.has(key(x, y)) || far(x, y)) continue;
+      if (ok.has(key(x, y)) || far(x, y) || landformProblem(what, x, y, L)) continue;
       if (!map.floorBuildProblem(x, y, id, L, grows)) {
         ok.add(key(x, y));
         grows.add(key(x, y));
@@ -346,7 +354,7 @@ function floorPlan(player, what, x0, y0, x1, y1) {
   return todo.map(([x, y]) => {
     if (notYet) return [x, y, notYet];
     if (far(x, y)) return [x, y, far(x, y) === TOO_FAR ? "Too far" : "A wall is in the way"];
-    if (!ok.has(key(x, y))) return [x, y, map.floorBuildProblem(x, y, id, L, grows) || "Build it out from a floor"];
+    if (!ok.has(key(x, y))) return [x, y, landformProblem(what, x, y, L) || map.floorBuildProblem(x, y, id, L, grows) || "Build it out from a floor"];
     if (tool) return [x, y, tool];
     if (paid >= afford) return [x, y, `Need ${Object.entries(per).map(([i, k]) => `${k} ${noun(i, k)}`).join(", ")}`];
     paid++;
@@ -480,7 +488,7 @@ function stairTilesOf(x, y, dir) {
 function stairBlock(player, what, x, y, dir) {
   if (buildData[what].dev && !rules.freeBuilding) return "Stairs are not in the game yet"; // Free building only for now
   const L = layerOf(player);
-  const why = map.stairBuildProblem(x, y, dir, L, buildData[what].material || "wood");
+  const why = landformProblem(what, x, y, L) || map.stairBuildProblem(x, y, dir, L, buildData[what].material || "wood"); // the ramp climbs from the ground (step 6)
   if (why) return why;
   const { tiles, landing } = stairTilesOf(x, y, dir);
   if (stations.bodyOnTiles(tiles, L)) return "Someone is in the way";
@@ -561,6 +569,7 @@ function gateBlock(player, what, tx, ty, edge) {
 function gateReason(player, what, tx, ty, edge) {
   const reach = Math.min(...gateEdges(what, tx, ty, edge).map(([x, y]) => { const [mx, my] = map.edgeMid(x, y, edge); return Math.hypot(player.gx - mx, player.gy - my); }));
   if (reach > buildReach()) return "Too far";
+  if (gateEdges(what, tx, ty, edge).every(([x, y]) => edgeSight(player, x, y, edge, buildReach() + 0.6))) return edgeSight(player, tx, ty, edge, buildReach() + 0.6); // none of its edges in sight
   return gateBlock(player, what, tx, ty, edge);
 }
 function gateGhost(player, what) {
@@ -767,6 +776,23 @@ export function wallKindOf(what) {
 export const isBattlementBuild = (what) => !!(buildData[what] && buildData[what].sprite && map.wallRule(buildData[what].sprite).battlement);
 export const isCliffBuild = (what) => !!(buildData[what] && buildData[what].sprite && map.wallRule(buildData[what].sprite).cliff);
 
+// A landform (the Terrain tab's Landforms: a cliff wall, a cliff top, the Stone ramp) stands between the ground and the storey over it, never on a
+// building's floor (docs/53 section 4 line 11, step 6; Primary's default): the ramp and a cliff wall on the ground, a cliff top on the ground or
+// one storey up, never over a storey's floor; a hill on a hill waits for Michael's ruling (section 7, step 9). Why not, or "".
+const landformFloor = (id) => Object.values(buildData).some((d) => d.group === "Landforms" && d.kind === "floor" && d.sprite === id);
+const isLandform = (what) => !!(buildData[what] && buildData[what].group === "Landforms");
+function landformProblem(what, x, y, L) {
+  if (!isLandform(what) || L === 0) return "";
+  const kind = buildData[what].kind;
+  if (kind === "floor" && L === 1) {
+    const t = map.peekTile(x, y, 1);
+    return t && t.built && !landformFloor(t.floor) ? "Not on a built floor" : "";
+  }
+  const t = map.peekTile(x, y, L);
+  const below = kind === "floor" ? map.peekTile(x, y, L - 1) : t;
+  return below && landformFloor(below.floor) ? "Hills on hills are not in the game yet" : "Not on a built floor";
+}
+
 // A build entry that stands a prop on its tiles, not a wall on an edge (the Fireplace, the fire pit, the feeding trough): `kind: "prop"`, its `sprite`.
 export const isPropBuild = (what) => !!(buildData[what] && buildData[what].kind === "prop");
 
@@ -810,6 +836,8 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   const over = buildData[what] && buildData[what].over;
   if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
   if (buildData[what] && buildData[what].dev && !rules.freeBuilding) return isCliffBuild(what) ? "Cliffs are not in the game yet" : "Not in the game yet"; // Free building only (a guest's command too)
+  const land = landformProblem(what, tx, ty, L);
+  if (land) return land;
   if (isBattlementBuild(what)) {
     const why = battlements.problem(tx, ty, edge, L); // a wall walk to stand on, the floor on one side of the edge alone (art round 13)
     if (why) return why;
@@ -844,7 +872,7 @@ const edgeSegment = (tx, ty, edge) => (edge === "n" ? [tx - 0.5, ty - 0.5, tx + 
 function buildReason(player, what, tx, ty, edge, leaf = "") {
   const [mx, my] = map.edgeMid(tx, ty, edge);
   if (Math.hypot(player.gx - mx, player.gy - my) > buildReach()) return "Too far";
-  return buildBlock(player, what, tx, ty, edge, leaf);
+  return edgeSight(player, tx, ty, edge, buildReach() + 1.6) || buildBlock(player, what, tx, ty, edge, leaf);
 }
 
 // ---- the mode ----
