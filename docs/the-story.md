@@ -1,8 +1,10 @@
 # How this game was made
 
-**Status (2026-10-30): a first draft for Michael to read (#560), not yet for players or press; his first answers are folded in.** It is drawn from the record: Michael's own messages to the agents (every one kept in the session transcripts), the pictures sent with them, both prototype repositories, the commit history, the pull requests and their reviews, and `docs/02-decisions.md`. Where the record is unclear or disagrees with itself, the question went to Michael instead of into this page; the open ones are on the pull request. Dates are Michael's local time (US Central). Quotes are Michael's, verbatim, typos and all. The game's name is still a working title.
+**Status (2026-10-30): a first draft, read by Michael and parked (#560, PR #590); not yet for players or press.** His first answers are folded in, and the language gets a final pass before anyone else sees it. It is drawn from the record: Michael's own messages to the agents (every one kept in the session transcripts), the pictures sent with them, both prototype repositories, the commit history, the pull requests and their reviews, and `docs/02-decisions.md`. Where the record is unclear or disagrees with itself, the question went to Michael instead of into this page; the open ones are on the pull request. Dates are Michael's local dates, and the page gives no times of day. Quotes are Michael's, verbatim, typos and all. The game's name is still a working title.
 
 A reference, kept true in place and added to as the game grows: a new chapter goes at the end, the numbers are refreshed, and nothing is struck.
+
+**What it is for** (Michael, 2026-10-30). It shows a game made by a person: "very aggressively a me game", built from his own decisions, drawings, and playtests, not from one prompt. It is a making-of page, not a defence. It says plainly that AI agents write the code and draw the art, and it never argues about whether they should. It makes no promise about the game's future art or artists until Michael decides one. It leads with judgment (the rulings, the reversals, the work sent back) and puts the volume of work second. It gives dates, never times of day. It shows no screenshots of other companies' games; a reference is named in words.
 
 ---
 
@@ -39,7 +41,7 @@ The game he had in mind then was "a medieval zombie game that is RPG focused, ru
 <img src="images/history/prototype-medieval-zombie-survival.png" alt="The side-scroller prototype: a grey knight beside a small house of blocks, a ladder down into dug earth, and a hotbar of sword, bow, axe, hatchet, and pickaxe" width="480">
 </p>
 
-**Medieval Zombie Survival** (Michael calls it "medieval zombies") began at about four in the morning on 7 September as a single web page: a box that ran and jumped, a sword, and a bow. The bow was the first thing designed with care, a delayed hitscan, "think bow and arrow instead of gun", and it has stayed Michael's favourite weapon in everything since. Twenty minutes later, with the box re-coloured as a grey knight among green zombies, came the first screenshot of the whole story, with three words.
+**Medieval Zombie Survival** (Michael calls it "medieval zombies") began on 7 September as a single web page: a box that ran and jumped, a sword, and a bow. The bow was the first thing designed with care, a delayed hitscan, "think bow and arrow instead of gun", and it has stayed Michael's favourite weapon in everything since. Twenty minutes later, with the box re-coloured as a grey knight among green zombies, came the first screenshot of the whole story, with three words.
 
 <img src="images/history/2026-09-07-i-live-here-now.png" alt="A tiny grey knight with a sword in a stack of crates, a green zombie on top" width="233">
 
@@ -90,13 +92,13 @@ And Michael missed swords. Guns felt "way too powerful in the game and are hard 
 
 ## Starting over (8 October 2026)
 
-In the small hours of 8 October, sitting in the diorama game's folder to plan its next step, Michael stopped:
+On 8 October, sitting in the diorama game's folder to plan its next step, Michael stopped:
 
 > "Neither this game,  nor its neighbor (ironically called medieval zombies, it's medieval zomboid by way of Minecraft from the perspective of Terreria) can give you that moving from building to building fluidly experience."
 
 > "Wait are we overthinking this? ... If the browser CAN do this, maybe I ought to test it. ... We could call it cozy-medieval-zombies and marry the two demos (medieval 2d minecraft zombies) and (modern isometric habbo style cozy but with zombies)."
 
-That night set the first law of the new game: **one continuous map, no cut between inside and outside.** It also planted others. Zomboid's water and power shutoffs went ("Fire is everything, and every natural resource is so important"). Farming went to the centre ("if it doesn't work the game probably won't"). And villagers came in, for a reason any Zomboid player knows:
+That day set the first law of the new game: **one continuous map, no cut between inside and outside.** It also planted others. Zomboid's water and power shutoffs went ("Fire is everything, and every natural resource is so important"). Farming went to the centre ("if it doesn't work the game probably won't"). And villagers came in, for a reason any Zomboid player knows:
 
 > "it's lonely as fuck once the tv goes out in single player."
 
@@ -110,13 +112,13 @@ The diorama game gave the new one its bones: about twenty modules were copied ac
 
 <img src="images/history/2026-10-09-the-first-continuous-map.png" alt="The first continuous map: a grey stone hut with see-through walls, two zombies, the player; red marker shows a zombie's route round the house" width="529">
 
-The first build of the continuous map ran the next night. Michael sprinted out of town "like a wanted man" to see whether it would break, and it kept loading grass. He marked up a screenshot in red to show how the dead should come round a house, and then tested their memory:
+The first build of the continuous map ran the next day. Michael sprinted out of town "like a wanted man" to see whether it would break, and it kept loading grass. He marked up a screenshot in red to show how the dead should come round a house, and then tested their memory:
 
 > "Well testing zombie memory is enough to tell me this is better than either my medieval sidescroller or my modern diorama/node game. It feels like playing Zomboid now"
 
 > "With the new art it's not just a test space, it's a Place." (2026-10-09)
 
-The mood came the same night: "When I get real art I want it to look like a place where Halloween kinda never ends", and "the cozy version of this game is aggressively fall colored." So did the engine. The first lighting fought back ("this is why people use game engines I assume lol"), and Michael chose to have the renderer written in raw WebGL rather than with a library:
+The mood came the same day: "When I get real art I want it to look like a place where Halloween kinda never ends", and "the cozy version of this game is aggressively fall colored." So did the engine. The first lighting fought back ("this is why people use game engines I assume lol"), and Michael chose to have the renderer written in raw WebGL rather than with a library:
 
 > "The thing about tools like PixiJS is they were written to simplify this stuff for humans to write. With you as my coding expert, there's very little cost to just writing in raw webGL in my opinion." (2026-10-09)
 
@@ -126,7 +128,7 @@ The mood came the same night: "When I get real art I want it to look like a plac
 
 This is the first map in those days, all placeholder art drawn by code at boot. Models from the diorama game are still visible in it.
 
-### The night the art arrived
+### The day the art arrived
 
 On 10 October Michael asked Claude Design for a sheet of trees. The difference was immediate.
 
@@ -139,7 +141,7 @@ On 10 October Michael asked Claude Design for a sheet of trees. The difference w
 
 > "As I recall trees were the thing that made me go "oh, dev art can actually look great"." (2026-10-15)
 
-That night Michael worked through to six in the morning, then posted two screenshots of the same village with five words.
+The next day Michael posted two screenshots of the same village with five words.
 
 <p>
 <img src="images/history/2026-10-11-the-night-begins.webp" alt="The start of the night: drawn trees round plain generated houses and a bare square" width="420">
@@ -148,7 +150,7 @@ That night Michael worked through to six in the morning, then posted two screens
 
 > "For the record, start and finish tonight." (2026-10-11)
 
-The same night gave the game one of its odder laws. Mushrooms, rocks, and crops would be gathered someday, but nothing was built for them yet, so Michael asked for each to give a little wiggle when clicked, "like an in-world to do":
+The same day gave the game one of its odder laws. Mushrooms, rocks, and crops would be gathered someday, but nothing was built for them yet, so Michael asked for each to give a little wiggle when clicked, "like an in-world to do":
 
 > "Perfect, and fuck it, let's just make this a law in this game for now. If it's in this category of items that are going to have a gathering type actions, clicking wobbles it. And the black outline."
 
@@ -184,7 +186,7 @@ On 12 October Michael decided this one would be finished: "I intend to fully fin
 
 ## Friends in one world (11 to 15 October)
 
-Michael plays with his brother, and Zomboid's sync troubles had kept them apart in its fights. His first ask was whether multiplayer was possible at all, on one condition: "If we CAN add another player but the sync issues would kill the fun, then kill the idea also." The next night he wanted the whole thing ("The simplest version would almost not be worth doing"), and on 13 October two browsers joined one world through the public site. Both players in the picture are Michael, the second one in another browser.
+Michael plays with his brother, and Zomboid's sync troubles had kept them apart in its fights. His first ask was whether multiplayer was possible at all, on one condition: "If we CAN add another player but the sync issues would kill the fun, then kill the idea also." The next day he wanted the whole thing ("The simplest version would almost not be worth doing"), and on 13 October two browsers joined one world through the public site. Both players in the picture are Michael, the second one in another browser.
 
 <img src="images/history/2026-10-13-first-friends-in-the-world.png" alt="Two players in the village, both Michael in two browsers, one holding a torch; the chat reads: hey, sup, Wanna kill some zombies??, LETS DO IT" width="640">
 
@@ -192,7 +194,7 @@ Michael plays with his brother, and Zomboid's sync troubles had kept them apart 
 
 The real test came with his brother, and it left no pictures: "I do not have screenshots from playtesting multi with my brother, I was furiously scribbling down bugs as we tried stuff." (2026-10-30)
 
-That evening two laws were written that still shape every change.
+That day two laws were written that still shape every change.
 
 **Multiplayer is live: every change is built for a guest in the same commit.**
 
@@ -204,15 +206,15 @@ That evening two laws were written that still shape every change.
 
 > "I went to the bog, and accidentally brought some bog danger home with me. If you can't tell I feel strongly about this." (2026-10-13)
 
-The same night Michael sketched the arc the game still follows: "I like stories where everything is normal until it's isn't." A cosy farming start; then the dead; then regions beyond the valley, each spookier than the last, gated by bosses; and at the end, "your severed demon head" hung "as a decoration in The Valley where your cozy farming start happened."
+The same day Michael sketched the arc the game still follows: "I like stories where everything is normal until it's isn't." A cosy farming start; then the dead; then regions beyond the valley, each spookier than the last, gated by bosses; and at the end, "your severed demon head" hung "as a decoration in The Valley where your cozy farming start happened."
 
-Worlds moved onto a server so a friend could join at any hour. The night of 14 October brought the wiki, on the model of the Old School RuneScape wiki, and with it the second rule of shipping:
+Worlds moved onto a server so a friend could join at any hour. 14 October brought the wiki, on the model of the Old School RuneScape wiki, and with it the second rule of shipping:
 
 > "100%! This thing is not worth building if it's going to immediately fall behind." (2026-10-14)
 
 > "Very funny, I just learned something new about my own game from your wiki." (2026-10-14)
 
-He added a Verify button, to stamp each page once he had checked it himself. And at half past two in the morning on 15 October he died in his own game:
+He added a Verify button, to stamp each page once he had checked it himself. And on 15 October he died in his own game:
 
 > "I almost died organizing my bags because I forgot zombie aggro was on by default and with 100 around they just kept finding me. I dived back inside finally and got the door shut but I died to the bleeds. So I respawned in the next room over, looted my own corpse, and now I can play lol."
 
@@ -222,7 +224,7 @@ He added a Verify button, to stamp each page once he had checked it himself. And
 
 ## A studio of agents (14 to 16 October)
 
-Until then Michael had carried every message between the agents by hand, pasting one's report into the other. On the night of 14 October he asked for the process "a real game studio" would use, on GitHub, and invented its two roles: one **Primary**, the technical lead who reviews and merges everything ("the buck stops here before it stops at me"), and any number of **Secondaries** who build on branches. Every agent asks him its role before it changes anything. Every ruling goes into the decisions log with its reason. Every change is a pull request, reviewed as a rule by an agent that had no part in it.
+Until then Michael had carried every message between the agents by hand, pasting one's report into the other. On 14 October he asked for the process "a real game studio" would use, on GitHub, and invented its two roles: one **Primary**, the technical lead who reviews and merges everything ("the buck stops here before it stops at me"), and any number of **Secondaries** who build on branches. Every agent asks him its role before it changes anything. Every ruling goes into the decisions log with its reason. Every change is a pull request, reviewed as a rule by an agent that had no part in it.
 
 The studio's first days were rough, and Michael said so: "Okay I am having like an epically bad day ... I need a win today." The win was fire. And a bug hit while playing became a law that day: with the bag open you could not cast, so
 
@@ -232,14 +234,14 @@ The studio's first days were rough, and Michael said so: "Okay I am having like 
 
 ## The shape of the game (16 to 20 October)
 
-The evening of 16 October was the big design night. Michael wrote it out in one long message and asked the agent to summarise it back: "Just so I understand what you read from that haha". From it:
+16 October was the big design day. Michael wrote it out in one long message and asked the agent to summarise it back: "Just so I understand what you read from that haha". From it:
 
 - **Danger that follows you home.** "each time you opt to step out of the valley and into a new area, some of the danger follows you home."
 - **A cosy player is welcome.** "someone who pays for the game with the intention of it just being another harvest moon / stardew valley hangout and do chores cozy game should get that experience, plus or minus zombies".
 - **It must not be easy.** "if you can run through the whole game's progression systems and defeat all of the bosses in just a few hours, then I have failed".
 - **The regions start from a mood.** "dark fantasy and heavy metal are the oldest of friends." One is a vampire church out of *Midnight Mass*, "one of my favorite stills from any piece of horror ever": "This alone would be worth making a game about."
 
-Two laws came out of the same night. **Nobody climbs through a window**, player or dead:
+Two laws came out of the same conversation. **Nobody climbs through a window**, player or dead:
 
 > "Let's make this a law, we are going to remove this mechanic any everyone's ability to trigger it. It's not fun, and this is not zomboid, you are not clearing entire new blocks every day. Feels good, that was bugging me." (2026-10-16)
 
@@ -247,15 +249,15 @@ And **a sealed room is safe, and it is a cell**: nothing digs and no wall breaks
 
 > "This is law worthy, it's the right shape. If you can stock your base with enough food and water you should be allowed to hold up in there forever. ... You just can't leave and why you would want to do this I do not know." (2026-10-17)
 
-Fire magic was dropped that night to keep the game smaller, then played again an hour later and taken back: "fireball is too cool, and I REALLY want to keep it ... Sorry to overrule so soon". A playtest after the site update ended at his fence with 158 of the dead outside it.
+Fire magic was dropped in that conversation to keep the game smaller, then played again an hour later and taken back: "fireball is too cool, and I REALLY want to keep it ... Sorry to overrule so soon". A playtest after the site update ended at his fence with 158 of the dead outside it.
 
 <img src="images/history/2026-10-16-the-fence-held.webp" alt="The player, bleeding, at a wooden fence round a farm, surrounded by a field of the dead" width="640">
 
 > "I ended up in the above situation with my piddley little torch and all those zombies and was immediately like "oh my god I'm going to die" and then I got a bleed. If not for the invincible fence I would be super dead." (2026-10-16)
 
-Later that night came the roadmap, in order, from the valley and its skills to Steam ("Be realistic, I have never done this before"), and the test for the valley: "it just needs to feel like playing a game, not testing a game." Michael plays with the sound off ("My brother thinks this is horrifying"), so he asked his agents to argue for it: "Be the sound on advocate between us."
+Next came the roadmap, in order, from the valley and its skills to Steam ("Be realistic, I have never done this before"), and the test for the valley: "it just needs to feel like playing a game, not testing a game." Michael plays with the sound off ("My brother thinks this is horrifying"), so he asked his agents to argue for it: "Be the sound on advocate between us."
 
-The following days were the valley's working parts. A rule for every item in a grid: hover over it and it tells you what it is and what it does ("Edit how an apple works? Check the card too"). Food that heals what it says, "like in OSRS". Tools you must carry, "the OSRS inventory puzzle part of the game which Zomboid does not have, because it uses weight". He drafted the skills himself, levels one to ten, and made death take them ("As of now this is the only true punishment for dying and we need one"). By the evening of 19 October the scoping had worn thin ("I am tired of scoping and it makes my brain hurt"), and the work turned to the fun parts: floating combat text, a navigation row, parchment dialogue.
+The following days were the valley's working parts. A rule for every item in a grid: hover over it and it tells you what it is and what it does ("Edit how an apple works? Check the card too"). Food that heals what it says, "like in OSRS". Tools you must carry, "the OSRS inventory puzzle part of the game which Zomboid does not have, because it uses weight". He drafted the skills himself, levels one to ten, and made death take them ("As of now this is the only true punishment for dying and we need one"). By 19 October the scoping had worn thin ("I am tired of scoping and it makes my brain hurt"), and the work turned to the fun parts: floating combat text, a navigation row, parchment dialogue.
 
 > "I can't believe dev art can look this good tbh" (2026-10-20)
 
@@ -279,11 +281,11 @@ Then he started a Playtest Checklist: a page holding every change since the vall
 
 ### Walls, depth, floors, and towers
 
-On the evening of 26 October a question about wall heights ended in a rebuild of the renderer. Zomboid's rooms are always three crates tall, and he liked how readable that made them:
+On 26 October a question about wall heights ended in a rebuild of the renderer. Zomboid's rooms are always three crates tall, and he liked how readable that made them:
 
 > "If any prop in the game is going to be a measuring stick, make it the perfectly square, perfectly one tile storage crate to match zomboid."
 
-Walls became 96 pixels, three crates. Props kept clipping into them, so: "Is adding a depth buffer an option?" It was, and the renderer was rebuilt to sort every pixel. Upper floors were specified the same evening, as layers, the way Zomboid does it, with stairs that move you to the next layer as you cross their top. And round rooms, drawn first in a paint program:
+Walls became 96 pixels, three crates. Props kept clipping into them, so: "Is adding a depth buffer an option?" It was, and the renderer was rebuilt to sort every pixel. Upper floors were specified the same day, as layers, the way Zomboid does it, with stairs that move you to the next layer as you cross their top. And round rooms, drawn first in a paint program:
 
 <p>
 <img src="images/history/2026-10-26-round-room-sketch.png" alt="A paint-program sketch: a circle in a grid of tiles, with red circles at the four points where it touches its square" width="300">
@@ -294,9 +296,9 @@ Walls became 96 pixels, three crates. Props kept clipping into them, so: "Is add
 
 <img src="images/history/2026-10-27-a-second-storey.png" alt="A two-storey wooden house among autumn trees, its upper floor open to the sky" width="560">
 
-The next evening the game was shown to a friend: "This guy has also not played Zomboid even once though to leading a column of zombies around while backpeddling is still novel to him lol. And he was clearly having fun."
+On 27 October the game was shown to a friend: "This guy has also not played Zomboid even once though to leading a column of zombies around while backpeddling is still novel to him lol. And he was clearly having fun."
 
-Just after midnight Michael made the villagers' law. They had been killable, then immune if they taught a skill, then all immune unless scripted; now it was final:
+On 28 October Michael made the villagers' law. They had been killable, then immune if they taught a skill, then all immune unless scripted; now it was final:
 
 > "Let's just make it a rule now: villagers are immune. They run and cower as they do now, they cannot be attacked by zombies. Same reason the NPCs in the grand exchange can't be killed - the game needs them to be there." (2026-10-28)
 
@@ -304,7 +306,7 @@ Just after midnight Michael made the villagers' law. They had been killable, the
 
 This is the story Michael tells to show how the game is made.
 
-At 12:42 in the morning on 28 October, in the middle of a question about how to bound the world, Michael wrote it off:
+On 28 October, in the middle of a question about how to bound the world, Michael wrote it off:
 
 > "We also have no elevation right now, as I understand it an unfortunate consequence of being a 2d isometric world. Which means no mountains to block off passage like in wow."
 
@@ -312,19 +314,19 @@ Nine minutes later he changed his mind, with a picture of the Motherlode Mine in
 
 > "Wait, now that we have stairs and floors, is it possible to build wall and floor pieces that are bare solid rock ... It's just a multistory house with none of it being buildable, destroyable, pass-throuable, etc. ... Then when you don't want the player to go higher, no more stairs. Done."
 
-The agents answered with a plan too clever for the question: ground that could sit at any level, the inside of a hill drawn as solid earth. Michael pushed back ("This is more complicated than I was imagining") and at noon drew what he meant.
+The agents answered with a plan too clever for the question: ground that could sit at any level, the inside of a hill drawn as solid earth. Michael pushed back ("This is more complicated than I was imagining") and later that day drew what he meant.
 
 <img src="images/history/2026-10-28-dark-in-the-middle.png" alt="An MS Paint drawing on green: a stick figure at level 0 beside an upside-down L of wall, another figure standing on top at level 1, an X in the hollow space under it" width="400">
 
 > "Let me illustrate the inside of the hill thing. Again, don't think up any new mechanics, I think all of this can be done with today's tech. Imagine the build tool allowing you to build a wall but instead of wood or stone it's bare grey cliff, rounds at the top corner, and meets up with a tile above to form a cliff face. These two tiles are really no different from a wall and a floor tile on the second floor (level 1). I said the area behind it would be dark because there is no light in there, no entities, just barren ground hidden behind a cliff wall art. Hence, big dark area."
 
-A cliff is a wall and a floor. An hour later he approved the cliff art an artist agent had drawn for it, and that afternoon he built the first cliff beside the river.
+A cliff is a wall and a floor. An hour later he approved the cliff art an artist agent had drawn for it, and later the same day he built the first cliff beside the river.
 
 <img src="images/history/2026-10-28-the-first-cliff.png" alt="The first cliff: a grey stone cliff face with a grassy top and a ramp, beside a wooden shed and the river; the player stands on top" width="640">
 
 > "Awesome. This is very promising, as far as I can tell, with some care, and these coming with the map and never being built by players, it turns out we actually CAN have real elevation in a 2d isometric game lol" (2026-10-28)
 
-The ramp needed sides; he researched how Zomboid's stairs meet a wall and asked for the ramp to bring its own. After midnight, on a flat grass map he had asked for that evening so he could build by hand, he built a bluff.
+The ramp needed sides; he researched how Zomboid's stairs meet a wall and asked for the ramp to bring its own. On 29 October, on a flat grass map he had asked for so he could build by hand, he built a bluff.
 
 <p>
 <img src="images/history/2026-10-29-the-first-bluff.png" alt="A stone bluff with a ramp on open grass, the player standing on top" width="420">
@@ -345,9 +347,9 @@ And forty minutes after that, at night in the game, a hollow in the hill with th
 
 > "Can you add one note to the next session notes? We are a few thoughtful changes away from getting caves for free as well. Perhaps not big ones, it's mostly there already." (2026-10-29)
 
-From "no elevation" to a lit cave took about twenty-five hours, and it needed no new mechanic. Floors, stairs, walls, and light were already there; the cliffs were new art for them, wired in and fixed along the way.
+From "no elevation" to a lit cave took about a day, and it needed no new mechanic. Floors, stairs, walls, and light were already there; the cliffs were new art for them, wired in and fixed along the way.
 
-The same night brought castle gates and battlements for a castle he wants to build, with a note only a web developer would write ("In CSS terms, I want margin not padding on the battlements box model lol"), and a list of everything the valley needs, place by place, to lay out by hand before the real map is built.
+The same day brought castle gates and battlements for a castle he wants to build, with a note only a web developer would write ("In CSS terms, I want margin not padding on the battlements box model lol"), and a list of everything the valley needs, place by place, to lay out by hand before the real map is built.
 
 ---
 
@@ -396,19 +398,25 @@ Michael names his influences constantly, and what he takes from each is specific
 
 ## The numbers
 
-Three weeks of this game, from the first commit on 8 October to 29 October 2026. Nothing happened on 21 and 22 October.
+Three weeks of this game, from the first commit on 8 October to 29 October 2026. Nothing happened on 21 and 22 October. There is a long way to go, and the pace is not expected to slow.
+
+The decisions:
+
+| | |
+|---|---|
+| Dated entries in the decisions log | 282 |
+| Struck passages in the decisions log, each a decision changed | 141 |
+| Pull requests sent back at least once, then approved | about 93 |
+| Messages from Michael to the agents | about 1,000 |
+| Pictures Michael sent the agents | 163 |
+
+The work:
 
 | | |
 |---|---|
 | Commits | 1,843 |
 | Pull requests merged (from 15 October) | 343 |
-| Pull requests sent back at least once, then approved | about 93 |
-| Dated entries in the decisions log | 282 |
-| Struck passages in the decisions log | 141 |
-| Messages from Michael to the agents | about 1,000 |
-| Pictures Michael sent the agents | 163 |
 | Lines of game code (`src`) | 48,349 |
-| Lines of code in all, with the server and the tools | about 108,800 |
 | Drawn pictures in the game's art | 1,082 |
 | Items | 146 |
 | Wiki pages | 289 |
