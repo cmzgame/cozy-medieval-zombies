@@ -28,7 +28,11 @@ export const FLAG_SKY = 4;
 export const FLAG_NOFOG = 8;
 export const FLAG_STANDING = 16; // a prop or a character: takes the legibility floor
 export const FLAG_SOLID = 32; // the quad's colour, flat, keeping the sprite's shape: an outline (docs/14)
-export const FLAG_UPPER = 64; // a storey's (docs/49 section 6): lit, shaded, and fogged by the second set of area textures, the storey's own
+export const FLAG_UPPER = 64; // a storey's (docs/49 section 6): lit, shaded, and fogged by its own set of area textures; with the next two bits (128, 256) a set number 1 to 7 (`setFlags`)
+// The storeys' own sets of area textures (docs/53 section 6.4): up to STOREY_SETS, stacked one under another in the second textures, a
+// storey's quads carrying their set's number in three bits of the flags; a storey past the cap is lit as the open sky (a default).
+export const STOREY_SETS = 6;
+export const setFlags = (n) => (n >= 1 && n <= STOREY_SETS ? n * FLAG_UPPER : FLAG_SKY);
 
 // The passes (docs/51 section 4). PASS_STAND is what a standing drawable asks for: its quads go to the opaque pass, or
 // to the translucent one by the rule above (`route`); PASS_TRANS is that store's index, never asked for by an emitter.
@@ -306,7 +310,7 @@ uniform int u_isGround;
 uniform sampler2D u_light;
 uniform sampler2D u_ambient;
 uniform sampler2D u_fog;
-uniform sampler2D u_light2; // a storey's own light, ambient, and fog (docs/49 section 6), read by a vertex flagged FLAG_UPPER
+uniform sampler2D u_light2; // the storeys' own light, ambient, and fog (docs/53 section 6.4), STOREY_SETS of them stacked, read by a vertex's set number
 uniform sampler2D u_ambient2;
 uniform sampler2D u_fog2;
 uniform int u_hasUpper;
@@ -331,6 +335,7 @@ uniform float u_softLight;
 uniform int u_debug;
 uniform float u_alphaCut; // the opaque pass's alpha test (a half); the others' near-clear floor
 uniform float u_fade; // the faded storey's alpha in its colour draw (PASS_FADE); 1 otherwise
+const float STOREY_SETS_F = 6.0; // gl.js STOREY_SETS
 
 // The player's own weak night vision: the cozy parent's gradient stops.
 float poolAt(vec2 p) {
@@ -352,10 +357,12 @@ void main() {
   bool nofog = mod(floor(f / 8.0), 2.0) >= 1.0;
   bool standing = mod(floor(f / 16.0), 2.0) >= 1.0;
   bool solid = mod(floor(f / 32.0), 2.0) >= 1.0;
-  bool upper = u_hasUpper == 1 && mod(floor(f / 64.0), 2.0) >= 1.0;
+  float setN = mod(floor(f / 64.0), 8.0); // a storey's set, 1 to STOREY_SETS, or 0 the ground's
+  bool upper = u_hasUpper == 1 && setN >= 1.0;
   // Texel i of the tile textures covers [origin + i - 0.5, origin + i + 0.5);
   // the light texture spans the same area at more texels per tile.
   vec2 tileUV = (v_world - u_areaOrigin + 0.5) / u_areaTiles;
+  vec2 setUV = vec2(tileUV.x, (clamp(tileUV.y, 0.5 / u_areaTiles.y, 1.0 - 0.5 / u_areaTiles.y) + setN - 1.0) / STOREY_SETS_F); // its own band of the stacked storey textures, half a tile inside it so no read reaches the next (the review of #605)
   vec3 rgb = solid ? v_color.rgb : tex.rgb;
   // Debug views (docs/08): the light, ambient, or fog texture as grey over the
   // world, read at the fragment's own sample point.
@@ -363,8 +370,8 @@ void main() {
   if (u_debug == 2) { o = vec4(vec3(texture(u_ambient, tileUV).r), 1.0); return; }
   if (u_debug == 3) { o = vec4(vec3(texture(u_fog, tileUV).r), 1.0); return; }
   if (!unlit) {
-    float amb = sky ? u_outdoor : upper ? texture(u_ambient2, tileUV).r : texture(u_ambient, tileUV).r;
-    float st = sky ? 0.0 : upper ? texture(u_light2, tileUV).r : texture(u_light, tileUV).r;
+    float amb = sky ? u_outdoor : upper ? texture(u_ambient2, setUV).r : texture(u_ambient, tileUV).r;
+    float st = sky ? 0.0 : upper ? texture(u_light2, setUV).r : texture(u_light, tileUV).r;
     // A pool climbs a wall or a tree from its foot and fades with height.
     if (u_climb > 0.0) st *= max(0.0, 1.0 - v_height / u_climb);
     // The sum, capped: where ambient alone is near full, a pool's climb running
@@ -384,7 +391,7 @@ void main() {
     }
   }
   if (!nofog) {
-    float vis = upper ? texture(u_fog2, tileUV).r : texture(u_fog, tileUV).r;
+    float vis = upper ? texture(u_fog2, setUV).r : texture(u_fog, tileUV).r;
     if (vis < 0.5) rgb = mix(rgb, u_fogColor, u_fogAlpha);
   }
   o = vec4(rgb * a, a) * u_fade;
@@ -552,7 +559,7 @@ function makeTexture(filter) {
 let lightTex = null;
 let ambientTex = null;
 let fogTex = null;
-let lightTex2 = null; // the second set: a storey's own (docs/49 section 6), units 5 to 7
+let lightTex2 = null; // the storeys' sets, stacked (docs/53 section 6.4), units 5 to 7
 let ambientTex2 = null;
 let fogTex2 = null;
 let hasUpper = 0; // the second set holds a storey this frame
@@ -583,21 +590,37 @@ export function setLightSampling(linear) {
 // The three small textures: light (R8, cells), ambient and fog (R8, tiles).
 // The three area textures upload apart, each only when it changed (docs/23a, B6).
 // `set` 1 is the second set, a storey's (docs/49 section 6).
+// A storey's set (1 to STOREY_SETS) goes into its band of the stacked texture, which is made at its full height the first time a set of that
+// size arrives (a new size, a restored context).
+const stackSize = new Map(); // texture -> "w x h" it was made at
+function uploadStacked(tex, unit, data, w, h, set) {
+  gl.activeTexture(unit);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  const k = `${w}x${h}`;
+  if (stackSize.get(tex) !== k) {
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, w, h * STOREY_SETS, 0, gl.RED, gl.UNSIGNED_BYTE, null);
+    stackSize.set(tex, k);
+  }
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, h * (set - 1), w, h, gl.RED, gl.UNSIGNED_BYTE, data);
+}
 export function uploadLight(light, lw, lh, set = 0) {
-  gl.activeTexture(set ? gl.TEXTURE5 : gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, set ? lightTex2 : lightTex);
+  if (set) return uploadStacked(lightTex2, gl.TEXTURE5, light, lw, lh, set);
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, lightTex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, lw, lh, 0, gl.RED, gl.UNSIGNED_BYTE, light);
 }
 
 export function uploadAmbient(ambient, aw, ah, set = 0) {
-  gl.activeTexture(set ? gl.TEXTURE6 : gl.TEXTURE2);
-  gl.bindTexture(gl.TEXTURE_2D, set ? ambientTex2 : ambientTex);
+  if (set) return uploadStacked(ambientTex2, gl.TEXTURE6, ambient, aw, ah, set);
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, ambientTex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, aw, ah, 0, gl.RED, gl.UNSIGNED_BYTE, ambient);
 }
 
 export function uploadFog(fog, aw, ah, set = 0) {
-  gl.activeTexture(set ? gl.TEXTURE7 : gl.TEXTURE3);
-  gl.bindTexture(gl.TEXTURE_2D, set ? fogTex2 : fogTex);
+  if (set) return uploadStacked(fogTex2, gl.TEXTURE7, fog, aw, ah, set);
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, fogTex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, aw, ah, 0, gl.RED, gl.UNSIGNED_BYTE, fog);
 }
 

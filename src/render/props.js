@@ -20,6 +20,7 @@ import * as paintingArt from "./paintings.js"; // a painting hung on a wall (#32
 import { resources as RES } from "../tuning.js"; // a rock's rise (docs/46)
 import { riseOf, shudderOf } from "../resources.js"; // how far a rising rock is still below the ground, and its shudder (docs/46)
 import * as bees from "./bees.js"; // bees round a hive by day (#441)
+import { flatHere } from "./storeys.js"; // a lying arrow on its own floor, a storey's too (docs/53 section 6.4)
 
 // ---- props and characters ----
 
@@ -380,7 +381,7 @@ export function floorItemDrawables(tiles, visible, out) {
           if (e.at && (e.id === "arrow" || e.id === "spear" || projectileSheet(e.id)?.frames[`${e.id}_${e.angle || 0}`])) {
             const sp = iso.toScreen(e.at[0], e.at[1]);
             const sheet = projectileSheet(e.id);
-            gl.withPass(gl.PASS_FLAT, () => {
+            flatHere(() => { // on its own floor, a storey's too (docs/53 section 6.4)
               if (sheet && lit) hl.outline(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0 });
               if (sheet) frameQuad(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
             });

@@ -216,7 +216,7 @@ function makeSet(set) {
 }
 
 const ground = makeSet(0);
-const storey = makeSet(1);
+const storeys = Array.from({ length: gl.STOREY_SETS }, (_, i) => makeSet(i + 1)); // the storeys in view, one set each (docs/53 section 6.4)
 
 export function ensureArea(w, h) {
   // Tiles from the camera to the view's corner, plus tall sprites and margin.
@@ -231,7 +231,7 @@ export function buildArea(tiles, visible, drawAll, camGx, camGy) {
   return ground.build(tiles, visible, drawAll, camGx, camGy, 0);
 }
 
-// The second set, a storey's own (docs/49 section 6): `layer`'s light, ambient, and fog over the same area as the ground's.
-export function buildStoreyArea(tiles, visible, drawAll, camGx, camGy, layer) {
-  return storey.build(tiles, visible, drawAll, camGx, camGy, layer);
+// A storey's own set, `set` 1 to STOREY_SETS (docs/53 section 6.4): `layer`'s light, ambient, and fog over the same area as the ground's.
+export function buildStoreyArea(tiles, visible, drawAll, camGx, camGy, layer, set = 1) {
+  return storeys[set - 1].build(tiles, visible, drawAll, camGx, camGy, layer);
 }

@@ -8408,6 +8408,28 @@ check("height, step 5: the dead upstairs: the stair taken is the one whose far s
   }
 });
 
+// docs/53 step 4, the review of #605: the fire's particles keep their floor. A body burning on a storey sheds its embers and smoke there, at
+// its rise; a spark and a burst of splinters name theirs; a guest's `fx` carries a height above the ground and gets the floor back from it.
+const fireParticles = await import("../src/fire.js");
+check("height, step 4: a burning body's embers and smoke, a spark, and splinters keep their floor and rise; a guest's fx height gives the floor back", () => {
+  const fire = fireParticles;
+  const body = { gx: 3, gy: 4, layer: 2, rise: 40, burning: true };
+  for (let i = 0; i < 400; i++) fire.update(1 / 60, [body]);
+  body.burning = false;
+  const shed = fire.all().filter((p) => p.kind === "ember" || p.kind === "smoke");
+  assert(shed.length > 0, "no embers or smoke in seven seconds of burning");
+  assert(shed.every((p) => p.layer === 2 && p.rise === 40), `embers or smoke off the body's floor: ${JSON.stringify(shed.slice(0, 2).map((p) => [p.kind, p.layer, p.rise]))}`);
+  fire.spark(1, 1, 22, 3, 1);
+  fire.splinters(2, 2, 12, 3, -1);
+  const sp = fire.all().filter((p) => p.kind === "spark" || p.kind === "splinter" || (p.kind === "smoke" && p.gx === 2));
+  assert(sp.length && sp.every((p) => p.layer === (p.kind === "spark" ? 1 : -1)), `a spark's or a burst's floor: ${JSON.stringify(sp.slice(0, 3).map((p) => [p.kind, p.layer]))}`);
+  const back = [fire.fromHeight(22), fire.fromHeight(96 + 22), fire.fromHeight(3 * 96 + 12), fire.fromHeight(-96 + 12)];
+  assert(JSON.stringify(back) === "[[0,22],[1,22],[3,12],[-1,12]]", `the heights back: ${JSON.stringify(back)}`);
+  assert(netMod.PROTOCOL >= 29, `PROTOCOL ${netMod.PROTOCOL}`);
+  for (let i = 0; i < 200; i++) fire.update(1 / 60, []);
+  return `${shed.length} embers and puffs on floor 2 at rise 40; a spark on 1, a burst in a cellar; heights 22, 118, 300, -84 back to their floors`;
+});
+
 // The layer audit (docs/53 step 0, section 6.5): no call in the simulation leaves its layer to a default of the ground or the drawn storey,
 // beyond the allow list of those known on 2026-10-30, each named with the step that gives it its layer. The list only shrinks: a new
 // layer-less call fails, and so does an entry with more calls than remain (take it down as the step lands).
