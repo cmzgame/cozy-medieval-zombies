@@ -18,7 +18,7 @@ const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 // 0 (hidden) to 1 (seen whole): how much of this dead one the viewer sees, wall or no wall aside.
 export function seenAlpha(viewer, z) {
   if (z.burning) return 1; // a body on fire is its own light
-  const lit = clamp01((light.lightAt(z.gx, z.gy) - T.litNone) / (T.litFull - T.litNone));
+  const lit = clamp01((light.lightAt(z.gx, z.gy, z.layer || 0) - T.litNone) / (T.litFull - T.litNone));
   if (lit >= 1) return 1;
   const d = Math.hypot(z.gx - viewer.gx, z.gy - viewer.gy);
   // The radius seen whole: the short one of the dark, or the viewer's own carried light's, a torch giving sight back to its radius.

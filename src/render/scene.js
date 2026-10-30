@@ -219,7 +219,10 @@ export function renderScene(args) {
     lastLinear = night.linear;
   }
   const cam = camera || player || { gx: 0, gy: 0 };
-  const areaOrigin = buildArea(tiles, visible, drawAll || !fog, cam.gx, cam.gy);
+  // What the viewer sees, per layer (docs/53 section 6.1): each layer's drawing and fog read that layer's own set (a plain set, from a
+  // check, is every layer's).
+  const seenOn = (L) => (visible && visible.on ? visible.on(L) : visible);
+  const areaOrigin = buildArea(tiles, seenOn(0), drawAll || !fog, cam.gx, cam.gy);
 
   gl.begin((cam.gx + cam.gy) * 32); // the depth range follows the camera (docs/51 section 5)
   // The storeys (docs/49 section 6): the layers the viewer sees, lowest first, each lifted by its height; the ground's flat things first.
@@ -240,14 +243,14 @@ export function renderScene(args) {
   // A storey's own light, ambient, and fog (the second set of area textures): the viewer's layer when it is not the ground, else the
   // first storey in view; a storey besides those is lit as the open air (the sky's flag) until the light is kept per layer for all.
   const upperL = VL !== 0 ? VL : layers.find((l) => l > 0 && held.has(l)) ?? null;
-  if (upperL !== null) buildStoreyArea(grown.get(upperL), visible, drawAll || !fog, cam.gx, cam.gy, upperL);
+  if (upperL !== null) buildStoreyArea(grown.get(upperL), seenOn(upperL), drawAll || !fog, cam.gx, cam.gy, upperL);
   gl.setUpperSet(upperL !== null);
   if (layers[0] === 0) {
     emitGround(tiles);
     if (grid) emitGrid(tiles);
     emitRugs(tiles); // after the ground, before every standing drawable: the rugs lie under what stands on them (#327)
     if (tileMark) emitTileMark(tileMark); // on the ground: whatever stands on or before the tile is drawn over it
-    if (tracks && tracks.length) emitTracks(tracks, drawAll ? null : visible); // game's prints, on the ground and in sight
+    if (tracks && tracks.length) emitTracks(tracks, drawAll ? null : seenOn(0)); // game's prints, on the ground and in sight
   }
   const holes = [];
   let translucent = 0;
@@ -288,31 +291,32 @@ export function renderScene(args) {
       // cap), and the stair the viewer stands on (the walls along it fade).
       setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) && !(faded.any && faded.layers.has(L + 1) && faded(x, y, L + 1)) : null, viewerStair); // a fading storey is no floor over a wall (the review of #551)
       // The drawables standing on `tilesT`, and the bodies, stairs, and flights whose tile `mine` takes.
+      const visL = seenOn(L); // this layer's own sight
       const gather = (tilesT, mine) => {
         const drawables = [];
-        wallDrawables(tilesT, visible, roomHere, drawables);
-        ringDrawables(tilesT, visible, roomHere, drawables, L); // round rooms on this layer, their two halves (docs/50 section 4)
-        postDrawables(tilesT, visible, roomHere, drawables);
-        propDrawables(tilesT, visible, drawables);
-        floorItemDrawables(tilesT, visible, drawables);
+        wallDrawables(tilesT, visL, roomHere, drawables);
+        ringDrawables(tilesT, visL, roomHere, drawables, L); // round rooms on this layer, their two halves (docs/50 section 4)
+        postDrawables(tilesT, visL, roomHere, drawables);
+        propDrawables(tilesT, visL, drawables);
+        floorItemDrawables(tilesT, visL, drawables);
         stairDrawables(tilesT, L, DEPTH_BIAS.prop, drawables, fadeHere ? (s) => mine(s.tiles[1][0], s.tiles[1][1]) : null); // the stairs on this layer (docs/49 section 11)
         // The bodies on this layer, each a further `rise` up when it is on a stair, its picture made and drawn at that height.
         const mineBody = (e) => (e.layer || 0) === L && !hidden(Math.round(e.gx), Math.round(e.gy), L) && mine(e.gx, e.gy); // a body on a hidden storey is not drawn (the review of #534)
-        entityDrawables(entities.filter((e) => !e.rise && mineBody(e)), visible, drawables, drawAll, player);
+        entityDrawables(entities.filter((e) => !e.rise && mineBody(e)), visL, drawables, drawAll, player);
         for (const e of entities) {
           const r = e.rise || 0;
           if (!r || !mineBody(e)) continue;
           const n0 = drawables.length;
-          withLift(r, () => entityDrawables([e], visible, drawables, drawAll, player));
+          withLift(r, () => entityDrawables([e], visL, drawables, drawAll, player));
           for (let i = n0; i < drawables.length; i++) {
             const d = drawables[i];
             const emit = d.emit;
             d.emit = () => withLift(r, emit);
           }
         }
-        if (arrows && arrows.length) arrowDrawables(arrows.filter((a) => (a.layer || 0) === L && mine(a.gx, a.gy)), visible, drawables); // a flight on its own layer (docs/49)
-        if (splashes && splashes.length) splashDrawables(splashes.filter((s) => (s.layer || 0) === L && mine(s.gx, s.gy)), visible, drawables); // a thrown potion's or poison's splash (docs/47 section 7)
-        if (L === 0) fireDrawables(fire, visible, drawables);
+        if (arrows && arrows.length) arrowDrawables(arrows.filter((a) => (a.layer || 0) === L && mine(a.gx, a.gy)), visL, drawables); // a flight on its own layer (docs/49)
+        if (splashes && splashes.length) splashDrawables(splashes.filter((s) => (s.layer || 0) === L && mine(s.gx, s.gy)), visL, drawables); // a thrown potion's or poison's splash (docs/47 section 7)
+        if (L === 0) fireDrawables(fire, visL, drawables);
         drawables.sort((a, b) => a.key - b.key);
         return drawables;
       };

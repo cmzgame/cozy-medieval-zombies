@@ -295,7 +295,7 @@ function afterWorldSet() {
   light.update();
   if (!glError) ground.invalidateAll();
   for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-  visible = visibility.computeVisible(Math.round(client.me.gx), Math.round(client.me.gy), tiles, client.me.layer || 0);
+  visible = visibility.computeSeen(client.me, tiles);
   lastAutosave = loop.simTime();
 }
 
@@ -908,7 +908,7 @@ function here() {
   };
 }
 let tiles = [];
-let visible = new Set();
+let visible = new visibility.Seen(); // what I see, per layer (docs/53 section 6.1)
 let playerRoom = 0;
 let drawAll = false; // debug: V shows everything, fog off
 let drawn = 0;
@@ -1340,7 +1340,7 @@ function stepGame(dt) {
   if (key !== visKey) {
     const t1 = performance.now();
     tiles = camera.viewportTiles(V.w, V.h);
-    visible = visibility.computeVisible(px, py, tiles, client.me.layer || 0); // seen from my own layer (docs/49)
+    visible = visibility.computeSeen(client.me, tiles); // every layer in view, mine by the flat walk (docs/53 section 6.1)
     visKey = key;
     timing.vis = performance.now() - t1;
   }
@@ -1377,7 +1377,7 @@ function renderUi() {
     // An animal's name while the pointer is on one I can see (docs/45).
     const m = input.getMouse();
     const c = m && m.inside && !client.me.dead ? interact.characterAt(m.x, m.y, client.me) : null;
-    updateHoverName(c && c.kind === "animal" && visible.has(visibility.tileKey(Math.round(c.gx), Math.round(c.gy))) ? c : null);
+    updateHoverName(c && c.kind === "animal" && visible.sees(c.gx, c.gy, c.layer || 0) ? c : null);
   }
   if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals], visible, client.me); // the numbers over heads, from the same blended positions
   mapPanel.update({ player: client.me, players: S.players, places: (S.info && S.info.places) || [] });
@@ -1420,7 +1420,7 @@ async function restoreWorld(snap) {
   soundCues.reset();
   light.update();
   if (!glError) ground.invalidateAll();
-  visible = visibility.computeVisible(Math.round(at.gx), Math.round(at.gy), tiles, at.layer || 0);
+  visible = visibility.computeSeen(at, tiles);
   lastAutosave = loop.simTime();
 }
 
@@ -1442,7 +1442,7 @@ function stepWithScreenUp(dt, guest) {
   const key = `${px},${py},${player.layer || 0}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}|${V.w}x${V.h}`;
   if (key !== visKey) {
     tiles = camera.viewportTiles(V.w, V.h);
-    visible = visibility.computeVisible(px, py, tiles, player.layer || 0); // seen from my own layer (docs/49)
+    visible = visibility.computeSeen(player, tiles); // every layer in view, mine by the flat walk (docs/53 section 6.1)
     visKey = key;
   }
   refreshFigure();
@@ -1476,8 +1476,8 @@ function render() {
     // The object under the cursor that a right-click would act on, outlined (Object Highlight, #301): asked of the step's own positions and origin, as a click is.
     // In the Use mode, the thing the next click is used on (Michael's playtest, 2026-10-26: the plot under the pointer outlined).
     highlight: use.isActive()
-      ? objectHighlight.forUse(input.getMouse().inside ? useTargetAt(input.getMouse().x, input.getMouse().y) : null, client.me, visible)
-      : objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active, mouse: input.getMouse(), player: client.me, visible, now: performance.now() }),
+      ? objectHighlight.forUse(input.getMouse().inside ? useTargetAt(input.getMouse().x, input.getMouse().y) : null, client.me, visible.on(client.me.layer || 0))
+      : objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active, mouse: input.getMouse(), player: client.me, visible: visible.on(client.me.layer || 0), now: performance.now() }),
     hitShapes: combat.overlays(client.me, S.zombies, settings.get("showHitShapes")),
     tileMark: inspectMark.marked(), // the patch an Inspect speaks of
     tracks: tracks.near(client.me), // wild game's prints near me (docs/45 section 2; this client's view, nothing sent)
@@ -1727,7 +1727,7 @@ async function boot() {
         tiles = camera.viewportTiles(V.w, V.h);
         light.update();
         for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-        visible = visibility.computeVisible(Math.round(client.me.gx), Math.round(client.me.gy), tiles, client.me.layer || 0);
+        visible = visibility.computeSeen(client.me, tiles);
         setInWorld(true);
       }
     } },

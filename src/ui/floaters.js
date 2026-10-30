@@ -8,12 +8,12 @@ import * as iso from "../iso.js";
 import * as view from "../view.js";
 import * as settings from "../settings.js";
 import * as light from "../light.js";
-import { tileKey } from "../visibility.js";
 import * as sight from "../sight.js";
 import { floaters as T } from "../tuning.js";
 import * as fl from "../floaters.js";
 import { skillIconURL, SIZE } from "./skill-icons.js";
 import { SMALL_TEXT_MAX_PX, SMALL_FONT_VAR } from "./small-text.js";
+import { seesIn } from "../visibility.js"; // a body on its own storey (docs/53 section 6.1)
 
 let root = null;
 const alive = []; // { e, el, age, gx, gy, id, side, size }
@@ -98,7 +98,7 @@ export function update(dt, chars, visible, me) {
     f.age += dt;
     if (f.age >= T.life) { f.el.remove(); alive.splice(i, 1); continue; }
     const c = byId.get(f.id);
-    if (c) { f.gx = c.gx; f.gy = c.gy; } // follows the body while it is there, else stays where it was
+    if (c) { f.gx = c.gx; f.gy = c.gy; f.layer = c.layer || 0; } // follows the body while it is there, else stays where it was
     const t = f.age / T.life;
     const s = iso.toScreen(f.gx, f.gy);
     const u = view.toUi(s.x + f.drift * T.drift * t, s.y - T.startLift - f.lift - t * T.riseTiles * iso.TH);
@@ -107,7 +107,7 @@ export function update(dt, chars, visible, me) {
     // Mine always; another's only where I see it: in my line of sight and, for a live zombie in the dark, seen as the bars, bubbles, and the drawing are (#88; only the
     // dead fade in the dark, a villager or a friend is drawn whole and so is their number). A body that is gone keeps the rule it had.
     if (c) f.zombie = c.kind === "zombie" && !c.dead;
-    const seen = f.id === (me && me.id) || ((!visible || visible.has(tileKey(Math.round(f.gx), Math.round(f.gy)))) && (!me || !f.zombie || sight.seen(me, c || f)));
+    const seen = f.id === (me && me.id) || ((!visible || seesIn(visible, f.gx, f.gy, f.layer || 0)) && (!me || !f.zombie || sight.seen(me, c || f)));
     f.el.style.display = seen ? "" : "none";
     f.el.style.opacity = t <= T.fadeFrom ? "1" : String(Math.max(0, 1 - (t - T.fadeFrom) / (1 - T.fadeFrom)));
   }

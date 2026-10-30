@@ -190,7 +190,7 @@
     "litRoomFlickerMin": 0.85
   },
   "population": { "none": 0, "low": 0.4, "standard": 1, "high": 2.5 },
-  "sight": { "darkRadius": 1.5, "edge": 2, "litNone": 0.3, "litFull": 0.45, "seenAt": 0.5, "drawCutoff": 0.02, "groanGap": 20, "groanRadius": 6 },
+  "sight": { "darkRadius": 1.5, "edge": 2, "litNone": 0.3, "litFull": 0.45, "seenAt": 0.5, "drawCutoff": 0.02, "groanGap": 20, "groanRadius": 6, "leanReach": 0.8 },
   "work": {
     "grindstone": { "ceilings": [0.6, 0.4, 0.2], "seconds": 4 },
     "anvil": { "ceilings": [1, 0.8, 0.6], "seconds": 6, "uses": "smith" },
