@@ -17,7 +17,7 @@ import { sight as sightTuning, cover as coverTuning, objectHighlight as highligh
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import { client } from "../client.js"; // the swing's targets, the client's own (#102)
 import { tintOf as poisonTintOf } from "../poison.js"; // a poisoned body's green (docs/47 section 6)
-import { structureCovers, hiderFor } from "./storeys.js"; // what covers a body, for its seen-but-covered shape (docs/53 section 6.2)
+import { structureCovers, hiderFor, flatHere } from "./storeys.js"; // what covers a body, for its seen-but-covered shape (docs/53 section 6.2)
 
 export function projectileSheet(id) {
   try {
@@ -51,8 +51,8 @@ export function arrowDrawables(arrows, visible, out) {
       key: key + 0.2,
       kind: "arrowShadow",
       emit() {
-        gl.setPass(gl.PASS_FLAT); // on the ground: the flat pass, in its place in the order (docs/51 section 4)
-        gl.poly([[x - rx, y], [x - rx / 2, y - ry], [x + rx / 2, y - ry], [x + rx, y], [x + rx / 2, y + ry], [x - rx / 2, y + ry]], gl.rgb("#000000", alpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+        // On the ground: the flat pass, in its place in the order (docs/51 section 4); on a storey, on its floor (docs/53 section 6.4).
+        flatHere(() => gl.poly([[x - rx, y], [x - rx / 2, y - ry], [x + rx / 2, y - ry], [x + rx, y], [x + rx / 2, y + ry], [x - rx / 2, y + ry]], gl.rgb("#000000", alpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG }));
       },
     });
     out.push({
@@ -96,9 +96,10 @@ export function splashDrawables(splashes, visible, out) {
       key: (s.gx + s.gy) * 1000 + 0.1,
       kind: "splash",
       emit() {
-        gl.setPass(gl.PASS_FLAT);
-        if (stainAlpha > 0.01) gl.poly(octagon(14, 7), gl.rgb(s.color, stainAlpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
-        if (burstAlpha > 0.01) gl.poly(octagon(20 + 10 * u, 10 + 5 * u), gl.rgb(s.color, burstAlpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+        flatHere(() => {
+          if (stainAlpha > 0.01) gl.poly(octagon(14, 7), gl.rgb(s.color, stainAlpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+          if (burstAlpha > 0.01) gl.poly(octagon(20 + 10 * u, 10 + 5 * u), gl.rgb(s.color, burstAlpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+        });
       },
     });
   }
@@ -152,7 +153,7 @@ export function fireDrawables(particles, visible, out) {
     if (!visible.has(tileKey(Math.round(gx), Math.round(gy)))) continue;
     const s = iso.toScreen(gx, gy);
     const x = Math.round(s.x + p.ox);
-    const y = Math.round(s.y - p.z);
+    const y = Math.round(s.y - p.z - ((p.ch ? p.ch.rise : p.rise) || 0)); // a burning body on a stair burns at its rise, its embers and smoke with it (its storey is the pass's lift)
     const u = p.t / p.life;
     let name;
     let color;

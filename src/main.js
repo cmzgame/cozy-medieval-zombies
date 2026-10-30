@@ -1950,11 +1950,11 @@ async function boot() {
       // A blow met by the shield: sparks where they meet (docs/21); the flash is the player's own state (combat.js).
       events.on("blocked", ({ zombie, player: p = client.me }) => {
         const d = iso.normalize(zombie.gx - p.gx, zombie.gy - p.gy);
-        burning.spark(p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22);
+        burning.spark(p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22 + (p.rise || 0), 9, p.layer || 0); // on the blocker's floor and rise (the review of #605)
       });
       // A wall the dead strike jolts once a strike, and a fence that gives bursts into splinters (map.strikeFence, #147, #174): drawn here.
       events.on("wallStruck", ({ tx, ty, edge }) => { shakeFence(tx, ty, edge); soundCues.struck(tx, ty, edge); }); // the jolt, and its sound (#424)
-      events.on("fenceBurst", ({ x, y }) => burning.splinters(x, y, 12));
+      events.on("fenceBurst", ({ x, y, layer = 0 }) => burning.splinters(x, y, 12, 18, layer));
       // A blow that landed kicks the camera of the client whose player struck (docs/31/05, item 13).
       events.on("kicked", ({ player: p, x, y, seconds }) => {
         if (p === client.me) camera.kick(x, y, seconds);
@@ -2073,8 +2073,11 @@ async function boot() {
     message: (text, seconds = 3) => showMessage(text, seconds),
     kick: (x, y, seconds) => camera.kick(x, y, seconds), // my own landed blow, told by the host (item 4)
     fx: (kind, x, y, z) => { // a visual the host's world made (a blocked blow's sparks, z its height; a fence's splinters; a fence shaking, its tile and z 1 for a west edge)
-      if (kind === "spark") burning.spark(x, y, z);
-      else if (kind === "splinters") burning.splinters(x, y, z);
+      if (kind === "spark" || kind === "splinters") { // z the height above the ground, its storey's in it (PROTOCOL 29)
+        const [L, h] = burning.fromHeight(z, map.STOREY);
+        if (kind === "spark") burning.spark(x, y, h, 9, L);
+        else burning.splinters(x, y, h, 18, L);
+      }
       else if (kind === "shake") { shakeFence(Math.round(x), Math.round(y), z ? "w" : "n"); soundCues.struck(Math.round(x), Math.round(y), z ? "w" : "n"); } // and its sound (#424)
     },
     // A container my player opened on the host: the grid is on my replica's prop, entry, or body, found by

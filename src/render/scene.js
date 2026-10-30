@@ -22,7 +22,7 @@ import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/4
 import { postDrawables, setStoreyView, setViewerAt, wallDrawables } from "./walls.js";
 import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
-import { emitFadedFloors, emitFloors, faderFor, hiderFor, layersFor, liftOf, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
+import { emitFadedFloors, emitFloors, faderFor, hiderFor, layersFor, liftOf, setFlatBias, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
 import { cover as coverTuning } from "../tuning.js"; // the cover rule's levers (docs/53 section 6.2)
 
 // The night, as before: tunables Michael picks by eye, live on
@@ -243,9 +243,15 @@ export function renderScene(args) {
   });
   // A storey's own light, ambient, and fog (the second set of area textures): the viewer's layer when it is not the ground, else the
   // first storey in view; a storey besides those is lit as the open air (the sky's flag) until the light is kept per layer for all.
-  const upperL = VL !== 0 ? VL : layers.find((l) => l > 0 && held.has(l)) ?? null;
-  if (upperL !== null) buildStoreyArea(grown.get(upperL), seenOn(upperL), drawAll || !fog, cam.gx, cam.gy, upperL);
-  gl.setUpperSet(upperL !== null);
+  // Each storey in view its own light, ambient, and fog (docs/53 section 6.4): the storeys held in view, the viewer's first, then the lowest
+  // up, a set each to STOREY_SETS; one past the cap is lit as the open sky. A village with no storey in view builds the ground's alone.
+  const setOf = new Map();
+  for (const L of [VL, ...layers].filter((l, i, a) => l !== 0 && (held.has(l) || l === VL) && a.indexOf(l) === i)) { // a cellar too (the review of #605)
+    if (setOf.size >= gl.STOREY_SETS) break;
+    setOf.set(L, setOf.size + 1);
+  }
+  for (const [L, n] of setOf) buildStoreyArea(grown.get(L) || [], seenOn(L), drawAll || !fog, cam.gx, cam.gy, L, n);
+  gl.setUpperSet(setOf.size > 0);
   if (layers[0] === 0) {
     emitGround(tiles);
     if (grid) emitGrid(tiles);
@@ -265,7 +271,7 @@ export function renderScene(args) {
   const viewerStair = onStair && !onStair.well ? onStair.s : null; // the stair under the viewer's feet (render/walls.js fades the walls along it)
   lastStats.faded = faded.sig;
   for (const L of layers) {
-    gl.setExtraFlags(L === 0 ? 0 : L === upperL ? gl.FLAG_UPPER : gl.FLAG_SKY);
+    gl.setExtraFlags(L === 0 ? 0 : gl.setFlags(setOf.get(L) || 0)); // its own set, or the sky past the cap
     withLift(L * map.STOREY, () => map.withDrawLayer(L, () => {
       // A storey's tiles in view: only those whose chunk that layer holds (most of the view is no storey's), less what the hiding rule
       // hides; the ground's whole (nothing below the viewer is hidden). A storey that fades is drawn apart, after the rest of its layer.
@@ -274,6 +280,7 @@ export function renderScene(args) {
       const tilesL = fadeHere ? tilesAll.filter(([x, y]) => !faded(x, y, L)) : tilesAll;
       const tilesF = fadeHere ? tilesAll.filter(([x, y]) => faded(x, y, L)) : null;
       const fadedAt = (x, y) => fadeHere && faded(Math.round(x), Math.round(y), L);
+      setFlatBias(DEPTH_BIAS.liftedFloor); // what lies flat on a storey lies on its floor's plane (storeys.js flatHere)
       if (L) {
         // An upper floor's ground (or a cellar's), a quad a chunk with its depth written, and what lies flat on it just over it.
         gl.setPass(gl.PASS_STAND);
@@ -317,7 +324,7 @@ export function renderScene(args) {
         }
         if (arrows && arrows.length) arrowDrawables(arrows.filter((a) => (a.layer || 0) === L && mine(a.gx, a.gy)), visL, drawables); // a flight on its own layer (docs/49)
         if (splashes && splashes.length) splashDrawables(splashes.filter((s) => (s.layer || 0) === L && mine(s.gx, s.gy)), visL, drawables); // a thrown potion's or poison's splash (docs/47 section 7)
-        if (L === 0) fireDrawables(fire, visL, drawables);
+        if (fire && fire.length) fireDrawables(fire.filter((p) => ((p.ch ? p.ch.layer : p.layer) || 0) === L && (p.ch ? mine(p.ch.gx, p.ch.gy) : mine(p.gx, p.gy))), visL, drawables); // a body burns on its own floor, and its embers and smoke with it (docs/53 section 6.4), never over what the cover rule hides
         drawables.sort((a, b) => a.key - b.key);
         return drawables;
       };

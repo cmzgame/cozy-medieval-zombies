@@ -30,6 +30,26 @@ export function withLift(px, fn) {
   }
 }
 
+// Something that lies flat (a lying arrow, an arrow's shadow, a splash, docs/53 section 6.4): on the ground, the flat pass in its place in the
+// order; on a storey, on the lifted floor's horizontal plane a step over the floor's picture, tested against what stands, so it lies on its
+// own floor and never under it (the storey's floor, drawn with depth, painted over the flat pass's).
+export function flatHere(fn, liftedFloorBias = 0.25) {
+  if (!gl.getLift()) return gl.withPass(gl.PASS_FLAT, fn); // the ground's; a storey's or a cellar's lies on its own floor's plane
+  const o = iso.getOrigin();
+  const was = gl.getPass();
+  gl.setPass(gl.PASS_STAND);
+  gl.surface({ A: 0, B: 2, C: -2 * o.y }, flatBias + liftedFloorBias, 0.5);
+  try {
+    fn();
+  } finally {
+    gl.setPass(was);
+  }
+}
+let flatBias = 0; // the lifted floor's own bias (scene.js DEPTH_BIAS.liftedFloor), set by the scene
+export function setFlatBias(b) {
+  flatBias = b;
+}
+
 // How high a body is drawn: its layer's storey and its rise up a stair.
 export function liftOf(body) {
   return ((body && body.layer) || 0) * map.STOREY + ((body && body.rise) || 0);

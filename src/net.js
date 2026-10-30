@@ -174,7 +174,9 @@ export function makeCode() {
 // ground named 0), kept as sent; a flight's launch record names the floor it comes down on (`l`) and its `z0` is measured from that floor, so a
 // shot down from a storey starts high and one shot up starts under it; a flight's end record may carry a fifth number, the floor a stopped one came down on. An older guest would draw a shot from the walk starting at the ground's
 // chest height, and an older host would read a ground aim from a storey as the storey's own floor.
-export const PROTOCOL = 28;
+// 29 (2026-10-30, docs/53 step 4, the review of #605): the `fx` message's z for sparks and splinters is the height above the ground, its storey's
+// STOREY times its layer in it (a cellar's below 0), bounded at 1024 either way; an older guest would draw an upstairs spark or burst on the ground.
+export const PROTOCOL = 29;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -1141,7 +1143,7 @@ export function guestStep(mySnap) {
     } else if (msg.type === "fx" && msg.from) {
       // A visual the host's world made, drawn here too (fxAll). Bounded: the host is trusted, the numbers are not.
       const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
-      if (hooks.fx && typeof msg.kind === "string") hooks.fx(msg.kind, num(msg.x, 1e5), num(msg.y, 1e5), Math.max(0, num(msg.z, 256)));
+      if (hooks.fx && typeof msg.kind === "string") hooks.fx(msg.kind, num(msg.x, 1e5), num(msg.y, 1e5), num(msg.z, 1024)); // z a height above the ground, a cellar's below it (PROTOCOL 29)
     } else if (msg.type === "kick" && msg.from) {
       // My own landed blow, resolved on the host: the camera's kick, here (item 4). Bounded: the host is trusted, the numbers are not.
       const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);

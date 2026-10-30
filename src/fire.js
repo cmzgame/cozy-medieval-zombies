@@ -51,10 +51,10 @@ export function update(dt, characters) {
       ch.burnAcc -= 1;
       particles.push({ kind: "flame", ch, ox: rnd(-spread, spread), z: rnd(2, top), vz: rnd(...tunables.rise), vx: rnd(-4, 4), t: 0, life: rnd(...tunables.life) });
       if (Math.random() < tunables.emberChance) {
-        particles.push({ kind: "ember", gx: ch.gx, gy: ch.gy, ox: rnd(-spread, spread), z: rnd(top * 0.5, top + 4), vz: rnd(45, 85), vx: rnd(-10, 10), t: 0, life: rnd(0.5, 1.1) });
+        particles.push({ kind: "ember", gx: ch.gx, gy: ch.gy, layer: ch.layer || 0, rise: ch.rise || 0, ox: rnd(-spread, spread), z: rnd(top * 0.5, top + 4), vz: rnd(45, 85), vx: rnd(-10, 10), t: 0, life: rnd(0.5, 1.1) }); // on its body's floor and rise (the review of #605)
       }
       if (Math.random() < tunables.smokeChance) {
-        particles.push({ kind: "smoke", gx: ch.gx, gy: ch.gy, ox: rnd(-spread, spread), z: top + rnd(4, 10), vz: rnd(18, 30), vx: rnd(-6, 6), t: 0, life: rnd(0.8, 1.3) });
+        particles.push({ kind: "smoke", gx: ch.gx, gy: ch.gy, layer: ch.layer || 0, rise: ch.rise || 0, ox: rnd(-spread, spread), z: top + rnd(4, 10), vz: rnd(18, 30), vx: rnd(-6, 6), t: 0, life: rnd(0.8, 1.3) });
       }
     }
   }
@@ -71,22 +71,28 @@ export function update(dt, characters) {
 }
 
 // A burst of sparks at a world point and a height, flying outward and falling: a blow met by a
-// shield (docs/21). Drawn as the ember, so a spark is a bright two-pixel dot.
-export function spark(gx, gy, z, n = 9) {
+// shield (docs/21). Drawn as the ember, so a spark is a bright two-pixel dot. `layer` its floor, `z` its height above that floor.
+export function spark(gx, gy, z, n = 9, layer = 0) {
   for (let i = 0; i < n; i++) {
-    particles.push({ kind: "spark", gx, gy, ox: rnd(-2, 2), z: z + rnd(-2, 2), vz: rnd(10, 80), vx: rnd(-70, 70), g: 220, t: 0, life: rnd(0.15, 0.32) });
+    particles.push({ kind: "spark", gx, gy, layer, ox: rnd(-2, 2), z: z + rnd(-2, 2), vz: rnd(10, 80), vx: rnd(-70, 70), g: 220, t: 0, life: rnd(0.15, 0.32) });
   }
 }
 
 // A fence bursting into a cloud of splinters with a puff of dust (Michael, 2026-10-17, #147): "slightly comical", so many bits
 // thrown up and out and tumbling as they fall, and gone. A visual every client draws (the host sends `splinters`).
-export function splinters(gx, gy, z = 12, n = 18) {
+export function splinters(gx, gy, z = 12, n = 18, layer = 0) {
   for (let i = 0; i < n; i++) {
-    particles.push({ kind: "splinter", gx, gy, ox: rnd(-10, 10), z: z + rnd(-4, 8), vz: rnd(50, 150), vx: rnd(-80, 80), g: 300, f: Math.floor(rnd(0, 4)), t: 0, life: rnd(0.55, 0.95) });
+    particles.push({ kind: "splinter", gx, gy, layer, ox: rnd(-10, 10), z: z + rnd(-4, 8), vz: rnd(50, 150), vx: rnd(-80, 80), g: 300, f: Math.floor(rnd(0, 4)), t: 0, life: rnd(0.55, 0.95) });
   }
   for (let i = 0; i < 3; i++) {
-    particles.push({ kind: "smoke", gx, gy, ox: rnd(-8, 8), z: z + rnd(0, 6), vz: rnd(14, 30), vx: rnd(-14, 14), t: 0, life: rnd(0.5, 0.9) });
+    particles.push({ kind: "smoke", gx, gy, layer, ox: rnd(-8, 8), z: z + rnd(0, 6), vz: rnd(14, 30), vx: rnd(-14, 14), t: 0, life: rnd(0.5, 0.9) });
   }
+}
+
+// A height above the ground as the host sends it to a guest (net `fx`: its storey times STOREY plus its height on it) back to [layer, z].
+export function fromHeight(h, storey = 96) {
+  const layer = Math.floor(h / storey);
+  return [layer, h - layer * storey];
 }
 
 export function all() {
