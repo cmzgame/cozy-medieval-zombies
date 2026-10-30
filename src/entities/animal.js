@@ -206,9 +206,10 @@ function threatInSight(a, threats, radius) {
   let best = null;
   let bestD = radius;
   for (const t of threats) {
+    if ((t.layer || 0) !== (a.layer || 0)) continue; // nothing on another floor frightens it (docs/53 step 7: a deer under the walk grazes on)
     const d = Math.hypot(t.gx - a.gx, t.gy - a.gy);
     if (d > bestD) continue;
-    if (!lineOfSight(a.gx, a.gy, t.gx, t.gy)) continue;
+    if (!lineOfSight(a.gx, a.gy, t.gx, t.gy, a.layer || 0)) continue;
     best = t;
     bestD = d;
   }
@@ -218,7 +219,7 @@ function threatInSight(a, threats, radius) {
 // Whether it still sees anything it would run from within `radius`: only what it can see holds it alert, so one of the dead
 // standing still behind a wall does not hold a deer for ever.
 function anyInSight(a, threats, radius) {
-  return threats.some((t) => Math.hypot(t.gx - a.gx, t.gy - a.gy) <= radius && lineOfSight(a.gx, a.gy, t.gx, t.gy));
+  return threats.some((t) => (t.layer || 0) === (a.layer || 0) && Math.hypot(t.gx - a.gx, t.gy - a.gy) <= radius && lineOfSight(a.gx, a.gy, t.gx, t.gy, a.layer || 0));
 }
 
 // A tile about `tiles` away from the threat, straight away first and then turning, that it can run to; null when there is none.
@@ -237,7 +238,7 @@ function fleeTo(a, from, tiles) {
     for (const dist of [tiles, Math.max(2, Math.round(tiles / 2))]) {
       const t = [Math.round(a.gx + dx * dist), Math.round(a.gy + dy * dist)];
       if (t[0] === here[0] && t[1] === here[1]) continue;
-      if (!isWalkableTile(t[0], t[1]) || roomAt(t[0], t[1]) !== 0) continue;
+      if (!isWalkableTile(t[0], t[1], a.layer || 0) || roomAt(t[0], t[1], a.layer || 0) !== 0) continue; // on its own floor (docs/53 step 7)
       repath(a, t);
       if (!a.pathFailed && a.path.length) return t;
     }
@@ -327,7 +328,7 @@ export function updateAnimal(a, dt, others, threats) {
         // (it fled, or walked out of a pen left open) the tile is still near home, so it drifts back.
         let target = null;
         for (let tries = 0; tries < 6 && !target; tries++) {
-          const t = pickTargetAround(a.home[0], a.home[1], sp.wander, 0);
+          const t = pickTargetAround(a.home[0], a.home[1], sp.wander, 0, a.layer || 0);
           if (t && Math.hypot(t[0] - a.home[0], t[1] - a.home[1]) <= sp.wander) target = t;
         }
         if (target) repath(a, target);
@@ -364,7 +365,7 @@ export function updateAnimal(a, dt, others, threats) {
 function charge(a, dt, others, threats, sp) {
   const f = sp.fight;
   const t = threats.find((q) => q.id === a.targetId && q.kind === "player");
-  const d = t ? Math.hypot(t.gx - a.gx, t.gy - a.gy) : Infinity;
+  const d = t && (t.layer || 0) === (a.layer || 0) ? Math.hypot(t.gx - a.gx, t.gy - a.gy) : Infinity; // one on another floor is out of its reach: it gives up (the review of #609)
   if (!f || !t || t.dead || loop.simTime() >= a.calmAt || d > f.giveUp) {
     a.targetId = null;
     a.windup = 0;
@@ -380,7 +381,7 @@ function charge(a, dt, others, threats, sp) {
     if (a.windup <= 0) {
       a.windup = 0;
       a.biteTimer = f.cooldown;
-      if (d <= f.reach + 0.3 && lineOfReach(a.gx, a.gy, t.gx, t.gy)) emit("animalBite", { animal: a, victim: t, damage: f.damage });
+      if ((t.layer || 0) === (a.layer || 0) && d <= f.reach + 0.3 && lineOfReach(a.gx, a.gy, t.gx, t.gy, a.layer || 0)) emit("animalBite", { animal: a, victim: t, damage: f.damage }); // on its own floor (docs/53 step 7)
     }
     return;
   }
@@ -561,7 +562,7 @@ function troughsNear(x, y, radius) {
   const R = Math.ceil(radius);
   for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
     if (Math.hypot(dx, dy) > radius) continue;
-    const pr = peekTile(Math.round(x) + dx, Math.round(y) + dy)?.prop;
+    const pr = peekTile(Math.round(x) + dx, Math.round(y) + dy, 0)?.prop; // the troughs of the ground, where the animals live (docs/53 step 7)
     if (pr && pr.bag && isFeedTrough(pr) && pr.bag.items.some(isFeed) && !out.includes(pr)) out.push(pr);
   }
   return out;
@@ -591,7 +592,7 @@ function eatFrom(trough) {
   const e = trough.bag.items.find(isFeed);
   if ((e.count || 1) > 1) e.count -= 1;
   else grid.remove(trough.bag, e);
-  markDirty(trough.tile[0], trough.tile[1]);
+  markDirty(trough.tile[0], trough.tile[1], trough.layer || 0);
 }
 
 // A hen's coop: a chicken coop within `keep.coopReach` of its home, its grid made on first use (as a container's is).
@@ -599,7 +600,7 @@ function coopFor(a) {
   const R = keepRule().coopReach;
   const [hx, hy] = a.home;
   for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
-    const pr = peekTile(Math.round(hx) + dx, Math.round(hy) + dy)?.prop;
+    const pr = peekTile(Math.round(hx) + dx, Math.round(hy) + dy, 0)?.prop; // a home and its coop are the ground's
     if (pr && pr.sprite === "chicken_coop" && pr.container) {
       if (!pr.bag) {
         const [c, r] = items.containerGrid(pr.container.loot);
@@ -618,7 +619,7 @@ function lay(a, coop) {
   const n = lo + rng.int(hi - lo + 1) + (rng.chance(K.more) ? 1 : 0);
   for (let i = 0; i < n; i++) grid.insert(coop.bag, items.makeEntry(L.item, 1)); // a full coop takes no more
   if (rng.chance(K.feather)) grid.insert(coop.bag, items.makeEntry("feather", 1));
-  markDirty(coop.tile[0], coop.tile[1]);
+  markDirty(coop.tile[0], coop.tile[1], coop.layer || 0);
 }
 
 // The pen an animal stands in: every tile it could walk to without crossing a fence, a wall, or a shut gate, when that is at most
@@ -634,7 +635,7 @@ export function penOf(a) {
       const nx = x + dx;
       const ny = y + dy;
       const k = `${nx},${ny}`;
-      if (seen.has(k) || !canStep(x, y, nx, ny)) continue;
+      if (seen.has(k) || !canStep(x, y, nx, ny, 0)) continue; // a pen is fenced on the ground
       seen.add(k);
       if (seen.size > max) return null;
       queue.push([nx, ny]);
@@ -682,7 +683,7 @@ export function dailyStep(animals) {
     for (const k of pen) {
       const [x, y] = k.split(",").map(Number);
       const dd = Math.hypot(x - p0.gx, y - p0.gy);
-      if (dd >= best || roomAt(x, y) !== 0 || animals.some((q) => !q.dead && Math.round(q.gx) === x && Math.round(q.gy) === y)) continue;
+      if (dd >= best || roomAt(x, y, 0) !== 0 || animals.some((q) => !q.dead && Math.round(q.gx) === x && Math.round(q.gy) === y)) continue;
       spot = [x, y];
       best = dd;
     }
@@ -859,7 +860,7 @@ function freeSpot(at) {
   for (const [dx, dy] of SPREAD) {
     const x = at[0] + dx;
     const y = at[1] + dy;
-    if (isWalkableTile(x, y) && roomAt(x, y) === 0) return [x, y];
+    if (isWalkableTile(x, y, 0) && roomAt(x, y, 0) === 0) return [x, y]; // a home's spot, on the ground
   }
   return null;
 }

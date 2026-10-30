@@ -311,7 +311,7 @@
     }
   },
   "footsteps": {
-    "note": "The floor under a foot (map.tileAt(round(gx), round(gy)).floor) to its step slot; a floor not listed takes `default`. The dead shuffle whatever the floor; grass shuffles too, so a player on grass and the dead sound alike (Michael, 2026-10-24, #385).",
+    "note": "The floor under a foot on the walker's own floor (map.tileAt(round(gx), round(gy), layer).floor; on a stair the floor its landing takes, docs/53 step 7) to its step slot; a floor not listed takes `default`. The dead shuffle whatever the floor; grass shuffles too, so a player on grass and the dead sound alike (Michael, 2026-10-24, #385).",
     "floor_grass": "shuffle",
     "floor_dirt": "step_dirt",
     "floor_farm": "step_dirt",
@@ -332,10 +332,11 @@
     "rise": 0.1
   },
   "openings": {
-    "note": "Doors and shutters (#386): the ear scans the openings within `radius` tiles of the listener every `every` seconds of sim time and remembers each by its edge; a change it has seen plays `slot` at the opening (open and close alike), a break plays nothing (step 4), an opening first seen is learned silently.",
+    "note": "Doors and shutters (#386): the ear scans the openings within `radius` tiles of the listener every `every` seconds of sim time and remembers each by its edge; a change it has seen plays `slot` at the opening (open and close alike), a break plays nothing (step 4), an opening first seen is learned silently. On the listener's floor and the storeys next to it (docs/53 step 7), one a storey apart at `storeyVolume` of its loudness.",
     "radius": 14,
     "every": 0.05,
-    "slot": "door"
+    "slot": "door",
+    "storeyVolume": 0.5
   },
   "bow": {
     "note": "The bow's draw loop's rate from `rateFrom` at no draw to `rateTo` at a full one (docs/40, section 5).",

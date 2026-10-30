@@ -459,7 +459,7 @@ events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, dama
 // A boar's bite (docs/45 section 2: it fights back at the player who struck it), through the guard and the exposure as the dead's is; no wound
 // to bleed and no infection, which are the dead's.
 events.on("animalBite", ({ animal: a, victim, damage }) => {
-  if (!victim || victim.dead) return;
+  if (!victim || victim.dead || (victim.layer || 0) !== (a.layer || 0)) return; // a bite never crosses a floor (docs/53 step 7)
   damagePlayer(victim, combat.exposedTo(victim, a, combat.guardAgainst(victim, a, damage)));
 });
 
