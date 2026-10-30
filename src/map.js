@@ -2149,17 +2149,17 @@ export function roomSealed(room) {
 // Returns { wall, tx, ty, edge, stand, side, into, d }, or null when the room has nothing a body can stand at. `want`,
 // a room id, is the room the attacker is trying to reach from inside this one: a door that leads into it is the one
 // chosen, before the nearest.
-export function breachTarget(room, gx, gy, want = 0, windows = false) {
-  return breachTargets(room, gx, gy, want, windows)[0] || null;
+export function breachTarget(room, gx, gy, want = 0, windows = false, from = null) {
+  return breachTargets(room, gx, gy, want, windows, from)[0] || null;
 }
 
 // Every such opening of the room, the one `breachTarget` would pick first and then the rest, nearest first (the dead
 // pick the first of them that they can walk to, zombie.js `wayIn`).
-export function breachTargets(room, gx, gy, want = 0, windows = false) {
+export function breachTargets(room, gx, gy, want = 0, windows = false, from = null) {
   // Breaking in from outside, or out from inside: the attacker stands on
   // whichever side of the opening they are on and goes through to the other.
   const L = room.layer || 0; // a room is on one layer (docs/49 section 3), and so are its openings and the tiles beside them
-  const inside = tileAt(Math.round(gx), Math.round(gy), L).room === room.id;
+  const inside = (from === null || from === L) && tileAt(Math.round(gx), Math.round(gy), L).room === room.id; // `from`, the attacker's floor: one on another is never inside it (docs/53 step 5)
   const out = [];
   for (const op of room.openings) {
     const w = tileAt(op.tx, op.ty, L)[op.edge];
@@ -2176,7 +2176,7 @@ export function breachTargets(room, gx, gy, want = 0, windows = false) {
     if (!isWalkableTile(stand[0], stand[1], L)) continue;
     const toward = want > 0 && tileAt(into[0], into[1], L).room === want;
     const d = Math.hypot(gx - stand[0], gy - stand[1]) - (toward ? 1000 : 0);
-    out.push({ wall: w, tx: op.tx, ty: op.ty, edge: op.edge, stand, side, d, into });
+    out.push({ wall: w, tx: op.tx, ty: op.ty, edge: op.edge, stand: addr(stand[0], stand[1], L), side, d, into: addr(into[0], into[1], L), layer: L }); // its tiles name their layer (docs/53 step 5)
   }
   return out.sort((a, b) => a.d - b.d);
 }

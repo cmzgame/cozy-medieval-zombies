@@ -8282,6 +8282,132 @@ check("height, step 2: a shot from a walk and from a second-storey window lands 
   }
 });
 
+// docs/53 step 5: the dead upstairs. Built on pieces of its own (step 0), each of the dead stepped alone with the one player.
+check("height, step 5: the dead upstairs: the stair taken is the one whose far side reaches the goal; an upstairs door is battered from its own floor, never from the ground under it; one that sees a player it cannot reach goes for the door of the room under him; a blow and a bite across a stair's top and no further", () => {
+  const at = clearGround();
+  assert(at, "no clear ground");
+  const [x, y] = at;
+  const S = gameMod.state;
+  const me = S.player;
+  const DT = 1 / 60;
+  const floors = [];
+  const walls = [];
+  const stairs = [];
+  const was = { gx: me.gx, gy: me.gy, layer: me.layer, rise: me.rise, health: me.health, aggro: rulesImport.rules.zombieAggro };
+  const floor = (a, b, L) => { const t = mapMod.growTile(a, b, L); t.floor = "floor_stone"; mapMod.touch(a, b, L); floors.push([a, b, L]); };
+  const wall = (tx, ty, edge, L, kind = "wall") => { assert(mapMod.buildWall(tx, ty, edge, kind, "wall_stone", null, L), `a ${kind} at ${tx},${ty} ${edge} on ${L}`); walls.push([tx, ty, edge, L]); return mapMod.peekTile(tx, ty, L)[edge]; };
+  const stair = (x0, y0) => { assert(!mapMod.stairBuildProblem(x0, y0, "w", 0, "wood"), `a stair at ${x0},${y0}: ${mapMod.stairBuildProblem(x0, y0, "w", 0, "wood")}`); const s = mapMod.buildStair(x0, y0, "w", "wood", 0, { free: true }); assert(s, `no stair at ${x0},${y0}`); stairs.push(s); return s; };
+  const box = (x0, y0, L, door) => { // a 3 by 3 room on L, its door on the east wall's middle
+    for (let i = 0; i < 3; i++) { wall(x0 + i, y0, "n", L); wall(x0 + i, y0 + 3, "n", L); }
+    for (let j = 0; j < 3; j++) { wall(x0, y0 + j, "w", L); wall(x0 + 3, y0 + j, "w", L, door && j === 1 ? "door" : "wall"); }
+    return mapMod.peekTile(x0 + 3, y0 + 1, L).w;
+  };
+  const zombie = (gx, gy, layer) => { const z = zombieMod.createZombie(gx, gy, { hp: 1000 }); z.layer = layer; z.rise = 0; z.sightTimer = 0; z.idleTimer = 1e9; return z; };
+  const hunt = (z, n, each = null) => { for (let i = 0; i < n; i++) { zombieMod.updateZombie(z, DT, [me], [z]); if (each && each(z) === false) break; } };
+  const stand = (gx, gy, layer) => { me.gx = gx; me.gy = gy; me.layer = layer; me.rise = 0; me.health = was.health; };
+  const cleared = [];
+  const bare = (x0, y0, x1, y1) => { // the valley's trees and rocks off the fixture's ground, put back after
+    for (let b = y0; b <= y1; b++) for (let a = x0; a <= x1; a++) { const t = mapMod.peekTile(a, b, 0); if (t && t.prop && !cleared.some((c) => c[0] === t.prop)) { const pr = t.prop; cleared.push([pr, pr.tile[0], pr.tile[1]]); mapMod.removeProp(pr); } }
+  };
+  try {
+    rulesImport.rules.zombieAggro = true;
+    // 1. Two stairs, both climbing west to layer 1: the near one's landing on a slab that reaches nothing, the far one's on a walk to the goal.
+    const near = stair(x + 4, y);
+    const far = stair(x + 4, y + 12);
+    floor(near.landing[0], near.landing[1], 1);
+    floor(near.landing[0] - 1, near.landing[1], 1);
+    const [fx, fy] = far.landing;
+    for (let i = 0; i <= 4; i++) floor(fx - i, fy, 1); // to the upstairs room's door (below)
+    for (let j = 1; j <= 3; j++) floor(fx - 3, fy - j, 1);
+    const goal = mapMod.addr(fx - 3, fy - 3, 1);
+    const walker = zombie(x + 9, y + 2, 0);
+    const route = movementMod.stairRoute(walker, goal);
+    assert(route && route.s === far, `the stair taken toward the walk: ${route ? (route.s === near ? "the near one, whose landing reaches nothing" : "another") : "none"}`);
+    assert(movementMod.canReach(walker, goal), "the walk counts as out of reach by its stair");
+    assert(!movementMod.canReach(walker, mapMod.addr(fx + 30, fy - 30, 1)), "a tile on layer 1 no stair reaches counts as reachable");
+    // 2. An upstairs room on the far walk's floor, its door on the walk, a ground room under it with a door of its own. One on the walk
+    // batters the upstairs door; one on the ground goes up the stair to it, and never strikes it, or the ground room's door, from below.
+    const rx = fx - 7;
+    const ry = fy - 1;
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) floor(rx + i, ry + j, 1);
+    const upDoor = box(rx, ry, 1, true);
+    const downDoor = box(rx, ry, 0, true);
+    const upRoom = mapMod.tileAt(rx + 1, ry + 1, 1).room;
+    const downRoom = mapMod.tileAt(rx + 1, ry + 1, 0).room;
+    assert(upRoom > 0 && downRoom > 0 && upRoom !== downRoom, `the rooms: upstairs ${upRoom}, under it ${downRoom}`);
+    stand(rx + 1, ry + 1, 1);
+    const upstairs = zombie(fx - 1, fy, 1);
+    upstairs.aggro = true;
+    upstairs.lastSeen = mapMod.addr(rx + 1, ry + 1, 1);
+    upstairs.state = "chase";
+    const upHp = upDoor.hp;
+    const downHp = downDoor.hp;
+    hunt(upstairs, 900, (z) => upDoor.hp === upHp);
+    assert(upDoor.hp < upHp, `the one on the walk never struck the upstairs door (its state ${upstairs.state}, breach ${JSON.stringify(upstairs.breach && upstairs.breach.stand)})`);
+    assert(downDoor.hp === downHp, "the one on the walk struck the ground room's door");
+    upDoor.hp = upHp;
+    const ground = zombie(x + 10, fy + 2, 0);
+    ground.aggro = true;
+    ground.lastSeen = mapMod.addr(rx + 1, ry + 1, 1);
+    ground.state = "chase";
+    let fromBelow = 0;
+    let climbed = false;
+    hunt(ground, 2400, (z) => {
+      if ((z.layer || 0) === 1) climbed = true;
+      if ((z.state === "breach" || z.state === "breachHit") && z.breach && mapMod.layerOf(z.breach.stand) === 1 && (z.layer || 0) === 0 && Math.hypot(z.gx - (rx + 3), z.gy - (ry + 1)) < 2) fromBelow++;
+      return upDoor.hp === upHp;
+    });
+    assert(downDoor.hp === downHp, `the one from the ground struck the ground room's door under the player (${downDoor.hp} of ${downHp})`);
+    assert(!fromBelow, `the one from the ground stood under the upstairs door to strike it ${fromBelow} steps`);
+    assert(climbed && upDoor.hp < upHp, `the one from the ground never went up and struck the upstairs door (climbed ${climbed}, state ${ground.state}, at ${ground.gx.toFixed(1)},${ground.gy.toFixed(1)} on ${ground.layer})`);
+    // A crowd of twenty on the ground hunting the player in the upstairs room, within the step's budget (the door held shut meanwhile).
+    upDoor.hp = 1e6;
+    const crowd = [];
+    for (let i = 0; i < 20; i++) { const z = zombie(x + 10 + (i % 5), fy + 2 + Math.floor(i / 5), 0); z.aggro = true; z.lastSeen = mapMod.addr(rx + 1, ry + 1, 1); z.state = "chase"; crowd.push(z); }
+    const t0 = performance.now();
+    for (let k = 0; k < 900; k++) for (const z of crowd) zombieMod.updateZombie(z, DT, [me], crowd);
+    const crowdMs = (performance.now() - t0) / 900;
+    const up = crowd.filter((z) => (z.layer || 0) === 1).length;
+    upDoor.hp = upHp;
+    assert(crowdMs < 4, `twenty of the dead hunting across storeys took ${crowdMs.toFixed(2)} ms a step`);
+    assert(up > 0, "none of the crowd went up the stair in fifteen seconds");
+    // 3. A slab with no stair over a ground room: one on the ground that sees the player at its edge goes for the door of the room under him.
+    const sx = x - 5;
+    const sy = y + 4;
+    bare(sx - 1, sy - 1, sx + 9, sy + 3);
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) floor(sx + i, sy + j, 1);
+    const underDoor = box(sx, sy, 0, true);
+    const under = mapMod.tileAt(sx + 1, sy + 1, 0).room;
+    stand(sx + 2.3, sy + 1, 1);
+    const watcher = zombie(sx + 8, sy + 1, 0);
+    assert(zombieMod.sees(watcher, me), "the one on the ground does not see the player at the slab's edge");
+    const underHp = underDoor.hp;
+    let wanted = null;
+    hunt(watcher, 1200, (z) => { if (z.breach) wanted = z.breach.want; return underDoor.hp === underHp; });
+    assert(wanted === under && underDoor.hp < underHp, `the one that sees the player on the slab went for ${wanted} (the room under him is ${under}), the door's hp ${underDoor.hp} of ${underHp}, its state ${watcher.state} (sees ${watcher.seesNow}, failed ${watcher.pathFailed}, noWay ${watcher.noWay.toFixed(1)}, path ${watcher.path.length}, at ${watcher.gx.toFixed(1)},${watcher.gy.toFixed(1)} on ${watcher.layer}, from ${sx + 8},${sy + 1})`);
+    // 4. Across a stair's top: the one on the top step and the player on the landing reach each other; from the stair's foot, no.
+    const [lx, ly] = near.landing;
+    stand(lx, ly, 1);
+    const top = near.tiles[near.tiles.length - 1];
+    const climber = zombie(top[0] + 0.3, top[1], 0);
+    mapMod.stairStep(climber);
+    const low = zombie(near.tiles[0][0], near.tiles[0][1], 0);
+    mapMod.stairStep(low);
+    assert(climber.layer === 0 && climber.rise > 48, `the climber's place: layer ${climber.layer}, rise ${climber.rise}`);
+    assert(visibilityMod.reachLayer(climber, me) === 1 && zombieMod.biteReach(climber, me) > 0, "the one on the top step cannot bite the player on the landing");
+    assert(visibilityMod.reachLayer(low, me) === null && zombieMod.biteReach(low, me) < 0, "the one at the stair's foot can bite the player on the landing");
+    assert(visibilityMod.reachLayer(zombie(lx + 6, ly + 6, 0), me) === null, "one on the ground away from any stair reaches the landing");
+    return `the far stair chosen by its walk; the upstairs door battered from the walk and by one that climbed to it, the ground room's never; the room under a player on a stairless slab broken into (${under}); a bite across the stair's top at rise ${climber.rise}, none from its foot; twenty hunting upstairs in ${crowdMs.toFixed(2)} ms a step, ${up} up in fifteen seconds`;
+  } finally {
+    me.gx = was.gx; me.gy = was.gy; me.layer = was.layer; me.rise = was.rise; me.health = was.health;
+    rulesImport.rules.zombieAggro = was.aggro;
+    for (const [tx, ty, e, L] of walls.reverse()) { try { mapMod.destroyWall(tx, ty, e, false, L); } catch { /* gone */ } }
+    for (const [a, b, L] of floors) { const t = mapMod.peekTile(a, b, L); if (t) { delete t.built; t.floor = L ? "void" : t.floor; mapMod.touch(a, b, L); } }
+    for (const s of stairs) { try { mapMod.removeStair ? mapMod.removeStair(s) : null; } catch { /* gone */ } }
+    for (const [pr, tx, ty] of cleared) { try { mapMod.placeProp(pr, tx, ty, 0); } catch { /* gone */ } }
+  }
+});
+
 // The layer audit (docs/53 step 0, section 6.5): no call in the simulation leaves its layer to a default of the ground or the drawn storey,
 // beyond the allow list of those known on 2026-10-30, each named with the step that gives it its layer. The list only shrinks: a new
 // layer-less call fails, and so does an entry with more calls than remain (take it down as the step lands).

@@ -56,7 +56,7 @@ export function lineOfReach(ax, ay, bx, by, layer = 0) {
 // The window or door a line of sight passes through, or null: the first opening that is not a wall on the way (a window with
 // its shutters open, a door open, a broken one: whatever lets the sight through), as { wall, tx, ty, edge }. The dead
 // remember the opening through which they saw a player inside (zombie.js `noteSighting`, #147).
-export function openingOnLine(ax, ay, bx, by) {
+export function openingOnLine(ax, ay, bx, by, layer = 0) {
   let ix = Math.round(ax);
   let iy = Math.round(ay);
   const tx = Math.round(bx);
@@ -75,7 +75,7 @@ export function openingOnLine(ax, ay, bx, by) {
     let nx = ix;
     let ny = iy;
     if (tMaxX < tMaxY) { nx = ix + stepX; tMaxX += tDeltaX; } else { ny = iy + stepY; tMaxY += tDeltaY; }
-    const wall = wallBetween(ix, iy, nx, ny);
+    const wall = wallBetween(ix, iy, nx, ny, layer);
     if (wall && (wall.kind === "window" || wall.kind === "door")) {
       const [ex, ey, edge] = edgeBetween(ix, iy, nx, ny);
       return { wall, tx: ex, ty: ey, edge };
@@ -158,6 +158,18 @@ export function planeAt(x, y, k) {
 
 const layerAtZ = (z) => Math.floor(z / STOREY);
 const footOf = (e) => STOREY * (e.layer || 0) + (e.rise || 0);
+
+// The floor a blow or a bite between two bodies is read on, or null when none can land: their own when they share one, and across a stair's
+// top (docs/53 step 5, the one exception to "on one layer"): one on a stair a floor below the other, their feet within half a storey, read on
+// the upper floor, where the stair's sides close its well.
+export function reachLayer(a, b) {
+  const la = a.layer || 0;
+  const lb = b.layer || 0;
+  if (la === lb) return la;
+  if (Math.abs(la - lb) !== 1 || Math.abs(footOf(a) - footOf(b)) > STOREY / 2) return null;
+  const low = la < lb ? a : b;
+  return stairAt(Math.round(low.gx), Math.round(low.gy), low.layer || 0) ? Math.max(la, lb) : null;
+}
 // A body's eye and chest as the points `trace` takes; `lean` lets the walk start or end at the opening the body stands at (below).
 export const eyeOf = (e) => ({ x: e.gx, y: e.gy, z: footOf(e) + EYE, layer: e.layer || 0, rise: e.rise || 0, lean: true });
 export const chestOf = (e) => ({ x: e.gx, y: e.gy, z: footOf(e) + CHEST, layer: e.layer || 0, rise: e.rise || 0, lean: true });
