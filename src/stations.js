@@ -110,11 +110,14 @@ export function have(player, prop, want) {
 }
 
 // Take `count` of an ingredient from wherever it is reached: the player's own
-// first, then the containers. Returns how many were taken.
+// first, then the containers. Returns how many were taken, and every jar this emptied (docs/02, 2026-10-26, Honey goes into a clay jar: a
+// jarred ingredient spent in a recipe leaves its empty jar behind, exactly as eating it does, `interact.js`'s `eatOne`), as { [jarId]: n }.
 function take(player, prop, want, count) {
   let remaining = count;
-  if (want.id) remaining -= takeAll(player, want.id, remaining);
-  if (remaining > 0 && want.or) remaining -= takeAll(player, want.or, remaining);
+  const jars = {};
+  const addJar = (id, n) => { if (n <= 0) return; const j = getItem(id).jar; if (j) jars[j] = (jars[j] || 0) + n; };
+  if (want.id) { const before = remaining; remaining -= takeAll(player, want.id, remaining); addJar(want.id, before - remaining); }
+  if (remaining > 0 && want.or) { const before = remaining; remaining -= takeAll(player, want.or, remaining); addJar(want.or, before - remaining); }
   // Every match across the sources, in source order, and for a tag a garment last: a recipe that asks for `cloth` takes a rag or a cloth
   // before it burns a tunic (the #216 review: rags exist so the first torches do not cost a whole garment).
   const found = [];
@@ -138,6 +141,7 @@ function take(player, prop, want, count) {
   for (const [bag, e] of found) {
     if (remaining <= 0) break;
     const t = Math.min(remaining, e.count);
+    addJar(e.id, t);
     e.count -= t;
     remaining -= t;
     if (e.count <= 0) {
@@ -145,7 +149,17 @@ function take(player, prop, want, count) {
       else detach(player, e); // off the belt or out of the hand
     }
   }
-  return count - remaining;
+  return { taken: count - remaining, jars };
+}
+
+// A spent jarred ingredient's empty container, into the bag, else at the player's feet (as `interact.js`'s `eatOne` and
+// `potions.spendVial` leave theirs).
+function giveJars(player, jars) {
+  for (const [id, n] of Object.entries(jars)) for (let i = 0; i < n; i++) {
+    const bag = bagOf(player);
+    if (bag && grid.add(bag, id, 1) === 1) continue;
+    map.dropItem(Math.round(player.gx), Math.round(player.gy), { id, count: 1 }, player.layer || 0);
+  }
 }
 
 export function nameOfWant(want) {
@@ -216,7 +230,9 @@ export function canMake(player, prop, r, count = 1) {
 
 // Start `count` makes: the ingredients (and a recipe's draught of clean water) are taken now, the work queued on the station.
 export function start(player, prop, r, count = 1) {
-  for (const want of r.in) take(player, prop, want, want.count * count);
+  const jars = {};
+  for (const want of r.in) { const res = take(player, prop, want, want.count * count); for (const [id, n] of Object.entries(res.jars)) jars[id] = (jars[id] || 0) + n; }
+  giveJars(player, jars);
   if (r.water) takeWater(player, r.water * count);
   if (!prop.queue) prop.queue = [];
   prop.queue.push({ recipe: r.id, left: r.seconds, count, by: player.id });
