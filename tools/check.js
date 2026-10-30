@@ -7729,6 +7729,189 @@ check("round rooms: the inside skirt (Michael, 2026-10-27) covers every point in
   }
   return out.join("; ");
 });
+// A straight wall meeting a ring (docs/50 section 3, #588): it ends at a vertex of the stepped outline; the filler is a picture, drawn from
+// the walls alone (render/walls.js), its pieces found by map.ringJoin.
+check("round rooms, step 3 (#588): the outline's vertices and the filler's pieces: a 5 by 5's step corners half a tile from the curve, a 7 by 7's 0.34 and its diagonal corners 0.05, none at a door point's ends; the pockets' vertices off the outline, the square's corner among them", () => {
+  const near = (a, b) => Math.abs(a - b) < 0.002;
+  const at = (n, vx, vy) => roundMod.fillsAt(0, 0, n, vx, vy).map((f) => [f.tx, f.ty, f.edge, +f.d.toFixed(3)]);
+  const five = roundMod.fillVerticesOf(0, 0, 5);
+  const seven = roundMod.fillVerticesOf(0, 0, 7);
+  assert(five.length === 8 && five.every(([x, y]) => roundMod.fillsAt(0, 0, 5, x, y).length === 1 && near(roundMod.fillsAt(0, 0, 5, x, y)[0].d, 0.5)), `the 5 by 5's fills: ${JSON.stringify(five.map(([x, y]) => at(5, x, y)))}`);
+  assert(seven.length === 12 && JSON.stringify(at(7, 2, 0)) === '[[2,0,"w",0.338]]' && JSON.stringify(at(7, 1, 1)) === '[[1,1,"n",0.051],[1,1,"w",0.051]]' && JSON.stringify(at(7, 0, 2)) === '[[0,2,"n",0.338]]', `the 7 by 7's north-west: ${JSON.stringify([at(7, 2, 0), at(7, 1, 1), at(7, 0, 2)])}`);
+  assert(roundMod.isOutlineVertex(0, 0, 7, 3, 0) && !at(7, 3, 0).length && roundMod.isOutlineVertex(0, 0, 5, 2, 0) && !at(5, 2, 0).length && !at(5, 3, 0).length, "a door point's end has a fill");
+  const pockets = (n) => {
+    const out = [];
+    for (let y = -1; y <= n + 1; y++) for (let x = -1; x <= n + 1; x++) if (roundMod.isPocketVertex(0, 0, n, x, y)) out.push(`${x},${y}`);
+    return out;
+  };
+  assert(pockets(5).join(" ") === "0,0 5,0 0,5 5,5" && pockets(7).length === 12 && pockets(7).includes("0,0") && pockets(7).includes("1,0") && !pockets(7).includes("1,1"), `the pockets' vertices: 5: ${pockets(5).join(" ")}; 7: ${pockets(7).join(" ")}`);
+  return `5 by 5: ${five.length} fills of 0.5; 7 by 7: ${seven.length} vertices, 0.338 at the step corners, 0.051 twice at the diagonals; none at the door points' ends; pocket vertices ${pockets(5).length} and ${pockets(7).length}`;
+});
+check("round rooms, step 3 (#588): a straight wall toward a ring ends at a vertex of its stepped outline: one ending at the square's corner or a 7 by 7's pocket corner is refused with why (the command a guest sends too); built from the ring outward it runs through the pocket; the room beyond a run seals against the ring, the ring's own room still one", () => {
+  roundSquare();
+  const r5 = ownRing(); // the 5 by 5 at (2, 2): its square x 2 to 6, its step corners (3, 2) and (6, 2) on the north, the square's corner (2, 2)
+  const WHY = "Start it at a step of the round wall";
+  const out = [];
+  // To the square's corner, along either line: refused.
+  assert(mapMod.ringWallProblem(2, 1, "w", "wall") === WHY && !mapMod.canBuildWall(2, 1, "w", "wall"), `a wall to the 5 by 5's corner from the north: "${mapMod.ringWallProblem(2, 1, "w", "wall")}"`);
+  assert(mapMod.ringWallProblem(1, 2, "n", "wall") === WHY, `from the west: "${mapMod.ringWallProblem(1, 2, "n", "wall")}"`);
+  assert(mapMod.ringWallProblem(2, 1, "w", "door") === WHY, "a door ending at the square's corner is not refused");
+  // Square to the side, to a step corner: built. A door point's end: built, no filler.
+  assert(!mapMod.ringWallProblem(3, 1, "w", "wall") && mapMod.canBuildWall(3, 1, "w", "wall") && !mapMod.ringWallProblem(4, 1, "w", "wall"), `to a step corner: "${mapMod.ringWallProblem(3, 1, "w", "wall")}", to a door point's end: "${mapMod.ringWallProblem(4, 1, "w", "wall")}"`);
+  // Along the square's side (tangent): its pocket's edge first, from the step corner, then on out past the square's corner.
+  assert(mapMod.ringWallProblem(1, 2, "n", "wall") === WHY && !mapMod.ringWallProblem(2, 2, "n", "wall"), "the run along the side, from the step corner, is refused");
+  mapMod.buildWall(2, 2, "n", "wall", "wall_stone");
+  assert(!mapMod.ringWallProblem(1, 2, "n", "wall") && mapMod.buildWall(1, 2, "n", "wall", "wall_stone"), `on out past the corner: "${mapMod.ringWallProblem(1, 2, "n", "wall")}"`);
+  const tangent = mapMod.ringJoin(3, 2, 0);
+  assert(tangent && tangent.fills.length === 1 && tangent.fills[0].edge === "w" && tangent.fills[0].tx === 3 && tangent.fills[0].ty === 2 && tangent.fills[0].top && Math.abs(tangent.fills[0].d - 0.5) < 0.002, `the tangent wall's filler: ${JSON.stringify(tangent && tangent.fills.map((f) => [f.tx, f.ty, f.edge, f.d, f.top]))}`);
+  out.push("5 by 5: the corner refused both ways, the side run built from the step corner out, its filler down the step edge (0.5)");
+  // The room beyond a run: a yard north of the ring, walled from the west step corner to the east one, sealed by the ring's north edges.
+  const yard = [[3, 1, "w"], [3, 1, "n"], [4, 1, "n"], [5, 1, "n"], [6, 1, "w"]];
+  for (const [x, y, e] of yard) assert(mapMod.buildWall(x, y, e, "wall", "wall_stone"), `the yard's wall ${x},${y},${e} was refused: "${mapMod.ringWallProblem(x, y, e, "wall")}"`);
+  mapMod.rebuildRooms();
+  const yardRoom = mapMod.getRoom(mapMod.roomAt(4, 1));
+  const ringRoom = mapMod.getRoom(mapMod.roomAt(4, 4));
+  assert(yardRoom && yardRoom.size === 3 && mapMod.roomSealed(yardRoom), `the yard: ${yardRoom ? yardRoom.size + " tiles, sealed " + mapMod.roomSealed(yardRoom) : "no room"}`);
+  assert(ringRoom && ringRoom.size === 21 && mapMod.roomSealed(ringRoom), `the ring's room: ${ringRoom && ringRoom.size}`);
+  const square = mapMod.ringJoin(3, 2, 0);
+  assert(square.fills.length === 1 && square.fills[0].edge === "w" && square.walls.length === 2, `at the yard's west corner: ${square.walls.length} walls, ${JSON.stringify(square.fills.map((f) => [f.tx, f.ty, f.edge]))}`);
+  const east = mapMod.ringJoin(6, 2, 0);
+  assert(east && east.fills.length === 1 && east.fills[0].tx === 6 && east.fills[0].ty === 2 && east.fills[0].edge === "w" && east.fills[0].top, `at the yard's east corner: ${JSON.stringify(east && east.fills)}`);
+  assert(mapMod.buildWall(4, 1, "w", "wall", "wall_stone") && mapMod.ringJoin(4, 2, 0).fills.length === 0, "a wall to a door point's end has a filler");
+  out.push("a yard walled from step corner to step corner a sealed room of 3, the ring's 21; none at a door point's end");
+  // A 7 by 7 at (2, 2) on cleared ground: its north-west pocket (2, 2), (3, 2), (2, 3), its diagonal corner (3, 3), the pocket corner (3, 2).
+  roundSquare();
+  clearPatch(0, 0, 12, 12);
+  const r7 = mapMod.buildRing(2, 2, 7, "wall_stone", 0, { built: true });
+  assert(r7, `the 7 by 7 at 2,2 was refused: ${mapMod.ringProblem(2, 2, 7, 0)}`);
+  assert(mapMod.ringWallProblem(3, 1, "w", "wall") === WHY, `a wall to the 7 by 7's pocket corner: "${mapMod.ringWallProblem(3, 1, "w", "wall")}"`);
+  assert(mapMod.ringWallProblem(2, 1, "w", "wall") === WHY && mapMod.ringWallProblem(2, 2, "n", "wall") === WHY, "the 7 by 7's corner, or its pocket's edge along the side away from the step corner, is not refused");
+  assert(!mapMod.ringWallProblem(3, 2, "w", "wall") && mapMod.buildWall(3, 2, "w", "wall", "wall_stone"), `through the pocket to the diagonal corner: "${mapMod.ringWallProblem(3, 2, "w", "wall")}"`);
+  assert(!mapMod.ringWallProblem(3, 1, "w", "wall") && mapMod.buildWall(3, 1, "w", "wall", "wall_stone"), "on out from the pocket refused");
+  const diag = mapMod.ringJoin(3, 3, 0);
+  assert(diag && diag.fills.length === 1 && diag.fills[0].tx === 3 && diag.fills[0].ty === 3 && diag.fills[0].edge === "w" && Math.abs(diag.fills[0].d - 0.051) < 0.002, `the diagonal corner's filler: ${JSON.stringify(diag && diag.fills.map((f) => [f.tx, f.ty, f.edge, f.d]))}`);
+  // A yard north of it through the diagonal corner: the pocket tile (3, 2) is the yard's.
+  for (const [x, y, e] of [[3, 1, "n"], [4, 1, "n"], [5, 1, "n"], [6, 1, "w"]]) assert(mapMod.buildWall(x, y, e, "wall", "wall_stone"), `the 7's yard wall ${x},${y},${e}: "${mapMod.ringWallProblem(x, y, e, "wall")}"`);
+  mapMod.rebuildRooms();
+  const yard7 = mapMod.getRoom(mapMod.roomAt(4, 1));
+  const ring7 = mapMod.getRoom(mapMod.roomAt(5, 5));
+  assert(yard7 && yard7.size === 4 && mapMod.roomAt(3, 2) === mapMod.roomAt(4, 1) && mapMod.roomSealed(yard7), `the 7's yard: ${yard7 ? yard7.size + " tiles, sealed " + mapMod.roomSealed(yard7) : "no room"}`);
+  assert(ring7 && ring7.size === 37 && mapMod.roomSealed(ring7), `the 7 by 7's room: ${ring7 && ring7.size}`);
+  out.push("7 by 7: its pocket corner refused, a wall through the pocket to the diagonal corner built from the ring out (filler 0.051), a yard of 4 with the pocket sealed, the ring's 37");
+  // The command a guest sends: the same words, nothing built.
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  try {
+    rulesImport.set({ freeBuilding: true });
+    me.gx = 7; me.gy = 0; me.layer = 0; me.action = null;
+    placementImport.performPlacement(me, { kind: "build", what: "wall_stone", tx: 8, ty: 1, edge: "w" }); // x 7.5, to (8, 2): the 7 by 7's north-east pocket corner
+    assert(!mapMod.tileAt(8, 1).w && said[said.length - 1] === WHY, `a guest's wall to the pocket corner: "${said[said.length - 1]}", built ${!!mapMod.tileAt(8, 1).w}`);
+    me.action = null;
+    placementImport.performPlacement(me, { kind: "build", what: "wall_stone", tx: 7, ty: 1, edge: "w" }); // x 6.5, to (7, 2): the north-east step corner
+    me.action = null;
+    assert(mapMod.tileAt(7, 1).w && mapMod.tileAt(7, 1).w.sprite === "wall_stone", `a guest's wall to the step corner: "${said[said.length - 1]}"`);
+  } finally {
+    rulesImport.set({ freeBuilding: free0 });
+    promptMod.setMessageSink(null);
+  }
+  out.push(`a guest's command refused with "${WHY}" and its wall to the step corner built`);
+  return out.join("; ");
+});
+check("round rooms, step 3 (the review of #589): a ring is refused where a straight wall already ends in one of its corner pockets, as that wall would be refused if built after it; accepted once the wall is gone, or where the wall ends at a step", () => {
+  roundSquare();
+  clearPatch(0, 0, 12, 12);
+  const WORDS = "A wall ends in its corner: start it at a step";
+  const out = [];
+  // A 5 by 5 at (2, 2): a wall from the north to its square's corner (2, 2).
+  mapMod.buildWall(2, 1, "w", "wall", "wall_stone");
+  assert(mapMod.ringProblem(2, 2, 5, 0) === WORDS && !mapMod.buildRing(2, 2, 5, "wall_stone", 0), `a 5 by 5 over a wall ending at its corner: "${mapMod.ringProblem(2, 2, 5, 0)}"`);
+  // Run on along the square's side to the step corner (3, 2), the corner is passed through, not ended at.
+  mapMod.buildWall(2, 2, "n", "wall", "wall_stone");
+  assert(!mapMod.ringProblem(2, 2, 5, 0), `with the wall run on to the step corner: "${mapMod.ringProblem(2, 2, 5, 0)}"`);
+  mapMod.destroyWall(2, 2, "n");
+  mapMod.destroyWall(2, 1, "w");
+  out.push("5 by 5: refused over a wall ending at its corner, accepted with it run on to the step corner");
+  // A 7 by 7 at (2, 2): a wall from the north to its pocket corner (3, 2); one to its step corner (4, 2) instead.
+  mapMod.buildWall(3, 1, "w", "wall", "wall_stone");
+  assert(mapMod.ringProblem(2, 2, 7, 0) === WORDS, `a 7 by 7 over a wall ending at its pocket corner: "${mapMod.ringProblem(2, 2, 7, 0)}"`);
+  // The 5 by 5 at (2, 2) has its step corner at (3, 2): the same wall ends at a step there.
+  assert(!mapMod.ringProblem(2, 2, 5, 0), `a 5 by 5 with that wall at its step corner: "${mapMod.ringProblem(2, 2, 5, 0)}"`);
+  mapMod.destroyWall(3, 1, "w");
+  mapMod.buildWall(4, 1, "w", "wall", "wall_stone");
+  assert(!mapMod.ringProblem(2, 2, 7, 0), `a 7 by 7 with a wall to its step corner: "${mapMod.ringProblem(2, 2, 7, 0)}"`);
+  mapMod.destroyWall(4, 1, "w");
+  const r = mapMod.buildRing(2, 2, 7, "wall_stone", 0);
+  assert(r, `with the wall gone, the 7 by 7: "${mapMod.ringProblem(2, 2, 7, 0)}"`);
+  out.push("7 by 7: refused over a wall ending at its pocket corner, accepted with one to its step corner and built once the wall is gone");
+  return out.join("; ");
+});
+const wallsMod = await import("../src/render/walls.js");
+const assetsLib = await import("../src/assets.js");
+const visibilityLib = await import("../src/visibility.js");
+const glLib = await import("../src/gl.js");
+check("round rooms, step 3 (#588): the filler is drawn from the walls alone, one for each join and none at a door point's end, faded with its wall; the post at a join: none where the wall runs on into the curve, one where it turns down the step edge (a corner), none at a door point's end", () => {
+  // The drawables, headless: render/walls.js run on a stub of the stone wall's drawn sheet (a headless sheet has frames alone), put back after.
+  const { tileKey } = visibilityLib;
+  roundSquare();
+  ownRing(); // the 5 by 5 at (2, 2)
+  const real = assetsLib.getSheet("wall_stone");
+  assetsLib.registerSheet("wall_stone", { ...real, wall: { material: "stone" }, thickness: 16, wallHeight: 96, frames: { ...real.frames, north_plain: [0, 0, 49, 121], west_plain: [0, 0, 49, 121] }, frameAnchors: { north_plain: [16, 100], west_plain: [33, 100] }, anchor: [16, 100] });
+  try {
+    const tiles = [];
+    for (let y = -2; y < 12; y++) for (let x = -2; x < 12; x++) tiles.push([x, y]);
+    const visible = new Set(tiles.map(([x, y]) => tileKey(x, y)));
+    const drawn = (room = 0) => {
+      const out = [];
+      glLib.begin(0);
+      wallsMod.wallDrawables(tiles, visible, room, out);
+      return out.filter((d) => d.filler);
+    };
+    const post = (vx, vy) => {
+      glLib.begin(0); // a new frame: the posts are worked out once a frame (render/walls.js postBase's cache)
+      return !!wallsMod.postAt(vx, vy, 0);
+    };
+    assert(!drawn().length, "a filler with no straight wall at the ring");
+    mapMod.buildWall(6, 1, "w", "wall", "wall_stone"); // square to the north side, to the step corner (6, 2)
+    mapMod.buildWall(2, 2, "n", "wall", "wall_stone"); // along the north side (tangent), to the step corner (3, 2)
+    mapMod.buildWall(4, 1, "w", "wall", "wall_stone"); // to the north door point's end (4, 2)
+    const f = drawn();
+    const at = (vx, vy) => f.filter((d) => d.filler.vx === vx && d.filler.vy === vy);
+    assert(f.length === 2 && at(6, 2).length === 1 && at(3, 2).length === 1 && !at(4, 2).length, `the fillers: ${JSON.stringify(f.map((d) => d.filler))}`);
+    assert(at(6, 2)[0].filler.edge === "w" && at(6, 2)[0].filler.tx === 6 && at(3, 2)[0].filler.edge === "w" && at(3, 2)[0].filler.tx === 3 && Math.abs(at(3, 2)[0].filler.d - 0.5) < 0.002 && at(3, 2)[0].filler.ring === "round_0_2_2", `their edges: ${JSON.stringify(f.map((d) => d.filler))}`);
+    assert(!post(6, 2) && post(3, 2) && !post(4, 2), `the posts: on into the curve ${post(6, 2)}, the corner down the step edge ${post(3, 2)}, a door point's end ${post(4, 2)}`);
+    // A fence takes no fill (the review of #589): one square into the west step corner (2, 3) leaves the fill to a stone wall along the west
+    // side to that corner; a lone fence ending at the west door point's end (2, 4) keeps its own end post.
+    mapMod.buildWall(2, 2, "w", "wall", "wall_stone");
+    mapMod.buildWall(1, 3, "n", "wall", "wall_fence");
+    mapMod.buildWall(1, 4, "n", "wall", "wall_fence");
+    const west = drawn().filter((d) => d.filler.vx === 2 && d.filler.vy === 3);
+    assert(west.length === 1 && west[0].filler.wall.tx === 2 && west[0].filler.wall.ty === 2 && west[0].filler.wall.edge === "w" && west[0].filler.edge === "n", `at the west step corner, a fence and a stone wall: ${JSON.stringify(west.map((d) => d.filler))}`);
+    assert(post(2, 4), "a lone fence at a door point's end lost its end post");
+    // Faded with its wall: a room north of the ring (x 3 to 5, y 0 to 1) walled round to its step corners and sealed by its north edges, the
+    // player in it: the wall at x 5.5 is its east wall, between the room and the camera, a near wall.
+    mapMod.destroyWall(4, 1, "w");
+    for (const [x, y, e] of [[6, 0, "w"], [3, 0, "n"], [4, 0, "n"], [5, 0, "n"], [3, 0, "w"], [3, 1, "w"]]) mapMod.buildWall(x, y, e, "wall", "wall_stone");
+    mapMod.rebuildRooms();
+    const yard = mapMod.roomAt(4, 1);
+    const yardRoom = mapMod.getRoom(yard);
+    const faded = drawn(yard).filter((d) => d.filler.vx === 6 && d.filler.vy === 2);
+    assert(yardRoom && yardRoom.size === 6 && mapMod.roomSealed(yardRoom), `the room north of the ring: ${yardRoom ? yardRoom.size + " tiles, sealed " + mapMod.roomSealed(yardRoom) : "none"}`);
+    assert(faded.length === 1 && faded[0].faded, `the filler with its wall a near wall: ${JSON.stringify(faded.map((d) => d.faded))}`);
+    assert(drawn(0).every((d) => !d.faded), "a filler faded with nobody inside");
+    // Faded where a post stands at the vertex (the review of #589): a room west of the yard (x 0 to 2, y 0 to 1), its east wall at x 2.5 square
+    // into the step corner (3, 2), where the wall along the side meets it: from inside, the filler fades and stops at the faded post's face.
+    for (const [x, y, e] of [[0, 0, "n"], [1, 0, "n"], [2, 0, "n"], [0, 0, "w"], [0, 1, "w"], [0, 2, "n"], [1, 2, "n"]]) mapMod.buildWall(x, y, e, "wall", "wall_stone");
+    mapMod.rebuildRooms();
+    const westRoom = mapMod.roomAt(1, 1);
+    const atPost = drawn(westRoom).filter((d) => d.filler.vx === 3 && d.filler.vy === 2);
+    assert(mapMod.getRoom(westRoom) && mapMod.getRoom(westRoom).size === 6 && post(3, 2) && atPost.length === 1 && atPost[0].faded && atPost[0].filler.top && atPost[0].filler.cuts.far === 8, `faded at the post: ${JSON.stringify(atPost.map((d) => [d.faded, d.filler.cuts]))}, the room ${mapMod.getRoom(westRoom) && mapMod.getRoom(westRoom).size}`);
+    return `${f.length} fillers (a square wall's and a tangent one's), none at a door point's end; the post only at the tangent corner; faded with its near wall, and cut at a faded post's face; a fence leaves the fill to a stone wall and keeps its own end post`;
+  } finally {
+    assetsLib.registerSheet("wall_stone", real);
+  }
+});
 
 // ---- the battlements (art round 13, Michael 2026-10-29: "make sure the whole of the battlement sits outside the walkway"; Free building's) ----
 const battMod = await import("../src/battlements.js");

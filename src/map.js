@@ -1575,7 +1575,8 @@ export function ringOwnEdges(r) {
 }
 
 // Why a ring's rule refuses a wall of `kind` on this edge, or "" (docs/50 sections 3 and 5): a door or a window on a ring edge only at one of
-// its four door points; no wall on an edge between two of a ring's stepped tiles; a ring's edge is already a wall (canStampOver).
+// its four door points; no wall on an edge between two of a ring's stepped tiles; a ring's edge is already a wall (canStampOver); and a
+// straight wall toward a ring ends at a vertex of its stepped outline (ringJoinProblem).
 export function ringWallProblem(tx, ty, edge, kind = "wall", layer = 0) {
   if (!rings.size) return "";
   const existing = tileAt(tx, ty, layer)[edge];
@@ -1584,7 +1585,93 @@ export function ringWallProblem(tx, ty, edge, kind = "wall", layer = 0) {
   const [a, b] = edgeTiles(tx, ty, edge);
   const ra = ringAt(a[0], a[1], layer);
   if (ra && ra === ringAt(b[0], b[1], layer) && round.isStepped(ra.x0, ra.y0, ra.n, a[0], a[1]) && round.isStepped(ra.x0, ra.y0, ra.n, b[0], b[1])) return "Not inside a round room";
+  if (!existing) return ringJoinProblem(tx, ty, edge, layer); // a door or a window stamped over a wall changes no wall's end
   return "";
+}
+
+// ---- a straight wall meeting a ring (docs/50 section 3: "A straight wall meeting a ring ends at a vertex of the stepped outline") ----
+// A vertex (vx, vy) is the top vertex of tile (vx, vy), as render/walls.js postAt names it. The four edges that meet there, each with the way
+// it leaves the vertex.
+const VERTEX_EDGES = [[0, 0, "n", 1, 0], [-1, 0, "n", -1, 0], [0, 0, "w", 0, 1], [0, -1, "w", 0, -1]];
+// The rings whose square holds one of the vertex's four tiles (a vertex on a square's side or corner among them).
+function ringsAtVertex(vx, vy, layer) {
+  const out = [];
+  for (const [dx, dy] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) {
+    const r = ringAt(vx + dx, vy + dy, layer);
+    if (r && !out.includes(r)) out.push(r);
+  }
+  return out;
+}
+// Whether a wall other than the edge (tx, ty, edge) stands on one of the edges meeting at the vertex.
+function otherWallAt(vx, vy, layer, tx, ty, edge) {
+  for (const [dx, dy, e] of VERTEX_EDGES) {
+    if (vx + dx === tx && vy + dy === ty && e === edge) continue;
+    const t = peekTile(vx + dx, vy + dy, layer);
+    if (t && t[e]) return true;
+  }
+  return false;
+}
+
+// Why a wall on this empty edge would end in a ring's corner pocket, or "": a wall toward a ring ends at a vertex of the stepped outline, where
+// the join is a wall corner and the rooms on either side are sealed by the ring's edges; one ending at a pocket's vertex (the square's own
+// corner, or a 7 by 7's pocket corner on its side) leaves the room open past its end. The end that counts is the one nearer the ring's centre
+// (a wall may run on outward from the ring as far as it likes): there another wall must already meet it. Walls are built an edge at a time,
+// so a wall through a pocket to the outline is built from the ring outward, its first edge at the outline's vertex (a run along the square's
+// side to a step corner, or a 7 by 7's run through its pocket to the diagonal corner), and a wall ending at the square's corner is refused.
+export function ringJoinProblem(tx, ty, edge, layer = 0) {
+  if (!rings.size) return "";
+  const ends = edge === "n" ? [[tx, ty], [tx + 1, ty]] : [[tx, ty], [tx, ty + 1]];
+  for (let i = 0; i < 2; i++) {
+    const [vx, vy] = ends[i];
+    const [ox, oy] = ends[1 - i];
+    const rs = ringsAtVertex(vx, vy, layer);
+    if (!rs.length || rs.some((r) => round.isOutlineVertex(r.x0, r.y0, r.n, vx, vy))) continue;
+    for (const r of rs) {
+      if (!round.isPocketVertex(r.x0, r.y0, r.n, vx, vy)) continue;
+      const s = round.shape(r.x0, r.y0, r.n);
+      const nearer = Math.hypot(vx - 0.5 - s.cx, vy - 0.5 - s.cy) <= Math.hypot(ox - 0.5 - s.cx, oy - 0.5 - s.cy) + 1e-9;
+      if (nearer && !otherWallAt(vx, vy, layer, tx, ty, edge)) return "Start it at a step of the round wall";
+    }
+  }
+  return "";
+}
+
+// A straight wall joining a ring at the vertex (vx, vy) on `layer` (docs/50 section 3), or null when the vertex is on no ring's outline:
+// { ring, walls, fills }. `walls` are the straight walls meeting there ({ wall, tx, ty, edge, dir }, not drawn by a ring); `fills` the
+// filler's pieces they call for, each an outline edge from the vertex to where the curve crosses it ({ tx, ty, edge, d, dir, top, vx, vy,
+// by }: `top` when the vertex is the edge's top vertex, `by` the wall it belongs to): along a wall's own line when that line runs on into
+// the curve (a wall square to the ring's side, or into a 7 by 7's diagonal corner), else down the step edge (a wall along the square's
+// side, tangent to the curve). None at a door point's ends, where the curve touches the outline. The picture's alone (render/walls.js):
+// nothing here is saved, sent, or read by the world.
+// Whether a straight wall meeting a ring takes a filler there: a solid plain wall (a castle gate as its run's), never a see-through one (a fence,
+// bars), a cliff, a ramp's side, or a battlement, which keep their own ends.
+export function ringJoinFills(wall) {
+  const rule = wallRule(wall.gate ? wallRule(wall.sprite).run : wall.sprite);
+  return !(rule.seeThrough || rule.cliff || rule.battlement || rule.side);
+}
+
+export function ringJoin(vx, vy, layer = drawLayer) {
+  if (!rings.size) return null;
+  for (const r of ringsAtVertex(vx, vy, layer)) {
+    if (!round.isOutlineVertex(r.x0, r.y0, r.n, vx, vy)) continue;
+    const walls = [];
+    for (const [dx, dy, e, ux, uy] of VERTEX_EDGES) {
+      const t = peekTile(vx + dx, vy + dy, layer);
+      const w = t && t[e];
+      if (w && !drawnByRing(w)) walls.push({ wall: w, tx: vx + dx, ty: vy + dy, edge: e, dir: [ux, uy] });
+    }
+    const can = round.fillsAt(r.x0, r.y0, r.n, vx, vy);
+    const fills = [];
+    const add = (f, by) => {
+      if (!fills.some((g) => g.tx === f.tx && g.ty === f.ty && g.edge === f.edge)) fills.push({ ...f, top: f.tx === vx && f.ty === vy, vx, vy, by });
+    };
+    const lined = (w) => can.find((f) => f.dir[0] === -w.dir[0] && f.dir[1] === -w.dir[1]); // the wall's own line running on past the vertex
+    const solid = walls.filter((w) => ringJoinFills(w.wall)); // a fence, bars, a cliff, a ramp's side, or a battlement takes no fill (the review of #589: a fence square into a step corner took the fill a stone wall tangent there needed)
+    for (const w of solid) if (lined(w)) add(lined(w), w);
+    for (const w of solid) if (!lined(w)) for (const f of can) add(f, w);
+    return { ring: r, walls, fills };
+  }
+  return null;
 }
 
 // Why a ring of size n with its square's corner at (x0, y0) may not be built on `layer`, or "" (docs/50 section 5): 5 or 7 across; no other
@@ -1617,6 +1704,20 @@ export function ringProblem(x0, y0, n, layer = 0) {
     if (w.kind === "wall" && !wallRule(w.sprite).seeThrough) continue;
     if ((w.kind === "door" || w.kind === "window") && round.isDoorPoint(x0, y0, n, tx, ty, edge) && !wallRule(w.sprite).seeThrough) continue;
     return w.kind === "wall" ? "Not over a fence" : "A door or a window is in the way";
+  }
+  // No straight wall already ending in one of its corner pockets (the review of #589): the join rule (ringJoinProblem) asked of the walls that
+  // stand, as it would be asked of each if it were built after the ring. A wall alone at a pocket's vertex, that vertex its end nearer the
+  // ring's centre, would leave the room open past its end.
+  for (const [vx, vy] of round.pocketVerticesOf(x0, y0, n)) {
+    const at = [];
+    for (const [dx, dy, e, ux, uy] of VERTEX_EDGES) {
+      const t = peekTile(vx + dx, vy + dy, layer);
+      if (t && t[e]) at.push([ux, uy]);
+    }
+    if (at.length !== 1) continue;
+    const [ux, uy] = at[0];
+    const d = (x, y) => Math.hypot(x - 0.5 - s.cx, y - 0.5 - s.cy);
+    if (d(vx, vy) <= d(vx + ux, vy + uy) + 1e-9) return "A wall ends in its corner: start it at a step";
   }
   return "";
 }

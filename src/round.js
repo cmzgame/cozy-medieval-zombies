@@ -65,7 +65,40 @@ function base(n) {
   const reach = BODY_R - WAYPOINT;
   const unreachable = [];
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (chords.some((c) => segD2(x, y, c) < reach * reach)) unreachable.push([x, y]);
-  s = { n, k, R, stepped, pockets, outline, doors, crossed, chords, unreachable, inside };
+  // Where a straight wall meets the ring (docs/50 section 3: "A straight wall meeting a ring ends at a vertex of the stepped outline"). A
+  // vertex (vx, vy) is the top vertex of tile (vx, vy), the ground point (vx - 0.5, vy - 0.5), as render/walls.js postAt names it. The
+  // outline's vertices are where a wall may end against the ring: the join is a wall corner there and the rooms on either side are sealed by
+  // the ring's edges. The pocket vertices are the corners of the corner pockets that are not on the outline (the square's own corner among
+  // them): a wall ending there leaves the room open past it. The fills: at an outline vertex outside the curve, each outline edge leaving
+  // it that the curve crosses, and how far along it the curve is (half a tile at most: 0.5 on a 5 by 5's step corners, 0.34 on a 7 by 7's,
+  // 0.05 at a 7 by 7's diagonal corners); a door point's ends have none (the curve touches the edge there, nothing to fill).
+  const vkey = (x, y) => `${x},${y}`;
+  const outlineV = new Set();
+  for (const [x, y, e] of outline) {
+    outlineV.add(vkey(x, y));
+    outlineV.add(e === "n" ? vkey(x + 1, y) : vkey(x, y + 1));
+  }
+  const pocketV = new Set();
+  for (const [x, y] of pockets) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) if (!outlineV.has(vkey(x + dx, y + dy))) pocketV.add(vkey(x + dx, y + dy));
+  const off = (px, py) => (px - k) ** 2 + (py - k) ** 2 - R * R; // > 0 outside the curve
+  const fills = new Map(); // vkey -> [[tx, ty, edge, d, ux, uy]]: the outline edge, how far from the vertex the curve crosses it, the way along it
+  for (const [x, y, e] of outline) {
+    const a = [x, y];
+    const b = e === "n" ? [x + 1, y] : [x, y + 1];
+    for (const [p, q] of [[a, b], [b, a]]) {
+      const [px, py] = [p[0] - 0.5, p[1] - 0.5];
+      const ux = q[0] - p[0];
+      const uy = q[1] - p[1];
+      if (!(off(px, py) > 0 && off(q[0] - 0.5, q[1] - 0.5) < 0)) continue; // a crossing, never a touch
+      const bb = (px - k) * ux + (py - k) * uy;
+      const d = -bb - Math.sqrt(bb * bb - off(px, py));
+      if (!(d > 0 && d <= 0.5 + 1e-9)) continue;
+      const key = vkey(p[0], p[1]);
+      if (!fills.has(key)) fills.set(key, []);
+      fills.get(key).push([x, y, e, d, ux, uy]);
+    }
+  }
+  s = { n, k, R, stepped, pockets, outline, doors, crossed, chords, unreachable, inside, outlineV, pocketV, fills };
   shapes.set(n, s);
   return s;
 }
@@ -162,6 +195,39 @@ export function isDoorPoint(x0, y0, n, tx, ty, edge) {
 // Whether an edge is on the ring's outline.
 export function onOutline(x0, y0, n, tx, ty, edge) {
   return base(n).outline.some(([x, y, e]) => x + x0 === tx && y + y0 === ty && e === edge);
+}
+
+// Whether the vertex (vx, vy) (the top vertex of tile (vx, vy)) is on the ring's stepped outline, and whether it is a corner pocket's
+// vertex off the outline (the square's own corner among them), where no straight wall may end (docs/50 section 3).
+export function isOutlineVertex(x0, y0, n, vx, vy) {
+  return base(n).outlineV.has(`${vx - x0},${vy - y0}`);
+}
+export function isPocketVertex(x0, y0, n, vx, vy) {
+  return base(n).pocketV.has(`${vx - x0},${vy - y0}`);
+}
+
+// The corner pockets' vertices off the outline, as [vx, vy] (the square's corners among them): where no straight wall may end.
+const pocketVertexLists = new Map(); // n -> [[vx, vy]] in the square's frame
+export function pocketVerticesOf(x0, y0, n) {
+  let v = pocketVertexLists.get(n);
+  if (!v) pocketVertexLists.set(n, (v = [...base(n).pocketV].map((k) => k.split(",").map(Number))));
+  return v.map(([x, y]) => [x + x0, y + y0]);
+}
+
+// The fills at an outline vertex (docs/50 section 3, the filler): each outline edge leaving the vertex that the curve crosses, as
+// { tx, ty, edge, d, dir }: the edge, how far from the vertex the curve crosses it (tiles, half a tile at most), and the way along it from the
+// vertex ([1, 0], [-1, 0], [0, 1], or [0, -1]). Empty at an inner corner of the steps and at a door point's ends.
+export function fillsAt(x0, y0, n, vx, vy) {
+  const f = base(n).fills.get(`${vx - x0},${vy - y0}`);
+  return f ? f.map(([x, y, e, d, ux, uy]) => ({ tx: x + x0, ty: y + y0, edge: e, d, dir: [ux, uy] })) : [];
+}
+
+// The outline vertices that have a fill (the step corners and a 7 by 7's diagonal corners), as [vx, vy]: where a filler may be drawn.
+const fillVertices = new Map(); // n -> [[vx, vy]] in the square's frame
+export function fillVerticesOf(x0, y0, n) {
+  let v = fillVertices.get(n);
+  if (!v) fillVertices.set(n, (v = [...base(n).fills.keys()].map((k) => k.split(",").map(Number))));
+  return v.map(([x, y]) => [x + x0, y + y0]);
 }
 
 // The ring's id, from its square's corner and its layer (two rings never share a square).
