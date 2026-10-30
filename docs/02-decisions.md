@@ -12,6 +12,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The castle gates break, at about three doors' hit points (2026-10-30, Height ruled; strikes the 2026-10-29 gate ruling's "the dead cannot break it").
 - Towers climb by ladders: players build a one-tile ladder, climbed by E, the dead ignore it; stairs come up with Free building when nobody is cut off; the storey cap is 6 (2026-10-30, Height ruled).
 - A cave is a dark room under a plateau, its opening a gap in the cliff; the cliff top gets textured art and the stone floor blends into grass and dirt, an art round (2026-10-30, Height ruled).
+- The height build has no scripted castle: each step builds its own test pieces, and Michael walks a castle he builds by hand in a flat world (2026-10-30, The castle fixture dropped).
 - Free building has no reach limit to build or take apart (48 tiles; lines of sight kept; 2026-10-29, `02` "Free building has no reach limit").
 - A castle battlement (a short stone parapet with merlons, art round 13) is Free building's alone for now, placed at once and free on a tile edge of a floor on layer 1 or higher with the walkway's floor on one side of the edge and none on the other, its stone wholly on the side with no floor ("margin, not padding"), so the walkway tile keeps its whole diamond; which side the walkway is on, the variant, and the corners and ends are read from the floors and the neighbouring edges, never saved; sight and light pass it, bodies and the dead do not, the dead cannot strike it down (2026-10-29, Castle battlements)
 - A castle gate (a 2 or 3 wide stone gate with an animated portcullis, art round 12) is Free building's alone for now, placed at once and free over 2 or 3 plain stone wall edges, opened and shut with E like a door; closed, its bars pass sight, light, and shots but stop a body, a blow, and a bite, and still bound a room; ~~the dead cannot break it (Michael: "I will probably overrule this later, but fine for now")~~ (overruled 2026-10-30, Height ruled: a gate breaks at about three doors); each of these is a flag on the gate's definition, so a later ruling flips data, not code (2026-10-29, Castle gates)
@@ -335,6 +336,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-30 — The castle fixture dropped: Michael builds his own (Michael, on `53`)
+
+Michael, kicking off `53`'s build: "Don't worry about implementing the test castle, I will build one in a flat world for testing." Step 0 is the layer audit alone; no `check("castle")`, no `?fixture=castle` flag. Each step proves its rows on pieces it builds for itself headless, and he walks his castle after each merge. Strikes the Height ruling's "the fixture is to be seen".
+
 ### 2026-10-30 — Height ruled: hide, never fade; gates break at about three doors; ladders for towers; stairs come up; caves; any storey shoots down (Michael, on `53`)
 
 Michael, reading `docs/53-height.md` (the first-principles review of layering and occlusion, written at his ask of 2026-10-29) and its fourteen defaults and seven questions, on 2026-10-30. Every default stands as elaborated in session, with these rulings on top:
@@ -349,7 +354,7 @@ Michael, reading `docs/53-height.md` (the first-principles review of layering an
 - **Caves:** a hollowed hill as a dark room under a plateau, lit by its fires, its opening a plain gap in the cliff, the plateau hidden over you; with an art round for **a cliff top that is not a single-pixel floor art, and the bare stone floor blending into grass and dirt** ("Those two things will get rid of the few harsh edges in that screenshot").
 - **The dead who see you up high:** they gather at the structure under you and press its nearest door or gate for as long as they see you, never deducing, never digging: "The thing to avoid is 7 Days to Die fixing underground bases by turning zombies into structural engineers ... That is too smart, but if they give up easily when they can clearly see you in a window what's the point?" "Told of a door" stays a switch, off.
 - **Hills on hills refused for now**, items fall and bodies never, one light set per layer in view capped at six, the floor over a ring clipped and beside it whole, sound and animals by layer, the castle fixture: as the defaults said.
-- **The fixture is to be seen:** "I would be curious to see this": the castle built in the pane into a saved world in his Worlds list.
+- ~~**The fixture is to be seen:** "I would be curious to see this": the castle built in the pane into a saved world in his Worlds list.~~ (struck 2026-10-30, The castle fixture dropped: Michael builds his own.)
 - **Not decided, asked while the work is open:** climbing through windows again, which with six storeys means letting bodies fall; nothing in `53` forecloses it (section 6.6).
 
 ### 2026-10-29 — Free building has no reach limit (Michael)
