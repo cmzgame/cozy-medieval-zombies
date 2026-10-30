@@ -1389,7 +1389,7 @@ export function takeApartProblem(player, t) {
     if (!rules.freeBuilding) return "Ladders come apart only in Free building";
     const living = stations.allBodies().filter((c) => c && !c.dead && !c.corpse);
     const climbing = living.some((c) => c.ladder && c.ladder.id === t.l.id);
-    const why = map.ladderTakeUpProblem(t.l, living) || (climbing || stations.bodyOnTiles([t.l.at], t.l.layer) ? "Someone is on it" : "");
+    const why = map.ladderTakeUpProblem(t.l, living) || (climbing || stations.bodyOnTiles([t.l.at], t.l.layer, true) || stations.bodyOnTiles([t.l.landing], t.l.layer + 1, true) ? "Someone is on it" : ""); // a corpse too
     if (why) return why;
     const tool = partsOf(t).tool;
     return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);

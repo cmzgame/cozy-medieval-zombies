@@ -3160,7 +3160,7 @@ export function stairCutsOff(s, bodies) {
     downs.set(`${o.landing[0]},${o.landing[1]},${o.layer + 1}`, [o.at[0], o.at[1], o.layer]);
   }
   const seen = new Set();
-  const start = fromUp ? s.landing : s.before;
+  const start = fromUp ? s.landing : s.before || s.at; // a ladder's foot is its own tile
   const queue = [[start[0], start[1], up]];
   seen.add(`${start[0]},${start[1]},${up}`);
   let n = 0;
