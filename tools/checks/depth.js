@@ -274,15 +274,24 @@ export async function run(game, opts = {}) {
     // column of the post at the wall's near (south) end, so the post and the wall cover its right half and its left half is clear of both.
     {
       standAt(X + 14.7, Y + 4.2);
-      const sil = silhouetteOf(isPlayer);
-      const vis = and(visibleOf(isPlayer), sil);
+      // The sort alone: the seen-but-covered shape (docs/53 section 6.2) left out, then asked for on its own below.
+      scene.probe.noCover = true;
+      let sil;
+      let vis;
+      try {
+        sil = silhouetteOf(isPlayer);
+        vis = and(visibleOf(isPlayer), sil);
+      } finally {
+        scene.probe.noCover = false;
+      }
+      const covers = (await import("/src/render/storeys.js")).structureCovers(me); // the wall covers it: in play its shape is drawn over it (the checks draw everything shown, which leaves the shape out)
       const wall = silhouetteOf(isWall(lone));
       const hidden = minus(sil, vis);
       const out = minus(sil, wall);
       const hiddenUnder = share(and(hidden, wall), hidden);
       const outShown = share(and(out, vis), out);
       const f = share(hidden, sil);
-      row("1. a figure half behind a wall segment: the pixels under the wall are the wall's, the rest the figure's", f > 0.1 && f < 0.9 && hiddenUnder >= 0.97 && outShown >= 0.97, `${pct(f)} of its ${sil.count} hidden, ${pct(hiddenUnder)} of the hidden under the wall, ${pct(outShown)} of what the wall does not cover shown`);
+      row("1. a figure half behind a wall segment: the pixels under the wall are the wall's, the rest the figure's; and the wall counts as covering it, for its seen-but-covered shape", f > 0.1 && f < 0.9 && hiddenUnder >= 0.97 && outShown >= 0.97 && covers, `${pct(f)} of its ${sil.count} hidden, ${pct(hiddenUnder)} of the hidden under the wall, ${pct(outShown)} of what the wall does not cover shown; covered by structure ${covers}`);
     }
 
     // 2. A figure against a back wall is whole: inside, stopped 0.3 from the north wall (the collision's radius).
@@ -327,8 +336,8 @@ export async function run(game, opts = {}) {
       unplace(cup);
     }
 
-    // 14. A prop just inside a south wall is hidden by it from outside: a bed against the house's south wall; the wall shows whole over it,
-    // crisp from the yard and faded from inside (the bed drawn under the faded wall, never over it).
+    // 14. A prop just inside a south wall is hidden by it from outside: a bed against the house's south wall; the wall shows whole over it
+    // from the yard, and from inside, the wall cut to the stub (docs/53 section 6.2), the bed shows over it.
     {
       const bed = await place("bed", X + 5, Y + 7, { footprint: [2, 1], facing: "x" });
       const southWall = isWall(south);
@@ -341,7 +350,7 @@ export async function run(game, opts = {}) {
       const silF = silhouetteOf(southWall);
       const overF = and(silhouetteOf(isProp(bed)), silF);
       const faded = share(and(visibleOf(southWall), overF), overF);
-      row("14. a bed against the house's south wall does not show through it from outside, crisp or faded", over.count > 0 && crisp >= 0.99 && faded >= 0.99, `the wall over the bed's ${over.count} px: ${pct(crisp)} the wall's from the yard; faded, ${pct(faded)} of ${overF.count} the wall's`);
+      row("14. a bed against the house's south wall does not show through it from outside (from inside the wall is cut to the stub or drawn faint where it has a window)", over.count > 0 && crisp >= 0.99, `the wall over the bed's ${over.count} px: ${pct(crisp)} the wall's from the yard; from inside, ${pct(faded)} of ${overF.count} the wall's`);
       unplace(bed);
     }
 
@@ -787,7 +796,7 @@ export async function run(game, opts = {}) {
       me.hands.off = saved.off;
     }
 
-    // 8. The faded near wall and its cuts fade at 0.42 over the room; the canopy hole round the player behind a tree.
+    // 8. The near wall over the room is cut to the stub, opaque, a door or a window in it drawn faint (docs/53 section 6.2); the canopy hole round the player behind a tree.
     {
       const southWall = isWall(south);
       // Inside, the south wall and its posts drawn in two flat colours over the room: where a pixel is the wall's at alpha a, the two frames
@@ -798,7 +807,7 @@ export async function run(game, opts = {}) {
       const fa = shot(null, null, { is: southWall, color: MARK_A });
       const fb = shot(null, null, { is: southWall, color: MARK_B });
       const inPlayer = silhouetteOf(isPlayer);
-      const A = scene.NEAR_WALL_ALPHA;
+      const A = G.tuning.cover ? G.tuning.cover.openingAlpha : 0.3; // a door's or a window's in a cut wall
       let good = 0;
       let solid = 0;
       let over = 0;
@@ -816,7 +825,7 @@ export async function run(game, opts = {}) {
         if (Math.abs(a - A) <= 0.03) good++;
         else if (Math.abs(a - (1 - (1 - A) * (1 - A))) <= 0.03) over++;
       }
-      row(`8a. the faded near wall and its cut pieces fade at ${A} over the room`, n > 0 && (good + over) / n >= 0.98 && good / n >= 0.9, `${good} of ${n} faded px of the south wall at ${A}, ${over} where two faded quads overlap, ${n - good - over} at another alpha; ${solid} solid (a post joining a far wall)`);
+      row(`8a. the near wall over the room is cut to the stub, opaque, a door or a window in it at ${A}`, solid > 0 && (n === 0 || (good + over) / n >= 0.9), `${solid} solid px of the south wall; ${good} of ${n} translucent px at ${A}, ${over} where two faint quads overlap, ${n - good - over} at another alpha`);
       const oak = await place("tree_oak_l", X + 18, Y + 18);
       standAt(X + 17, Y + 17);
       const sheet = G.assets.getSheet(me.sprite);

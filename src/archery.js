@@ -1025,6 +1025,24 @@ export function aimPoint(player, ctx) {
   const mouse = ctx && ctx.mouse ? ctx.mouse : ctx;
   const seen = ctx && ctx.seen;
   const mine = (player && player.layer) || 0;
+  // A seen body under the cursor first, whatever its floor (docs/53 section 6.2, picking): one of the dead on a balcony from the ground, one in
+  // the yard from the walk; its feet and its floor.
+  if (seen && seen.sees) {
+    let best = null;
+    let bestD = Infinity;
+    for (const b of targets()) {
+      if (!b || b.dead) continue;
+      const L = b.layer || 0;
+      if (!seen.sees(b.gx, b.gy, L)) continue;
+      const p = iso.toScreen(b.gx, b.gy);
+      const dx = mouse.x - p.x;
+      const dy = mouse.y - (p.y - map.STOREY * L - (b.rise || 0));
+      if (Math.abs(dx) > 11 || dy > 4 || dy < -46) continue; // over its drawn figure
+      const d = Math.abs(dx) + Math.abs(dy + 22);
+      if (d < bestD) { best = b; bestD = d; }
+    }
+    if (best) return [best.gx, best.gy, best.layer || 0];
+  }
   const layers = seen && seen.layers ? [...seen.layers.keys()].sort((x, y) => y - x) : mine ? [mine, 0] : [0];
   for (const k of layers) {
     const g = iso.toGrid(mouse.x, mouse.y + tunables.aimLift + k * map.STOREY);

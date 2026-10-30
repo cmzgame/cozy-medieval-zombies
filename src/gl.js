@@ -43,6 +43,10 @@ export const PASS_TOP = 3;
 // another, and a body behind it, drawn opaque in pass 1, shows through. A quad of it that is translucent already goes to the translucent
 // pass with its alpha times the fade's.
 export const PASS_FADE = 4;
+// Seen but covered (docs/53 section 6.2, mechanism 4): a body the viewer sees, drawn again flat in one colour where something nearer covers it,
+// and only there: tested with the depth reversed (a fragment drawn where the stored surface is nearer), nothing written, after the translucent
+// pass, so its own visible pixels (its own depth, the quad a step nearer) are left as they are and the covered ones show its shape.
+export const PASS_XRAY = 5;
 
 // The depth range follows the camera (docs/51 section 5): a vertex stores its depth less the camera's own
 // ((cam.gx + cam.gy) * 32), and the clip z is 1 - 2 (depth - base) / 8192 with base the camera's depth less 4096,
@@ -67,7 +71,7 @@ let vao = null;
 let vbo = null;
 // One vertex store per pass (PASS_FLAT, the opaque, the translucent, PASS_TOP, PASS_FADE), each in emit order; `verts` and `count` are the one being
 // written, swapped in by `useBucket`. The ground's quads are the first of the flat store.
-const buckets = [0, 1, 2, 3, 4].map(() => ({ verts: new Float32Array(1 << 15), count: 0 }));
+const buckets = [0, 1, 2, 3, 4, 5].map(() => ({ verts: new Float32Array(1 << 15), count: 0 }));
 let cur = 0;
 let verts = buckets[0].verts;
 let count = 0; // floats written to the current store
@@ -817,7 +821,7 @@ function keepBucket() {
 // wash), it fades in the holes (an occluder), or its sheet is soft (docs/51 section 4: per quad, so a wall's bracket torch and a
 // figure's carried torch send their halos there and the rest of the wall or the figure stays opaque); else the opaque pass.
 function route(alpha, flags, soft) {
-  if (pass === PASS_FLAT || pass === PASS_TOP) return pass;
+  if (pass === PASS_FLAT || pass === PASS_TOP || pass === PASS_XRAY) return pass;
   if (alpha < 1 || flags & FLAG_OCCLUDER || soft) return PASS_TRANS;
   return fadeA ? PASS_FADE : PASS_STAND;
 }
@@ -1329,6 +1333,14 @@ export function end(u) {
     gl.uniform1f(uniforms.u_fade, fadeDraw);
     gl.drawArrays(gl.TRIANGLES, first[PASS_FADE], span(PASS_FADE));
     gl.uniform1f(uniforms.u_fade, 1);
+  }
+  // Seen but covered (PASS_XRAY): drawn only where the stored surface is nearer than its own, nothing written.
+  if (span(PASS_XRAY)) {
+    gl.depthFunc(gl.GREATER);
+    gl.depthMask(false);
+    gl.uniform1f(uniforms.u_alphaCut, ALPHA_TEST);
+    gl.drawArrays(gl.TRIANGLES, first[PASS_XRAY], span(PASS_XRAY));
+    gl.uniform1f(uniforms.u_alphaCut, ALPHA_FLOOR);
   }
   // On top: the ghosts, the hit shapes, the marker; no test.
   gl.depthFunc(gl.ALWAYS);

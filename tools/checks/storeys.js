@@ -183,11 +183,10 @@ export async function run(game) {
       }
     }
     row("the seam: a post standing on a post draws no stone foot (its shaft runs on into the post below)", upperPosts.length > 0 && footSeen > 50 && footGrey < 6, `${upperPosts.length} posts on posts, ${footSeen} px of theirs round the seam, ${footGrey} of the foot's grey`);
-    // 5d. A storey you stand behind fades (docs/49 section 6): behind the house, where its first floor covers the player's body on screen,
-    // the storey is drawn at the near-wall fade's alpha and the player's own pixels show through it; with the fade off they are hidden
-    // there, so it is the storey that covers them. A thing's share of a pixel is read as the difference between the frame with it drawn
-    // in red and in green (a figure behind a translucent storey is blended, never pure red). In front, the house is opaque; inside it
-    // and upstairs, nothing fades.
+    // 5d. The cover rule (docs/53 section 6.2, Michael 2026-10-30: "hide what is in the way, never fade"): behind the house, where its first
+    // floor covers the player's body on screen, that storey is not drawn at all and the player's own pixels show whole; in front it stands
+    // whole; inside the house, the room's camera-side walls are cut to the stub and the far ones stand; nothing anywhere is drawn in the old
+    // fade pass. A thing's share of a pixel is read as the difference between the frame with it drawn in red and in green.
     const share = (is) => {
       const grab = (color) => {
         scene.probe.mark = { is, color };
@@ -220,7 +219,7 @@ export async function run(game) {
     };
     const r1 = b.rects[1];
     const storeyWall = (d) => d.kind === "wall" && map.drawLayerNow() === 1 && !!(d.wall || d.post) && (() => { const q = d.wall || d.post; return q.tx >= r1[0] - 1 && q.tx <= r1[0] + r1[2] + 1 && q.ty >= r1[1] - 1 && q.ty <= r1[1] + r1[3] + 1; })();
-    const fadeOf = () => scene.lastStats.faded.split(",").includes(`${b.id}:1`);
+    const hiddenOf = () => st.hiderFor(me)(r1[0] + 1, r1[1] + 1, 1); // the first floor over the house, hidden for this viewer
     // The player's whole figure, alone in the frame (everything else left out).
     stand(outside.x, outside.y + 2);
     scene.probe.skip = (d) => d.entity !== me;
@@ -247,7 +246,7 @@ export async function run(game) {
         if (!st.storeyCovers(at, r1, 1) || st.storeyCovers(at, b.rects[0], 0) || map.buildingAt(x, y, 0)) continue;
         stand(x, y);
         const pl = share((d) => d.entity === me);
-        if (!best || pl.n > best.pl.n) best = { x, y, pl, faded: fadeOf(), storey: share(storeyWall) };
+        if (!best || pl.n > best.pl.n) best = { x, y, pl, hidden: hiddenOf(), storey: share(storeyWall) };
         if (pl.n >= whole.n * 0.95) break;
       }
       behind[side] = best;
@@ -257,61 +256,63 @@ export async function run(game) {
         row(`behind the house (${side}): a spot where the first floor covers the player`, false, "none found");
         continue;
       }
-      row(`behind the house (${side}, at ${s0.x},${s0.y}): the first floor fades, its walls drawn at the near-wall fade's alpha`, s0.faded && s0.storey.n > 1000 && s0.storey.mean > 0.32 * 255 && s0.storey.mean < 0.52 * 255, `faded ${s0.faded}; the storey's walls ${s0.storey.n} px at a mean share of ${(s0.storey.mean / 255).toFixed(2)}`);
-      row(`behind the house (${side}): the player's own pixels show through it`, s0.pl.n >= whole.n * 0.8 && s0.pl.max > 0.45 * 255, `${s0.pl.n} of its ${whole.n} px, their share up to ${(s0.pl.max / 255).toFixed(2)}`);
-      stand(s0.x, s0.y);
-      scene.storeyFade.on = false;
-      let off;
-      try {
-        off = share((d) => d.entity === me);
-      } finally {
-        scene.storeyFade.on = true;
-      }
-      row(`behind the house (${side}): with the fade off the storey hides them (it is the storey that covers them there)`, off.n < whole.n * 0.5, `${off.n} of ${whole.n} px drawn with the fade off`);
+      row(`behind the house (${side}, at ${s0.x},${s0.y}): the first floor is hidden, none of its walls drawn`, s0.hidden && s0.storey.n === 0, `hidden ${s0.hidden}; the storey's walls ${s0.storey.n} px`);
+      row(`behind the house (${side}): the player's own pixels show whole`, s0.pl.n >= whole.n * 0.8 && s0.pl.max > 0.9 * 255, `${s0.pl.n} of its ${whole.n} px, their share up to ${(s0.pl.max / 255).toFixed(2)}`);
     }
-    // At night, the same spot: the player's figure still changes the frame through the faded storey (its pixels drawn against left out).
+    // At night, the same spot: the player's figure is in the frame (the storey over it hidden, not faded).
     if (behind.west) {
       G.clock.setHour(23);
       stand(behind.west.x, behind.west.y);
-      const diff = (fadeOn) => {
-        scene.storeyFade.on = fadeOn;
-        try {
-          const a = frame();
-          scene.probe.skip = (d) => d.entity === me;
-          let c;
-          try {
-            c = frame();
-          } finally {
-            scene.probe.skip = null;
-          }
-          let n = 0;
-          for (let i = 0; i < a.length; i += 4) if (Math.abs(a[i] - c[i]) + Math.abs(a[i + 1] - c[i + 1]) + Math.abs(a[i + 2] - c[i + 2]) > 9) n++;
-          return n;
-        } finally {
-          scene.storeyFade.on = true;
-        }
-      };
-      const nightOn = diff(true);
-      const nightFaded = fadeOf();
-      const nightOff = diff(false);
-      row("at night, behind the house: the player is seen through the faded storey, and not with the fade off", nightFaded && nightOn >= whole.n * 0.6 && nightOff < nightOn * 0.5, `${nightOn} px of the frame are the player's with the fade, ${nightOff} without (its whole figure ${whole.n})`);
+      const a = frame();
+      scene.probe.skip = (d) => d.entity === me;
+      let c;
+      try {
+        c = frame();
+      } finally {
+        scene.probe.skip = null;
+      }
+      let nightOn = 0;
+      for (let i = 0; i < a.length; i += 4) if (Math.abs(a[i] - c[i]) + Math.abs(a[i + 1] - c[i + 1]) + Math.abs(a[i + 2] - c[i + 2]) > 9) nightOn++;
+      row("at night, behind the house: the player is seen, the storey over it hidden", hiddenOf() && nightOn >= whole.n * 0.6, `${nightOn} px of the frame are the player's (its whole figure ${whole.n})`);
       G.clock.setHour(12);
     }
-    // The fade's own pass: the storey's opaque quads in PASS_FADE, none in the frame when nothing fades.
+    // The old fade pass is empty behind the house and in front of it.
     if (behind.west) stand(behind.west.x, behind.west.y);
     G.loop.advance(0);
     const fadeQuads = G.gl.depthInfo().passes[G.gl.PASS_FADE];
-    // In front, south and east: opaque, nothing faded.
+    // In front, south and east: drawn whole, nothing hidden.
     const front = [];
     for (const [x, y] of [[r1[0] + Math.floor(r1[2] / 2), r1[1] + r1[3] + 2], [r1[0] + r1[2] + 2, r1[1] + Math.floor(r1[3] / 2)]]) {
       stand(x, y);
       const sw = share(storeyWall);
-      front.push({ x, y, faded: scene.lastStats.faded, mean: sw.mean, n: sw.n, fadeQuads: G.gl.depthInfo().passes[G.gl.PASS_FADE] });
+      front.push({ x, y, hidden: hiddenOf(), mean: sw.mean, n: sw.n, fadeQuads: G.gl.depthInfo().passes[G.gl.PASS_FADE] });
     }
-    row("the faded storey's quads are drawn in the fade pass (gl PASS_FADE), and none in front", fadeQuads > 100 && front.every((f) => f.fadeQuads === 0), `${fadeQuads} vertices behind; in front ${front.map((f) => f.fadeQuads).join(", ")}`);
-    row("in front of the house (south and east): the first floor is opaque, nothing fades", front.every((f) => !f.faded && f.n > 1000 && f.mean > 250), front.map((f) => `${f.x},${f.y}: faded ${f.faded || "none"}, walls ${f.n} px at ${(f.mean / 255).toFixed(2)}`).join("; "));
-    // Inside the house and upstairs: nothing fades (its own storeys above are hidden by the hiding rule, as before).
+    row("nothing is drawn in the old fade pass (gl PASS_FADE), behind the house or in front of it", fadeQuads === 0 && front.every((f) => f.fadeQuads === 0), `${fadeQuads} vertices behind; in front ${front.map((f) => f.fadeQuads).join(", ")}`);
+    row("in front of the house (south and east): the first floor is drawn whole, opaque, nothing hidden", front.every((f) => !f.hidden && f.n > 1000 && f.mean > 250), front.map((f) => `${f.x},${f.y}: hidden ${f.hidden}, walls ${f.n} px at ${(f.mean / 255).toFixed(2)}`).join("; "));
+    // Inside the house and upstairs: nothing fades (its own storeys above are hidden by the hiding rule, as before); inside, the room's
+    // camera-side walls are cut to the stub (plain walls) or drawn faint (a door, a window), and the far ones stand whole.
     stand(r1[0] + 1, r1[1] + 1);
+    const roomId = map.roomAt(r1[0] + 1, r1[1] + 1, 0);
+    const groundWalls = [];
+    scene.probe.skip = (d) => {
+      if (d.kind === "wall" && d.wall && map.drawLayerNow() === 0) groundWalls.push({ ...d.wall, cut: !!d.cut, faded: !!d.faded });
+      return false;
+    };
+    try {
+      G.loop.advance(0);
+    } finally {
+      scene.probe.skip = null;
+    }
+    const sideOfRoom = (q) => {
+      const inR = map.roomAt(q.tx, q.ty, 0) === roomId;
+      const across = q.edge === "n" ? map.roomAt(q.tx, q.ty - 1, 0) === roomId : map.roomAt(q.tx - 1, q.ty, 0) === roomId;
+      return across && !inR ? "near" : inR && !across ? "far" : null;
+    };
+    const nearW = groundWalls.filter((q) => sideOfRoom(q) === "near");
+    const farW = groundWalls.filter((q) => sideOfRoom(q) === "far");
+    const nearOk = nearW.length > 0 && nearW.every((q) => q.cut || q.faded);
+    const farOk = farW.length > 0 && farW.every((q) => !q.cut && !q.faded);
+    row("inside the house, the room's camera-side walls are cut to the stub (a door or a window drawn faint) and the far ones stand whole", nearOk && farOk, `near ${nearW.map((q) => (q.cut ? "cut" : q.faded ? "faint" : "whole")).join(",")}; far ${farW.map((q) => (q.cut ? "cut" : q.faded ? "faint" : "whole")).join(",")}`);
     G.loop.advance(0);
     const inside = scene.lastStats.faded;
     stand(s.landing[0], s.landing[1], 1);
@@ -389,7 +390,7 @@ export async function run(game) {
             map.stairStep(me);
             const seen = [];
             scene.probe.skip = (d) => {
-              if (d.kind === "wall" && d.wall && d.wall.edge === "n" && [x + 3, x + 4, x + 5].includes(d.wall.tx) && [y + 3, y + 4].includes(d.wall.ty)) seen.push({ L: map.drawLayerNow(), ty: d.wall.ty, faded: d.faded, stack: d.stack });
+              if (d.kind === "wall" && d.wall && d.wall.edge === "n" && [x + 3, x + 4, x + 5].includes(d.wall.tx) && [y + 3, y + 4].includes(d.wall.ty)) seen.push({ L: map.drawLayerNow(), ty: d.wall.ty, faded: !!d.cut, stack: d.stack }); // cut to the stub (docs/53 section 6.2)
               return false;
             };
             try {
@@ -401,7 +402,7 @@ export async function run(game) {
           };
           const onStair = wallsSeen([x + 4, y + 3], 0);
           const nearFaded = onStair.filter((q) => q.ty === y + 4).every((q) => q.faded) && onStair.filter((q) => q.ty === y + 3).every((q) => !q.faded) && onStair.length === 6;
-          row("on a stair walled round, the walls on the camera's side of it fade and the far ones stand", nearFaded && me.rise > 0, `${onStair.length} walls seen; near ${onStair.filter((q) => q.ty === y + 4).map((q) => (q.faded ? "faded" : "solid")).join(",")}; far ${onStair.filter((q) => q.ty === y + 3).map((q) => (q.faded ? "faded" : "solid")).join(",")}`);
+          row("on a stair walled round, the walls on the camera's side of it are cut to the stub and the far ones stand", nearFaded && me.rise > 0, `${onStair.length} walls seen; near ${onStair.filter((q) => q.ty === y + 4).map((q) => (q.faded ? "cut" : "whole")).join(",")}; far ${onStair.filter((q) => q.ty === y + 3).map((q) => (q.faded ? "cut" : "whole")).join(",")}`);
           // A wall with the upper floor over both its sides too: south of the stair's south wall, a row more of floor upstairs and a ground
           // wall under its middle.
           for (let k = 0; k < 2; k++) for (const xx of [x + 2, x + 3, x + 4, x + 5]) map.buildFloor(xx, y + 5, "floor_wood", 1, { free: true });

@@ -11,13 +11,14 @@ import { tileKey } from "../visibility.js";
 import { WALL_T, WOOD, METAL, DOOR_TOP, WINDOW_SILL, WINDOW_TOP, BRACKET_UP } from "../placeholders.js";
 import * as gl from "../gl.js";
 import { GHOST_FLAGS, ghostColor } from "./props.js";
-import { NEAR_WALL_ALPHA, DEPTH_BIAS, DEPTH_ROOM, flameFrame, frameQuad } from "./scene.js";
+import { DEPTH_BIAS, DEPTH_ROOM, flameFrame, frameQuad } from "./scene.js";
 import * as depth from "./depth.js"; // the walls' faces, caps, leaves, and posts on their true planes (docs/51)
 import { emitHangings } from "./paintings.js"; // what hangs on a wall's face (#326)
 import { sheetFor } from "../woods.js"; // a door or window of another wood than its wall (#334)
 import * as cliffs from "../cliffs.js"; // a cliff's pictures by its edges and its plateau (art round 10)
 import * as battlements from "../battlements.js"; // a castle battlement's pictures by the floors and the neighbouring edges (art round 13)
 import * as round from "../round.js"; // a ring's outline vertices, where a straight wall's filler runs to the curve (docs/50 section 3)
+import { cover } from "../tuning.js"; // the stub's height and the openings' opacity (docs/53 section 6.2)
 
 // ---- walls ----
 
@@ -187,6 +188,32 @@ function emitCapFromFrame(sheet, name, anchor, top, corners, h, world, flags) {
   gl.texQuad(pts, uvs, { world, flags: flags | gl.FLAG_SKY, page: uv[4] });
 }
 
+// ---- the stub (docs/53 section 6.2, mechanism 3; Michael, 2026-10-30: "The stub is basically down to the floor, and that is the right call")
+// A near wall of the viewer's room is drawn cut down to a stub of `cover.stub` px at its foot: its picture below the line of its near face at
+// that height, and its own cap drawn along the cut (the picture's cap, set down to the stub's height). A door or a window in such a wall is
+// drawn whole, at full height, at `cover.openingAlpha` ("barely there, but definitely there when you need it").
+const isOpening = (wall) => !!wall && (wall.kind === "door" || wall.kind === "window");
+// The line of a wall's near face at `s` px over its foot: the picture is kept below it. `top` is the edge's top vertex on screen.
+function stubLine(edge, x, y, T, s) {
+  const top = [x, y - iso.HH];
+  const at = (X, Y) => [top[0] + X - Y, top[1] + (X + Y) / 2 - s];
+  return edge === "n" ? [at(-CAP_MARGIN, T / 2), at(32 + CAP_MARGIN, T / 2)] : [at(T / 2, -CAP_MARGIN), at(T / 2, 32 + CAP_MARGIN)];
+}
+// The picture's cap (its top, at `h`) drawn at the stub's height `s`, on the sky, over the cut.
+function emitStubCap(sheet, name, anchor, top, corners, h, s, world, flags) {
+  const uv = gl.frameUV(sheet, name);
+  const tu = uv[0] + anchor[0];
+  const tv = uv[1] + anchor[1] - iso.HH;
+  const pts = [];
+  const uvs = [];
+  for (const [X, Y] of corners) {
+    const ox = X - Y;
+    pts.push([top[0] + ox, top[1] + (X + Y) / 2 - s]);
+    uvs.push([tu + ox, tv + (X + Y) / 2 - h]);
+  }
+  gl.texQuad(pts, uvs, { world, flags: flags | gl.FLAG_SKY, page: uv[4] });
+}
+
 // A gate that swings (#332, Michael, 2026-10-20: "only fence for now, we can animate doors later"): a door whose parts sheet has
 // the in-between leaves (`leaf_<o>_30`, `leaf_<o>_60`) plays them for SWING_S when it opens or shuts. Each screen plays it when it
 // sees the gate's `open` change (the host's step, a guest's chunk), in sim time, so it is the picture's alone: never the world's,
@@ -336,6 +363,18 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   // A leaf swung away from the camera stands behind the wall: drawn only when
   // the wall is translucent, just before it (docs/17, ruling 2).
   gl.layer(L_FACE); // translucent with the faded wall, which writes no depth: drawn in this order, under the face
+  if (o.stubH) {
+    // Cut to the stub (docs/53 section 6.2): the picture below its near face's line at the stub's height, and its cap along the cut.
+    const [a, b] = stubLine(edge, x, y, T, o.stubH);
+    partBelow(sheet, name, x, y, o, a, b);
+    gl.layer(L_ON);
+    const m = CAP_MARGIN;
+    const corners = edge === "n"
+      ? [[-m, -T / 2 - m], [32 + m, -T / 2 - m], [32 + m, T / 2 + m], [-m, T / 2 + m]]
+      : [[-T / 2 - m, -m], [T / 2 + m, -m], [T / 2 + m, 32 + m], [-T / 2 - m, 32 + m]];
+    if (!o.ghost) emitStubCap(sheet, name, anchor, [x, y - iso.HH], corners, h, o.stubH, [tx, ty], o.flags);
+    return;
+  }
   if (outside < 0 && o.faded) for (const p of leaves("_far")) leafQuad(p, true);
   if (o.faded && o.cuts && (o.cuts.near != null || o.cuts.far != null)) emitCutWall(sheet, name, edge, x, y, h, T, o, o.cuts);
   else if (o.under) {
@@ -571,8 +610,8 @@ function makeFiller(r, f, visible, playerRoom) {
   const y = Math.round(p.y);
   const h = sheet.wallHeight || 96;
   const T = sheet.thickness || WALL_T;
-  const stub = isNearWall(w.tx, w.ty, w.edge, playerRoom); // faded with the wall it belongs to
-  const alpha = stub ? NEAR_WALL_ALPHA : 1;
+  const stub = isNearWall(w.tx, w.ty, w.edge, playerRoom) && !isOpening(w.wall); // cut to the stub with the wall it belongs to (docs/53 section 6.2)
+  const alpha = 1;
   const across = w.edge === "n" ? [w.tx, w.ty - 1] : [w.tx - 1, w.ty];
   const vis = visible.has(tileKey(w.tx, w.ty)) || visible.has(tileKey(across[0], across[1]));
   const flags = vis ? gl.FLAG_NOFOG : 0;
@@ -585,10 +624,10 @@ function makeFiller(r, f, visible, playerRoom) {
   const k1 = f.top ? f.d : 1;
   // Faded, a piece whose camera-side end is the vertex leaves its end face to the wall that goes on from there, as a faded run's segments do
   // at a joint (wallCuts), so no overlap shows twice as dark; the wall cuts its own end where the filler goes on from its camera-side end.
-  const cuts = { far: k0 > 0 ? k0 * iso.HW : null, near: k1 < 1 ? (1 - k1) * iso.HW : stub ? 0 : null };
+  const cuts = { far: k0 > 0 ? k0 * iso.HW : null, near: k1 < 1 ? (1 - k1) * iso.HW : null };
   // And faded where a post stands at the vertex (a wall along the square's side turning down the step edge), it stops at the post's face, as
   // wallCuts cuts a faded wall there, so its first stretch inside the faded post is not drawn twice (the review of #589).
-  const vPost = stub ? postAt(f.vx, f.vy, playerRoom) : null;
+  const vPost = null; // a cut filler is opaque: nothing of it is drawn twice where a post stands
   if (vPost) cuts[f.top ? "far" : "near"] = (vPost.sheet.thickness || WALL_T) / 2;
   const bare = vPost && (vPost.sheet.thickness || WALL_T) / 2 >= f.d * iso.HW; // the post covers all of it: no face to draw
   // Its depth: the edge's near face, its ridge where a straight segment's would be (a post at the edge's camera-side end moves it back).
@@ -601,12 +640,21 @@ function makeFiller(r, f, visible, playerRoom) {
     kind: "wall",
     filler: { ring: r.id, vx: f.vx, vy: f.vy, tx, ty, edge, d: f.d, wall: { tx: w.tx, ty: w.ty, edge: w.edge }, cuts, top: f.top }, // check("round") finds it, and reads its cuts
     stack,
-    faded: !!stub,
+    faded: false,
+    cut: !!stub,
     emit() {
       gl.surface(face, lift, DEPTH_ROOM.wall);
       gl.layer(L_FACE);
-      if (!bare) emitCutWall(sheet, name, edge, x, y, h, T, { wa: lp, wb: lp, tint: [1, 1, 1, alpha], flags }, cuts);
-      if (!stub && !stack.covered) {
+      if (!bare) emitCutWall(sheet, name, edge, x, y, h, T, { wa: lp, wb: lp, tint: [1, 1, 1, alpha], flags, clip: stub ? stubLine(edge, x, y, T, cover.stub) : null }, cuts);
+      if (stub) {
+        // Its cap along the cut, as far as it goes (the cut wall's own, at the stub's height).
+        gl.layer(L_ON);
+        const m = CAP_MARGIN;
+        const a = k0 * 32 - m;
+        const b = k1 * 32 + m;
+        const corners = edge === "n" ? [[a, -T / 2 - m], [b, -T / 2 - m], [b, T / 2 + m], [a, T / 2 + m]] : [[-T / 2 - m, a], [T / 2 + m, a], [T / 2 + m, b], [-T / 2 - m, b]];
+        emitStubCap(sheet, name, anchor, [x, y - iso.HH], corners, h, cover.stub, lp, flags);
+      } else if (!stack.covered) {
         // Its cap on the sky, as far as it goes (emitDrawnWall's, cut at the same lines).
         gl.layer(L_ON);
         const m = CAP_MARGIN;
@@ -919,10 +967,11 @@ function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
   const B = [x + T, y - T / 2];
   const C = [x, y - T];
   const D = [x - T, y - T / 2];
-  const up = ([px, py]) => [px, py - h];
-  const faded = near; // a near wall's post is translucent like the wall (docs/17: the stub mode retired)
+  const up = ([px, py]) => [px, py - (cut ? cover.stub : h)];
+  const cut = !!near; // a post whose walls are all cut is cut with them (docs/53 section 6.2)
+  const faded = false;
   const hidden = false;
-  const alpha = faded ? NEAR_WALL_ALPHA : 1;
+  const alpha = 1;
   const flags = vis ? gl.FLAG_NOFOG : 0;
   // Its depth (docs/51 section 3): the two faces of its square, split at its near corner's column. A drawn post is centred on the vertex,
   // a pixel proud of the wall in its picture (its cap below), but its depth is taken flush with the faces of the thinnest wall it joins,
@@ -961,16 +1010,17 @@ function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
             band(0, cut, 0, cut);
             band(cut, cut + n, cut - n, cut);
             gl.holdOrder(false);
-          } else if (under) {
+          } else if (under || cut) {
             // Under a floor of the storey above (the review of #551): the post without its cap, its two halves cut along their near faces' tops
             // (the cap's left and bottom corners, its bottom and right), on its own plane.
             const uv = gl.frameUV(ps, "idle_0");
             const X0 = x - ps.anchor[0];
             const Y0 = y - ps.anchor[1];
             const m = T / 2 + CAP_MARGIN + 1;
-            const left = [x - 2 * m, y - h];
-            const bottom = [x, y - h + m];
-            const right = [x + 2 * m, y - h];
+            const hc = cut ? cover.stub : h; // cut to the stub, or under a floor: the post below its near faces' tops at that height
+            const left = [x - 2 * m, y - hc];
+            const bottom = [x, y - hc + m];
+            const right = [x + 2 * m, y - hc];
             gl.holdOrder(true);
             for (const [xa, xb, a, b] of [[X0, x, left, bottom], [x, X0 + pf[2], bottom, right]]) {
               if (xb <= xa) continue;
@@ -979,7 +1029,7 @@ function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
             }
             gl.holdOrder(false);
           } else gl.quad(x - ps.anchor[0], y - ps.anchor[1], pf[2], pf[3], gl.frameUV(ps, "idle_0"), { world, heights: [pf[3], pf[3], 0, 0], color: [1, 1, 1, alpha], flags });
-          if (!faded && !covered) {
+          if (cut || (!faded && !covered)) {
             const uv = gl.frameUV(ps, "idle_0");
             const pts = [];
             const uvs = [];
@@ -987,7 +1037,7 @@ function makePost(tx, ty, sheet, vis, near, thin = null, stack = null) {
             for (const [X, Y] of [[-m, -m], [m, -m], [m, m], [-m, m]]) {
               const ox = X - Y;
               const oy = (X + Y) / 2 - h;
-              pts.push([x + ox, y + oy]);
+              pts.push([x + ox, y + oy + (cut ? h - cover.stub : 0)]); // cut, its cap set down onto the stub
               uvs.push([uv[0] + ps.anchor[0] + ox, uv[1] + ps.anchor[1] + oy]);
             }
             gl.texQuad(pts, uvs, { world: [tx, ty], flags: flags | gl.FLAG_SKY, page: uv[4] });
@@ -1035,7 +1085,7 @@ function makeBattlement(wall, sheet, edge, tx, ty, vis, stub, ghostTint, stack) 
   const p = iso.toScreen(tx, ty);
   const x = Math.round(p.x) + shakeOffset(tx, ty, edge);
   const y = Math.round(p.y);
-  const alpha = stub ? NEAR_WALL_ALPHA : 1;
+  const cutB = !!stub && !ghostTint; // the near battlement before the viewer on the walkway: cut to the stub (docs/53 section 6.2)
   const flags = ghostTint ? GHOST_FLAGS() : vis ? gl.FLAG_NOFOG : 0;
   const wa = edge === "n" ? [tx - 0.4, ty - 0.2] : [tx - 0.2, ty - 0.4];
   const wb = edge === "n" ? [tx + 0.4, ty - 0.2] : [tx - 0.2, ty + 0.4];
@@ -1045,13 +1095,17 @@ function makeBattlement(wall, sheet, edge, tx, ty, vis, stub, ghostTint, stack) 
     kind: "wall",
     wall: { tx, ty, edge }, // check("depth") finds its drawable
     stack,
-    faded: !!stub,
+    faded: false,
+    cut: cutB,
     battlement: name, // the frame drawn (check("battlements") reads it)
     emit() {
       if (!name) return;
       gl.surface(face, lift, DEPTH_ROOM.wall);
       gl.layer(L_FACE);
-      wallPartQuad(sheet, name, x, y, { wa, wb, tint: ghostTint || [1, 1, 1, alpha], flags });
+      if (cutB) {
+        const [a, b] = stubLine(edge, x, y, side === "near" ? 32 : 0, cover.stub);
+        partBelow(sheet, name, x, y, { wa, wb, tint: [1, 1, 1, 1], flags }, a, b);
+      } else wallPartQuad(sheet, name, x, y, { wa, wb, tint: ghostTint || [1, 1, 1, 1], flags });
       gl.layer(null);
     },
   };
@@ -1094,14 +1148,14 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
       const bat = battlements.battlementOf(t.n);
       const stub = bat ? battlementFades(tx, ty, "n") : isNearWall(tx, ty, "n", playerRoom);
-      out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub && !bat ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
+      out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub && !bat && isOpening(t.n) ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
     }
     if (t.w && !map.drawnByRing(t.w) && !(cliffs.cliffWallOf(t.w) && cliffHidden(tx, ty, "w", t.w))) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
       const bat = battlements.battlementOf(t.w);
       const stub = bat ? battlementFades(tx, ty, "w") : isNearWall(tx, ty, "w", playerRoom);
-      out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub && !bat ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
+      out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub && !bat && isOpening(t.w) ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
     }
   }
   fillerDrawables(tiles, visible, playerRoom, out); // where a straight wall meets a ring, its picture run on to the curve (docs/50 section 3)
@@ -1142,10 +1196,11 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
   const y = Math.round(p.y);
   const h = sheet.wallHeight || 96;
   const T = sheet.thickness || WALL_T;
-  // `stub` is a near wall while the player is inside: drawn translucent (the low
-  // stub mode retired with the drawn walls, docs/17).
-  const faded = stub;
-  const alpha = faded ? NEAR_WALL_ALPHA : 1;
+  // `stub` is a near wall of the viewer's room (docs/53 section 6.2): a door or a window drawn whole and faint (`cover.openingAlpha`), any
+  // other drawn wall cut to the stub; a see-through wall (a fence, bars) stands as it is, hiding nothing.
+  const cut = !!stub && !ghostTint && !isOpening(wall) && !!sheet.wall && !map.wallRule(wall.sprite).seeThrough;
+  const faded = !!stub && !cut && isOpening(wall);
+  const alpha = faded ? cover.openingAlpha : 1;
   const flags = ghostTint ? GHOST_FLAGS() : vis ? gl.FLAG_NOFOG : 0;
   const color = sheet.color || "#888";
   // The edge on screen, a to b. The face's light is read along its foot a
@@ -1185,13 +1240,14 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
     kind: "wall",
     wall: { tx, ty, edge }, // check("depth") finds its drawable
     stack, // the storeys' seam (check("storeys") reads it)
-    faded: !!stub, // a near wall drawn translucent (check("storeys") reads it)
+    faded, // a near door or window drawn faint (check("storeys") reads it)
+    cut, // a near wall cut to the stub (docs/53 section 6.2)
     gateLeaf: null, // a castle gate's edge: the portcullis frame drawn at its last emit (check("gates") reads it)
     emit() {
       gl.surface(face, lift, DEPTH_ROOM.wall);
       const tint = ghostTint || [1, 1, 1, alpha];
       if (sheet.wall) {
-        emitDrawnWall(gateSheet || sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts, face, covered, under: under && !cliff, frameName: cliff ? cliff.frameName : gateSheet ? `${edge === "n" ? "north" : "west"}_gate` : null, clip: cliff && !ghostTint ? cliff.clip : null, gate: gateSheet ? sheet : null, note: (name) => { drawable.gateLeaf = name; } });
+        emitDrawnWall(gateSheet || sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, stubH: cut ? cover.stub : 0, ghost: !!ghostTint, cuts, face, covered, under: under && !cliff, frameName: cliff ? cliff.frameName : gateSheet ? `${edge === "n" ? "north" : "west"}_gate` : null, clip: cliff && !ghostTint ? cliff.clip : null, gate: gateSheet ? sheet : null, note: (name) => { drawable.gateLeaf = name; } });
       } else {
       // Swung leaves only for a whole, open, unboarded leaf.
       const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
@@ -1216,6 +1272,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
       if (open && outside > 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
       }
       gl.layer(L_OVER);
+      if (cut) { gl.layer(null); return; } // what hangs on a cut wall's face is cut away with it
       if (wall.hangings && !ghostTint) emitHangings(wall, edge, tx, ty, { tint, flags }); // paintings, right after their segment, before its bracket (their outline a layer under them, over the face)
       if (br) emitBracket(br, bx, by, [tx, ty], alpha, flags, vis, ghostTint, tx + ty);
       gl.layer(null);

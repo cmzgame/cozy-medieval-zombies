@@ -10,13 +10,14 @@ import * as map from "../map.js";
 import { tileKey } from "../visibility.js";
 import { getItem } from "../items.js";
 import * as gl from "../gl.js";
-import { DEPTH_BIAS, DEPTH_ROOM, flameFrame, frameQuad } from "./scene.js";
+import { DEPTH_BIAS, DEPTH_ROOM, flameFrame, frameQuad, probe } from "./scene.js";
 import * as depth from "./depth.js"; // a figure's billboard through its front, an arrow's through its ground point (docs/51)
 import { seenAlpha } from "../sight.js";
-import { sight as sightTuning } from "../tuning.js";
+import { sight as sightTuning, cover as coverTuning, objectHighlight as highlightTuning } from "../tuning.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import { client } from "../client.js"; // the swing's targets, the client's own (#102)
 import { tintOf as poisonTintOf } from "../poison.js"; // a poisoned body's green (docs/47 section 6)
+import { structureCovers } from "./storeys.js"; // what covers a body, for its seen-but-covered shape (docs/53 section 6.2)
 
 export function projectileSheet(id) {
   try {
@@ -199,6 +200,20 @@ export function bodyTint(e, dim = null) {
   return c || undefined;
 }
 
+// The viewer's room, [layer, id], whose near walls are cut to the stub and so cover nothing (structureCovers); kept for the frame.
+let roomKept = { frame: -1, room: null };
+function viewerRoom(me) {
+  if (roomKept.frame !== gl.frameId()) roomKept = { frame: gl.frameId(), room: [me.layer || 0, map.roomAt(Math.round(me.gx), Math.round(me.gy), me.layer || 0)] };
+  return roomKept.room;
+}
+
+// The seen-but-covered shape's colour: Object Highlight's, at the cover rule's opacity (tuning.js `cover.seenAlpha`).
+let xrayRgb = null;
+function xrayColor() {
+  if (!xrayRgb) xrayRgb = gl.rgb(highlightTuning.color, 1);
+  return [xrayRgb[0], xrayRgb[1], xrayRgb[2], coverTuning.seenAlpha];
+}
+
 const SHIELD_FLASH = [1, 0.95, 0.7, 1]; // a blow blocked
 const SHIELD_BROKEN = [1, 0.3, 0.25, 1]; // the guard broken
 
@@ -265,6 +280,9 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
     // Its depth (docs/51 section 3): a billboard through the front of its body, (gx + r, gy + r), over the ground by the figure's bias; its
     // held things, its torch's flame, and what it carries on the same surface, each a step nearer in the order drawn.
     const surf = depth.figure(e.gx, e.gy);
+    // Whose shape shows where it is covered: a player (yours, a friend's), and any body on another storey than yours that you see; the dead
+    // on your own floor behind a tree or a wall stay hidden (the forest gives no laser vision, Michael 2026-10-11).
+    const xray = !drawAll && !!me && !probe.noCover && fade >= sightTuning.seenAt && (e.kind === "player" || (e.layer || 0) !== (me.layer || 0)) && !e.dead && structureCovers(e, viewerRoom(me));
     out.push({
       key: (e.gx + e.gy) * 1000 + (e.dead ? 0 : 2), // where it stands: the depth buffer orders it against the walls and posts (docs/51)
       kind: "entity",
@@ -293,7 +311,16 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
           if (h.tip) frameQuad(getSheet("flame"), `flame_${flameFrame(1)}`, h.x + h.tip[0], h.y + h.tip[1] - 2, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
         };
         for (const h of held) if (!h.near) drawHeld(h);
+        if (xray) gl.holdOrder(true); // its shape at its own depth, one step with it: the pass's reversed test leaves its own pixels alone
         frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: bodyTint(e, dim), flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
+        if (xray) {
+          // Seen but covered (docs/53 section 6.2, mechanism 4): its shape again, a step nearer, in the seen-but-covered pass, which draws
+          // it only where something nearer covers it (a wall it stands behind, a cliff, a plateau).
+          gl.setPass(gl.PASS_XRAY);
+          frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: xrayColor(), flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID }, r.flip);
+          gl.setPass(gl.PASS_STAND);
+          gl.holdOrder(false);
+        }
         for (const h of held) if (h.near) drawHeld(h);
         if (carried) {
           // Each footprint slice at its offset from the anchor, lifted over the head.

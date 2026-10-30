@@ -7899,16 +7899,16 @@ check("round rooms, step 3 (#588): the filler is drawn from the walls alone, one
     const yardRoom = mapMod.getRoom(yard);
     const faded = drawn(yard).filter((d) => d.filler.vx === 6 && d.filler.vy === 2);
     assert(yardRoom && yardRoom.size === 6 && mapMod.roomSealed(yardRoom), `the room north of the ring: ${yardRoom ? yardRoom.size + " tiles, sealed " + mapMod.roomSealed(yardRoom) : "none"}`);
-    assert(faded.length === 1 && faded[0].faded, `the filler with its wall a near wall: ${JSON.stringify(faded.map((d) => d.faded))}`);
-    assert(drawn(0).every((d) => !d.faded), "a filler faded with nobody inside");
+    assert(faded.length === 1 && faded[0].cut, `the filler with its wall a near wall, cut to the stub with it (docs/53 section 6.2): ${JSON.stringify(faded.map((d) => d.cut))}`);
+    assert(drawn(0).every((d) => !d.cut && !d.faded), "a filler cut with nobody inside");
     // Faded where a post stands at the vertex (the review of #589): a room west of the yard (x 0 to 2, y 0 to 1), its east wall at x 2.5 square
     // into the step corner (3, 2), where the wall along the side meets it: from inside, the filler fades and stops at the faded post's face.
     for (const [x, y, e] of [[0, 0, "n"], [1, 0, "n"], [2, 0, "n"], [0, 0, "w"], [0, 1, "w"], [0, 2, "n"], [1, 2, "n"]]) mapMod.buildWall(x, y, e, "wall", "wall_stone");
     mapMod.rebuildRooms();
     const westRoom = mapMod.roomAt(1, 1);
     const atPost = drawn(westRoom).filter((d) => d.filler.vx === 3 && d.filler.vy === 2);
-    assert(mapMod.getRoom(westRoom) && mapMod.getRoom(westRoom).size === 6 && post(3, 2) && atPost.length === 1 && atPost[0].faded && atPost[0].filler.top && atPost[0].filler.cuts.far === 8, `faded at the post: ${JSON.stringify(atPost.map((d) => [d.faded, d.filler.cuts]))}, the room ${mapMod.getRoom(westRoom) && mapMod.getRoom(westRoom).size}`);
-    return `${f.length} fillers (a square wall's and a tangent one's), none at a door point's end; the post only at the tangent corner; faded with its near wall, and cut at a faded post's face; a fence leaves the fill to a stone wall and keeps its own end post`;
+    assert(mapMod.getRoom(westRoom) && mapMod.getRoom(westRoom).size === 6 && post(3, 2) && atPost.length === 1 && atPost[0].cut && atPost[0].filler.top, `faded at the post: ${JSON.stringify(atPost.map((d) => [d.faded, d.filler.cuts]))}, the room ${mapMod.getRoom(westRoom) && mapMod.getRoom(westRoom).size}`);
+    return `${f.length} fillers (a square wall's and a tangent one's), none at a door point's end; the post only at the tangent corner; cut to the stub with its near wall (docs/53 section 6.2); a fence leaves the fill to a stone wall and keeps its own end post`;
   } finally {
     assetsLib.registerSheet("wall_stone", real);
   }

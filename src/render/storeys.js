@@ -2,14 +2,16 @@
 // screen origin lifted that far and every standing vertex that much deeper (gl.setLift), so the depth buffer (docs/51) sorts a lifted
 // floor, its walls, its bodies, and a figure on a stair per pixel with no new sort rule. An upper floor's ground is one picture a chunk
 // (its laid floors, the void clear), drawn as one quad at its height with depth written, so it hides what is under it. The hiding rule
-// (a default): your own layer and every layer below it down to the ground; a layer above yours hidden over the building you stand in
-// (the map's building index) and drawn everywhere else; in a cellar the cellar alone. Client-only: nothing here writes the world.
+// (docs/53 section 6.2, ruled 2026-10-30: hide what is in the way, never fade): your own layer and every layer below it down to the ground;
+// above yours, the ceiling of the room you stand in and everything over it, and any slab of floor that covers your body on screen, are not
+// drawn; a plateau never hides; in a cellar the cellar alone. Client-only: nothing here writes the world.
 
 import * as iso from "../iso.js";
 import * as map from "../map.js";
 import * as gl from "../gl.js";
 import { getSheet } from "../assets.js";
 import * as round from "../round.js"; // a laid floor in a ring's square, drawn inside its curve (docs/49 section 5)
+import { heightOfWall } from "../visibility.js"; // a wall's height, for what covers a body (docs/53 section 6.2)
 
 const PAD = 48; // px round a chunk's floor picture: a floor frame may reach past its diamond
 
@@ -42,49 +44,159 @@ export function layersFor(layer) {
   return [...out].sort((a, b) => a - b);
 }
 
-// The test the hiding rule puts on a tile of a layer above the viewer's: over the building the viewer stands in (by the building index),
-// hidden. A viewer in no authored building hides nothing.
+// ---- the cover rule (docs/53 section 6.2, mechanisms 1 and 2) ----
+// A slab is a 4-connected run of floored tiles on one storey (the void, a hole, a stairwell, and the earth are none), found from the map
+// itself, never authored: a house's upper floor, a wall walk, a balcony, a hill's plateau (a slab with a cliff under its edge or a cliff top's
+// floor). Kept per storey until the world changes.
+const slabsKept = { key: "", byLayer: new Map() };
+const keyOf = (x, y) => (x + 32768) * 65536 + (y + 32768);
+const isPlateauFloor = (id) => /^floor_cliff/.test(id || "");
+function cliffUnder(x, y, L) {
+  const cliff = (w) => !!w && map.wallRule(w.sprite).cliff;
+  const t = map.peekTile(x, y, L - 1);
+  const s = map.peekTile(x, y + 1, L - 1);
+  const e = map.peekTile(x + 1, y, L - 1);
+  return !!t && (cliff(t.n) || cliff(t.w)) || !!s && cliff(s.n) || !!e && cliff(e.w);
+}
+export function slabsOn(L) {
+  const key = `${map.worldVersion}:${map.chunkCount()}`;
+  if (slabsKept.key !== key) {
+    slabsKept.key = key;
+    slabsKept.byLayer.clear();
+  }
+  let got = slabsKept.byLayer.get(L);
+  if (got) return got;
+  got = { list: [], of: new Map() };
+  const floored = (x, y) => {
+    const t = map.peekTile(x, y, L);
+    return !!t && !map.isEngineFloor(t.floor);
+  };
+  for (const c of map.loadedChunks()) {
+    if (c.layer !== L) continue;
+    for (let i = 0; i < c.tiles.length; i++) {
+      const x = c.cx * map.CHUNK + (i % map.CHUNK);
+      const y = c.cy * map.CHUNK + Math.floor(i / map.CHUNK);
+      if (got.of.has(keyOf(x, y)) || !floored(x, y)) continue;
+      const slab = { tiles: [], keys: new Set(), rect: null, plateau: false, layer: L };
+      const todo = [[x, y]];
+      got.of.set(keyOf(x, y), slab);
+      let x0 = x;
+      let y0 = y;
+      let x1 = x;
+      let y1 = y;
+      while (todo.length) {
+        const [a, b] = todo.pop();
+        slab.tiles.push([a, b]);
+        slab.keys.add(keyOf(a, b));
+        if (a < x0) x0 = a;
+        if (a > x1) x1 = a;
+        if (b < y0) y0 = b;
+        if (b > y1) y1 = b;
+        if (!slab.plateau && (isPlateauFloor(map.peekTile(a, b, L).floor) || cliffUnder(a, b, L))) slab.plateau = true;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const k = keyOf(a + dx, b + dy);
+          if (got.of.has(k) || !floored(a + dx, b + dy)) continue;
+          got.of.set(k, slab);
+          todo.push([a + dx, b + dy]);
+        }
+      }
+      slab.rect = [x0, y0, x1 - x0 + 1, y1 - y0 + 1];
+      got.list.push(slab);
+    }
+  }
+  slabsKept.byLayer.set(L, got);
+  return got;
+}
+
+// The tiles of the room (x, y) of layer L is in, or none outdoors: the ceiling of a room is the floored tiles of the storey over these.
+const roomKept = { key: "", tiles: null };
+function roomTiles(x, y, L) {
+  const id = map.roomAt(x, y, L);
+  if (!(id > 0)) return null;
+  const key = `${map.worldVersion}:${map.chunkCount()}:${L}:${id}`;
+  if (roomKept.key === key) return roomKept.tiles;
+  const out = [];
+  for (const c of map.loadedChunks()) {
+    if (c.layer !== L) continue;
+    for (let i = 0; i < c.tiles.length; i++) if (c.tiles[i].room === id) out.push([c.cx * map.CHUNK + (i % map.CHUNK), c.cy * map.CHUNK + Math.floor(i / map.CHUNK)]);
+  }
+  roomKept.key = key;
+  roomKept.tiles = out;
+  return out;
+}
+
+// What the hiding rule hides of every storey over the viewer's, as a set of tile keys a storey: (1) the ceiling of the room the viewer stands
+// in and every storey over it, (2) every slab that covers the viewer's body on screen (the box test, `storeyCovers`, tile by tile), a plateau
+// never; each with the row and column past its south and east sides, whose tiles hold those sides' walls on their n and w edges. `sig` names
+// what is hidden (a floor's picture with its hidden tiles cleared is kept for it).
+const hideKept = { key: "", hide: null };
 export function hiderFor(viewer) {
   const L = (viewer && viewer.layer) || 0;
-  const b = viewer ? map.buildingAt(Math.round(viewer.gx), Math.round(viewer.gy), L) : null;
-  const hide = (x, y, layer) => {
-    if (layer <= L || !b) return false;
-    const r = b.rects[layer];
-    // Its footprint and the row and column past its south and east sides, whose tiles hold those sides' walls on their n and w edges.
-    return !!r && x >= r[0] && y >= r[1] && x <= r[0] + r[2] && y <= r[1] + r[3];
-  };
-  hide.sig = b ? `${b.id}:${L}` : ""; // what a floor's picture with its hidden tiles cleared is kept for
+  if (!viewer || L < 0) {
+    const none = () => false;
+    none.sig = "";
+    return none;
+  }
+  const vx = Math.round(viewer.gx);
+  const vy = Math.round(viewer.gy);
+  const key = `${map.worldVersion}:${map.chunkCount()}:${L}:${Math.round(viewer.gx * 8)},${Math.round(viewer.gy * 8)},${Math.round(viewer.rise || 0)}`;
+  if (hideKept.key === key) return hideKept.hide;
+  const byLayer = new Map(); // layer -> Set of keys
+  const sigs = [];
+  const mark = (set, x, y) => { set.add(keyOf(x, y)); set.add(keyOf(x + 1, y)); set.add(keyOf(x, y + 1)); set.add(keyOf(x + 1, y + 1)); };
+  const setOf = (k) => { let s = byLayer.get(k); if (!s) byLayer.set(k, (s = new Set())); return s; };
+  const above = layersFor(L).filter((k) => k > L);
+  // (1) The ceiling: the room's tiles with a floor over them, and the whole column over each.
+  const room = roomTiles(vx, vy, L);
+  if (room && above.length) {
+    const ceil = room.filter(([x, y]) => { const t = map.peekTile(x, y, L + 1); return !!t && !map.isEngineFloor(t.floor); });
+    if (ceil.length) {
+      for (const k of above) { const set = setOf(k); for (const [x, y] of ceil) mark(set, x, y); }
+      sigs.push(`room${map.roomAt(vx, vy, L)}`);
+    }
+  }
+  // (2) The slabs that cover the body: a slab whose box does not cover it is passed by whole; one that does is asked tile by tile.
+  for (const k of above) {
+    for (const slab of slabsOn(k).list) {
+      if (slab.plateau || !storeyCovers(viewer, slab.rect, k)) continue;
+      if (!slab.tiles.some(([x, y]) => storeyCovers(viewer, [x, y, 1, 1], k))) continue;
+      const set = setOf(k);
+      for (const [x, y] of slab.tiles) mark(set, x, y);
+      sigs.push(`${k}:${slab.rect.join(",")}`);
+    }
+  }
+  const hide = (x, y, layer) => layer > L && !!byLayer.get(layer)?.has(keyOf(x, y));
+  hide.sig = sigs.join(";");
+  hide.layers = new Set(byLayer.keys());
+  hideKept.key = key;
+  hideKept.hide = hide;
   return hide;
 }
 
-// ---- the fade (docs/49 section 6: "a storey you stand behind fades", a default Michael ordered built, 2026-10-27) ----
-// An upper storey of a building between the viewer and the camera, covering the viewer's body on screen, is drawn at the near-wall
-// fade's alpha (render/scene.js, gl.js PASS_FADE), so a player behind a two-storey house is not lost. "Covering" is the body's screen
-// rectangle against the storey's: the storey is the box over its footprint (to the walls' faces) from its floor to its walls' tops (and
-// the caps and posts over them); a body's point is covered when the line from it toward the camera passes through that box in front of
-// the body's own front, and the body is covered when any of a grid of points over its rectangle is. On the screen (origin 0) a grid
-// point (X, Y) at height Z is at x = (X - Y) HW, y = (X + Y) HH - Z, so the points drawn at one screen point are X + Y = m, X - Y = s,
+// ---- the box test (docs/49 section 6; docs/53 section 6.2 mechanism 2 reads it slab by slab) ----
+// "Covering" is the body's screen rectangle against the storey's: the storey is the box over its footprint (to the walls' faces) from its floor
+// to its walls' tops (and the caps and posts over them); a body's point is covered when the line from it toward the camera passes through that
+// box in front of the body's own front, and the body is covered when any of a grid of points over its rectangle is. On the screen (origin 0) a
+// grid point (X, Y) at height Z is at x = (X - Y) HW, y = (X + Y) HH - Z, so the points drawn at one screen point are X + Y = m, X - Y = s,
 // Z = m HH - y for every m, nearer the camera the larger m: the box's three slabs each give a range of m, and the body's front is
-// m = gx + gy + 2 r (render/depth.js figure). Each client its own player's; nothing on the wire. A building the viewer stands in never
-// fades (its storeys above are hidden), nor a storey at or under the viewer's own layer; a storey a player builds outside the index is
-// left as it is until it has tiles of its own to be read by (docs/49 section 5).
+// m = gx + gy + 2 r (render/depth.js figure). Each client its own player's; nothing on the wire.
 const FADE_HALF = 8; // px either side of a body's middle
+const FADE_COLS = [-FADE_HALF, 0, FADE_HALF];
+const BODY_COLS = [-12, -6, 0, 6, 12]; // the whole figure's width, for a thin wall in front of it (structureCovers)
 const FADE_ROWS = [4, 18, 32, 46]; // px over its feet: the legs to the crown (the head's centre is at 38, figure/rig.js)
 const FADE_EDGE = 0.15; // tiles a wall's face stands past its footprint's edge line (half the thickest wall)
 const FADE_OVER = 12; // px the caps and the posts' tops reach over the storey's 96
 const FADE_FRONT = 0.6; // a body's front, gx + gy + 2 r (render/depth.js figure)
 export function storeyCovers(body, r, L) {
   if (!body || !r) return false;
+  return boxCovers(body, r[0] - 0.5 - FADE_EDGE, r[0] + r[2] - 0.5 + FADE_EDGE, r[1] - 0.5 - FADE_EDGE, r[1] + r[3] - 0.5 + FADE_EDGE, L * map.STOREY, (L + 1) * map.STOREY + FADE_OVER);
+}
+// Whether the box [X0, X1] by [Y0, Y1] from height Z0 to Z1 covers the body on screen (the grid of points over its rectangle, in front of it).
+export function boxCovers(body, X0, X1, Y0, Y1, Z0, Z1, cols = FADE_COLS) {
   const m0 = body.gx + body.gy;
   const s0 = body.gx - body.gy;
   const y0 = m0 * iso.HH - liftOf(body); // the feet on the screen, the origin 0
-  const X0 = r[0] - 0.5 - FADE_EDGE;
-  const X1 = r[0] + r[2] - 0.5 + FADE_EDGE;
-  const Y0 = r[1] - 0.5 - FADE_EDGE;
-  const Y1 = r[1] + r[3] - 0.5 + FADE_EDGE;
-  const Z0 = L * map.STOREY;
-  const Z1 = (L + 1) * map.STOREY + FADE_OVER;
-  for (const dx of [-FADE_HALF, 0, FADE_HALF]) {
+  for (const dx of cols) {
     const s = s0 + dx / iso.HW;
     for (const z of FADE_ROWS) {
       const y = y0 - z;
@@ -95,26 +207,56 @@ export function storeyCovers(body, r, L) {
   }
   return false;
 }
-// The test the fade puts on a tile of a layer: on a storey that covers `viewer`, its footprint and the row and column past its south and
-// east sides (their walls), as the hiding rule's. `sig` names what fades (a floor's picture is kept for it), `any` whether anything does.
-export function faderFor(viewer) {
+// Whether something built covers the body on screen (docs/53 section 6.2, mechanism 4: what is seen but covered shows its shape): a wall
+// standing in front of it, on its own storey or the one under it (a cliff's face), or a plateau's edge, a few tiles toward the camera; never a
+// crop, a prop, or a tree, nor the near walls of the viewer's own room (`room`, [layer, id]), which are cut to the stub. A cheap test on the
+// grid; the pass itself draws the shape only where it is covered.
+export function structureCovers(body, room = null) {
+  const L = (body && body.layer) || 0;
+  const bx = Math.round(body.gx);
+  const by = Math.round(body.gy);
+  const E = FADE_EDGE;
+  const nearOfRoom = (k, x, y, edge) => {
+    if (!room || room[0] !== k || !(room[1] > 0)) return false;
+    const far = edge === "n" ? [x, y - 1] : [x - 1, y];
+    return map.roomAt(far[0], far[1], k) === room[1] && map.roomAt(x, y, k) !== room[1];
+  };
+  for (const k of [L, L - 1]) {
+    const Z0 = k * map.STOREY;
+    for (let y = by - 1; y <= by + 6; y++) {
+      for (let x = bx - 1; x <= bx + 6; x++) {
+        const t = map.peekTile(x, y, k);
+        if (!t) continue;
+        for (const edge of ["n", "w"]) {
+          const w = t[edge];
+          if (!w || map.wallRule(w.sprite).seeThrough || nearOfRoom(k, x, y, edge)) continue;
+          const Z1 = Z0 + heightOfWall(w) + FADE_OVER;
+          const hit = edge === "n" ? boxCovers(body, x - 0.5 - E, x + 0.5 + E, y - 0.5 - E, y - 0.5 + E, Z0, Z1, BODY_COLS) : boxCovers(body, x - 0.5 - E, x - 0.5 + E, y - 0.5 - E, y + 0.5 + E, Z0, Z1, BODY_COLS); // to the posts at its ends
+          if (hit) return true;
+        }
+      }
+    }
+  }
+  for (const k of [L + 1, L]) {
+    if (k <= 0) continue;
+    for (const slab of slabsOn(k).list) {
+      if (!slab.plateau) continue;
+      const [rx, ry, rw, rh] = slab.rect;
+      if (rx > bx + 7 || ry > by + 7 || rx + rw < bx - 1 || ry + rh < by - 1) continue;
+      for (const [x, y] of slab.tiles) if (x >= bx - 1 && y >= by - 1 && x <= bx + 7 && y <= by + 7 && boxCovers(body, x - 0.5, x + 0.5, y - 0.5, y + 0.5, (k - 1) * map.STOREY, k * map.STOREY + 4, BODY_COLS)) return true;
+    }
+  }
+  return false;
+}
+
+// The storey fade is retired (docs/53 section 6.2: "never fade"): a covering storey is hidden by `hiderFor`. Kept as the test that fades
+// nothing, for the scene's one call.
+export function faderFor() {
   const none = () => false;
   none.sig = "";
   none.any = false;
-  const VL = (viewer && viewer.layer) || 0;
-  if (!viewer || VL < 0) return none;
-  const own = map.buildingAt(Math.round(viewer.gx), Math.round(viewer.gy), VL);
-  const hits = [];
-  for (const b of map.buildings()) {
-    if (b === own) continue;
-    for (const L of b.layers) if (L > VL && L > 0 && storeyCovers(viewer, b.rects[L], L)) hits.push({ b, L, r: b.rects[L] });
-  }
-  if (!hits.length) return none;
-  const fade = (x, y, layer) => hits.some((h) => h.L === layer && x >= h.r[0] && y >= h.r[1] && x <= h.r[0] + h.r[2] && y <= h.r[1] + h.r[3]);
-  fade.sig = hits.map((h) => `${h.b.id}:${h.L}`).join(",");
-  fade.any = true;
-  fade.layers = new Set(hits.map((h) => h.L));
-  return fade;
+  none.layers = new Set();
+  return none;
 }
 
 // Whether `viewer` sees `body` at all by the hiding rule (its bars, bubbles, and name with it): a body on a storey hidden over the viewer's
