@@ -1685,6 +1685,39 @@
    "note": "docs/47 section 2 (#481): an unfired vial fired in any oven, no kiln (docs/39 sections 3 and 5.7)"
   },
   {
+   "id": "unfired_jar",
+   "station": "workbench",
+   "out": {
+    "id": "unfired_jar",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "clay",
+     "count": 1
+    }
+   ],
+   "seconds": 4,
+   "note": "docs/02 (2026-10-26, Honey goes into a clay jar; #500): one clay shaped into one unfired jar, bigger than a vial's two-to-one (Crafting 1, the clay's Mining 3, recorded, open to all until the skills)"
+  },
+  {
+   "id": "clay_jar",
+   "station": "oven",
+   "out": {
+    "id": "clay_jar",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "unfired_jar",
+     "count": 1
+    }
+   ],
+   "seconds": 10,
+   "fire": true,
+   "note": "docs/02 (2026-10-26, Honey goes into a clay jar; #500): an unfired jar fired in any oven, no kiln, as a vial (docs/39 sections 3 and 5.7)"
+  },
+  {
    "id": "cauldron",
    "station": "anvil",
    "out": {

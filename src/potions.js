@@ -107,8 +107,9 @@ function heldAt(player, entry, place) {
 }
 
 // Takes the potion out of its place when it was the last of its stack, and gives back a function that puts the vial there, or null when the
-// place cannot take it. `place` is { kind: "bag", bag } | { kind: "belt", index } | { kind: "hand", slot }.
-function vacate(player, entry, place) {
+// place cannot take it. `place` is { kind: "bag", bag } | { kind: "belt", index } | { kind: "hand", slot }. Exported for hives.js: a jar
+// fills exactly as a vial empties (docs/02, 2026-10-26, Honey goes into a clay jar).
+export function vacate(player, entry, place) {
   if (place.kind === "belt") {
     const belt = beltOf(player);
     if (!belt || belt[place.index] !== entry) return null;

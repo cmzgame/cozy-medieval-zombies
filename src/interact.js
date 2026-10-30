@@ -1717,11 +1717,15 @@ function toggleTorch(player) {
 }
 
 // Eat one of a food entry (the bag's menu, the belt's menu and its key all come here; a guest's reach it as the host's command). Eaten
-// full or not (Michael, 2026-10-18); true when one was eaten.
+// full or not (Michael, 2026-10-18); true when one was eaten. A food whose definition names a `jar` (honey's clay jar, docs/02, 2026-10-26,
+// Honey goes into a clay jar) leaves it behind in the same place instead of being taken away, as a drunk potion leaves its vial.
 function eatOne(player, entry, def, take) {
   if (!eat(player, def)) return false;
   entry.count -= 1;
-  if (entry.count <= 0) take();
+  if (entry.count <= 0) {
+    if (def.jar) { entry.id = def.jar; entry.count = 1; }
+    else take();
+  }
   return true;
 }
 

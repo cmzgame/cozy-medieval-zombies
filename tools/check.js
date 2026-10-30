@@ -810,6 +810,31 @@ check("chunk edge (#341): an authored prop across an edge comes back whole from 
   assert(!mapMod.propById(P.id) && !mapMod.tileAt(other[0], other[1]).prop, `the lifted ${P.sprite} came back on the neighbour as a ghost`);
   return `${P.sprite} ${P.id} at ${P.tile} across ${anchorKey} and ${otherKey} (${crossing.length} authored props cross an edge)`;
 });
+check("chunk edge (#341): a prop lifted by a neighbour that alone is grown leaves no ghost when its own, still-ungrown anchor chunk grows (#582)", () => {
+  const json = read("data/maps/valley.json");
+  const key = (x, y) => `${Math.floor(x / C341)},${Math.floor(y / C341)}`;
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const sp = gameMod.state.info.spawn;
+  const crossing = mapMod.allProps().filter((p) => p.tiles && new Set(p.tiles.map(([x, y]) => key(x, y))).size > 1 && !p.rugItem && Math.max(Math.abs(p.tile[0] - sp[0]), Math.abs(p.tile[1] - sp[1])) > 6 * C341);
+  assert(crossing.length, "no authored prop beyond the spawn's ring crosses a chunk's edge in the valley");
+  const P = crossing[0];
+  const anchorKey = key(P.tile[0], P.tile[1]);
+  const other = P.tiles.find(([x, y]) => key(x, y) !== anchorKey);
+  const otherKey = key(other[0], other[1]);
+  // A fresh world, the neighbour's chunk grown alone: the prop is already in the registry (every authored prop is,
+  // from load), but its own anchor chunk has never been grown when it is lifted.
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const [ocx, ocy] = otherKey.split(",").map(Number);
+  mapMod.getChunk(ocx, ocy, true);
+  assert(!mapMod.peekTile(P.tile[0], P.tile[1]), `the anchor ${anchorKey} is already grown by the neighbour's own growth`);
+  mapMod.removeProp(mapMod.propById(P.id));
+  assert(!mapMod.propById(P.id), "the lifted prop is still in the registry");
+  // Grown after the lift: the anchor's own authored tile must not stand the prop again as a ghost (#582).
+  const [acx, acy] = anchorKey.split(",").map(Number);
+  mapMod.getChunk(acx, acy, true);
+  assert(!mapMod.tileAt(P.tile[0], P.tile[1]).prop, `the lifted ${P.sprite} stood again on its own ungrown anchor once it grew`);
+  return `${P.sprite} ${P.id} lifted with its anchor ${anchorKey} ungrown; grown after, its tile is clear`;
+});
 check("chunk edge (#341): two players lift one chest: the second lift meets it gone and gets nothing, with a word", () => {
   gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
   const a = gameMod.state.player;
@@ -2277,7 +2302,7 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
   const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
   const KIND = { sage: "Herb", nettle: "Herb", feverfew: "Herb", yarrow: "Herb", mana_herb: "Herb", nightshade: "Herb", wolfsbane: "Herb", grave_moss: "Herb", woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Forage", clay: "Material", salt: "Material" };
   // What a gathered thing goes into once its use is built (the potions and the vials of docs/47, #481), said before where it is gathered.
-  const GOES = { sage: "Goes into: healing potion.", yarrow: "Goes into: healing potion.", nettle: "Goes into: stamina potion.", mana_herb: "Goes into: mana potion.", mushroom: "Goes into: mana potion.", nightshade: "Goes into: poison.", wolfsbane: "Goes into: strong poison.", grave_moss: "Goes into: poison, strong poison.", clay: "Goes into: unfired vial." };
+  const GOES = { sage: "Goes into: healing potion.", yarrow: "Goes into: healing potion.", nettle: "Goes into: stamina potion.", mana_herb: "Goes into: mana potion.", mushroom: "Goes into: mana potion.", nightshade: "Goes into: poison.", wolfsbane: "Goes into: strong poison.", grave_moss: "Goes into: poison, strong poison.", clay: "Goes into: unfired vial, unfired jar." };
   for (const [id, kind] of Object.entries(KIND)) {
     const c = itemInfoMod.cardFor(itemsMod.makeEntry(id));
     const lines = c.lines.map((l) => l.map((g) => g.t).join(""));
@@ -2773,7 +2798,7 @@ check("sight-pull: a blow it lives through calls the dead near it that see it, o
 // read in the skin, butcher, milk, and shear lines this way.
 check("item names counted: mass nouns, pairs, and +s (the butcher's and the shears' words)", () => {
   const cn = itemsMod.countName;
-  const want = [["venison_raw", 3, "3 raw venison"], ["bacon", 2, "2 bacon"], ["lard", 1, "some lard"], ["wool", 2, "2 wool"], ["feather", 4, "4 feathers"], ["hide", 1, "a hide"], ["egg", 1, "an egg"], ["milk", 1, "a jug of milk"], ["milk", 2, "2 jugs of milk"], ["bread", 2, "2 loaves of bread"], ["honey", 3, "3 pots of honey"], ["charcoal", 1, "some charcoal"], ["charcoal", 6, "6 charcoal"], ["shears", 1, "shears"], ["shears", 2, "2 shears"], ["gloves", 1, "work gloves"], ["hammer", 1, "a smith's hammer"]];
+  const want = [["venison_raw", 3, "3 raw venison"], ["bacon", 2, "2 bacon"], ["lard", 1, "some lard"], ["wool", 2, "2 wool"], ["feather", 4, "4 feathers"], ["hide", 1, "a hide"], ["egg", 1, "an egg"], ["milk", 1, "a jug of milk"], ["milk", 2, "2 jugs of milk"], ["bread", 2, "2 loaves of bread"], ["honey", 3, "3 jars of honey"], ["charcoal", 1, "some charcoal"], ["charcoal", 6, "6 charcoal"], ["shears", 1, "shears"], ["shears", 2, "2 shears"], ["gloves", 1, "work gloves"], ["hammer", 1, "a smith's hammer"]];
   const bad = want.filter(([id, n, s]) => cn(id, n) !== s).map(([id, n, s]) => `${id} x${n}: "${cn(id, n)}", not "${s}"`);
   const animals = read("data/animals.json").species;
   for (const [sp, d] of Object.entries(animals)) {
@@ -4301,6 +4326,109 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     const back = saved.characters.players.find((p) => p.id === me.id);
     assert(back && back.potionAt === 123.456 && back.buffs && back.buffs.stamina.left === 12.3, `the save: ${JSON.stringify(back && { potionAt: back.potionAt, buffs: back.buffs })}`);
     return `the levers; the vials 1 clay to 2, fired at an oven; the witch's cauldron at ${witch.tile} (no carry, no village station, cooks nothing, its 5 rows open); a brew over a lit fire only, its draught from clean skins (refused "${stationsMod.NO_WATER}"), 20 s; drunk by 5 slots' keys, the slot's menu, double-clicks, the bag's Drink, a guest's two commands; 10 s between; the vial back, into the bag, at the feet; the buff doubled and gone in 30 s; mana against #480's bar; the poisons' line; your own cauldron made, set down by the host and a guest, picked up out and empty; the cards; the save and the sync part`;
+  } finally {
+    promptMod.setMessageSink(null);
+  }
+});
+
+// Honey in clay jars (docs/02, 2026-10-26, Honey goes into a clay jar; #500): taking honey needs an empty clay jar carried, refused "You
+// need a clay jar to take honey." without one; it fills the jar in its own place exactly as a drunk potion empties its vial there
+// (potions.placeOf, potions.vacate); the jar is made like a vial (one clay to one unfired jar at the workbench, bigger than the vial's
+// two-to-one; fired in an oven), stacks 10; eating the Jar of honey, or spending it in a recipe (pemmican's binder, the stamina potion's
+// secondary), leaves the empty jar behind the same way (interact.js's `eatOne`, stations.js's `take`, both off the filled item's own `jar`
+// field); the cottage's chest starts with two.
+const hivesMod = await import("../src/hives.js");
+check("honey: a clay jar made like a vial, taking honey needing one carried with its line, eating and a recipe both leaving the jar, the cottage's two", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false, survival: true, villageStations: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  try {
+    const mk = (id, n = 1, props = {}) => itemsMod.makeEntry(id, n, props);
+    const bag = inventoryMod.bagOf(me);
+    const clear = () => { bag.items.length = 0; const b = inventoryMod.beltOf(me); if (b) b.fill(null); me.hands.main = null; me.hands.off = null; };
+    const give = (id, n = 1, props = {}) => { assert(gridMod.add(bag, id, n, props) === n, `${id} did not fit the bag`); return bag.items.filter((e) => e.id === id).pop(); };
+    const count = (id) => inventoryMod.countAll(me, id);
+    // Made like a vial: one clay to one unfired jar (bigger than the vial's two), fired in an oven; stacks 10; the filled item's own `jar`.
+    const uj = stationsMod.recipe("unfired_jar");
+    const cj = stationsMod.recipe("clay_jar");
+    assert(uj.station === "workbench" && uj.in[0].id === "clay" && uj.in[0].count === 1 && uj.out.count === 1 && cj.station === "oven" && cj.fire && cj.in[0].id === "unfired_jar" && cj.out.id === "clay_jar", `${JSON.stringify(uj)} ${JSON.stringify(cj)}`);
+    assert(itemsMod.getItem("clay_jar").stack === 10 && itemsMod.getItem("unfired_jar").stack === 10, "the jars stack 10");
+    assert(itemsMod.getItem("honey").jar === "clay_jar" && itemsMod.getItem("honey").name === "Jar of honey", `the filled item: ${JSON.stringify(itemsMod.getItem("honey"))}`);
+    // A hive, stood beside.
+    const hive = mapMod.allProps().find((p) => hivesMod.isHive(p));
+    assert(hive, "no hive in the valley");
+    mapMod.ensureAround(hive.tile[0], hive.tile[1], 2);
+    const standAt = [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1]].map(([dx, dy]) => [hive.tile[0] + dx, hive.tile[1] + dy]).find(([x, y]) => mapMod.isWalkableTile(x, y) && !mapMod.tileAt(x, y).prop);
+    me.gx = standAt[0];
+    me.gy = standAt[1];
+    mapMod.ensureAround(me.gx, me.gy, 2);
+    // Refused with no jar, the exact line (Michael: "It should also refuse to take honey if no container.").
+    clear();
+    hive.honeyAt = null;
+    const r0 = verbsMod.run("honey", worldMod.world, me, { prop: hive.id });
+    assert(!r0.ok && r0.reason === hivesMod.NEED_JAR && hivesMod.NEED_JAR === "You need a clay jar to take honey.", `no jar: ${JSON.stringify(r0)}`);
+    const atChest = hivesMod.propActions(hive, me, (a) => a, worldMod.world)[0];
+    assert(atChest.label === "Take honey" && atChest.enabled !== false, `the menu's entry while a jar is missing: ${JSON.stringify(atChest)}`);
+    said.length = 0;
+    atChest.perform();
+    assert(said[said.length - 1] === hivesMod.NEED_JAR, `the menu's own refusal: ${said[said.length - 1]}`);
+    // Carried, it fills: one jar used, a Jar of honey in the jar's own place; the hive's next day moved on.
+    const jar = give("clay_jar", 1);
+    const [jx, jy] = [jar.x, jar.y];
+    const before = clock.getElapsed();
+    const r1 = verbsMod.run("honey", worldMod.world, me, { prop: hive.id });
+    assert(r1.ok && r1.message === "You take a jar of honey from the hive.", `with a jar: ${JSON.stringify(r1)}`);
+    const honeyEntry = bag.items.find((e) => e.id === "honey");
+    assert(honeyEntry && honeyEntry.x === jx && honeyEntry.y === jy && count("clay_jar") === 0 && count("honey") === 1, `the jar filled in its own cell: ${JSON.stringify(honeyEntry)}`);
+    assert(Math.abs(hive.honeyAt - (before + tuningMod.work.honey.days * clock.DAY_LENGTH)) < 1e-6, `the hive's next day: ${hive.honeyAt}`);
+    // Refused again with the jar now full of honey and none left empty.
+    hive.honeyAt = null; // as if three days had passed, to isolate the jar check from the day check
+    const r2 = verbsMod.run("honey", worldMod.world, me, { prop: hive.id });
+    assert(!r2.ok && r2.reason === hivesMod.NEED_JAR, `again with no empty jar: ${JSON.stringify(r2)}`);
+    // Eating it leaves the empty jar behind, in the honey's own cell, as drinking a potion leaves its vial.
+    me.hunger = 50;
+    const eat = interactMod.itemMenu(me, honeyEntry, bag, null).find((m) => m.label === "Eat");
+    assert(eat, "the Jar of honey has no Eat");
+    eat.onSelect();
+    const backJar = bag.items.find((e) => e.id === "clay_jar");
+    assert(backJar && backJar.x === jx && backJar.y === jy && !bag.items.some((e) => e.id === "honey") && me.hunger === 70, `eating left the jar behind: ${JSON.stringify(backJar)}, hunger ${me.hunger}`);
+    // Spent in a recipe (the stamina potion's secondary) leaves the jar too, at the witch's cauldron.
+    clear();
+    const witch = mapMod.propById("cauldron_witch");
+    assert(witch, "no witch's cauldron");
+    mapMod.ensureAround(witch.tile[0], witch.tile[1], 2);
+    const standByWitch = [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1]].map(([dx, dy]) => [witch.tile[0] + dx, witch.tile[1] + dy]).find(([x, y]) => mapMod.isWalkableTile(x, y) && !mapMod.tileAt(x, y).prop);
+    me.gx = standByWitch[0];
+    me.gy = standByWitch[1];
+    give("nettle", 2);
+    give("honey", 1);
+    give("clay_vial", 1);
+    give("waterskin", 1, { fill: 100, clean: true });
+    give("log", 2);
+    give("tinderbox", 1);
+    const light = interactMod.actionsForTarget({ kind: "prop", id: witch.id }, me).find((a) => /^Light the cauldron/.test(a.label));
+    interactMod.performByLabel(me, { kind: "prop", id: witch.id }, light.label);
+    assert(witch.fire.lit, "the witch's cauldron was not lit");
+    const stam = stationsMod.recipe("stamina_potion");
+    assert(verbsMod.run("craft", worldMod.world, me, { prop: witch.id }, { recipe: "stamina_potion" }).ok, "the stamina potion would not start");
+    assert(count("honey") === 0 && count("clay_jar") === 1, `the honey spent, its jar back at once: honey ${count("honey")}, jars ${count("clay_jar")}`);
+    for (let i = 0; i < 60 * (stam.seconds + 1); i++) stationsMod.update(1 / 60);
+    const brewed = witch.output && witch.output.items.find((e) => e.id === "stamina_potion");
+    assert(brewed, `no stamina potion in the output: ${JSON.stringify(witch.output && witch.output.items)}`);
+    assert(count("clay_jar") === 1, `the jar stayed through the brew: ${count("clay_jar")}`);
+    // The cottage's chest starts with two.
+    const homeChest = mapMod.allProps().find((p) => p.container && p.container.loot === "home_chest");
+    assert(homeChest, "no cottage chest with the home_chest table");
+    const hbag = interactMod.propBag(homeChest);
+    if (!homeChest.searched) {
+      homeChest.searched = true;
+      if (!hbag.items.length) gridMod.fill(hbag, itemsMod.rollLoot(homeChest.container.loot));
+    }
+    const jars = hbag.items.filter((e) => e.id === "clay_jar").reduce((n, e) => n + (e.count || 1), 0);
+    assert(jars === 2, `the cottage's chest: ${jars} clay jars (${JSON.stringify(hbag.items.map((e) => [e.id, e.count]))})`);
+    return "the jar made like a vial, 1 clay to 1, stacking 10; taking honey refused \"" + hivesMod.NEED_JAR + "\" with no jar, and filled in the jar's own cell with one carried; eating it and spending it in the stamina potion both leave the empty jar behind; the cottage's chest holds two";
   } finally {
     promptMod.setMessageSink(null);
   }
