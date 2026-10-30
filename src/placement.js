@@ -1271,6 +1271,7 @@ export function takeApartProblem(player, t) {
     if (held) return held;
   }
   if (t.type === "wall" && map.wallRule(t.wall.sprite).cliff && !rules.freeBuilding) return "Cliffs come apart only in Free building"; // a cliff is scenery but for the testing of it (art round 10)
+  if (t.type === "wall" && t.wall.gate && !rules.freeBuilding) return "Gates come apart only in Free building"; // built only with it, so taken apart only with it (docs/53 step 6)
   const tool = partsOf(t).tool;
   return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);
 }

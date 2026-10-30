@@ -6493,14 +6493,15 @@ check("castle gates: built over plain stone edges by the command a guest sends (
     placementImport.performPlacement(me, { kind: "build", what: "gate_stone_2", tx: x + 1, ty: y + 2, edge: "n" });
     assert(!me.action, "a gate is a timed build");
     const g2 = mapMod.gateMembers(x + 1, y + 2, "n", 0);
-    assert(g2.length === 2 && g2.every((m, k) => m.wall.kind === "door" && m.wall.gate.i === k && m.wall.sprite === "wall_stone_gate_2" && !m.wall.open && m.wall.under === "wall_stone" && m.wall.built && m.wall.free && m.wall.hp === Infinity), "the 2-wide gate");
+    assert(g2.length === 2 && g2.every((m, k) => m.wall.kind === "door" && m.wall.gate.i === k && m.wall.sprite === "wall_stone_gate_2" && !m.wall.open && m.wall.under === "wall_stone" && m.wall.built && m.wall.free && m.wall.hp === 300), "the 2-wide gate (300 an edge, docs/53 step 6)");
     // What a door is to a body and a path, and what a gate is besides.
     const w = g2[0].wall;
     assert(mapMod.blocksMove(w) && !mapMod.wayOpen(w) && !mapMod.canStep(x + 1, y + 2, x + 1, y + 1), "a shut gate stops a body and a path");
     assert(mapMod.transmission(w) === 1 && !mapMod.blocksSight(w) && lineOfSight(x + 1, y + 3, x + 1, y), "sight and light pass a shut gate");
     assert(mapMod.blocksReach(w) && !lineOfReachMod(x + 1, y + 3, x + 1, y) && !mapMod.blocksReach({ kind: "wall", sprite: "wall_fence", boards: { near: [], far: [] } }), "a blow and a bite do not");
     assert(archeryMod.wallStops(w, 30) === false && archeryMod.wallStops(w, 60) === false && archeryMod.wallStops(w, 85) === true, "a shot passes under the crown, shut");
-    assert(!mapMod.needsBreaking(w) && mapMod.damageOpening(w, 1, 999) === null && w.hp === Infinity && !w.broken, "the dead break nothing of it");
+    assert(mapMod.needsBreaking(w) && mapMod.damageOpening(w, 1, 10) === null && w.hp === 290 && !w.broken, "the dead do not wear a shut gate down (Michael, 2026-10-30: about three doors, 300)");
+    w.hp = 300;
     assert(!mapMod.canStampOver(w, "door") && !mapMod.canStampOver(w, "window") && !mapMod.canBuildWall(x + 1, y + 2, "n", "door"), "no door nor window over a gate");
     assert(mapMod.addBoard(w, 1) === false || w.boards.near.length === 0, "a gate takes no board");
     // Open and shut as one.
@@ -6564,7 +6565,7 @@ check("castle gates: built over plain stone edges by the command a guest sends (
     for (const [xx, yy, e] of made) if (mapMod.peekTile(xx, yy) && mapMod.peekTile(xx, yy)[e]) mapMod.destroyWall(xx, yy, e, true);
   }
 });
-check("castle gates: a room closed by a gate is a room and sealed (the gate bounds the fill though it passes sight, and a fence bounds none), the dead have no door of it to break, and the flags on the definition are what decide each ruling", () => {
+check("castle gates: a room closed by a gate is a room and sealed (the gate bounds the fill though it passes sight, and a fence bounds none), the dead break its gate whole (docs/53 step 6), and the flags on the definition are what decide each ruling", () => {
   const at = openGrass(6, 6);
   assert(at, "no open grass");
   const [x, y] = at;
@@ -6586,7 +6587,10 @@ check("castle gates: a room closed by a gate is a room and sealed (the gate boun
     assert(gm.length === 2, "no gate");
     const room = mapMod.getRoom(mapMod.tileAt(x, y + 1).room);
     assert(room && room.openings.some((o) => o.tx === x && o.ty === y && o.edge === "n") && mapMod.roomSealed(room), "the shut gate is a room's sealed opening");
-    assert(mapMod.breachTargets(room, x + 0.5, y - 3, 0, true).length === 0, "the dead have a gate to break");
+    assert(mapMod.breachTargets(room, x + 0.5, y - 3, 0, true).length === 2, "the dead do not have the gate's two edges to break (docs/53 step 6: gates break)");
+    // Broken at one edge, it gives way whole: both edges broken and open, a way in, and its portcullis no longer drawn.
+    assert(mapMod.damageOpening(gm[0].wall, 1, 300) === "leaf" && gm.every((m) => m.wall.broken && m.wall.open && mapMod.wayOpen(m.wall)), "a gate broken at one edge is not a way through whole");
+    assert(mapMod.breachTargets(mapMod.getRoom(mapMod.tileAt(x, y + 1).room) || room, x + 0.5, y - 3, 0, true).length === 0, "a broken gate is still a breach target");
     // The control: a door in the same place is a breach target; a fence in its place bounds no room at all.
     mapMod.destroyWall(x, y, "n", true);
     mapMod.buildWall(x, y, "n", "door", "wall_stone");
@@ -6600,14 +6604,14 @@ check("castle gates: a room closed by a gate is a room and sealed (the gate boun
     // The flags: each ruling flipped on the definition, then restored.
     mapMod.destroyWall(x, y, "n"); mapMod.destroyWall(x + 1, y, "n");
     lay(x, y, "n"); lay(x + 1, y, "n");
-    rule.deadBreak = true;
-    const soft = mapMod.createWall("door", "wall_stone_gate_2");
-    soft.gate = { i: 0 };
-    const breakable = mapMod.needsBreaking(soft) && Number.isFinite(soft.hp);
+    rule.deadBreak = false;
+    const held = mapMod.createWall("door", "wall_stone_gate_2");
+    held.gate = { i: 0 };
+    const holds = !mapMod.needsBreaking(held) && held.hp === Infinity && mapMod.damageOpening(held, 1, 999) === null && !held.broken;
     Object.assign(rule, was);
     const hard = mapMod.createWall("door", "wall_stone_gate_2");
     hard.gate = { i: 0 };
-    assert(breakable && !mapMod.needsBreaking(hard) && hard.hp === Infinity, "deadBreak: the flag is not what decides whether the dead break it");
+    assert(holds && mapMod.needsBreaking(hard) && hard.hp === 300, "deadBreak: the flag is not what decides whether the dead break it");
     rule.shotsPass = false;
     const stopped = archeryMod.wallStops(hard, 30);
     Object.assign(rule, was);
@@ -6622,14 +6626,15 @@ check("castle gates: a room closed by a gate is a room and sealed (the gate boun
     assert(mapMod.buildGate(x, y, "n", "wall_stone_gate_2", 0, { free: true }), "no gate to flip the flag on");
     const living = mapMod.gateMembers(x, y, "n", 0);
     living.forEach((m) => { m.wall.hp = null; });
+    rule.deadBreak = false;
     assert(mapMod.damageOpening(living[0].wall, 1, 999) === null && !living[0].wall.broken, "a gate broke with the flag off");
-    rule.deadBreak = true;
+    Object.assign(rule, was); // on since docs/53 step 6
     let broke = null;
     for (let i = 0; i < 5 && !broke; i++) broke = mapMod.damageOpening(living[1].wall, 1, 120);
     assert(broke === "leaf" && living.every((m) => m.wall.broken && m.wall.open) && mapMod.wayOpen(living[0].wall), `with the flag on a gate breaks whole: ${broke}`);
     Object.assign(rule, was);
     mapMod.destroyWall(x, y, "n", true);
-    return "a gate-closed room is a sealed room with nothing for the dead to break; a door there is a breach target, a fence bounds no room; the four flags each decide their ruling, and flipped on a gate breaks whole";
+    return "a gate-closed room is a sealed room whose gate the dead break (300 an edge, whole), a door there is a breach target, a fence bounds no room; the four flags each decide their ruling, and a gate saved while it could not break takes its health when it can";
   } finally {
     Object.assign(rule, was);
     rulesImport.rules.freeBuilding = free0;

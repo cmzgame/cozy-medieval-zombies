@@ -298,6 +298,7 @@ function gateLeafState(wall, edge, tx, ty) {
 // The portcullis of the gate that wall is one of, as seen from edge (tx, ty): the columns of its picture this edge owns, drawn on the grille's own
 // plane (6 units behind the edge line, the face 8: depth.wallFace with T = 12) after the wall and its cap. `whole` is the gate's sheet.
 function emitGateLeaf(whole, wall, edge, tx, ty, x, y, o) {
+  if (wall.broken) return; // a gate the dead broke: its frame with no portcullis (docs/53 step 6; no broken picture drawn yet)
   const parts = whole.wall.parts ? getSheet(whole.wall.parts) : null;
   const side = edge === "n" ? "north" : "west";
   const name = `leaf_${side}_${gateLeafState(wall, edge, tx, ty)}`;
