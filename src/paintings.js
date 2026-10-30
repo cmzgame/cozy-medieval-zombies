@@ -44,14 +44,15 @@ export const prevAlong = (tx, ty, edge) => (edge === "n" ? [tx - 1, ty] : [tx, t
 // The floor tile a segment's camera face looks onto: its own tile, for both edges.
 export const floorTile = (tx, ty) => [tx, ty];
 
-const wallOf = (tx, ty, edge) => {
-  const t = map.peekTile(tx, ty);
+// Every read here names its floor (`layer`, docs/53 step 6: a painting hangs upstairs as on the ground), the ground when none is given.
+const wallOf = (tx, ty, edge, layer = 0) => {
+  const t = map.peekTile(tx, ty, layer);
   return t ? t[edge] : null;
 };
 
 // Why this segment cannot take a painting (or part of one), or "": no plain wall, a fence, bars, a bracket on its face, or one already hung.
-export function segmentProblem(tx, ty, edge) {
-  const wall = wallOf(tx, ty, edge);
+export function segmentProblem(tx, ty, edge, layer = 0) {
+  const wall = wallOf(tx, ty, edge, layer);
   if (!wall) return "No wall to hang it on";
   if (wall.kind !== "wall" || map.wallRule(wall.sprite).seeThrough || wall.broken) return "Nothing to hang it on";
   if (map.wallRule(wall.sprite).solid) return map.wallRule(wall.sprite).cliff ? "Not on a cliff" : "Not on solid rock"; // bare rock (art round 10): no painting, no torch's bracket
@@ -63,39 +64,39 @@ export function segmentProblem(tx, ty, edge) {
 }
 
 // Whether the joint between a segment and the one along from it is clear of a post: the same material, and no wall meeting it from the side.
-function jointClear(tx, ty, edge) {
+function jointClear(tx, ty, edge, layer = 0) {
   const [nx, ny] = nextAlong(tx, ty, edge);
-  const a = wallOf(tx, ty, edge);
-  const b = wallOf(nx, ny, edge);
+  const a = wallOf(tx, ty, edge, layer);
+  const b = wallOf(nx, ny, edge, layer);
   if (!a || !b || a.sprite !== b.sprite) return false;
   // The joint is the top vertex of the tile (nx, ny): walls meeting it across the line are on the other edge of that tile and the one beside it.
   const cross = edge === "n" ? "w" : "n";
   const [cx, cy] = edge === "n" ? [nx, ny - 1] : [nx - 1, ny];
-  return !wallOf(nx, ny, cross) && !wallOf(cx, cy, cross);
+  return !wallOf(nx, ny, cross, layer) && !wallOf(cx, cy, cross, layer);
 }
 
 // Whether a wall meets the run's end on the camera's side: a north run's end at a west wall going down from the vertex, a west run's at a north wall going out from it. That wall's
 // thickness and its drawn body stand in front of the painting's end and hide much of it (the art README warned of it), so a painting is not hung there.
-function cornerAt(tx, ty, edge, atFar) {
+function cornerAt(tx, ty, edge, atFar, layer = 0) {
   const cross = edge === "n" ? "w" : "n";
   const [sx, sy] = atFar ? [tx, ty] : nextAlong(tx, ty, edge);
-  return !!wallOf(sx, sy, cross);
+  return !!wallOf(sx, sy, cross, layer);
 }
 
 // Why a painting of this item cannot hang with its first segment at (tx, ty) on this edge, or "".
-export function fitProblem(itemId, tx, ty, edge) {
+export function fitProblem(itemId, tx, ty, edge, layer = 0) {
   const def = paintingDef(itemId);
   if (!def) return "Not a painting";
-  const first = segmentProblem(tx, ty, edge);
+  const first = segmentProblem(tx, ty, edge, layer);
   if (first) return first;
   if (spanOf(def) === 2) {
     const [nx, ny] = nextAlong(tx, ty, edge);
-    const second = segmentProblem(nx, ny, edge);
+    const second = segmentProblem(nx, ny, edge, layer);
     if (second) return second === "No wall to hang it on" ? "Too wide for the wall" : second;
-    if (!jointClear(tx, ty, edge)) return "A post is in the way";
+    if (!jointClear(tx, ty, edge, layer)) return "A post is in the way";
   }
   const [lx, ly] = spanOf(def) === 2 ? nextAlong(tx, ty, edge) : [tx, ty];
-  if (cornerAt(tx, ty, edge, true) || cornerAt(lx, ly, edge, false)) return "A corner is in the way";
+  if (cornerAt(tx, ty, edge, true, layer) || cornerAt(lx, ly, edge, false, layer)) return "A corner is in the way";
   return "";
 }
 
@@ -132,7 +133,7 @@ export function hang(player, uid, tx, ty, edge) {
   tx = Math.round(Number(tx));
   ty = Math.round(Number(ty));
   if (!Number.isFinite(tx) || !Number.isFinite(ty) || (edge !== "n" && edge !== "w")) return false;
-  const why = reachFor(player, entry.id, tx, ty, edge) || fitProblem(entry.id, tx, ty, edge);
+  const why = reachFor(player, entry.id, tx, ty, edge) || fitProblem(entry.id, tx, ty, edge, player.layer || 0); // on the player's own floor (docs/53 step 6)
   if (why) {
     showMessage(why);
     return false;
@@ -141,27 +142,28 @@ export function hang(player, uid, tx, ty, edge) {
   grid.remove(bag, entry);
   const slot = slotOf(def);
   const span = spanOf(def);
-  const wall = wallOf(tx, ty, edge);
+  const L = player.layer || 0;
+  const wall = wallOf(tx, ty, edge, L);
   (wall.hangings || (wall.hangings = [])).push({ item: def.id, slot, span });
-  map.touch(tx, ty);
+  map.touch(tx, ty, L);
   if (span === 2) {
     const [nx, ny] = nextAlong(tx, ty, edge);
-    const w2 = wallOf(nx, ny, edge);
+    const w2 = wallOf(nx, ny, edge, L);
     (w2.hangings || (w2.hangings = [])).push({ cover: [tx, ty], slot });
-    map.touch(nx, ny);
+    map.touch(nx, ny, L);
   }
   return true;
 }
 
 // The painting a segment is part of: { tx, ty, edge, rec } of the segment that holds it (a cover points back to it), or null.
-export function holderOf(tx, ty, edge) {
-  const wall = wallOf(tx, ty, edge);
+export function holderOf(tx, ty, edge, layer = 0) {
+  const wall = wallOf(tx, ty, edge, layer);
   if (!wall || !wall.hangings) return null;
   for (const h of wall.hangings) {
     if (h.item) return { tx, ty, edge, rec: h };
     if (h.cover) {
       const [htx, hty] = h.cover;
-      const hw = wallOf(htx, hty, edge);
+      const hw = wallOf(htx, hty, edge, layer);
       const rec = hw && hw.hangings && hw.hangings.find((q) => q.item);
       if (rec) return { tx: htx, ty: hty, edge, rec };
     }
@@ -171,7 +173,8 @@ export function holderOf(tx, ty, edge) {
 
 // Take the painting off the wall (any segment it covers names it) into the player's bag, or at their feet if the bag is full; true when it came down.
 export function takeDown(player, tx, ty, edge) {
-  const held = holderOf(tx, ty, edge);
+  const L = player.layer || 0; // on the player's own floor
+  const held = holderOf(tx, ty, edge, L);
   if (!held) return false; // already taken down: a walk to it (a guest's command, or a far click) that meets someone else's take-down gets nothing, never a second painting
   const { tx: htx, ty: hty, rec } = held;
   const why = reachFor(player, rec.item, htx, hty, edge);
@@ -179,7 +182,7 @@ export function takeDown(player, tx, ty, edge) {
     showMessage(why);
     return false;
   }
-  const item = map.removeHanging(htx, hty, edge, rec);
+  const item = map.removeHanging(htx, hty, edge, rec, L);
   if (!item) return false;
   const bag = inventory.bagOf(player);
   const entry = makeEntry(item, 1);
@@ -213,7 +216,8 @@ function inQuad(px, py, q) {
 }
 
 // The wall segments whose camera face is under a canvas point, nearest the camera first: [{ tx, ty, edge }]. Reads the map and never grows it.
-export function facesAt(sx, sy) {
+// The point is read with the screen origin as it stands: a caller on a storey lifts the origin first (interact.onFloorOf, placement's onFloor).
+export function facesAt(sx, sy, layer = 0) {
   const g = iso.toGrid(sx, sy);
   const cx = Math.floor(g.gx);
   const cy = Math.floor(g.gy);
@@ -221,7 +225,7 @@ export function facesAt(sx, sy) {
   for (let ty = cy - 1; ty <= cy + 4; ty++) {
     for (let tx = cx - 1; tx <= cx + 4; tx++) {
       for (const edge of ["n", "w"]) {
-        if (!wallOf(tx, ty, edge)) continue;
+        if (!wallOf(tx, ty, edge, layer)) continue;
         if (inQuad(sx, sy, faceQuad(tx, ty, edge))) out.push({ tx, ty, edge });
       }
     }
@@ -242,7 +246,7 @@ export function rectOf(itemId, tx, ty, edge) {
 }
 
 // The hung painting under a canvas point, or null: { tx, ty, edge, rec } of its holder segment.
-export function paintingAt(sx, sy) {
+export function paintingAt(sx, sy, layer = 0) {
   const g = iso.toGrid(sx, sy);
   const cx = Math.floor(g.gx);
   const cy = Math.floor(g.gy);
@@ -250,7 +254,7 @@ export function paintingAt(sx, sy) {
   for (let ty = cy - 1; ty <= cy + 4; ty++) {
     for (let tx = cx - 1; tx <= cx + 4; tx++) {
       for (const edge of ["n", "w"]) {
-        const wall = wallOf(tx, ty, edge);
+        const wall = wallOf(tx, ty, edge, layer);
         const rec = wall && wall.hangings && wall.hangings.find((q) => q.item);
         if (!rec) continue;
         const r = rectOf(rec.item, tx, ty, edge);
@@ -264,9 +268,9 @@ export function paintingAt(sx, sy) {
 // Where the cursor would hang a painting: { tx, ty, edge } of its first segment, the frontmost face under the cursor that fits and that `player` can reach (a translucent near wall
 // is no bar to aiming at the wall behind it), the segment under the cursor as the first and the one before it as the fallback (so a wide painting can be aimed at either of its
 // two sections); or the frontmost candidate with its reason when none does: { tx, ty, edge, problem }.
-export function targetAt(itemId, sx, sy, player = null) {
+export function targetAt(itemId, sx, sy, player = null, layer = 0) {
   const def = paintingDef(itemId);
-  const faces = facesAt(sx, sy);
+  const faces = facesAt(sx, sy, layer);
   let first = null;
   for (const f of faces) {
     const cands = [{ tx: f.tx, ty: f.ty, edge: f.edge }];
@@ -275,7 +279,7 @@ export function targetAt(itemId, sx, sy, player = null) {
       cands.push({ tx: px, ty: py, edge: f.edge });
     }
     for (const c of cands) {
-      const problem = fitProblem(itemId, c.tx, c.ty, c.edge) || (player ? reachFor(player, itemId, c.tx, c.ty, c.edge) : "");
+      const problem = fitProblem(itemId, c.tx, c.ty, c.edge, layer) || (player ? reachFor(player, itemId, c.tx, c.ty, c.edge) : "");
       if (!problem) return { ...c, problem: "" };
       if (!first) first = { ...c, problem };
     }

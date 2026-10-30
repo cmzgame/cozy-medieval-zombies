@@ -252,7 +252,19 @@ function ringParts(ring) {
 // What is built goes on the builder's own storey: the cursor is read on that floor (its storeys lifted on screen, as the renderer draws it),
 // and every read and write of the map names the layer.
 const layerOf = (player) => (player && player.layer) || 0;
-const NOT_UPSTAIRS = "Not upstairs yet"; // what is read on the ground's tiles alone (a rug, a painting, a set-down, a torch on a wall, a palette prop)
+// A cursor point read on the player's own floor, as interact.onFloorOf reads it (placement cannot import interact): the screen origin lifted
+// by that floor's storeys while `fn` runs (a painting's or a torch's face under the cursor upstairs, docs/53 step 6).
+function onFloor(player, fn) {
+  const L = layerOf(player);
+  if (!L) return fn();
+  const o = iso.getOrigin();
+  iso.setOrigin(o.x, o.y - L * map.STOREY);
+  try {
+    return fn();
+  } finally {
+    iso.setOrigin(o.x, o.y);
+  }
+}
 function cursorGrid(player) {
   const m = input.getMouse();
   return iso.toGrid(m.x, m.y + layerOf(player) * map.STOREY);
@@ -798,9 +810,9 @@ export const isPropBuild = (what) => !!(buildData[what] && buildData[what].kind 
 
 // Where a prop build with its anchor at (tx, ty) stands: { tx, ty, facing, footprint, problem } by its own rule (`stand`: the Fireplace
 // indoors with its back on a flat wall, its facing chosen from the wall; the fire pit on open ground, indoors or out; setdown.fitAt).
-function propBuildFit(what, tx, ty) {
+function propBuildFit(what, tx, ty, layer = 0) {
   const d = buildData[what];
-  return setdown.fitAt(d.stand || "ground", d.sprite, tx, ty);
+  return setdown.fitAt(d.stand || "ground", d.sprite, tx, ty, layer); // on the builder's floor (docs/53 step 6)
 }
 
 // Every tile of a fit's footprint.
@@ -818,14 +830,12 @@ function fitReach(player, f) {
 
 // Why a prop build cannot go on (tx, ty), or "": its own rule for where it stands, then the cost.
 function propBuildBlock(player, what, tx, ty) {
-  if (layerOf(player)) return "Not upstairs yet"; // a palette prop (the Fireplace, the fire pit, the trough) reads the ground's rules alone: not wired for a storey yet
-  const f = propBuildFit(what, tx, ty);
+  const f = propBuildFit(what, tx, ty, layerOf(player));
   return f.problem || (stations.bodyOnTiles(fitTiles(f), layerOf(player)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
 function propBuildReason(player, what, tx, ty) {
-  if (layerOf(player)) return "Not upstairs yet";
-  const f = propBuildFit(what, tx, ty);
+  const f = propBuildFit(what, tx, ty, layerOf(player));
   return fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f), layerOf(player)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
@@ -1378,12 +1388,12 @@ function rugGhost(player) {
   if (!r) return null;
   const m = input.getMouse();
   if (!m.inside) return null;
-  const g = iso.toGrid(m.x, m.y);
+  const g = cursorGrid(player); // on the player's own floor (docs/53 step 6)
   const [w, h] = rugs.footprintFor(r.sprite, r.facing);
   const tx = Math.round(g.gx - (w - 1) / 2);
   const ty = Math.round(g.gy - (h - 1) / 2);
-  const reason = (layerOf(player) ? NOT_UPSTAIRS : "") || rugs.reachFor(player, r.sprite, r.facing, tx, ty) || rugs.fitProblem(r.sprite, r.facing, tx, ty);
-  return { kind: "rug", prop: { sprite: r.sprite, facing: r.facing, footprint: [w, h] }, tx, ty, footprint: [w, h], ok: reason === "", reason, rug: { uid: r.uid, facing: r.facing } };
+  const reason = rugs.reachFor(player, r.sprite, r.facing, tx, ty) || rugs.fitProblem(r.sprite, r.facing, tx, ty, layerOf(player));
+  return { kind: "rug", prop: { sprite: r.sprite, facing: r.facing, footprint: [w, h] }, tx, ty, layer: layerOf(player), footprint: [w, h], ok: reason === "", reason, rug: { uid: r.uid, facing: r.facing } };
 }
 
 // The painting's ghost: the picture on the face under the cursor, green where it may hang within reach and red where not (the rules are src/paintings.js's). Over no wall there is no
@@ -1393,11 +1403,11 @@ function paintingGhost(player) {
   if (!p) return null;
   const m = input.getMouse();
   if (!m.inside) return null;
-  if (layerOf(player)) return { kind: "painting", item: p.id, tx: 0, ty: 0, edge: "n", ok: false, reason: NOT_UPSTAIRS, none: true, painting: { uid: p.uid } };
-  const at = paintings.targetAt(p.id, m.x, m.y, player);
-  if (!at) return { kind: "painting", item: p.id, tx: 0, ty: 0, edge: "n", ok: false, reason: "Aim at a wall", none: true, painting: { uid: p.uid } };
+  const L = layerOf(player); // on the player's own floor (docs/53 step 6), the cursor read there
+  const at = onFloor(player, () => paintings.targetAt(p.id, m.x, m.y, player, L));
+  if (!at) return { kind: "painting", item: p.id, tx: 0, ty: 0, edge: "n", layer: L, ok: false, reason: "Aim at a wall", none: true, painting: { uid: p.uid } };
   const reason = at.problem || paintings.reachFor(player, p.id, at.tx, at.ty, at.edge);
-  return { kind: "painting", item: p.id, tx: at.tx, ty: at.ty, edge: at.edge, ok: reason === "", reason, painting: { uid: p.uid } };
+  return { kind: "painting", item: p.id, tx: at.tx, ty: at.ty, edge: at.edge, layer: L, ok: reason === "", reason, painting: { uid: p.uid } };
 }
 
 // A set-down's ghost (docs/43 sections 3 and 4): the prop on the tile under the cursor, green where it may stand within reach.
@@ -1409,9 +1419,9 @@ function setdownGhost(player) {
   const g = cursorGrid(player); // on the player's own floor (the review of #549)
   const tx = Math.round(g.gx);
   const ty = Math.round(g.gy);
-  const reason = (layerOf(player) ? NOT_UPSTAIRS : "") || setdown.reachFor(player, tx, ty) || setdown.standProblem(c.stand, tx, ty, player.layer || 0);
+  const reason = setdown.reachFor(player, tx, ty) || setdown.standProblem(c.stand, tx, ty, layerOf(player)); // on the player's own floor (docs/53 step 6)
   const label = c.decoration ? `Click to set the ${c.name} down as decoration · Esc cancel` : `Click to set the ${c.campfire ? "campfire" : c.name} down · Esc cancel`;
-  return { kind: "prop", prop: { sprite: c.sprite }, tx, ty, footprint: [1, 1], ok: reason === "", reason, setdown: { uid: c.uid }, label };
+  return { kind: "prop", prop: { sprite: c.sprite }, tx, ty, layer: layerOf(player), footprint: [1, 1], ok: reason === "", reason, setdown: { uid: c.uid }, label };
 }
 
 // A torch's ghost for a wall: the bracket and the torch, lit or not, on the face of the wall under the cursor, the frontmost face it may go
@@ -1423,10 +1433,10 @@ function torchGhost(player) {
   if (!m.inside) return null;
   const entry = setdown.torchOf(player, c.uid);
   const torch = { uid: c.uid, lit: !!(entry && entry.lit) };
-  if (layerOf(player)) return { kind: "torch", tx: 0, ty: 0, edge: "n", ok: false, reason: NOT_UPSTAIRS, none: true, torch };
+  const L = layerOf(player); // on the player's own floor (docs/53 step 6)
   let first = null;
-  for (const f of paintings.facesAt(m.x, m.y)) {
-    const reason = setdown.mountProblem(f.tx, f.ty, f.edge) || setdown.mountReach(player, f.tx, f.ty);
+  for (const f of onFloor(player, () => paintings.facesAt(m.x, m.y, L))) {
+    const reason = setdown.mountProblem(f.tx, f.ty, f.edge, L) || setdown.mountReach(player, f.tx, f.ty);
     if (!reason) return { kind: "torch", tx: f.tx, ty: f.ty, edge: f.edge, layer: player.layer || 0, ok: true, reason: "", torch, label: "Click to put the torch on the wall · Esc cancel" };
     if (!first) first = { kind: "torch", tx: f.tx, ty: f.ty, edge: f.edge, layer: player.layer || 0, ok: false, reason, torch };
   }
@@ -1445,7 +1455,7 @@ function buildGhost(player) {
     // A prop on the tiles under the cursor (the Fireplace along the wall it backs onto, its facing from that wall; the fire pit centred on the
     // cursor), drawn as the carried prop's ghost is, with its own line.
     const d = buildData[what];
-    const f = setdown.fitFor(d.stand || "ground", d.sprite, g.gx, g.gy); // the cursor's grid point: fitFor rounds a wall's tile and centres a footprint
+    const f = setdown.fitFor(d.stand || "ground", d.sprite, g.gx, g.gy, layerOf(player)); // the cursor's grid point: fitFor rounds a wall's tile and centres a footprint
     const reason = fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f), layerOf(player)) ? "Someone is in the way" : "") || shortfall(player, what);
     return { kind: "prop", prop: { sprite: d.sprite, facing: f.facing, footprint: f.footprint }, tx: f.tx, ty: f.ty, footprint: f.footprint, ok: reason === "", reason, build: what, label: `Click to build (${costText(what)}) · Esc cancel` };
   }
@@ -1639,10 +1649,6 @@ function addressOf(t) {
 // checked here against the guest's player, the refusal said to it through the acting player.
 export function performPlacement(player, cmd) {
   if (!player || !cmd) return false;
-  if (layerOf(player) && ["rug", "painting", "campfire", "setdown", "torch"].includes(cmd.kind)) {
-    showMessage(NOT_UPSTAIRS); // read on the ground's tiles alone: not wired for a storey yet (the review of #549)
-    return true;
-  }
   if (cmd.kind === "rug") {
     // A guest laying a rug from its bag (the host's own click calls placeRug directly): the same reach and fit, the refusal said through the acting player.
     rugs.placeRug(player, cmd.uid, cmd.tx, cmd.ty, cmd.facing);
@@ -1810,7 +1816,7 @@ export function performPlacement(player, cmd) {
 // prop's starting fuel, not a material; none has one since the campfire left the palette (Michael, 2026-10-27).
 function startPropBuild(player, what, tx, ty) {
   const d = buildData[what];
-  const f0 = propBuildFit(what, tx, ty);
+  const f0 = propBuildFit(what, tx, ty, layerOf(player));
   const action = {
     kind: "build",
     label: `Building ${d.label.toLowerCase()}`,
@@ -1828,7 +1834,7 @@ function startPropBuild(player, what, tx, ty) {
         return false;
       }
       const fuel = d.fuel && !rules.freeBuilding ? costOf(what)[d.fuel] || 0 : d.fuel ? (d.cost || {})[d.fuel] || 0 : 0; // its fuel, paid for or free
-      const f = propBuildFit(what, tx, ty); // its facing found again now, by the same order the ghost and a guest's command use
+      const f = propBuildFit(what, tx, ty, layerOf(player)); // its facing found again now, by the same order the ghost and a guest's command use
       spend(player, what);
       const prop = map.createProp({ sprite: d.sprite, tile: [tx, ty], footprint: f.footprint, ...(f.facing ? { facing: f.facing } : {}) });
       prop.made = true;

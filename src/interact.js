@@ -132,7 +132,7 @@ export function actionsForTarget(t, player) {
     return tag(holderActions({ kind: "bracket", bracket: b, mx, my }, player), t);
   }
   if (t.kind === "painting") {
-    const held = paintings.holderOf(Math.round(Number(t.tx)), Math.round(Number(t.ty)), t.edge === "w" ? "w" : "n");
+    const held = paintings.holderOf(Math.round(Number(t.tx)), Math.round(Number(t.ty)), t.edge === "w" ? "w" : "n", player.layer || 0); // on the player's own floor (docs/53 step 6)
     return held ? tag(paintingActions(held, player), onPainting(held)) : [];
   }
   if (t.kind === "character") {
@@ -1333,7 +1333,7 @@ function actionsAtHere(sx, sy, player) {
   const rugHere = map.peekTile(tx, ty)?.rug;
   const rugActs = rugHere ? tag(rugActions(rugHere, player), onProp(rugHere)) : [];
   for (const o of openingsAtScreen(sx, sy)) out.push(...tag(openingActions(o, player), onEdge(o)));
-  const hung = paintings.paintingAt(sx, sy); // a painting hung on a wall face under the cursor: its Pick up, with Walk here beside it (#326)
+  const hung = paintings.paintingAt(sx, sy, player.layer || 0); // a painting hung on a wall face under the cursor: its Pick up, with Walk here beside it (#326)
   const paintActs = hung ? tag(paintingActions(hung, player), onPainting(hung)) : [];
   out.push(...paintActs);
   for (const b of map.bracketsNear(g.gx, g.gy, 0.8, player.layer || 0)) out.push(...tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));

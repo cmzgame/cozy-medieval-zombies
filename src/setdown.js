@@ -23,25 +23,26 @@ import { showMessage } from "./ui/prompt.js";
 export const REACH = 2.6; // tiles from the player to the tile set down on, as a carried prop's and the campfire's
 
 // Whether a tile has a plain solid wall on any of its four sides (n and w its own, s and e its neighbours').
-function wallBeside(tx, ty) {
-  const t = map.peekTile(tx, ty);
-  const s = map.peekTile(tx, ty + 1);
-  const e = map.peekTile(tx + 1, ty);
+function wallBeside(tx, ty, layer = 0) {
+  const t = map.peekTile(tx, ty, layer);
+  const s = map.peekTile(tx, ty + 1, layer);
+  const e = map.peekTile(tx + 1, ty, layer);
   return [t && t.n, t && t.w, s && s.n, e && e.w].some((w) => w && w.kind === "wall" && !w.broken && !map.wallRule(w.sprite).seeThrough);
 }
 
 // Why a prop cannot stand on (tx, ty) by this rule, or "": open floor with nothing on it (a read never grows a chunk: a tile not grown is no
-// room), then outdoors only, or indoors against a wall.
-export function standProblem(rule, tx, ty, layer = undefined) {
-  if (rule === "natural") return trees.standProblem(tx, ty); // a sapling: open grass outdoors, no wall beside it (docs/46 step 3)
-  const t = map.peekTile(tx, ty);
-  if (!t || !map.isWalkableTile(tx, ty) || t.prop || t.rug) return "No room";
-  if (map.stairAt(tx, ty, layer || 0) || map.landingAt(tx, ty, layer || 0)) return "No room"; // never on a stair's step or its landing (the review of #549)
-  const curve = map.ringFurnitureProblem(tx, ty, layer); // on the setter's floor when named (docs/49); a tile a ring's curve crosses holds no furniture (Michael, 2026-10-26, docs/50)
+// room), then outdoors only, or indoors against a wall. On the setter's floor, `layer` (docs/53 step 6: a storey as the ground).
+export function standProblem(rule, tx, ty, layer = 0) {
+  const L = layer || 0;
+  if (rule === "natural") return L ? "It grows only in the ground" : trees.standProblem(tx, ty); // a sapling: open grass outdoors, no wall beside it (docs/46 step 3)
+  const t = map.peekTile(tx, ty, L);
+  if (!t || !map.isWalkableTile(tx, ty, L) || t.prop || t.rug) return "No room";
+  if (map.stairAt(tx, ty, L) || map.landingAt(tx, ty, L)) return "No room"; // never on a stair's step or its landing (the review of #549)
+  const curve = map.ringFurnitureProblem(tx, ty, L); // a tile a ring's curve crosses holds no furniture (Michael, 2026-10-26, docs/50)
   if (curve) return curve;
   if (rule === "outdoors" && t.room > 0) return "Outdoors only";
   if (rule === "wall" && !(t.room > 0)) return "Indoors only";
-  if (rule === "wall" && !wallBeside(tx, ty)) return "Against a wall";
+  if (rule === "wall" && !wallBeside(tx, ty, L)) return "Against a wall";
   return "";
 }
 
@@ -75,21 +76,23 @@ function onWater(t) {
 // between two of its tiles, and every tile in one room or all outdoors; then the rule: "outdoors" none indoors, "ground" indoors or out, and
 // "wall" indoors with its back on a flat wall along its whole length: a facing "y" (it backs onto a west wall, docs/17's drawn fireplace) the
 // west edge of every tile, a facing "x" (its mirror) the north edge of every tile.
-export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite), layer = undefined) {
+export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite), layer = 0) {
+  const L = layer || 0; // the builder's floor (docs/53 step 6)
   const [w, h] = footprintOf(sprite, facing);
-  if (w * h === 1) return standProblem(rule, tx, ty, layer) || (onWater(map.peekTile(tx, ty)) ? "Not on water" : ""); // one tile: the set-down's rule, a wall on any side for "wall"
+  if (w * h === 1) return standProblem(rule, tx, ty, L) || (onWater(map.peekTile(tx, ty, L)) ? "Not on water" : ""); // one tile: the set-down's rule, a wall on any side for "wall"
   let room = null;
   for (let dy = 0; dy < h; dy++) {
     for (let dx = 0; dx < w; dx++) {
       const x = tx + dx;
       const y = ty + dy;
-      const t = map.peekTile(x, y);
-      if (!t || !map.isWalkableTile(x, y) || t.prop || t.rug) return "No room";
-      const curve = map.ringFurnitureProblem(x, y, layer);
+      const t = map.peekTile(x, y, L);
+      if (!t || !map.isWalkableTile(x, y, L) || t.prop || t.rug) return "No room";
+      if (map.stairAt(x, y, L) || map.landingAt(x, y, L)) return "No room";
+      const curve = map.ringFurnitureProblem(x, y, L);
       if (curve) return curve;
       if (onWater(t)) return "Not on water";
-      if (map.besideDoor(x, y)) return "Not beside a door";
-      if ((dx > 0 && map.wallBetween(x - 1, y, x, y)) || (dy > 0 && map.wallBetween(x, y - 1, x, y))) return "No room";
+      if (map.besideDoor(x, y, L)) return "Not beside a door";
+      if ((dx > 0 && map.wallBetween(x - 1, y, x, y, L)) || (dy > 0 && map.wallBetween(x, y - 1, x, y, L))) return "No room";
       const r = t.room > 0 ? t.room : 0;
       if (room === null) room = r;
       else if (r !== room) return "No room";
@@ -99,7 +102,7 @@ export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite), l
   if (rule === "wall") {
     if (!(room > 0)) return "Indoors only";
     const along = facing === "x" ? "n" : "w"; // the edge it backs onto
-    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) if (!flatWall(map.peekTile(tx + dx, ty + dy)[along])) return "Against a wall";
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) if (!flatWall(map.peekTile(tx + dx, ty + dy, L)[along])) return "Against a wall";
   }
   return "";
 }
@@ -109,14 +112,14 @@ export function fitProblem(rule, sprite, tx, ty, facing = firstFacing(sprite), l
 // it along x, so either of its two tiles may be pointed at), each facing in order, and takes the first that fits; a guest's command names
 // the anchor alone, and the host's `fitAt` picks the same facing there by the same order. Anything else is centred on the cursor, as a
 // carried prop's ghost is.
-export function fitFor(rule, sprite, cx, cy) {
+export function fitFor(rule, sprite, cx, cy, layer = 0) {
   const d = getDef(sprite);
   if (rule === "wall" && d.facings && d.facings.length > 1) {
     cx = Math.round(cx); // the tile under the cursor
     cy = Math.round(cy);
     let first = null;
     for (const [ax, ay] of [[cx, cy], [cx, cy - 1], [cx - 1, cy]]) {
-      const f = fitAt(rule, sprite, ax, ay);
+      const f = fitAt(rule, sprite, ax, ay, layer);
       if (!f.problem) return f;
       if (!first) first = f;
     }
@@ -126,17 +129,17 @@ export function fitFor(rule, sprite, cx, cy) {
   const [w, h] = footprintOf(sprite, facing);
   const tx = Math.round(cx - (w - 1) / 2); // the footprint centred on the cursor's grid point (unrounded), as a carried prop's ghost is
   const ty = Math.round(cy - (h - 1) / 2);
-  return { tx, ty, facing, footprint: [w, h], problem: fitProblem(rule, sprite, tx, ty, facing) };
+  return { tx, ty, facing, footprint: [w, h], problem: fitProblem(rule, sprite, tx, ty, facing, layer) };
 }
 
 // The fit with its anchor at (tx, ty): for a wall-backed prop with facings, the first facing in order that fits there (else the first's
 // refusal); otherwise its one facing. What the host builds for a command that names the anchor.
-export function fitAt(rule, sprite, tx, ty) {
+export function fitAt(rule, sprite, tx, ty, layer = 0) {
   const d = getDef(sprite);
   const facings = rule === "wall" && d.facings && d.facings.length > 1 ? d.facings : [firstFacing(sprite)];
   let first = null;
   for (const facing of facings) {
-    const f = { tx, ty, facing, footprint: footprintOf(sprite, facing), problem: fitProblem(rule, sprite, tx, ty, facing) };
+    const f = { tx, ty, facing, footprint: footprintOf(sprite, facing), problem: fitProblem(rule, sprite, tx, ty, facing, layer) };
     if (!f.problem) return f;
     if (!first) first = f;
   }
@@ -240,11 +243,11 @@ export function pickUp(player, prop) {
 // Place torch, on a torch's own menu in the bag, on the belt, or in a hand: the ghost on the face of the wall under the cursor, as a
 // painting's (placement.js), and a click mounts it there on a bracket drawn with it (map.mountTorch). The torch keeps its entry (its uid,
 // its wear, lit or not); picked up, it comes back put out, as a torch leaving any holder does (#156), and the bracket goes with it. The
-// address is the face's (tx, ty, edge; the layer joins it once docs/49's floors land). The Use mode's Use torch on a wall is left out (one
+// address is the face's (tx, ty, edge) on the player's own floor (docs/53 step 6). The Use mode's Use torch on a wall is left out (one
 // way in, as Michael leaned).
 
-const wallOf = (tx, ty, edge) => {
-  const t = map.peekTile(tx, ty);
+const wallOf = (tx, ty, edge, layer = 0) => {
+  const t = map.peekTile(tx, ty, layer);
   return t ? t[edge] : null;
 };
 
@@ -260,13 +263,13 @@ export function torchOf(player, uid) {
 // Why a torch cannot go on this face, or "": no bracket on either face of it (a lantern's, a torch's), then a painting's rules for a face: a
 // plain drawn wall (never a fence, bars, a window, a door, or a gap) with nothing hung on it. A ring edge of a round room (docs/50, not
 // built) counts as wall for a torch: when rings land, its face is found at its point on the curve (paintings.facesAt) and accepted here.
-export function mountProblem(tx, ty, edge) {
-  const wall = wallOf(tx, ty, edge);
+export function mountProblem(tx, ty, edge, layer = 0) {
+  const wall = wallOf(tx, ty, edge, layer);
   if (wall && wall.bracket) return "A bracket is already there";
   // A ring's edge counts as wall for a torch (Michael, 2026-10-26: "the ring counts as wall for hearths and torches"): the bracket hangs at
   // its point on the curve, on a face the camera sees (map.ringFace), where a painting never hangs.
-  if (map.isRingWall(wall)) return map.ringFace(tx, ty, edge, 1) ? "" : "Not on that side of the curve";
-  return paintings.segmentProblem(tx, ty, edge);
+  if (map.isRingWall(wall)) return map.ringFace(tx, ty, edge, 1, layer) ? "" : "Not on that side of the curve";
+  return paintings.segmentProblem(tx, ty, edge, layer);
 }
 
 // Why the player cannot reach that face, or "": the floor tile it looks onto, as a painting's.
@@ -282,7 +285,7 @@ export function mountTorch(player, uid, tx, ty, edge) {
   tx = Math.round(Number(tx));
   ty = Math.round(Number(ty));
   if (!Number.isFinite(tx) || !Number.isFinite(ty) || (edge !== "n" && edge !== "w")) return false;
-  const why = mountReach(player, tx, ty) || mountProblem(tx, ty, edge);
+  const why = mountReach(player, tx, ty) || mountProblem(tx, ty, edge, player.layer || 0);
   if (why) {
     showMessage(why);
     return false;
