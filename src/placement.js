@@ -1150,6 +1150,12 @@ function removalTargetHere(sx, sy, layer) {
   const e = pickEdge(g0.gx, g0.gy);
   const ew = map.tileAt(e.tx, e.ty, layer)[e.edge];
   if (ew && ew.built && !walls.has(ew)) consider({ type: "wall", tx: e.tx, ty: e.ty, edge: e.edge, wall: ew, layer }, e.tx + e.ty - 0.75);
+  // A stair a player built (docs/53 step 6: stairs come up with Free building): its steps on this floor, or its landing from above.
+  if (!best) {
+    const on = map.stairAt(cx, cy, layer);
+    const s = on && !on.well ? on.s : map.landingAt(cx, cy, layer);
+    if (s && s.built) best = { type: "stair", s, tx: s.at[0], ty: s.at[1], layer: s.layer, depth: cx + cy - 1 };
+  }
   // A floor a player laid (docs/49 section 5), under all else: what stands on it is taken first.
   if (!best) {
     const ft = map.peekTile(cx, cy, layer);
@@ -1165,6 +1171,10 @@ function removalTargetHere(sx, sy, layer) {
 
 function targetReach(player, t) {
   if (t.type === "round") return nearestOutline(player, t.ring.x0, t.ring.y0, t.ring.n).d;
+  if (t.type === "stair") { // from its foot's floor its steps, from above its landing
+    const near = layerOf(player) === t.s.layer ? [t.s.before, ...t.s.tiles] : [t.s.landing];
+    return Math.min(...near.map(([x, y]) => Math.hypot(player.gx - x, player.gy - y)));
+  }
   if (t.type === "floor") return Math.hypot(player.gx - t.tx, player.gy - t.ty);
   if (t.type === "wall") {
     const [mx, my] = map.edgeMid(t.tx, t.ty, t.edge);
@@ -1176,7 +1186,7 @@ function targetReach(player, t) {
 // Why a removal is out of reach, or "": a wall you built by distance alone (Michael, 2026-10-18: removing a wall is fine from either side of it);
 // a made prop by distance and a clear line, so a chest or a station cannot be taken down through a wall (#227).
 function removeReachProblem(player, t) {
-  if (t.type === "wall" || t.type === "round" || t.type === "floor") return targetReach(player, t) > removeReach() ? "Too far" : "";
+  if (t.type === "wall" || t.type === "round" || t.type === "floor" || t.type === "stair") return targetReach(player, t) > removeReach() ? "Too far" : "";
   const why = reachProblem(player, t.prop.tiles, removeReach(), t.prop.layer || 0);
   return why === TOO_FAR ? "Too far" : why || "";
 }
@@ -1207,8 +1217,16 @@ function floorEntryOf(sprite) {
   const id = Object.keys(buildData).find((k) => isFloorBuild(k) && buildData[k].sprite === sprite);
   return id ? buildData[id] : null;
 }
+function stairEntryOf(s) {
+  const id = Object.keys(buildData).find((k) => isStairBuild(k) && (buildData[k].material || "wood") === s.material);
+  return id ? buildData[id] : null;
+}
 function targetName(t) {
   if (t.type === "prop") return propName(t.prop.sprite);
+  if (t.type === "stair") {
+    const d = stairEntryOf(t.s);
+    return d ? d.label.toLowerCase() : "stair";
+  }
   if (t.type === "floor") {
     const ft = map.peekTile(t.tx, t.ty, t.layer || 0);
     const d = ft && floorEntryOf(ft.floor);
@@ -1234,6 +1252,11 @@ function targetName(t) {
 // cloth) gives nothing back: which item it was is not kept.
 export function partsOf(t) {
   if (t.type === "round") return ringParts(t.ring);
+  if (t.type === "stair") {
+    const d = stairEntryOf(t.s);
+    const back = !d || t.s.free ? [] : Object.entries(d.cost || {}).map(([id, n]) => ({ id, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
+    return { back, tool: (d && d.tool) || tuning.world.boardTool };
+  }
   if (t.type === "floor") {
     const ft = map.peekTile(t.tx, t.ty, t.layer || 0);
     const d = ft && floorEntryOf(ft.floor);
@@ -1289,6 +1312,16 @@ function asRing(t) {
 // Why this player may not take it apart now, or "": what it holds, the tool, the reach.
 export function takeApartProblem(player, t) {
   t = asRing(t);
+  if (t && t.type === "stair") {
+    const L = layerOf(player);
+    if (L !== t.s.layer && L !== t.s.layer + 1) return "There is nothing there.";
+    if (!rules.freeBuilding) return "Stairs come apart only in Free building"; // built only with it (docs/53 step 6)
+    const living = stations.allBodies().filter((c) => c && !c.dead && !c.corpse);
+    const why = map.stairTakeUpProblem(t.s, living) || (stations.bodyOnTiles(t.s.tiles, t.s.layer) || stations.bodyOnTiles([t.s.landing], t.s.layer + 1) ? "Someone is on it" : "");
+    if (why) return why;
+    const tool = partsOf(t).tool;
+    return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);
+  }
   if (t && t.type === "floor") {
     if ((t.layer || 0) !== layerOf(player)) return "There is nothing there.";
     const why = map.floorTakeUpProblem(t.tx, t.ty, t.layer || 0) || (stations.bodyOnTiles([[t.tx, t.ty]], t.layer || 0, true) ? "Someone is standing on it" : ""); // a corpse too: it lies on the floor
@@ -1341,6 +1374,10 @@ export function takeApart(player, t) {
 
 // Destroy it. A container spills what it held onto the floor; a wall takes its boards with it.
 function destroy(t) {
+  if (t.type === "stair") {
+    map.removeStair(t.s); // its landing's own planks with it, what lay on them falling (docs/53 step 6)
+    return;
+  }
   if (t.type === "floor") {
     map.takeUpFloor(t.tx, t.ty, t.layer || 0); // the floor it replaced back; its neighbours as they are (docs/49 section 5)
     return;
@@ -1642,6 +1679,7 @@ function finishRound(player) {
 function addressOf(t) {
   if (t.type === "round") return { type: "round", id: t.ring.id };
   if (t.type === "floor") return { type: "floor", tx: t.tx, ty: t.ty };
+  if (t.type === "stair") return { type: "stair", tx: t.s.at[0], ty: t.s.at[1], layer: t.s.layer }; // by its low tile and its own floor
   return t.type === "prop" ? { type: "prop", id: t.prop.id } : { type: "wall", tx: t.tx, ty: t.ty, edge: t.edge };
 }
 
@@ -1803,6 +1841,12 @@ export function performPlacement(player, cmd) {
       const tx = Math.round(Number(a.tx));
       const ty = Math.round(Number(a.ty));
       if (Number.isFinite(tx) && Number.isFinite(ty)) t = { type: "floor", tx, ty, layer: layerOf(player) };
+    } else if (a.type === "stair") {
+      // A stair by its low tile, on the player's floor or the one under it (its landing's side): the built stair standing there now.
+      const tx = Math.round(Number(a.tx));
+      const ty = Math.round(Number(a.ty));
+      const s = map.stairs().find((q) => q.built && q.at[0] === tx && q.at[1] === ty && (q.layer === layerOf(player) || q.layer + 1 === layerOf(player)));
+      if (s) t = { type: "stair", s, tx, ty, layer: s.layer };
     }
     if (!t) return false;
     takeApart(player, t); // the one rule, its refusal said to the acting player

@@ -176,7 +176,10 @@ export function makeCode() {
 // chest height, and an older host would read a ground aim from a storey as the storey's own floor.
 // 29 (2026-10-30, docs/53 step 4, the review of #605): the `fx` message's z for sparks and splinters is the height above the ground, its storey's
 // STOREY times its layer in it (a cellar's below 0), bounded at 1024 either way; an older guest would draw an upstairs spark or burst on the ground.
-export const PROTOCOL = 29;
+// 30 (2026-10-30, docs/53 step 6, building's rules): the `remove` command may name `{ type: "stair", tx, ty }` (a built stair by its low tile), and a
+// chunk's record without a built stair whose foot it holds takes that stair away; an older guest would keep a stair the host took up, and an older
+// host would drop the command.
+export const PROTOCOL = 30;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).

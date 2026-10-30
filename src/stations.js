@@ -254,6 +254,7 @@ export function outputOf(prop) {
 // The bodies on the map (the players, the villagers, the dead, the animals, the bodies lying), handed in by game.js: a made prop never lands
 // on a tile one stands on (the crafter usually stands on the first tile tried, below the station), as placement.canPutDown keeps clear of the player.
 let bodies = () => [];
+export const allBodies = () => bodies(); // every body the stations know (the stair's cut-off test, placement.js)
 export function setBodies(fn) {
   bodies = fn;
 }

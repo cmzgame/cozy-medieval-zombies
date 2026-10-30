@@ -7756,7 +7756,7 @@ check("round rooms, step 3 (#588): the outline's vertices and the filler's piece
 check("round rooms, step 3 (#588): a straight wall toward a ring ends at a vertex of its stepped outline: one ending at the square's corner or a 7 by 7's pocket corner is refused with why (the command a guest sends too); built from the ring outward it runs through the pocket; the room beyond a run seals against the ring, the ring's own room still one", () => {
   roundSquare();
   const r5 = ownRing(); // the 5 by 5 at (2, 2): its square x 2 to 6, its step corners (3, 2) and (6, 2) on the north, the square's corner (2, 2)
-  const WHY = "Start it at a step of the round wall";
+  const WHY = "Build it from a step of the round wall outward";
   const out = [];
   // To the square's corner, along either line: refused.
   assert(mapMod.ringWallProblem(2, 1, "w", "wall") === WHY && !mapMod.canBuildWall(2, 1, "w", "wall"), `a wall to the 5 by 5's corner from the north: "${mapMod.ringWallProblem(2, 1, "w", "wall")}"`);
@@ -8484,6 +8484,181 @@ check("height, step 4: a burning body's embers and smoke, a spark, and splinters
   assert(netMod.PROTOCOL >= 29, `PROTOCOL ${netMod.PROTOCOL}`);
   for (let i = 0; i < 200; i++) fire.update(1 / 60, []);
   return `${shed.length} embers and puffs on floor 2 at rise 40; a spark on 1, a burst in a cellar; heights 22, 118, 300, -84 back to their floors`;
+});
+
+// docs/53 step 6: building's rules. Built on pieces of its own (step 0), through the commands a guest sends (placement.performPlacement).
+const roundForRows = await import("../src/round.js");
+const battlementsForRows = await import("../src/battlements.js");
+const reachForRows = await import("../src/reach.js");
+const rugsForRows = await import("../src/rugs.js");
+check("height, step 6: building's rules: a rug, a painting, a torch, a set-down, the campfire, and a palette prop upstairs on the player's floor (a torch lights its storey); a shut gate stops a hand and comes apart only in Free building, and breaks; a wall out of sight refused in the bar's words; the ramp and the cliff pieces never on a built floor; a round tower holds its stair; a stair taken up with nobody above and refused with someone, a guest's copy dropping it; the storey cap; the arrow loops spread evenly", () => {
+  const at = clearGround();
+  assert(at, "no clear ground");
+  const [x, y] = at;
+  const S = gameMod.state;
+  const me = S.player;
+  const was = { gx: me.gx, gy: me.gy, layer: me.layer, rise: me.rise, free: rulesImport.rules.freeBuilding };
+  const said = [];
+  promptImport.setMessageSink((t) => (said.push(t), true));
+  const floors = [];
+  const walls = [];
+  const stairs = [];
+  const props = [];
+  const dead = [];
+  const cleared = [];
+  const bag = inventoryMod.bagOf(me);
+  const given = [];
+  const bare = (x0, y0, x1, y1) => {
+    for (let b = y0; b <= y1; b++) for (let a = x0; a <= x1; a++) { const t = mapMod.peekTile(a, b, 0); if (t && t.prop && !cleared.some((c) => c[0] === t.prop)) { const pr = t.prop; cleared.push([pr, pr.tile[0], pr.tile[1]]); mapMod.removeProp(pr); } }
+  };
+  const floor = (a, b, L, id = "floor_stone") => { const t = mapMod.growTile(a, b, L); t.built = { under: t.floor, free: true }; t.floor = id; mapMod.touch(a, b, L); floors.push([a, b, L]); }; // a floor a player laid
+  const wall = (tx, ty, edge, L, kind = "wall", sprite = "wall_stone") => { assert(mapMod.buildWall(tx, ty, edge, kind, sprite, null, L), `a ${sprite} at ${tx},${ty} ${edge} on ${L}`); walls.push([tx, ty, edge, L]); return mapMod.peekTile(tx, ty, L)[edge]; };
+  const stand = (gx, gy, L) => { me.gx = gx; me.gy = gy; me.layer = L; me.rise = 0; };
+  const give = (id, extra = {}) => { const e = itemsMod.makeEntry(id, 1); Object.assign(e, extra); assert(gridMod.insert(bag, e), `no room in the bag for ${id}`); given.push(e); return e; };
+  const send = (cmd) => { said.length = 0; placementImport.performPlacement(me, cmd); return said[said.length - 1] || ""; };
+  const lastProp = (tx, ty, L) => { const p = mapMod.peekTile(tx, ty, L)?.prop; if (p && !props.includes(p)) props.push(p); return p; };
+  try {
+    rulesImport.rules.freeBuilding = true;
+    bare(x - 7, y - 7, x + 21, y + 17);
+    // ---- An upstairs room, six by six, stone walls round it on layer 1; a short open walk beside it.
+    for (let j = 0; j < 6; j++) for (let i = 0; i < 6; i++) floor(x + i, y + j, 1);
+    for (let i = 0; i < 6; i++) { wall(x + i, y, "n", 1); wall(x + i, y + 6, "n", 1); }
+    for (let j = 0; j < 6; j++) { wall(x, y + j, "w", 1); wall(x + 6, y + j, "w", 1); }
+    for (let i = 8; i <= 10; i++) floor(x + i, y + 1, 1);
+    mapMod.roomsIfDirty();
+    assert(mapMod.tileAt(x + 2, y + 2, 1).room > 0 && !(mapMod.tileAt(x + 9, y + 1, 1).room > 0), "the room upstairs and the walk beside it");
+    stand(x + 2, y + 2, 1);
+    const rug = give("rug_bearskin");
+    let why = send({ kind: "rug", uid: rug.uid, tx: x + 1, ty: y + 1, facing: rugsForRows.facingsOf(rugsForRows.rugDef("rug_bearskin").rug)[0] });
+    const laid = mapMod.peekTile(x + 1, y + 1, 1)?.rug;
+    assert(laid && (laid.layer || 0) === 1 && !mapMod.peekTile(x + 1, y + 1, 0)?.rug, `a rug upstairs: ${why || "not laid"}`);
+    props.push(laid);
+    const pic = give("painting_small_oak");
+    why = send({ kind: "painting", uid: pic.uid, tx: x + 1, ty: y, edge: "n" });
+    assert((mapMod.peekTile(x + 1, y, 1).n.hangings || []).some((h) => h.item === "painting_small_oak"), `a painting on an upstairs wall: ${why || "not hung"}`);
+    mapMod.roomsIfDirty();
+    lightMod.update(); // the step's own gathering of the light's sources
+    const lightBefore = lightMod.lightAt(x + 3, y + 1, 1);
+    const groundBefore = lightMod.lightAt(x + 3, y + 1, 0);
+    const main0 = me.hands.main;
+    const torch = itemsMod.makeEntry("torch", 1);
+    torch.lit = true;
+    me.hands.main = torch; // a lit torch in the hand (a torch in the bag is never lit)
+    why = send({ kind: "torch", uid: torch.uid, tx: x + 3, ty: y, edge: "n" });
+    const bracket = mapMod.peekTile(x + 3, y, 1).n.bracket;
+    if (me.hands.main === torch) me.hands.main = main0;
+    assert(bracket, `a torch on an upstairs wall: ${why || "not mounted"}`);
+    lightMod.update();
+    const lightAfter = lightMod.lightAt(x + 3, y + 1, 1);
+    assert(lightAfter > lightBefore + 0.05 && Math.abs(lightMod.lightAt(x + 3, y + 1, 0) - groundBefore) < 0.05, `the torch lights its own storey and not the ground under it: upstairs ${lightBefore.toFixed(2)} to ${lightAfter.toFixed(2)}, the ground ${groundBefore.toFixed(2)} to ${lightMod.lightAt(x + 3, y + 1, 0).toFixed(2)}`);
+    me.hands.main = main0;
+    const pumpkin = give("decorative_pumpkin");
+    why = send({ kind: "setdown", uid: pumpkin.uid, tx: x + 4, ty: y + 1 });
+    assert(lastProp(x + 4, y + 1, 1), `a set-down upstairs: ${why || "not set down"}`);
+    why = send({ kind: "build", what: "fire_pit", tx: x + 3, ty: y + 3 });
+    const pit = lastProp(x + 3, y + 3, 1);
+    assert(pit && (pit.layer || 0) === 1, `the fire pit from the palette upstairs: ${why || "not built"}`);
+    stand(x + 8, y + 1, 1);
+    const fire = give("campfire");
+    why = send({ kind: "campfire", uid: fire.uid, tx: x + 9, ty: y + 1 });
+    assert(lastProp(x + 9, y + 1, 1), `the campfire on an open walk upstairs: ${why || "not set down"}`);
+    // ---- The landforms never on a built floor.
+    stand(x + 2, y + 2, 1);
+    why = send({ kind: "build", what: "stair_ramp_stone", tx: x + 4, ty: y + 4, dir: "w" });
+    assert(why === "Not on a built floor" && !mapMod.stairAt(x + 4, y + 4, 1), `a ramp on a storey: "${why}"`);
+    why = send({ kind: "build", what: "wall_cliff", tx: x + 2, ty: y + 5, edge: "n" });
+    assert(why === "Not on a built floor" && !mapMod.peekTile(x + 2, y + 5, 1).n, `a cliff wall on a storey: "${why}"`);
+    why = send({ kind: "build", what: "floor_cliff_top", tx: x + 5, ty: y + 5, tx2: x + 5, ty2: y + 5 });
+    assert(why === "Not on a built floor" && mapMod.peekTile(x + 5, y + 5, 1).floor === "floor_stone", `a cliff top over a storey's floor: "${why}"`);
+    // ---- A castle gate: a hand stops at its shut bars, it comes apart only in Free building, and the dead break it whole.
+    wall(x + 12, y + 10, "n", 0);
+    wall(x + 13, y + 10, "n", 0);
+    assert(mapMod.buildGate(x + 12, y + 10, "n", "wall_stone_gate_2", 0, { free: true }), "no gate");
+    stand(x + 12.5, y + 11.2, 0);
+    assert(reachForRows.reachProblem(me, [[x + 12, y + 9]], 2.6) === reachForRows.WALL_IN_THE_WAY, "a hand reaches through a shut gate's bars");
+    const gw = mapMod.peekTile(x + 12, y + 10, 0).n;
+    rulesImport.rules.freeBuilding = false;
+    why = placementImport.takeApartProblem(me, { type: "wall", tx: x + 12, ty: y + 10, edge: "n", wall: gw, layer: 0 });
+    rulesImport.rules.freeBuilding = true;
+    assert(why === "Gates come apart only in Free building", `a gate taken apart without Free building: "${why}"`);
+    assert(mapMod.needsBreaking(gw) && gw.hp === 300, `a shut gate is not breakable at 300: ${gw.hp}`);
+    // ---- A wall out of sight: refused up front in the bar's words, nothing built.
+    for (let i = 10; i <= 14; i++) wall(x + i, y + 14, "n", 0);
+    stand(x + 12.5, y + 12.5, 0);
+    why = send({ kind: "build", what: "wall", tx: x + 12, ty: y + 16, edge: "n" });
+    assert(why === reachForRows.WALL_IN_THE_WAY && !mapMod.peekTile(x + 12, y + 16, 0).n, `a wall behind a wall: "${why}"`);
+    // ---- A round tower holds its own stair: the stair, the floor round its stairwell, then the ring, in that order.
+    const rx = x + 12;
+    const ry = y - 6;
+    const st = mapMod.buildStair(rx + 4, ry + 3, "w", "wood", 0, { free: true });
+    assert(st, `no stair for the tower: ${mapMod.stairBuildProblem(rx + 4, ry + 3, "w", 0, "wood")}`);
+    stairs.push(st);
+    const shape = roundForRows.shape(rx, ry, 7);
+    const well = new Set(st.tiles.map(([a, b]) => `${a},${b}`));
+    let more = true;
+    while (more) {
+      more = false;
+      for (const [a, b] of shape.stepped) {
+        if (well.has(`${a},${b}`) || (mapMod.peekTile(a, b, 1) && mapMod.peekTile(a, b, 1).floor !== "void")) continue;
+        if (mapMod.buildFloor(a, b, "floor_stone", 1, { free: true })) { floors.push([a, b, 1]); more = true; }
+      }
+    }
+    const ringWhy = mapMod.ringProblem(rx, ry, 7, 1);
+    assert(!ringWhy, `the ring over its stair refused: "${ringWhy}"`);
+    const ring = mapMod.buildRing(rx, ry, 7, "wall_stone", 1, { built: true, free: true });
+    assert(ring, "the ring over its stair was not built");
+    const climber = { gx: st.before[0], gy: st.before[1], layer: 0, rise: 0 };
+    assert(movementMod.canReach(climber, mapMod.addr(rx + 3, ry + 1, 1)), "the tower's top is not reached by its own stair");
+    // ---- A stair comes up with nobody above, and not with someone there; a guest's copy drops it with its chunk.
+    floor(x + 1, y + 12, 1); // its landing a floor a player laid first: it stays when the stair goes
+    const s2 = mapMod.buildStair(x + 4, y + 12, "w", "wood", 0, { free: true });
+    assert(s2, `no stair to take up: ${mapMod.stairBuildProblem(x + 4, y + 12, "w", 0, "wood")}`);
+    stairs.push(s2);
+    for (let j = -1; j <= 1; j++) for (let i = 0; i <= 1; i++) if (i || j) floor(s2.landing[0] - i, s2.landing[1] + j, 1);
+    assert(mapMod.floorTakeUpProblem(s2.landing[0], s2.landing[1], 1) === "It is a stair's landing: take the stair apart", `the landing's take-apart words: "${mapMod.floorTakeUpProblem(s2.landing[0], s2.landing[1], 1)}"`);
+    const up = zombieMod.createZombie(s2.landing[0] - 1, s2.landing[1], { hp: 1000 });
+    up.layer = 1;
+    S.zombies.push(up);
+    dead.push(up);
+    stand(x + 5.5, y + 12.5, 0);
+    const t2 = { type: "stair", s: s2, tx: s2.at[0], ty: s2.at[1], layer: 0 };
+    why = placementImport.takeApartProblem(me, t2);
+    assert(why === "Someone up there would have no way down", `a stair taken up with one of the dead above: "${why}"`);
+    S.zombies.splice(S.zombies.indexOf(up), 1);
+    const [ccx, ccy] = mapMod.chunkCoord(s2.tiles[0][0], s2.tiles[0][1]);
+    const rec0 = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(ccx, ccy, false, 0))));
+    why = send({ kind: "remove", target: { type: "stair", tx: s2.at[0], ty: s2.at[1] } });
+    assert(!mapMod.stairAt(s2.tiles[0][0], s2.tiles[0][1], 0) && mapMod.peekTile(s2.landing[0], s2.landing[1], 1).floor === "floor_stone" && s2.tiles.every(([a, b]) => mapMod.peekTile(a, b, 1)?.floor === "void" || !mapMod.peekTile(a, b, 1)), `the stair not taken up with nobody above (its laid landing kept): ${why}`);
+    const rec1 = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(ccx, ccy, false, 0))));
+    mapMod.installChunk(rec0);
+    const back = !!mapMod.stairAt(s2.tiles[0][0], s2.tiles[0][1], 0);
+    mapMod.installChunk(rec1);
+    assert(back && !mapMod.stairAt(s2.tiles[0][0], s2.tiles[0][1], 0), `a guest's copy: the stair back with the old record ${back}, gone with the new one ${!mapMod.stairAt(s2.tiles[0][0], s2.tiles[0][1], 0)}`);
+    // ---- The storey cap.
+    assert(mapMod.floorBuildProblem(x, y, "floor_stone", 7) === "High enough" && mapMod.stairBuildProblem(x, y, "w", 6) === "High enough", "the storey cap");
+    // ---- The arrow loops: one in every ten along a run.
+    let off = 0;
+    for (let ry2 = 0; ry2 < 40; ry2++) for (const edge of ["n", "w"]) {
+      let n = 0;
+      for (let i = 0; i < 40; i++) if (battlementsForRows.loopAt(edge === "n" ? 100 + i : ry2, edge === "n" ? ry2 : 100 + i, edge, 0.1)) n++;
+      if (n !== 4) off++;
+    }
+    assert(off === 0, `${off} runs of forty without exactly four loops`);
+    return "a rug, a painting, a lit torch (its storey lit, the ground not), a pumpkin, a fire pit, and a campfire upstairs by a guest's commands; a gate's bars stop a hand, Free building takes it apart, 300 to break; a wall behind a wall refused; the ramp, a cliff wall, and a cliff top refused on a built floor; a 7 by 7 tower over its own stair, climbed; a stair refused with one of the dead above, taken up with nobody, and dropped from a guest's copy with its chunk; the cap at 6; four loops in every run of forty";
+  } finally {
+    promptImport.setMessageSink(null);
+    for (const z of dead) { const i = S.zombies.indexOf(z); if (i >= 0) S.zombies.splice(i, 1); }
+    for (const p of props) { try { if (mapMod.propById(p.id)) mapMod.removeProp(p); } catch { /* gone */ } }
+    for (const r of mapMod.allRings ? mapMod.allRings() : []) { if (r.layer === 1 && r.x0 === x + 12 && r.y0 === y - 6) try { mapMod.removeRing(r.id); } catch { /* gone */ } }
+    try { if (mapMod.peekTile(x + 12, y + 10, 0)?.n?.gate) mapMod.removeGate(x + 12, y + 10, "n", 0); } catch { /* gone */ }
+    for (const [tx, ty, e, L] of walls.reverse()) { try { if (mapMod.peekTile(tx, ty, L)?.[e]) mapMod.destroyWall(tx, ty, e, false, L); } catch { /* gone */ } }
+    for (const s of stairs) { try { mapMod.removeStair(s); } catch { /* gone */ } }
+    for (const [a, b, L] of floors) { const t = mapMod.peekTile(a, b, L); if (t) { if (t.items) t.items.length = 0; delete t.built; t.floor = L ? "void" : t.floor; mapMod.touch(a, b, L); } }
+    for (const [pr, tx, ty] of cleared) { try { mapMod.placeProp(pr, tx, ty, 0); } catch { /* gone */ } }
+    for (const e of given) { try { if (bag.items.includes(e)) gridMod.remove(bag, e); } catch { /* gone */ } }
+    me.gx = was.gx; me.gy = was.gy; me.layer = was.layer; me.rise = was.rise;
+    rulesImport.rules.freeBuilding = was.free;
+  }
 });
 
 // The layer audit (docs/53 step 0, section 6.5): no call in the simulation leaves its layer to a default of the ground or the drawn storey,
