@@ -810,6 +810,31 @@ check("chunk edge (#341): an authored prop across an edge comes back whole from 
   assert(!mapMod.propById(P.id) && !mapMod.tileAt(other[0], other[1]).prop, `the lifted ${P.sprite} came back on the neighbour as a ghost`);
   return `${P.sprite} ${P.id} at ${P.tile} across ${anchorKey} and ${otherKey} (${crossing.length} authored props cross an edge)`;
 });
+check("chunk edge (#341): a prop lifted by a neighbour that alone is grown leaves no ghost when its own, still-ungrown anchor chunk grows (#582)", () => {
+  const json = read("data/maps/valley.json");
+  const key = (x, y) => `${Math.floor(x / C341)},${Math.floor(y / C341)}`;
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const sp = gameMod.state.info.spawn;
+  const crossing = mapMod.allProps().filter((p) => p.tiles && new Set(p.tiles.map(([x, y]) => key(x, y))).size > 1 && !p.rugItem && Math.max(Math.abs(p.tile[0] - sp[0]), Math.abs(p.tile[1] - sp[1])) > 6 * C341);
+  assert(crossing.length, "no authored prop beyond the spawn's ring crosses a chunk's edge in the valley");
+  const P = crossing[0];
+  const anchorKey = key(P.tile[0], P.tile[1]);
+  const other = P.tiles.find(([x, y]) => key(x, y) !== anchorKey);
+  const otherKey = key(other[0], other[1]);
+  // A fresh world, the neighbour's chunk grown alone: the prop is already in the registry (every authored prop is,
+  // from load), but its own anchor chunk has never been grown when it is lifted.
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const [ocx, ocy] = otherKey.split(",").map(Number);
+  mapMod.getChunk(ocx, ocy, true);
+  assert(!mapMod.peekTile(P.tile[0], P.tile[1]), `the anchor ${anchorKey} is already grown by the neighbour's own growth`);
+  mapMod.removeProp(mapMod.propById(P.id));
+  assert(!mapMod.propById(P.id), "the lifted prop is still in the registry");
+  // Grown after the lift: the anchor's own authored tile must not stand the prop again as a ghost (#582).
+  const [acx, acy] = anchorKey.split(",").map(Number);
+  mapMod.getChunk(acx, acy, true);
+  assert(!mapMod.tileAt(P.tile[0], P.tile[1]).prop, `the lifted ${P.sprite} stood again on its own ungrown anchor once it grew`);
+  return `${P.sprite} ${P.id} lifted with its anchor ${anchorKey} ungrown; grown after, its tile is clear`;
+});
 check("chunk edge (#341): two players lift one chest: the second lift meets it gone and gets nothing, with a word", () => {
   gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
   const a = gameMod.state.player;
