@@ -170,7 +170,11 @@ export function makeCode() {
 // 27 (2026-10-29, docs/09, castle gates): a door-kind wall may carry `gate` ({ i }, its place in a castle gate of 2 or 3 edges, one wall on each edge of
 // the run, all with one `open`), in a chunk's record as in the save; the `place` command's `build` names a gate by its first edge (`what`, tx, ty, edge). An
 // older guest would draw each edge as a door with no picture and let the dead bite and a blow through the bars, and an older host drops the build.
-export const PROTOCOL = 27;
+// 28 (2026-10-30, docs/53 step 2, shooting down and up): a guest's aim point is always [gx, gy, layer], the layer the floor it aims at (the
+// ground named 0), kept as sent; a flight's launch record names the floor it comes down on (`l`) and its `z0` is measured from that floor, so a
+// shot down from a storey starts high and one shot up starts under it. An older guest would draw a shot from the walk starting at the ground's
+// chest height, and an older host would read a ground aim from a storey as the storey's own floor.
+export const PROTOCOL = 28;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -543,8 +547,7 @@ export function cleanSnap(raw) {
   // Since protocol 22 it may name its layer, [gx, gy, layer] (docs/49 section 12), a small whole number, kept only when it is not 0.
   const point = (v, lim) => {
     if (!Array.isArray(v) || (v.length !== 2 && v.length !== 3) || !v.every((n) => typeof n === "number" && Number.isFinite(n))) return null;
-    const layer = v.length === 3 ? layerIn(v[2]) : 0;
-    return layer ? [num(v[0], lim), num(v[1], lim), layer] : [num(v[0], lim), num(v[1], lim)];
+    return v.length === 3 ? [num(v[0], lim), num(v[1], lim), layerIn(v[2])] : [num(v[0], lim), num(v[1], lim)]; // the floor aimed at, the ground named (docs/53 step 2)
   };
   const axis = vec(s.axis, 1) || { x: 0, y: 0 };
   let keys = null;
@@ -1497,10 +1500,10 @@ export function layerIn(v) {
 export function onPlayersLayer(p, msg) {
   return layerIn(msg && msg.layer) === ((p && p.layer) || 0);
 }
-// My aim point with my layer (docs/49 section 12): the host's aimPoint will project it on that layer's floor (step 5).
+// My aim point and the floor it is on (docs/53 step 2): the one my cursor picked (archery.aimPoint), else my own.
 function aimOnLayer(aimAt, layer) {
   if (!Array.isArray(aimAt)) return null;
-  return layer ? [aimAt[0], aimAt[1], layer] : [aimAt[0], aimAt[1]];
+  return [aimAt[0], aimAt[1], aimAt.length > 2 && Number.isInteger(aimAt[2]) ? aimAt[2] : layer || 0];
 }
 
 // A verb on the world, by its address and label (interact.js): the host performs it as my player.

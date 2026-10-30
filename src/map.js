@@ -874,7 +874,26 @@ export function itemsAt(x, y, layer = 0) {
   return tileAt(x, y, layer).items || [];
 }
 
+// The floor a thing let go at (x, y) on `layer` comes to rest on (docs/53 section 6.3: items fall, bodies never): that layer's if it has a
+// floor there, else the first one below with a floor (the void, a hole, and a stairwell are none), down to the deepest layer the world holds.
+export function restingLayer(x, y, layer) {
+  let k = layer;
+  for (let guard = 0; guard < 16; guard++) {
+    const t = peekTile(x, y, k) || blankOf(k);
+    if (t.floor !== VOID && t.floor !== HOLE) return k;
+    if (k <= minLayer()) return k;
+    k--;
+  }
+  return k;
+}
+function minLayer() {
+  let m = 0;
+  for (const c of chunks.values()) if (c.layer < m) m = c.layer;
+  return m;
+}
+
 export function dropItem(x, y, entry, layer = 0) {
+  layer = restingLayer(x, y, layer); // never on the void: it falls to the floor below (docs/53 section 6.3)
   // One thing a cell (#260, Michael 2026-10-24): what does not stack lies as that many entries, never one with a count, so a pick-up
   // never puts several into one cell (a harvest, a pick, or a mine with a full bag drops its overflow here).
   const def = hasItemDef(entry.id) ? getItem(entry.id) : null;
@@ -1133,8 +1152,7 @@ export function floorTakeUpProblem(x, y, layer = 0) {
   if (t.n || t.w || s.n || e.w) return "A wall stands on it";
   if (stairAt(x, y, layer) || landingAt(x, y, layer)) return "A stair stands on it";
   if (t.prop || t.rug) return "Something stands on it";
-  if (t.items && t.items.length) return "Something lies on it";
-  return "";
+  return ""; // what lies on it falls to the floor below as it comes up (docs/53 section 6.3)
 }
 
 // Take the built floor on (x, y) of `layer` up, the floor it replaced back (the void off the ground). Its neighbours stay as they are.
@@ -1144,7 +1162,9 @@ export function takeUpFloor(x, y, layer = 0) {
   const was = { floor: t.floor, free: !!t.built.free };
   t.floor = t.built.under;
   delete t.built;
+  const lying = t.items && t.items.length ? t.items.splice(0) : null;
   touch(x, y, layer);
+  if (lying) for (const e of lying) dropItem(x, y, e, layer); // the floor gone, what lay on it falls to the next one down
   if (!layer) groundChanged([[x, y]]);
   roomsDirty = true;
   return was;

@@ -28,6 +28,8 @@ import * as mana from "./mana.js"; // a spell's cost (docs/47 section 5): refuse
 import * as loop from "./loop.js";
 import * as rng from "./rng.js";
 import { nextId } from "./world.js"; // a thrown one from a stack is an entry of its own (docs/24 section 1)
+import { planeAt } from "./visibility.js"; // a floor is a plane a flight cannot pass (docs/53 section 6.1)
+import { sight as sightTuning } from "./tuning.js"; // the lean at an edge (docs/53 section 6.1)
 
 // Everything is tunable from the console: __game.archery.tunables. The numbers are data since 2026-10-15
 // (`data/combat.json` `bow`, setBowData; the wiki census: combat numbers are data); these are the same as defaults.
@@ -114,8 +116,15 @@ export function preview(from, dir, distance, c = 1, range = tunables.range) {
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
 export function shoot(from, dir, distance, c = 1, o = {}) {
-  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, knockdown = 0, item = null, flat = false, vanish = false, contact = 0, landRadius = null, ignite = false, poison: poisonTier = 0 } = o;
+  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, knockdown = 0, item = null, flat = false, vanish = false, contact = 0, landRadius = null, ignite = false, poison: poisonTier = 0, layer: aimLayer = null } = o;
   const p = preview(from, dir, distance, c, range);
+  // Height (docs/53 sections 6.1 and 6.3, step 2): the flight leaves the shooter's chest on the shooter's own floor and comes down on the floor
+  // aimed at, any storey above or below; its heights are measured from that floor, so the arc is the one it always was, begun higher or lower.
+  // A spear and a spell (`flat`) keep to the shooter's floor (`level`) and stop at its edge.
+  const fromLayer = (shooter && shooter.layer) || 0;
+  const level = flat || projectile === "spear";
+  const landLayer = level || !Number.isInteger(aimLayer) ? fromLayer : aimLayer;
+  const zStart = z0 + map.STOREY * (fromLayer - landLayer) + ((shooter && shooter.rise) || 0);
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
     kind: "arrow",
@@ -132,8 +141,10 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     ignite, // the body it hits is set alight (the fireball, a fire arrow; #14)
     poison: poisonTier, // the body it hits is poisoned at this tier (a poisoned arrow; docs/47 section 6); a thrown thing's coat is on its `item`
     speed,
-    z0,
-    layer: (shooter && shooter.layer) || 0, // the flight is on its shooter's layer and hits only there until shooting down is built (docs/49 step 5)
+    z0: zStart, // px over the landing floor at the release (a shot down from a storey starts a storey and more up)
+    layer: landLayer, // the floor it comes down on, and hits on (docs/53 step 2)
+    from: fromLayer, // the shooter's floor (the lean, the blow's memory)
+    level,
     shooter,
     damage,
     knockback,
@@ -150,7 +161,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     t: 0,
     gx: from.gx,
     gy: from.gy,
-    z: z0,
+    z: zStart,
     frame: 0,
     done: false,
   };
@@ -159,6 +170,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
   if (stop) {
     a.stopD = stop.d;
     a.stopWhy = stop.why;
+    a.stopLayer = stop.layer; // the floor it comes down on, where that is not the one aimed at
   }
   flying.push(a);
   launched.push(a);
@@ -203,14 +215,26 @@ export function wallStops(wall, z) {
   return true;
 }
 
-// Between two neighbouring tiles (a diagonal step may go either way round).
-function edgeStops(ax, ay, bx, by, z) {
+// Between two neighbouring tiles on `layer` (a diagonal step may go either way round), at `z` px over that layer's floor.
+function edgeStops(ax, ay, bx, by, z, layer) {
   if (ax !== bx && ay !== by) {
-    const viaX = wallStops(map.wallBetween(ax, ay, bx, ay), z) || wallStops(map.wallBetween(bx, ay, bx, by), z);
-    const viaY = wallStops(map.wallBetween(ax, ay, ax, by), z) || wallStops(map.wallBetween(ax, by, bx, by), z);
+    const viaX = wallStops(map.wallBetween(ax, ay, bx, ay, layer), z) || wallStops(map.wallBetween(bx, ay, bx, by, layer), z);
+    const viaY = wallStops(map.wallBetween(ax, ay, ax, by, layer), z) || wallStops(map.wallBetween(ax, by, bx, by, layer), z);
     return viaX && viaY;
   }
-  return wallStops(map.wallBetween(ax, ay, bx, by), z);
+  return wallStops(map.wallBetween(ax, ay, bx, by, layer), z);
+}
+
+// The layer a height over the ground is in, and the height over that layer's floor.
+const bandOf = (zAbs) => { const L = Math.floor(zAbs / map.STOREY); return [L, zAbs - map.STOREY * L]; };
+
+// Whether a flight between two heights over tile (x, y) passes a floor there (a plane at a storey's height; the void, a hole, and a
+// stairwell are none). The floor it comes down on is its end, never a crossing: the arc ends on it.
+function floorBetween(x, y, z0, z1) {
+  const lo = Math.min(z0, z1);
+  const hi = Math.max(z0, z1);
+  for (let k = Math.floor(lo / map.STOREY) + 1; k * map.STOREY < hi; k++) if (planeAt(x, y, k)) return k;
+  return null;
 }
 
 function tilePropHeight(prop) {
@@ -223,32 +247,56 @@ function tilePropHeight(prop) {
   }
 }
 
+// The walk with heights (docs/53 section 6.1, the `shot` policy): every height is over the ground (`base`, the landing floor's, plus the
+// arc's), and each wall, floor, and prop is asked on the layer whose storey holds that height. A flight that stops comes down at the foot of
+// what stopped it, on the layer it was in (`layer`): a floor met from above is the one it lies on. One that leans out (its shooter within
+// `sight.leanReach` of the edge it first crosses, out over a drop) is not stopped by its own floor before that edge. A spear or a spell keeps
+// to its own floor and stops where that floor ends.
 function scanPath(a) {
   const step = tunables.scanStep;
   const n = Math.ceil(a.s / step);
+  const base = map.STOREY * (a.layer || 0);
   let tx = Math.round(a.x0);
   let ty = Math.round(a.y0);
+  let zPrev = base + heightAt(a, 0);
+  // The lean: whether the first tile the flight crosses into is a drop on the shooter's floor within reach.
+  let leaning = false;
+  for (let i = 1; i <= n; i++) {
+    const d = Math.min(a.s, i * step);
+    const nx = Math.round(a.x0 + a.dx * d);
+    const ny = Math.round(a.y0 + a.dy * d);
+    if (nx !== tx || ny !== ty) { leaning = d <= sightTuning.leanReach && !planeAt(nx, ny, a.from || 0); break; }
+  }
+  let crossed = false;
   for (let i = 1; i <= n; i++) {
     const d = Math.min(a.s, i * step);
     const before = Math.max(0, (i - 1) * step);
     const gx = a.x0 + a.dx * d;
     const gy = a.y0 + a.dy * d;
-    const z = heightAt(a, d / a.s);
+    const zAbs = base + heightAt(a, d / a.s);
+    const [L, z] = bandOf(zAbs);
     const nx = Math.round(gx);
     const ny = Math.round(gy);
     if (nx !== tx || ny !== ty) {
-      if (edgeStops(tx, ty, nx, ny, z)) return { d: before, why: "wall" };
-      const prop = map.tileAt(nx, ny).prop;
-      if (prop && prop.solid && !(prop.radius > 0) && z < tilePropHeight(prop)) return { d: before, why: "prop" };
+      crossed = true;
+      if (a.level && !planeAt(nx, ny, a.from || 0)) return { d: before, why: "edge", layer: a.from || 0 };
+      if (edgeStops(tx, ty, nx, ny, z, L)) return { d: before, why: "wall", layer: L };
+      const prop = map.tileAt(nx, ny, L).prop;
+      if (prop && prop.solid && !(prop.radius > 0) && z < tilePropHeight(prop)) return { d: before, why: "prop", layer: L };
       tx = nx;
       ty = ny;
     }
+    if (!a.level && !(leaning && !crossed)) {
+      const k = floorBetween(tx, ty, zPrev, zAbs);
+      if (k !== null) return { d: before, why: "floor", layer: zPrev > zAbs ? k : k - 1 }; // met from above it lies on that floor; from below, under it
+    }
+    zPrev = zAbs;
     // Round obstacles in the tiles about this point: a trunk is hit where its circle is.
     if (z < tunables.trunkHeight) {
       for (let oy = -1; oy <= 1; oy++) {
         for (let ox = -1; ox <= 1; ox++) {
-          const prop = map.tileAt(nx + ox, ny + oy).prop;
-          if (prop && prop.solid && prop.radius > 0 && Math.hypot(gx - prop.tile[0], gy - prop.tile[1]) < prop.radius + 0.08) return { d: before, why: "trunk" };
+          const prop = map.tileAt(nx + ox, ny + oy, L).prop;
+          if (prop && prop.solid && prop.radius > 0 && Math.hypot(gx - prop.tile[0], gy - prop.tile[1]) < prop.radius + 0.08) return { d: before, why: "trunk", layer: L };
         }
       }
     }
@@ -262,7 +310,7 @@ function pose(a) {
   a.gx = a.x0 + a.dx * a.s * u;
   a.gy = a.y0 + a.dy * a.s * u;
   const z0 = a.z0;
-  a.z = a.flat ? z0 : Math.max(0, z0 * (1 - u) + 4 * a.H * u * (1 - u));
+  a.z = a.flat ? z0 : Math.max(Math.min(0, z0), z0 * (1 - u) + 4 * a.H * u * (1 - u)); // shot up, it starts under the floor it comes down on
   // The picture's direction on screen, height included: along the ground it
   // goes (dx - dy) * HW and (dx + dy) * HH per tile, and up by dz/dt.
   const vz = a.flat ? 0 : (-z0 + 4 * a.H * (1 - 2 * u)) / a.T;
@@ -309,6 +357,7 @@ function land(a, met = null) {
   const d = met ? Math.min(a.s, a.speed * a.t) : a.stopD != null ? a.stopD : a.s;
   const gx = a.x0 + a.dx * d;
   const gy = a.y0 + a.dy * d;
+  const layer = !met && a.stopD != null && Number.isInteger(a.stopLayer) ? a.stopLayer : a.layer || 0; // what it lies on: the floor aimed at, or the foot of what stopped it
   a.landAt = [gx, gy]; // where it came down, which a guest's flight ends at (net.js, endRecord)
   // A thrown potion's or poison's splash (docs/47 section 7): it shatters where it lands, the vial gone, never a single-target hit (no
   // `damage` of its own to deal) — the area alone, within its item's own `thrown.splash.radius`. Reaches the thrower too, standing in it.
@@ -316,7 +365,7 @@ function land(a, met = null) {
   const sradius = sdef && sdef.thrown && sdef.thrown.splash && sdef.thrown.splash.radius;
   if (sradius > 0) {
     splashAt(gx, gy, sradius, sdef);
-    splashes.push({ gx, gy, t: 0, layer: a.layer || 0, color: sdef.color || "#ffffff" }); // the burst and the stain (cosmetic; render/entities.js)
+    splashes.push({ gx, gy, t: 0, layer, color: sdef.color || "#ffffff" }); // the burst and the stain (cosmetic; render/entities.js), on its landing floor
     emit("arrowLanded", { arrow: a, gx, gy, hit: null, kept: false, broken: false, stoppedBy: a.stopWhy });
     return;
   }
@@ -325,7 +374,7 @@ function land(a, met = null) {
   // landing point, if one is there (docs/20: hits are checked at landing only).
   let hit = null;
   if (met) hit = met; // met on the way (a contact burst)
-  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, { z: a.z, spell: a.vanish, layer: a.layer || 0 }); // never through a wall (#13), nor a floor (docs/49)
+  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, { z: a.z, spell: a.vanish, layer }); // never through a wall (#13), nor a floor (docs/49): on its landing floor
   let keep = true;
   const broken = a.breakChance > 0 && rng.chance(a.breakChance);
   // A poisoned arrow's tier, or a coated thrown thing's landing hit, which spends one of its coat (a miss spends none; docs/47 section 6).
@@ -342,7 +391,7 @@ function land(a, met = null) {
     // and never on one already down or one the hit kills.
     const amount = shotDamage(a.damage, a.c);
     const down = a.knockdown > 0 && !isDown(hit) && amount < hit.hp && rng.chance(a.knockdown);
-    damageZombie(hit, amount, { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, knockdown: down, from: [a.x0, a.y0] });
+    damageZombie(hit, amount, { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, knockdown: down, from: [a.x0, a.y0, a.from || 0] }); // the archer's floor (docs/53 step 2)
     if (poisonTier) poison.apply(hit, poisonTier); // after it: a body it killed is not poisoned
   }
   if (hit) {
@@ -363,10 +412,10 @@ function land(a, met = null) {
   if (a.vanish) keep = false; // a spell is gone the moment it arrives (Michael, 2026-10-14): nothing lies there
   if (a.projectile === "fireball") {
     flares.push({ gx, gy, t: 0 }); // a short light where it landed (#156)
-    map.kindleNear(gx, gy, tunables.kindleRadius, (px, py) => clearBetween(gx, gy, px, py, a.z), a.layer || 0); // and it lights a campfire or a mounted torch there, not through a wall
+    map.kindleNear(gx, gy, tunables.kindleRadius, (px, py) => clearBetween(gx, gy, px, py, Math.max(0, a.z), layer), layer); // and it lights a campfire or a mounted torch there, not through a wall
   }
   // What lands is the thrown item itself (a spear keeps whatever it carries) or a fresh arrow.
-  if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground }, a.layer || 0); // a thrown knife or axe lies as its picture at this angle too (render/props.js)
+  if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground }, layer); // a thrown knife or axe lies as its picture at this angle too (render/props.js); over a drop it falls to the floor below (map.dropItem)
   emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, broken, stoppedBy: a.stopWhy });
 }
 
@@ -393,13 +442,13 @@ function bodyAt(gx, gy, r = tunables.hitRadius, o = null) {
   let tameD = r;
   for (const z of targets()) {
     if (z.dead) continue;
-    if (o && (z.layer || 0) !== (o.layer || 0)) continue; // a body on another layer is behind a floor (docs/49; the flight's own layer until step 5)
+    if (o && (z.layer || 0) !== (o.layer || 0)) continue; // a body on another floor than the one it comes down on (docs/53 step 2)
     const d = Math.hypot(z.gx - gx, z.gy - gy);
     const isTame = z.kind === "animal" && !isWild(z);
     if (d > (isTame ? tameD : bestD)) continue;
     if (isTame && o && o.spell) continue;
     if (o && o.ahead && (z.gx - o.ahead.x0) * o.ahead.dx + (z.gy - o.ahead.y0) * o.ahead.dy <= 0) continue;
-    if (o && !clearBetween(gx, gy, z.gx, z.gy, o.z ?? tunables.z0)) continue;
+    if (o && !clearBetween(gx, gy, z.gx, z.gy, Math.max(0, o.z ?? tunables.z0), o.layer || 0)) continue;
     if (isTame) {
       tame = z;
       tameD = d;
@@ -413,7 +462,7 @@ function bodyAt(gx, gy, r = tunables.hitRadius, o = null) {
 
 // No wall or closed door stands between two points at height `z` (a landing's or a fireball's reach, bodyAt): the edges crossed on the
 // way, tile by tile, as a flight's own path is checked (edgeStops).
-function clearBetween(ax, ay, bx, by, z) {
+function clearBetween(ax, ay, bx, by, z, layer) {
   const len = Math.hypot(bx - ax, by - ay);
   const n = Math.max(1, Math.ceil(len / 0.1));
   let tx = Math.round(ax);
@@ -422,7 +471,7 @@ function clearBetween(ax, ay, bx, by, z) {
     const nx = Math.round(ax + ((bx - ax) * i) / n);
     const ny = Math.round(ay + ((by - ay) * i) / n);
     if (nx !== tx || ny !== ty) {
-      if (edgeStops(tx, ty, nx, ny, z)) return false;
+      if (edgeStops(tx, ty, nx, ny, z, layer)) return false;
       tx = nx;
       ty = ny;
     }
@@ -954,16 +1003,29 @@ export function bowOf(player) {
 // the cursor is over (`aimLift`), and a cursor on a zombie targets its feet.
 // `ctx` is the input: `aimAt` a grid point from a client whose cursor is not here (net.js), else
 // `mouse` in this client's world pixels; a script's override on the player wins.
+// The floor the cursor is over (docs/53 step 2): the highest storey in view whose floor is under the cursor there and in the viewer's sight
+// (`ctx.seen`, a client's per-layer sight; a check's plain point skips it), else the ground; the point is [gx, gy, layer], the layer always
+// named, so a guest's aim says which floor it means.
 export function aimPoint(player, ctx) {
   if (player && player.aimOverride) return player.aimOverride;
   if (ctx && ctx.aimAt) return ctx.aimAt;
   const mouse = ctx && ctx.mouse ? ctx.mouse : ctx;
+  const seen = ctx && ctx.seen;
+  const mine = (player && player.layer) || 0;
+  const layers = seen && seen.layers ? [...seen.layers.keys()].filter((k) => k >= 0).sort((x, y) => y - x) : mine ? [mine, 0] : [0];
+  for (const k of layers) {
+    const g = iso.toGrid(mouse.x, mouse.y + tunables.aimLift + k * map.STOREY);
+    const tx = Math.round(g.gx);
+    const ty = Math.round(g.gy);
+    if (planeAt(tx, ty, k) && (k === mine || !seen || !seen.sees || seen.sees(tx, ty, k))) return [g.gx, g.gy, k]; // a floor there, and mine or in my sight
+  }
   const g = iso.toGrid(mouse.x, mouse.y + tunables.aimLift);
-  return [g.gx, g.gy];
+  return [g.gx, g.gy, 0];
 }
 
 function aimFrom(player, ctx) {
-  const [cx, cy] = aimPoint(player, ctx);
+  const at = aimPoint(player, ctx);
+  const [cx, cy] = at;
   let dx = cx - player.gx;
   let dy = cy - player.gy;
   let L = Math.hypot(dx, dy);
@@ -973,7 +1035,7 @@ function aimFrom(player, ctx) {
     dy = f[1];
     L = 0;
   }
-  return { dir: [dx, dy], distance: Math.max(L, tunables.minDistance) };
+  return { dir: [dx, dy], distance: Math.max(L, tunables.minDistance), layer: at.length > 2 && Number.isInteger(at[2]) ? at[2] : (player.layer || 0) };
 }
 
 // The figure's pose is the bow style's attack frames, held by hand: 0 nocked,
@@ -1046,7 +1108,7 @@ export function releaseDraw(player, ctx) {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, knockdown: L.knockdown || 0, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null, ignite: !!L.ignite, poison: L.kind === "bow" ? L.poison || 0 : 0 });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, knockdown: L.knockdown || 0, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null, ignite: !!L.ignite, poison: L.kind === "bow" ? L.poison || 0 : 0, layer: aim.layer });
   player.recover = tunables.recoverTime;
   setPose(player, 3); // the release: the arrow loosed, the throw let go, the spell cast forward (docs/32, item 3)
   emit("arrowShot", { player, arrow: a, c });
@@ -1096,7 +1158,7 @@ export function updateDraw(player, dt, ctx) {
   // computed (on a host for a guest too, travelling with their record); whether it is drawn is the
   // viewer's own Aim guide setting, read where the frame is drawn (main.js), never here.
   const p = preview(player, aim.dir, aim.distance, draw.c, bow.range);
-  setMarker(player, { from: [player.gx, player.gy], full: p.full, land: p.land });
+  setMarker(player, { from: [player.gx, player.gy], full: p.full, land: p.land, layer: aim.layer, fromLayer: player.layer || 0 }); // drawn on the floor aimed at
   const at = poseAt(styleOf(player, true)); // the style's own rhythm (the bow's 0.35 and 0.8 by default; the cast's in poses.json)
   setPose(player, draw.c < at[0] ? 0 : draw.c < at[1] ? 1 : 2);
   const down = draw.source === "script" ? true : ctx.down;

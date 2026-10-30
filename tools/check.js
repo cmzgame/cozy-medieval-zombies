@@ -5801,7 +5801,7 @@ check("upper floors, step 1: the wire: a touched chunk goes with its layer, an a
   const s0 = netMod.cleanSnap({ aimAt: [3.5, 4.5, 0] });
   const bad = netMod.cleanSnap({ aimAt: [3.5, 4.5, 99] });
   const odd = netMod.cleanSnap({ aimAt: [3.5, 4.5, 1, 2] });
-  assert(JSON.stringify(s2.aimAt) === "[3.5,4.5]" && JSON.stringify(s3.aimAt) === "[3.5,4.5,1]" && JSON.stringify(s0.aimAt) === "[3.5,4.5]" && JSON.stringify(bad.aimAt) === "[3.5,4.5]" && odd.aimAt === null, `the aim cleaned: ${JSON.stringify([s2.aimAt, s3.aimAt, s0.aimAt, bad.aimAt, odd.aimAt])}`);
+  assert(JSON.stringify(s2.aimAt) === "[3.5,4.5]" && JSON.stringify(s3.aimAt) === "[3.5,4.5,1]" && JSON.stringify(s0.aimAt) === "[3.5,4.5,0]" && JSON.stringify(bad.aimAt) === "[3.5,4.5,0]" /* since PROTOCOL 28 the floor aimed at is kept, the ground named (docs/53 step 2) */ && odd.aimAt === null, `the aim cleaned: ${JSON.stringify([s2.aimAt, s3.aimAt, s0.aimAt, bad.aimAt, odd.aimAt])}`);
   assert(netMod.onPlayersLayer({ layer: 0 }, {}) && netMod.onPlayersLayer({ layer: 1 }, { layer: 1 }) && !netMod.onPlayersLayer({ layer: 0 }, { layer: 1 }) && !netMod.onPlayersLayer({ layer: 1 }, {}) && netMod.onPlayersLayer({ layer: 0 }, { layer: "x" }), "a command's layer against its player's");
   assert(netMod.layerIn(-1) === -1 && netMod.layerIn(2) === 2 && netMod.layerIn(1.5) === 0 && netMod.layerIn("1") === 0 && netMod.layerIn(40) === 0, "a layer from the wire is not cleaned");
   // A chunk's record says its layer, and installed on a replica it goes back on that layer.
@@ -8145,6 +8145,102 @@ check("height, step 1: on a stair: a climber near its top sees the floor above a
   } finally {
     for (const [a, b] of floors) { const t = mapMod.peekTile(a, b, 1); if (t) { t.floor = "void"; mapMod.touch(a, b, 1); } }
     try { mapMod.removeStair ? mapMod.removeStair(st) : null; } catch { /* gone */ }
+  }
+});
+
+// docs/53 step 2: shooting down and up, and items fall. Built on pieces of its own (step 0).
+check("height, step 2: a shot from a walk and from a second-storey window lands on the ground and hits there, the blow remembered on the archer's floor; one into the parapet stops and lies on the walk; a spear stops at the walk's edge; a shot up lands on a slab and hits there; nothing lies on the void, and a floor taken up drops what lay on it", () => {
+  const at = clearGround();
+  assert(at, "no clear ground");
+  const [x, y] = at;
+  const S = gameMod.state;
+  const me = S.player;
+  const STEP = 1 / 60;
+  const floors = [];
+  const walls = [];
+  const dead = [];
+  const was = { gx: me.gx, gy: me.gy, layer: me.layer, rise: me.rise, aggro: rulesImport.rules.zombieAggro };
+  const floor = (a, b, L) => { const t = mapMod.growTile(a, b, L); t.floor = "floor_stone"; mapMod.touch(a, b, L); floors.push([a, b, L]); };
+  const wall = (tx, ty, edge, L, kind = "wall", sprite = "wall_stone") => { assert(mapMod.buildWall(tx, ty, edge, kind, sprite, null, L), `a ${sprite} at ${tx},${ty} ${edge} on ${L}`); walls.push([tx, ty, edge, L]); return mapMod.peekTile(tx, ty, L)[edge]; };
+  const zombie = (gx, gy, layer) => { const z = zombieMod.createZombie(gx, gy, { hp: 1000 }); z.layer = layer; z.sightTimer = 1e9; z.idleTimer = 1e9; S.zombies.push(z); dead.push(z); return z; };
+  const stand = (gx, gy, layer) => { me.gx = gx; me.gy = gy; me.layer = layer; me.rise = 0; };
+  const fly = (to, layer, o = {}) => {
+    const dx = to[0] - me.gx;
+    const dy = to[1] - me.gy;
+    const a = archeryMod.shoot(me, [dx, dy], Math.hypot(dx, dy), 1, { layer, ...o });
+    for (let i = 0; i < 900 && !a.done; i++) archeryMod.update(STEP);
+    assert(a.done, "a flight never came down");
+    return a;
+  };
+  const lying = (tx, ty, L, id = "arrow") => mapMod.itemsAt(tx, ty, L).filter((e) => e.id === id).length;
+  try {
+    rulesImport.rules.zombieAggro = true;
+    archeryMod.reset();
+    // A wall walk: two rows of floor on layer 1, stone walls under both its long edges, a battlement on its south edge.
+    for (let i = 0; i < 6; i++) { floor(x + i, y, 1); floor(x + i, y + 1, 1); wall(x + i, y, "n", 0); wall(x + i, y + 2, "n", 0); wall(x + i, y + 2, "n", 1, "wall", "wall_battlement"); }
+    // Down from the battlement at one of the dead on the ground: it clears the parapet, hits, and the blow is remembered on the walk.
+    const below = zombie(x + 2, y + 6, 0);
+    stand(x + 2, y + 1.3, 1);
+    const hp0 = below.hp;
+    const hit = fly([x + 2, y + 6], 0);
+    assert(hit.stopD == null && hit.layer === 0 && hit.z0 === archeryMod.tunables.z0 + mapMod.STOREY, `the shot down: stopped ${hit.stopWhy}, layer ${hit.layer}, z0 ${hit.z0}`);
+    assert(below.hp < hp0, `the one below was not hit (${below.hp})`);
+    assert(Array.isArray(below.lastSeen) && below.lastSeen[2] === 1, `the blow is remembered on ${JSON.stringify(below.lastSeen)}`);
+    // A miss lies on the ground where it fell, never a storey up over it.
+    const miss = fly([x + 4, y + 8], 0);
+    assert(miss.stopD == null && lying(x + 4, y + 8, 0) === 1 && lying(x + 4, y + 8, 1) === 0, `the miss: stopped ${miss.stopWhy}, on the ground ${lying(x + 4, y + 8, 0)}, upstairs ${lying(x + 4, y + 8, 1)}`);
+    // From the walk's back row at the ground just past the wall: the parapet stops it under its 28, and it lies on the walk.
+    stand(x + 1, y, 1);
+    const low = fly([x + 1, y + 5], 0); // at 1.5 tiles out it is 122 px up, under the parapet's top at 124
+    assert(low.stopWhy === "wall" && low.stopLayer === 1, `the shot into the parapet: ${low.stopWhy} on ${low.stopLayer}`);
+    const onWalk = lying(x + 1, y, 1) + lying(x + 1, y + 1, 1);
+    assert(onWalk === 1, `it does not lie on the walk (${onWalk})`);
+    // A spear keeps to its own floor: thrown from the walk at the ground, it stops at the walk's edge and lies on the walk.
+    stand(x + 3, y + 0.5, 1);
+    const spear = fly([x + 3, y + 7], 0, { projectile: "spear", item: { id: "spear", count: 1, uid: "e-spear" } });
+    assert(spear.level && spear.stopWhy === "edge" && spear.layer === 1, `the spear: level ${spear.level}, ${spear.stopWhy}, layer ${spear.layer}`);
+    assert(lying(x + 3, y + 1, 1, "spear") === 1, "the spear does not lie at the walk's edge");
+    // A second-storey window: a column of floor on layers 1 and 2, a stone wall under it, an open window on layer 2 facing south.
+    floor(x + 8, y, 1); floor(x + 8, y, 2);
+    wall(x + 8, y + 1, "n", 0); wall(x + 8, y + 1, "n", 1);
+    const win = wall(x + 8, y + 1, "n", 2, "window");
+    win.shutter = "open";
+    const far = zombie(x + 8, y + 6, 0);
+    stand(x + 8, y + 0.3, 2);
+    const hpF = far.hp;
+    const fromWindow = fly([x + 8, y + 6], 0);
+    assert(fromWindow.stopD == null && far.hp < hpF, `from the window: stopped ${fromWindow.stopWhy} on ${fromWindow.stopLayer}, hp ${hpF} to ${far.hp}`);
+    win.shutter = "closed";
+    const shut = fly([x + 8, y + 6], 0);
+    assert(shut.stopWhy === "wall" && shut.stopLayer === 2, `through a shut window: ${shut.stopWhy} on ${shut.stopLayer}`);
+    // Up: a slab of floor on layer 1 with nothing round it, one of the dead on it, shot from the ground; it lands up there and hits there.
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) floor(x + 12 + i, y + 8 + j, 1);
+    const onSlab = zombie(x + 13, y + 9, 1);
+    stand(x + 13, y + 15, 0);
+    const hpS = onSlab.hp;
+    const up = fly([x + 13, y + 9], 1);
+    assert(up.stopD == null && up.layer === 1 && up.z0 < 0 && onSlab.hp < hpS, `the shot up: stopped ${up.stopWhy}, layer ${up.layer}, z0 ${up.z0}, hp ${hpS} to ${onSlab.hp}`);
+    // Nothing lies on the void: let go over the open air of a storey, it falls to the ground; a floor taken up drops what lay on it.
+    const air = mapMod.dropItem(x + 16, y + 2, { id: "arrow", count: 1 }, 1);
+    assert(lying(x + 16, y + 2, 0) === 1 && lying(x + 16, y + 2, 1) === 0 && air, "an arrow let go over the void did not fall to the ground");
+    { const t = mapMod.growTile(x + 16, y + 5, 1); t.built = { under: t.floor, free: true }; t.floor = "floor_stone"; mapMod.touch(x + 16, y + 5, 1); floors.push([x + 16, y + 5, 1]); } // a floor a player laid, alone in the air
+    mapMod.dropItem(x + 16, y + 5, { id: "arrow", count: 1 }, 1);
+    assert(lying(x + 16, y + 5, 1) === 1, "the arrow is not on the laid floor");
+    assert(mapMod.floorTakeUpProblem(x + 16, y + 5, 1) === "", `the floor under an arrow will not come up: "${mapMod.floorTakeUpProblem(x + 16, y + 5, 1)}"`);
+    mapMod.takeUpFloor(x + 16, y + 5, 1);
+    assert(lying(x + 16, y + 5, 1) === 0 && lying(x + 16, y + 5, 0) === 1, "the arrow on the floor taken up did not fall to the ground");
+    // The guest's side: the launch record names the floor it comes down on and the height from it (PROTOCOL 28).
+    const rec = archeryMod.launchRecord(hit, 0);
+    assert(netMod.PROTOCOL >= 28 && !rec.l && rec.z0 === hit.z0 && archeryMod.launchRecord(up, 0).l === 1, `the records: ${JSON.stringify(rec)}`);
+    return "down from a battlement and a window, the parapet, the spear's edge, up onto a slab, a fall from the air and from a floor taken up";
+  } finally {
+    archeryMod.reset();
+    for (const z of dead) { const i = S.zombies.indexOf(z); if (i >= 0) S.zombies.splice(i, 1); }
+    for (const [tx, ty, L] of [[x + 4, y + 8, 0], [x + 1, y, 1], [x + 1, y + 1, 1], [x + 3, y + 1, 1], [x + 16, y + 2, 0], [x + 16, y + 5, 0], [x + 1, y + 3, 0], [x + 8, y + 1, 0]]) { const t = mapMod.peekTile(tx, ty, L); if (t && t.items) t.items.length = 0; }
+    for (const [tx, ty, e, L] of walls.reverse()) { try { mapMod.destroyWall(tx, ty, e, false, L); } catch { /* gone */ } }
+    for (const [a, b, L] of floors) { const t = mapMod.peekTile(a, b, L); if (t) { if (t.items) t.items.length = 0; delete t.built; t.floor = L ? "void" : t.floor; mapMod.touch(a, b, L); } }
+    me.gx = was.gx; me.gy = was.gy; me.layer = was.layer; me.rise = was.rise;
+    rulesImport.rules.zombieAggro = was.aggro;
   }
 });
 

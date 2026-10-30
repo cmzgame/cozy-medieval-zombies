@@ -108,10 +108,13 @@ export function splashDrawables(splashes, visible, out) {
 // to it, unlit and unfogged so it reads at night.
 export function emitMarker(m) {
   const flags = gl.FLAG_NOFOG | gl.FLAG_UNLIT;
+  // The line leaves the archer's floor and the rings lie on the floor aimed at (docs/53 step 2), each lifted by its storey.
+  const liftFrom = map.STOREY * (m.fromLayer || 0);
+  const liftTo = map.STOREY * (m.layer ?? m.fromLayer ?? 0);
   const ring = (g, rx, ry, k, color) => {
     const p = iso.toScreen(g[0], g[1]);
     const x = Math.round(p.x);
-    const y = Math.round(p.y);
+    const y = Math.round(p.y - liftTo);
     const O = [[x, y - ry], [x + rx, y], [x, y + ry], [x - rx, y]];
     const I = O.map(([px, py]) => [Math.round(x + (px - x) * k), Math.round(y + (py - y) * k)]);
     for (let i = 0; i < 4; i++) gl.poly([O[i], O[(i + 1) % 4], I[(i + 1) % 4], I[i]], color, { world: g, flags });
@@ -126,7 +129,7 @@ export function emitMarker(m) {
       const gx = m.from[0] + (m.full[0] - m.from[0]) * t;
       const gy = m.from[1] + (m.full[1] - m.from[1]) * t;
       const px = Math.round(a.x + (b.x - a.x) * t);
-      const py = Math.round(a.y + (b.y - a.y) * t);
+      const py = Math.round(a.y + (b.y - a.y) * t - liftFrom - (liftTo - liftFrom) * t);
       gl.poly([[px - 1, py - 1], [px + 1, py - 1], [px + 1, py + 1], [px - 1, py + 1]], gl.rgb("#ffffff", 0.35), { world: [gx, gy], flags });
     }
   }

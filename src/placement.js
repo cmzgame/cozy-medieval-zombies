@@ -1315,7 +1315,7 @@ function destroy(t) {
     // What it held falls where it stood: a container's bag and a station's output.
     const bags = [prop.bag, prop.output].filter(Boolean);
     for (const bag of bags) {
-      for (const e of [...bag.items]) map.dropItem(prop.tile[0], prop.tile[1], e);
+      for (const e of [...bag.items]) map.dropItem(prop.tile[0], prop.tile[1], e, prop.layer || 0); // on its own floor
       bag.items.length = 0;
     }
     map.removeProp(prop);
