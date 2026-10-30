@@ -1086,13 +1086,28 @@ export function landingAt(x, y, layer = 0) {
 // The highest storey anything is built on (docs/53 step 6, a default): six storeys over the ground, a castle's tower top and room to spare.
 export const STOREY_CAP = 6;
 
-// Whether a cliff top lies on (x, y) of layer L or on one of the eight tiles round it (Michael, 2026-10-30, docs/02: the mountains are the map's
-// and separate zones, so no player-built floor, stair, or ladder ever reaches a hill's top; a mountain pass is made by the map alone).
+// The hill's own column (Michael, 2026-10-30, docs/02: the mountains are the map's and separate zones, so no player-built floor, stair, or ladder
+// ever joins a hill's top to the rest; a mountain pass is the map's alone): a tile of a storey is the hill's when it, or the same tile on a storey
+// under it, is a hill's top. A castle on a bluff builds inside its bluff's column; everything else stays a tile clear of it, on every storey
+// (the review of #611: a floor a storey over the top, out past its edge, was a bridge).
+export function hilly(x, y, L) {
+  if (L < 1) return false; // the ground is everyone's
+  for (let k = 1; k <= L; k++) {
+    const t = peekTile(x, y, k);
+    if (t && floorRule(t.floor).hill === "top") return true;
+  }
+  return false;
+}
+// Whether a player's floor on (x, y) of storey L would join a hill's column to the rest: outside the column and beside it (its eight tiles round),
+// or inside it and beside a floor outside it.
 export function nearHillTop(x, y, L) {
   if (L < 1) return false;
+  const me = hilly(x, y, L);
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-    const t = peekTile(x + dx, y + dy, L);
-    if (t && floorRule(t.floor).hill === "top") return true;
+    if (!dx && !dy) continue;
+    const h = hilly(x + dx, y + dy, L);
+    if (h === me) continue;
+    if (!me || isWalkableTile(x + dx, y + dy, L)) return true;
   }
   return false;
 }
@@ -1100,6 +1115,7 @@ export const NOT_ONTO_A_HILL = "Not up onto a hill";
 export function floorBuildProblem(x, y, id, layer = 0, grows = null) {
   if (layer > STOREY_CAP) return "High enough";
   if (floorRule(id).hill !== "top" && nearHillTop(x, y, layer)) return NOT_ONTO_A_HILL; // a player's floor never reaches a hill's top (docs/02, 2026-10-30)
+  if (floorRule(id).hill !== "top" && floorRule((peekTile(x, y, layer) || tileAt(x, y, layer)).floor).hill === "top") return NOT_ONTO_A_HILL; // nor replaces one: a castle on a bluff stands on its plateau as on grass (the review of #611)
   const t = peekTile(x, y, layer) || tileAt(x, y, layer);
   if (stairAt(x, y, layer)) return "Not over a stair";
   if (landingAt(x, y, layer)) return "Not on a stair's landing";
@@ -3086,7 +3102,10 @@ export function stairBuildProblem(x0, y0, dir, layer = 0, material = "wood") {
   if (layer < 0) return "Not here";
   if (layer + 1 > STOREY_CAP) return "High enough"; // the storey cap (docs/53 step 6)
   const up = layer + 1;
-  if (!stairKind(material).ramp && nearHillTop(rec.landing[0], rec.landing[1], up)) return NOT_ONTO_A_HILL; // only the map's ramps climb a hill (docs/02, 2026-10-30)
+  if (!stairKind(material).ramp) { // only the map's ramps climb a hill (docs/02, 2026-10-30): a stair stays wholly inside a hill's column or wholly out of it
+    const side = hilly(rec.landing[0], rec.landing[1], up);
+    if (nearHillTop(rec.landing[0], rec.landing[1], up) || [rec.before, ...rec.tiles].some(([a, b]) => hilly(a, b, layer) !== side)) return NOT_ONTO_A_HILL;
+  }
   const [bx, by] = rec.before;
   if (!isWalkableTile(bx, by, layer) || stairAt(bx, by, layer)) return "Its foot needs a floor to step from";
   for (const [x, y] of rec.tiles) {
@@ -3286,7 +3305,10 @@ export function ladderBuildProblem(x, y, dir, layer = 0) {
   const rec = ladderRecord(x, y, dir, layer, false);
   if (!rec) return "Not here";
   const up = layer + 1;
-  if (nearHillTop(rec.landing[0], rec.landing[1], up) || nearHillTop(x, y, up)) return NOT_ONTO_A_HILL; // no ladder up a hill (docs/02, 2026-10-30)
+  { // no ladder up a hill (docs/02, 2026-10-30): its tile, its hole, and its landing all inside a hill's column or all out of it
+    const side = hilly(rec.landing[0], rec.landing[1], up);
+    if (nearHillTop(rec.landing[0], rec.landing[1], up) || hilly(x, y, layer) !== side || hilly(x, y, up) !== side) return NOT_ONTO_A_HILL;
+  }
   const t = peekTile(x, y, layer);
   if (!t || !isWalkableTile(x, y, layer) || stairAt(x, y, layer) || landingAt(x, y, layer) || ladderAt(x, y, layer)) return "Not here";
   if (t.prop || t.rug) return "Something is in the way";

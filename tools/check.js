@@ -8941,10 +8941,28 @@ check("hills in tiers: a second tier's cliff wall, ramp, and cliff top built on 
     const up = mapMod.stairAt(x + 6, y + 4, 1);
     assert(up && !up.well, `a stair on the plateau to a floor over it: "${why}"`);
     stairs.push(up.s);
-    return "a second tier's cliff wall, ramp, and top on the first tier's top; a cliff wall on cobble refused; a wood stair, a ladder, and a plank floor up onto a hill refused; a stair on the plateau allowed";
+    // The review of #611. A floor a storey over the top, out past its edge, is no bridge: from the plateau stair's landing a plank floor stays
+    // inside the hill's column; a stair across the column's edge a storey up is refused; a plank floor never replaces the plateau's top.
+    stand(x + 6, y + 1, 2);
+    why = send({ kind: "build", what: "floor_wood", tx: x + 7, ty: y + 1, tx2: x + 9, ty2: y + 1 });
+    floors.push([x + 7, y + 1, 2], [x + 8, y + 1, 2], [x + 9, y + 1, 2]);
+    assert(mapMod.peekTile(x + 7, y + 1, 2)?.floor === "floor_wood" && (mapMod.peekTile(x + 8, y + 1, 2)?.floor || "void") === "void" && mapMod.floorBuildProblem(x + 8, y + 1, "floor_wood", 2) === "Not up onto a hill", `a floor out past the hill's edge a storey up: "${why}", x+7 ${mapMod.peekTile(x + 7, y + 1, 2)?.floor}, x+8 ${mapMod.peekTile(x + 8, y + 1, 2)?.floor}`);
+    assert(mapMod.stairBuildProblem(x + 9, y + 3, "w", 2, "wood") === "Not up onto a hill", `a stair across the column's edge a storey up: "${mapMod.stairBuildProblem(x + 9, y + 3, "w", 2, "wood")}"`);
+    stand(x + 5, y + 4, 1);
+    why = send({ kind: "build", what: "floor_wood", tx: x + 5, ty: y + 3, tx2: x + 5, ty2: y + 3 });
+    assert(mapMod.peekTile(x + 5, y + 3, 1)?.floor === "floor_cliff_top" && why === "Not up onto a hill", `a plank floor over the plateau's top: "${why}" (${mapMod.peekTile(x + 5, y + 3, 1)?.floor})`);
+    // A ramp whose landing would hang past the plateau's edge is refused; a tier's face may rise sheer from the rim below.
+    stand(x + 5, y + 3, 1);
+    why = send({ kind: "build", what: "stair_ramp_stone", tx: x + 5, ty: y + 2, dir: "n" });
+    assert(why === "Hills stand on dirt, grass, or hills" && !mapMod.stairAt(x + 5, y + 2, 1), `a ramp hanging past the edge: "${why}"`);
+    stand(x + 2, y + 1, 1);
+    why = send({ kind: "build", what: "wall_cliff", tx: x + 2, ty: y, edge: "n" });
+    assert(mapMod.peekTile(x + 2, y, 1).n && mapMod.wallRule(mapMod.peekTile(x + 2, y, 1).n.sprite).cliff, `a sheer face on the rim: "${why}"`);
+    walls.push([x + 2, y, "n", 1]);
+    return "a second tier's cliff wall, ramp, and top on the first tier's top; a sheer face on the rim; a cliff wall on cobble and a ramp hanging past the edge refused; a wood stair, a ladder, and a plank floor up onto a hill refused, and a floor or a stair crossing the hill's column a storey up; a stair and a floor inside the column a storey up allowed, a plank floor over the plateau's own top refused";
   } finally {
     promptImport.setMessageSink(null);
-    for (const s of stairs) { try { mapMod.removeStair(s); } catch { /* gone */ } }
+    for (const s of stairs) { try { if (mapMod.stairKind(s.material).ramp) for (const [tx, ty, e] of mapMod.landingSideEdges(s)) if (mapMod.peekTile(tx, ty, s.layer)?.[e]) mapMod.destroyWall(tx, ty, e, false, s.layer); mapMod.removeStair(s); } catch { /* gone */ } }
     for (const [tx, ty, e, L] of walls.reverse()) { try { if (mapMod.peekTile(tx, ty, L)?.[e]) mapMod.destroyWall(tx, ty, e, false, L); } catch { /* gone */ } }
     for (const [a, b, L] of floors) { const t = mapMod.peekTile(a, b, L); if (t) { delete t.built; t.floor = "void"; mapMod.touch(a, b, L); } }
     for (const [a, b, f] of ground) { const t = mapMod.peekTile(a, b, 0); if (t) { t.floor = f; mapMod.touch(a, b, 0); } }

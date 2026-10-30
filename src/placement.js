@@ -860,12 +860,17 @@ function landformProblem(what, x, y, L, way = null) {
   if (kind === "floor") return (L === 0 ? hillGround(x, y, 0) : airOrHillTop(x, y, L) && hillGround(x, y, L - 1)) ? "" : HILLS_ONLY;
   if (L + 1 > map.STOREY_CAP) return "High enough";
   if (kind === "wall") {
+    // On the ground both tiles of its edge dirt, grass, or a hill; a storey up one of them a hill's top and the other a top or the open air, so a
+    // tier's face may rise sheer from the tier below's rim (the review of #611; Michael: "a sheer cliff face 2-3 tall").
     const [a, b] = map.edgeTiles(x, y, way || "n");
-    return hillGround(a[0], a[1], L) && hillGround(b[0], b[1], L) ? "" : HILLS_ONLY;
+    const ga = hillGround(a[0], a[1], L);
+    const gb = hillGround(b[0], b[1], L);
+    const open = (t) => { const q = map.peekTile(t[0], t[1], L); return !q || q.floor === map.VOID; };
+    return (L === 0 ? ga && gb : (ga && (gb || open(b))) || (gb && open(a))) ? "" : HILLS_ONLY;
   }
   if (kind === "stair") {
     const d = { n: [0, -1], w: [-1, 0], s: [0, 1], e: [1, 0] }[way] || [0, -1];
-    const foot = [-1, 0, 1, 2].map((k) => [x + d[0] * k, y + d[1] * k]); // the tile before it and its three steps
+    const foot = [-1, 0, 1, 2, 3].map((k) => [x + d[0] * k, y + d[1] * k]); // the tile before it, its three steps, and the tile under its landing, where its side walls stand (the review of #611)
     if (!foot.every(([a, b]) => hillGround(a, b, L))) return HILLS_ONLY;
     return airOrHillTop(x + d[0] * 3, y + d[1] * 3, L + 1) ? "" : HILLS_ONLY;
   }
