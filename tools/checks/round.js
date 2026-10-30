@@ -163,7 +163,7 @@ export async function run(game, opts = {}) {
     row("the 7 by 7's outer corner: the two within a bite's reach, and no line of sight between them either way", gap < 0.9 && !lineOfSight(inn.gx, inn.gy, out.gx, out.gy) && !lineOfSight(out.gx, out.gy, inn.gx, inn.gy), `${gap.toFixed(2)} apart`);
 
     // A straight wall meeting the ring (docs/50 section 3, #588), on its west side (the house to the west has its east wall at x 18.5).
-    const WHY = "Start it at a step of the round wall";
+    const WHY = "Build it from a step of the round wall outward";
     const why = [G.map.ringWallProblem(21, 0, "w", "wall"), G.map.ringWallProblem(20, 1, "n", "wall"), G.map.ringWallProblem(20, 6, "n", "wall"), G.map.ringWallProblem(20, 2, "n", "wall"), G.map.ringWallProblem(20, 3, "n", "wall")];
     row(`a wall ending in a corner pocket is refused ("${WHY}"); one to a step corner or a door point's end is not`, why[0] === WHY && why[1] === WHY && why[2] === WHY && !why[3] && !why[4], why.map((w) => `"${w}"`).join(", "));
     // A yard of six between the house and the ring, its walls square to the ring's side into its two west step corners (21, 2) and (21, 5).

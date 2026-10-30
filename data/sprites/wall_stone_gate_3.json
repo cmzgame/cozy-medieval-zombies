@@ -53,12 +53,12 @@
    "name": "Stone gate (3 wide)",
    "swing": 1.2,
    "grille": true,
-   "deadBreak": false,
+   "deadBreak": true,
    "bitesPass": false,
    "shotsPass": true,
    "fireSpreads": false,
-   "hp": 400
+   "hp": 300
   }
  },
- "note": "a stone-wall castle gate 3 tiles wide (art round 12, Michael's approval 2026-10-29): one wall object per edge of its run, each drawing its own slice of the picture; the portcullis is a flat grille drawn after the wall (wall_parts_gate_stone_3); the flags are docs/02, 2026-10-29: the dead cannot break a closed gate (deadBreak), bites and melee do not pass its bars (bitesPass), shots do (shotsPass), fire does not spread through it (fireSpreads), sight and light pass it closed (grille)"
+ "note": "a stone-wall castle gate 3 tiles wide (art round 12, Michael's approval 2026-10-29): one wall object per edge of its run, each drawing its own slice of the picture; the portcullis is a flat grille drawn after the wall (wall_parts_gate_stone_3); the flags are docs/02, 2026-10-29: the dead break a closed gate at about three doors' health, hp 300 an edge, the whole gate giving way (deadBreak; docs/02, 2026-10-30, Height ruled), bites and melee do not pass its bars (bitesPass), shots do (shotsPass), fire does not spread through it (fireSpreads), sight and light pass it closed (grille)"
 }

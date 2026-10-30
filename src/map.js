@@ -695,7 +695,7 @@ export function inResourceArea(kind, x, y) {
 // A tile for a pure read that knows the authored map where nothing has grown: the live tile if its chunk is loaded, else the authored one
 // (an ungrown chunk inside the bounds is as the file made it, and a valley chunk is never dropped), else null, the plain base tile.
 function readTile(x, y) {
-  const t = peekTile(x, y);
+  const t = peekTile(x, y, 0); // the ground's: the resources' areas and the authored map's (docs/53 step 6)
   if (t) return t;
   return (inBounds(x, y) && source && source(x, y)) || null;
 }
@@ -769,7 +769,7 @@ export function resourceSpotProblem(kind, x, y, { live = true, bodies = [], not 
   const key = `${x},${y}`;
   const own = kind.own || kind.open.some((name) => openPlaces.has(name) && openPlaces.get(name).has(key));
   if (reservedTiles.has(key) && !own) return "a reserved tile";
-  const t = live ? peekTile(x, y) : readTile(x, y);
+  const t = live ? peekTile(x, y, 0) : readTile(x, y); // a resource stands on the ground (docs/46)
   if (live && !t) return "not grown";
   const tile = t || blank;
   if (tile.prop || tile.rug) return "under a prop";
@@ -783,7 +783,7 @@ export function resourceSpotProblem(kind, x, y, { live = true, bodies = [], not 
     if (!near) return "no tree near";
   }
   if (kind.water && !waterNear(x, y, kind.water, kind.waterGroup)) return kind.waterGroup ? `no ${kind.waterGroup} near` : "no water near";
-  if (live && roomAt(x, y) > 0) return "inside a room";
+  if (live && roomAt(x, y, 0) > 0) return "inside a room";
   if (!kind.own && fencedIn(x, y)) return "inside a fenced yard";
   for (const b of bodies) if (b && Math.hypot(b.gx - x, b.gy - y) < 1) return "a body stands there";
   return null;
@@ -1082,7 +1082,10 @@ export function landingAt(x, y, layer = 0) {
 
 // Why floor `id` cannot be laid on (x, y) of `layer`, or "". `grows` (a Set of tileKey3 keys) names tiles of the same drag laid before this
 // one, which count as walkable for the touching rule, so a drag grows a floor out from its first tile.
+// The highest storey anything is built on (docs/53 step 6, a default): six storeys over the ground, a castle's tower top and room to spare.
+export const STOREY_CAP = 6;
 export function floorBuildProblem(x, y, id, layer = 0, grows = null) {
+  if (layer > STOREY_CAP) return "High enough";
   const t = peekTile(x, y, layer) || tileAt(x, y, layer);
   if (stairAt(x, y, layer)) return "Not over a stair";
   if (landingAt(x, y, layer)) return "Not on a stair's landing";
@@ -1150,7 +1153,8 @@ export function floorTakeUpProblem(x, y, layer = 0) {
   const s = tileAt(x, y + 1, layer);
   const e = tileAt(x + 1, y, layer);
   if (t.n || t.w || s.n || e.w) return "A wall stands on it";
-  if (stairAt(x, y, layer) || landingAt(x, y, layer)) return "A stair stands on it";
+  if (stairAt(x, y, layer)) return "A stair stands on it";
+  if (landingAt(x, y, layer)) return "It is a stair's landing: take the stair apart"; // the landing's words (docs/53 step 6)
   if (t.prop || t.rug) return "Something stands on it";
   return ""; // what lies on it falls to the floor below as it comes up (docs/53 section 6.3)
 }
@@ -1650,7 +1654,7 @@ export function ringJoinProblem(tx, ty, edge, layer = 0) {
       if (!round.isPocketVertex(r.x0, r.y0, r.n, vx, vy)) continue;
       const s = round.shape(r.x0, r.y0, r.n);
       const nearer = Math.hypot(vx - 0.5 - s.cx, vy - 0.5 - s.cy) <= Math.hypot(ox - 0.5 - s.cx, oy - 0.5 - s.cy) + 1e-9;
-      if (nearer && !otherWallAt(vx, vy, layer, tx, ty, edge)) return "Start it at a step of the round wall";
+      if (nearer && !otherWallAt(vx, vy, layer, tx, ty, edge)) return "Build it from a step of the round wall outward";
     }
   }
   return "";
@@ -1701,13 +1705,18 @@ export function ringProblem(x0, y0, n, layer = 0) {
   if (!round.validSize(n)) return "A round room is 5 or 7 across";
   for (let y = y0 - 1; y <= y0 + n; y++) for (let x = x0 - 1; x <= x0 + n; x++) if (ringAt(x, y, layer) && x >= x0 && y >= y0 && x < x0 + n && y < y0 + n) return "Another round room is there";
   const s = round.shape(x0, y0, n);
+  const onCurve = (x, y) => s.crossed.some(([cx, cy]) => cx === x && cy === y) || s.unreachable.some(([cx, cy]) => cx === x && cy === y);
   for (const [x, y] of s.stepped) {
     const t = peekTile(x, y, layer);
     if (!t) return "Too far from anyone"; // a chunk not grown: nothing is built where no one is
     if (layer > 0 && isEngineFloor(t.floor)) { // upstairs, an empty tile is the void: say which, since the ground's wording ("empty ground") hides it (Michael's playtest, 2026-10-29)
       const h = stairAt(x, y, layer);
-      return h && h.well ? "A stairwell is under it: keep the ring off the stair's hole" : "A round room upstairs needs a floor under all of it";
+      // A tower holds its own stair (docs/53 step 6, `50` section 3): a stairwell among its tiles is the stair's hole in its floor, away
+      // from the curve, where a climber's head and shoulders pass.
+      if (h && h.well && !onCurve(x, y)) continue;
+      return h && h.well ? "A stairwell is under the curve: keep it off the ring's edge" : "A round room upstairs needs a floor under all of it";
     }
+    if (layer > 0 && landingAt(x, y, layer) && onCurve(x, y)) return "A stair's landing is under the curve"; // as a stair is refused under a ring built first (the review of #607)
     if (floorRule(t.floor).walk !== 1 || floorRule(t.floor).drink) return "Not on water or empty ground";
     if (t.prop || t.rug) return "Something is in the way";
     if (t.items && t.items.length) return "Clear the floor first";
@@ -2198,6 +2207,11 @@ export function takeTouched() {
   touched.clear();
   return out;
 }
+// Every chunk on every layer changed at once (a restore, a wall that knows no tile): `touch` with no tile, named so it is never a read that
+// forgot its layer (the layer audit, docs/53 step 0).
+export function touchAll() {
+  touch(null, null, 0);
+}
 export function touch(x = null, y = null, layer = 0) {
   worldVersion++;
   if (x === null) {
@@ -2221,7 +2235,7 @@ export function touch(x = null, y = null, layer = 0) {
 // a tile address carries its layer, left out when it is 0).
 function touchWall(wall) {
   if (wall.at) touch(wall.at[0], wall.at[1], wall.at[2] || 0);
-  else touch();
+  else touchAll();
 }
 // A tile address [x, y] with its layer when it is not the ground's (docs/49 section 12), and the layer an address names.
 export function addr(x, y, layer = 0) {
@@ -2460,8 +2474,15 @@ export function installChunk(d) {
   lastChunk = null;
   roomsDirty = true;
   settleRings(c); // a ring built or taken apart on the host, or kept by the save: its record follows its edges (docs/50 section 6)
-  // A built stair's record from its chunk (docs/49 section 5): its tiles, its landing, and its stairwell came in their own chunks' floors.
+  // A built stair's record from its chunk (docs/49 section 5): its tiles, its landing, and its stairwell came in their own chunks' floors. A
+  // built stair whose foot is on this chunk and is not in its record was taken away (docs/53 step 6): it goes from this copy too.
   let added = false;
+  const keep = new Set((d.stairs || []).map(([lx, ly]) => `bstair_${cx * CHUNK + lx}_${cy * CHUNK + ly}_${layer}`));
+  const gone = stairList.filter((s) => s.built && s.layer === layer && inChunkTile(c, s.tiles[0][0], s.tiles[0][1]) && !keep.has(s.id));
+  if (gone.length) {
+    stairList = stairList.filter((s) => !gone.includes(s));
+    added = true;
+  }
   for (const [lx, ly, dir, material, free] of d.stairs || []) {
     const rec = builtStairRecord(cx * CHUNK + lx, cy * CHUNK + ly, dir, material, layer, !!free);
     if (rec && !stairList.some((s) => s.id === rec.id)) {
@@ -2524,7 +2545,7 @@ export function restoreMap(data) {
   pendingSpawns.length = 0;
   for (const [x, y] of data.pending || []) pendingSpawns.push([x, y]);
   rebuildRooms();
-  touch();
+  touchAll();
 }
 
 // ---- eviction, and the dead that sleep with their chunk (docs/23a, B1, B2: a first slice of 03's records) ----
@@ -3022,6 +3043,7 @@ export function stairBuildProblem(x0, y0, dir, layer = 0, material = "wood") {
     if (g && (g.prop || g.rug || (g.items && g.items.length))) return "Something is in the way";
   }
   if (layer < 0) return "Not here";
+  if (layer + 1 > STOREY_CAP) return "High enough"; // the storey cap (docs/53 step 6)
   const up = layer + 1;
   const [bx, by] = rec.before;
   if (!isWalkableTile(bx, by, layer) || stairAt(bx, by, layer)) return "Its foot needs a floor to step from";
@@ -3056,8 +3078,9 @@ export function landingSideEdges(rec) {
   return edges.filter(([x, y, e]) => !(x === head[0] && y === head[1] && e === head[2]));
 }
 
-// Build it: its landing's planks laid on the storey above (part of its cost, never taken up), the stairwell over its three tiles left void,
-// its record kept on its low tile's chunk. A built stair never comes up (ruled). Returns the stair, or null.
+// Build it: its landing's planks laid on the storey above (part of its cost, never taken up on their own), the stairwell over its three tiles
+// left void, its record kept on its low tile's chunk. A built stair comes up again with Free building (removeStair, docs/53 step 6). Returns
+// the stair, or null.
 export function buildStair(x0, y0, dir, material, layer = 0, { free = false } = {}) {
   if (stairBuildProblem(x0, y0, dir, layer, material)) return null;
   const rec = builtStairRecord(x0, y0, dir, material, layer, free);
@@ -3087,6 +3110,96 @@ export function buildStair(x0, y0, dir, material, layer = 0, { free = false } = 
   markDirty(rec.tiles[0][0], rec.tiles[0][1], layer);
   roomsDirty = true;
   return rec;
+}
+
+// Whether taking the stair `s` away would leave a living body on a floor no other way reaches (docs/53 step 6: "nothing is ever cut off",
+// kept by a test): from its landing, the floor walked tile by tile and the other stairs taken up and down (never `s`), until a floor below the
+// landing's is reached (a way down that is not this stair) or nothing is left. `bodies` the living bodies; a search that runs out of its
+// budget counts what it saw as cut off, so the answer errs toward refusing.
+const CUT_OFF_SEARCH = 6000;
+// The walk's one step: onto open floor, by a stair only along its line, across no wall a body cannot pass, but through any door, shut or
+// boarded or a castle gate, since a body opens it (the review of #607: a room behind a shut door was left out of the walk).
+function walkStep(x0, y0, x1, y1, L) {
+  if (!isWalkableTile(x1, y1, L) || !stairStepOk(x0, y0, x1, y1, L)) return false;
+  const w = wallBetween(x0, y0, x1, y1, L);
+  return !w || !blocksMove(w) || w.kind === "door";
+}
+export function stairCutsOff(s, bodies) {
+  // The side away from the ground: up for a stair off the ground or a storey; down for a cellar's. The walk starts there and is done when it
+  // reaches the ground by another way (the review of #607: any floor below was not enough, a platform with no way down counted as one).
+  const fromUp = s.layer >= 0;
+  const up = fromUp ? s.layer + 1 : s.layer;
+  const above = bodies.filter((b) => (fromUp ? (b.layer || 0) >= up : (b.layer || 0) <= up));
+  if (!above.length) return false;
+  const ups = new Map(); // "x,y,L" of a stair's foot-before tile -> the landing it climbs to
+  const downs = new Map(); // "x,y,L" of a stair's landing -> the tile before its foot
+  for (const o of stairList) {
+    if (o === s) continue;
+    ups.set(`${o.before[0]},${o.before[1]},${o.layer}`, [o.landing[0], o.landing[1], o.layer + 1]);
+    downs.set(`${o.landing[0]},${o.landing[1]},${o.layer + 1}`, [o.before[0], o.before[1], o.layer]);
+  }
+  const seen = new Set();
+  const start = fromUp ? s.landing : s.before;
+  const queue = [[start[0], start[1], up]];
+  seen.add(`${start[0]},${start[1]},${up}`);
+  let n = 0;
+  while (queue.length && n++ < CUT_OFF_SEARCH) {
+    const [x, y, L] = queue.shift();
+    if (L === 0) return false; // the ground, by another way than this stair
+    const next = [];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (walkStep(x, y, x + dx, y + dy, L)) next.push([x + dx, y + dy, L]);
+    const k = `${x},${y},${L}`;
+    if (ups.has(k)) next.push(ups.get(k));
+    if (downs.has(k)) next.push(downs.get(k));
+    for (const t of next) {
+      const tk = `${t[0]},${t[1]},${t[2]}`;
+      if (seen.has(tk)) continue;
+      seen.add(tk);
+      queue.push(t);
+    }
+  }
+  if (queue.length) return true; // out of its budget: counted as cut off, so the answer errs toward refusing (the review of #607)
+  return above.some((b) => seen.has(`${Math.round(b.gx)},${Math.round(b.gy)},${b.layer || 0}`));
+}
+
+// Why the stair `s` may not come up now, or "" (docs/53 step 6; Michael, 2026-10-30: stairs come up with Free building): one a player built,
+// never the map's; never a ramp, which is part of its hill (its side walls and cliff top); nothing standing on its landing that the landing's
+// going would drop (a prop, a rug); and no living body left on a floor no other way reaches. A body on it is the placement's to refuse.
+export function stairTakeUpProblem(s, bodies = []) {
+  if (!s || !stairList.includes(s)) return "There is nothing there.";
+  if (!s.built) return "That is the village's.";
+  if (stairKind(s.material).ramp) return "A ramp is part of its hill";
+  const lt = peekTile(s.landing[0], s.landing[1], s.layer + 1);
+  if (lt && !lt.built && (lt.prop || lt.rug)) return "Something is on its landing";
+  if (lt && !lt.built) { // its own planks go with it: never a wall left standing on the void (the review of #607)
+    const [lx, ly] = s.landing;
+    const L1 = s.layer + 1;
+    if (lt.n || lt.w || tileAt(lx, ly + 1, L1).n || tileAt(lx + 1, ly, L1).w) return "A wall stands on its landing";
+  }
+  if (stairCutsOff(s, bodies)) return "Someone up there would have no way down";
+  return "";
+}
+
+// Take the stair `s` away: its record off the list (so its chunk's record drops it, and a guest's copy with it), its landing's own planks
+// back to the void unless a player laid that floor (what lay on them falls to the floor below), its tiles as they were.
+export function removeStair(s) {
+  const i = stairList.indexOf(s);
+  if (i < 0) return false;
+  stairList.splice(i, 1);
+  indexStairs();
+  const up = s.layer + 1;
+  const lt = peekTile(s.landing[0], s.landing[1], up);
+  if (lt && !lt.built && lt.floor !== VOID) {
+    const t = growTile(s.landing[0], s.landing[1], up);
+    t.floor = VOID;
+    const lying = t.items && t.items.length ? t.items.splice(0) : null;
+    if (lying) for (const e of lying) dropItem(s.landing[0], s.landing[1], e, up);
+  }
+  for (const [x, y] of [...s.tiles, s.landing, s.before]) touch(x, y, s.layer);
+  for (const [x, y] of [...s.tiles, s.landing]) touch(x, y, up);
+  markDirty(s.tiles[0][0], s.tiles[0][1], s.layer);
+  roomsDirty = true;
+  return true;
 }
 
 // One tile-to-tile step against the stairs (canStep's): onto, along, and off a stair only by its line, from the tile before it up to its
@@ -3774,7 +3887,7 @@ function setFootprint(s) {
 // built one grows its chunk through its mutator): the void and the earth are the blanks, and nothing empty is saved or sent.
 export function ensureAround(x, y, radius = 4) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
-  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) getChunk(cx + dx, cy + dy);
+  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) getChunk(cx + dx, cy + dy, true, 0); // the ground's ring
   for (const [layer, keys] of authoredChunks) {
     for (const [k, [acx, acy]] of keys) {
       if (chunks.has(k) || Math.max(Math.abs(acx - cx), Math.abs(acy - cy)) > radius) continue;

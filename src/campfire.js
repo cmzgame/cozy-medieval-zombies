@@ -19,13 +19,15 @@ export const REACH = 2.6; // tiles from the player to the tile it is set down on
 
 // Why a campfire cannot stand on (tx, ty), or "": open ground outdoors, nothing standing there, not in water (a ford is walkable), and
 // no body on it (the wiki's sync, 2026-10-27: the fire pit refused both and the campfire neither).
-export function standProblem(tx, ty) {
-  const t = map.peekTile(tx, ty); // a read never grows a chunk (src/CLAUDE.md): a tile not grown is no room
-  if (!t || !map.isWalkableTile(tx, ty) || t.prop || t.rug) return "No room";
+// On the setter's floor, `layer` (docs/53 step 6): a wall walk is outdoors as the ground is; never on a stair or its landing.
+export function standProblem(tx, ty, layer = 0) {
+  const t = map.peekTile(tx, ty, layer); // a read never grows a chunk (src/CLAUDE.md): a tile not grown is no room
+  if (!t || !map.isWalkableTile(tx, ty, layer) || t.prop || t.rug) return "No room";
+  if (map.stairAt(tx, ty, layer) || map.landingAt(tx, ty, layer)) return "No room";
   if (t.room > 0) return "Outdoors only";
   const r = map.floorRule(t.floor);
   if (r.drink || r.walk !== 1) return "Not on water";
-  if (bodyOnTiles([[tx, ty]])) return "Someone is in the way";
+  if (bodyOnTiles([[tx, ty]], layer)) return "Someone is in the way";
   return "";
 }
 
@@ -90,7 +92,7 @@ export function place(player, uid, tx, ty) {
   tx = Math.round(Number(tx));
   ty = Math.round(Number(ty));
   if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
-  const why = reachFor(player, tx, ty) || standProblem(tx, ty);
+  const why = reachFor(player, tx, ty) || standProblem(tx, ty, player.layer || 0);
   if (why) {
     showMessage(why);
     return false;
