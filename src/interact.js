@@ -1733,7 +1733,8 @@ function eatOne(player, entry, def, take) {
 // with what is there (inventory.beltAction). A hand slot draws into its hand, swapping what the hand held onto the slot, or eats a food; the
 // utility slot eats; anything else does nothing and says why ("every expected slot action that fails should give you a log line"). An empty
 // slot does nothing at all and says nothing, so a stray key in a fight never moves the weapon out of your hand. A potion is drunk from any
-// slot (docs/47 section 4, until step 4 makes it holdable). Returns "drawn", "eaten", "drunk", "refused", "none", or "nothing".
+// slot (docs/47 section 4) until step 4 makes it holdable (section 7): from then a main or an off-hand slot's key draws it into that hand, as
+// any held thing's does, and the utility slot alone still drinks it. Returns "drawn", "eaten", "drunk", "refused", "none", or "nothing".
 export function beltPress(player, i) {
   const belt = beltOf(player);
   const e = belt && Number.isInteger(i) && i >= 0 && i < belt.length ? belt[i] : null;
@@ -1922,8 +1923,8 @@ export function slotMenu(player, slotId) {
     // follows it, never equip from there, and say why.
     if (bdef.kind === "food") {
       out.push({ label: "Eat", enabled: true, onSelect: () => { eatOne(player, entry, bdef, () => { belt[i] = null; }); } });
-    } else if (potions.potionOf(bdef)) {
-      out.push({ label: "Drink", enabled: true, onSelect: () => beltPress(player, i) }); // the slot's key, the vial back in the slot (docs/47 section 4)
+    } else if (potions.potionOf(bdef) && beltAction(entry, beltRole(i)).act === "drink") {
+      out.push({ label: "Drink", enabled: true, onSelect: () => beltPress(player, i) }); // the utility slot's key, the vial back in the slot (docs/47 sections 4 and 7)
     } else if (bdef.capacity) {
       const pct = Math.round(entry.fill ?? 0);
       out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });
@@ -1954,7 +1955,10 @@ export function slotMenu(player, slotId) {
   } else if (kind === "hand") {
     const entry = player.hands[key];
     if (!entry) return out;
+    const hdef = getItem(entry.id);
     out.push({ label: "Unequip", enabled: true, onSelect: () => unequip(player, entry) });
+    // A potion held to throw is still drunk from the hand (docs/47 section 7: "the hand's menu and the bag drink it"); its vial back in this hand.
+    if (potions.potionOf(hdef)) out.push({ label: "Drink", enabled: true, onSelect: () => potions.drinkFrom(player, entry, { kind: "hand", slot: key }) });
     if (getItem(entry.id).vessel) { const boil = boilSkinEntry(player, entry); if (boil) out.push(boil); } // a bucket held (the builder's reading: a bucket is a hand thing)
     out.push(...placeTorchEntry(entry)); // a torch in a hand goes on a wall, lit or not (#523)
     out.push(dropEntry(entry));

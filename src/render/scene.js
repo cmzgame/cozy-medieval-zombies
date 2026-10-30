@@ -13,7 +13,7 @@ import * as light from "../light.js";
 import * as gl from "../gl.js";
 import * as ground from "../ground.js";
 import { areaTiles, buildArea, buildStoreyArea, ensureArea } from "./area.js";
-import { arrowDrawables, emitMarker, entityDrawables, fireDrawables } from "./entities.js";
+import { arrowDrawables, emitMarker, entityDrawables, fireDrawables, splashDrawables } from "./entities.js";
 import { emitGhost, emitHitShapes, floorItemDrawables, propDrawables } from "./props.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import { emitRugs } from "./rugs.js"; // laid rugs, flat on the ground under everything (#327)
@@ -210,7 +210,7 @@ function storeyTileOn(x, y, L) {
 }
 
 export function renderScene(args) {
-  const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null } = probe.override ? { ...args, ...probe.override } : args;
+  const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, splashes = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null } = probe.override ? { ...args, ...probe.override } : args;
   ensureArea(w, h);
   grownKey = -1; // a chunk grown or dropped since the last frame is asked again (the review of #534)
   hl.set(highlight); // the object under the cursor, outlined by the drawables below (#301)
@@ -311,6 +311,7 @@ export function renderScene(args) {
           }
         }
         if (arrows && arrows.length) arrowDrawables(arrows.filter((a) => (a.layer || 0) === L && mine(a.gx, a.gy)), visible, drawables); // a flight on its own layer (docs/49)
+        if (splashes && splashes.length) splashDrawables(splashes.filter((s) => (s.layer || 0) === L && mine(s.gx, s.gy)), visible, drawables); // a thrown potion's or poison's splash (docs/47 section 7)
         if (L === 0) fireDrawables(fire, visible, drawables);
         drawables.sort((a, b) => a.key - b.key);
         return drawables;

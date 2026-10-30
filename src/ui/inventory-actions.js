@@ -285,11 +285,13 @@ export function createInventoryActions(getPlayer) {
     },
     // Double-click in your bag: equip what can be held, wear what can be worn, drink a potion (docs/47 section 4: its vial back in its cell;
     // a poison says why not). True for a potion or a poison either way, so a refused drink never sends it across to an open container.
+    // From step 4 a potion or a poison is also holdable (docs/47 section 7), but the bag still drinks it ("the hand's menu and the bag drink
+    // it then"): the generic Equip fallback below is for every other holdable thing, never these two.
     use(entry, bag) {
       const def = items.getItem(entry.id);
       const own = bag === inventory.bagOf(getPlayer()); // a potion drinks from your own bag alone; in a chest a double-click moves it across
-      if (own && potions.isPoison(def) && !def.hands) { showMessage(potions.POISON_WORD); return true; }
-      if (own && potions.potionOf(def) && !def.hands) { potions.drinkFrom(getPlayer(), entry, { kind: "bag", bag }); return true; }
+      if (own && potions.isPoison(def)) { showMessage(potions.POISON_WORD); return true; }
+      if (own && potions.potionOf(def)) { potions.drinkFrom(getPlayer(), entry, { kind: "bag", bag }); return true; }
       if (def.hands) return interact.equipFrom(getPlayer(), entry);
       if (def.wear) return interact.wearFrom(getPlayer(), entry, bag);
       return false;

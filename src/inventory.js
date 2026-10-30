@@ -453,6 +453,10 @@ export function beltAction(entry, role) {
   // A potion is drunk by every slot's key until step 4 makes it holdable (docs/47 section 4, #481: src/potions.js); a poison never is.
   if (def.potion && !def.hands) return { act: "drink" };
   if (def.poison && !def.hands) return { act: "none", word: POISON_WORD };
+  // From step 4 a potion or a poison is holdable (`hands: "either"`, docs/47 section 7), as any held thing's hand-slot key draws it (below);
+  // the utility slot still drinks it, or says the poison's line, since it is spent, not equipped.
+  if (role === "utility" && def.potion) return { act: "drink" };
+  if (role === "utility" && def.poison) return { act: "none", word: POISON_WORD };
   if (role === "main" || role === "off") {
     const h = def.hands;
     if (h === "both") return role === "main" ? { act: "draw", hand: "both" } : { act: "none", word: roleRefusal(role, entry) }; // an off-hand slot never takes one; an old world's might hold one

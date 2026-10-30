@@ -2,7 +2,7 @@
 // burning's particles, the figures with their held things and the shield's flash, and where they stand beside walls.
 // Cut from src/render.js on 2026-10-12 (docs/23a, D5): a move, no rule changed; the frame check proves the pixels.
 
-import { tunables as archeryTunables, spinFrame } from "../archery.js";
+import { tunables as archeryTunables, spinFrame, SPLASH_SECONDS } from "../archery.js";
 import * as iso from "../iso.js";
 import { getSheet, getDef, idleFrame } from "../assets.js";
 import { resolveFacing, frameName } from "../sprites.js";
@@ -70,6 +70,34 @@ export function arrowDrawables(arrows, visible, out) {
           const f = sheet.frames[name];
           if (f) gl.quad(x - sheet.anchor[0] * k, y - Math.round(a.z) - sheet.anchor[1] * k, f[2] * k, f[3] * k, gl.frameUV(sheet, name), { world, heights: 0, flags });
         } else frameQuad(sheet, name, x, y - Math.round(a.z), { world, heights: 0, flags });
+      },
+    });
+  }
+}
+
+// A thrown potion's or poison's splash where it shatters (docs/47 section 7): a burst of its colour fading fast, and a stain lingering on
+// the ground for `archery.SPLASH_SECONDS`, both client-only (not in the world's hash; `archery.splashesNow()`), flat on the ground as an
+// arrow's shadow is.
+export function splashDrawables(splashes, visible, out) {
+  if (!splashes || !splashes.length) return;
+  for (const s of splashes) {
+    if (!(s.t >= 0)) continue; // not yet in the drawn time (a guest's, stepFlights)
+    if (!visible.has(tileKey(Math.round(s.gx), Math.round(s.gy)))) continue;
+    const p = iso.toScreen(s.gx, s.gy);
+    const x = Math.round(p.x);
+    const y = Math.round(p.y);
+    const u = Math.min(1, s.t / SPLASH_SECONDS);
+    const stainAlpha = (1 - u) * 0.5;
+    const burstAlpha = Math.max(0, 1 - s.t / 0.35);
+    const world = [s.gx, s.gy];
+    const octagon = (rx, ry) => [[x, y - ry], [x + rx * 0.7, y - ry * 0.7], [x + rx, y], [x + rx * 0.7, y + ry * 0.7], [x, y + ry], [x - rx * 0.7, y + ry * 0.7], [x - rx, y], [x - rx * 0.7, y - ry * 0.7]];
+    out.push({
+      key: (s.gx + s.gy) * 1000 + 0.1,
+      kind: "splash",
+      emit() {
+        gl.setPass(gl.PASS_FLAT);
+        if (stainAlpha > 0.01) gl.poly(octagon(14, 7), gl.rgb(s.color, stainAlpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+        if (burstAlpha > 0.01) gl.poly(octagon(20 + 10 * u, 10 + 5 * u), gl.rgb(s.color, burstAlpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
       },
     });
   }
