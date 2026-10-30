@@ -8634,6 +8634,39 @@ check("height, step 6: building's rules: a rug, a painting, a torch, a set-down,
     const back = !!mapMod.stairAt(s2.tiles[0][0], s2.tiles[0][1], 0);
     mapMod.installChunk(rec1);
     assert(back && !mapMod.stairAt(s2.tiles[0][0], s2.tiles[0][1], 0), `a guest's copy: the stair back with the old record ${back}, gone with the new one ${!mapMod.stairAt(s2.tiles[0][0], s2.tiles[0][1], 0)}`);
+    // ---- The review of #607. A stair whose upper side is a room behind a shut door: one of the dead in that room keeps it standing.
+    const s3 = mapMod.buildStair(x + 16, y + 12, "w", "wood", 0, { free: true });
+    assert(s3, `no third stair: ${mapMod.stairBuildProblem(x + 16, y + 12, "w", 0, "wood")}`);
+    stairs.push(s3);
+    for (const a of [x + 11, x + 12]) floor(a, y + 12, 1);
+    for (let j = 11; j <= 13; j++) for (const a of [x + 9, x + 10]) floor(a, y + j, 1);
+    for (const a of [x + 9, x + 10]) { wall(a, y + 11, "n", 1); wall(a, y + 14, "n", 1); }
+    for (let j = 11; j <= 13; j++) { wall(x + 9, y + j, "w", 1); wall(x + 11, y + j, "w", 1, j === 12 ? "door" : "wall"); }
+    const inRoom = zombieMod.createZombie(x + 9.5, y + 12, { hp: 1000 });
+    inRoom.layer = 1;
+    S.zombies.push(inRoom);
+    dead.push(inRoom);
+    stand(x + 17.5, y + 12.5, 0);
+    const t3 = { type: "stair", s: s3, tx: s3.at[0], ty: s3.at[1], layer: 0 };
+    why = placementImport.takeApartProblem(me, t3);
+    assert(why === "Someone up there would have no way down", `a stair with one of the dead behind a shut door upstairs: "${why}"`);
+    S.zombies.splice(S.zombies.indexOf(inRoom), 1);
+    // Its own landing's planks go back to the void, and what lay on them falls to the ground.
+    mapMod.dropItem(s3.landing[0], s3.landing[1], itemsMod.makeEntry("stone", 1), 1);
+    why = send({ kind: "remove", target: { type: "stair", tx: s3.at[0], ty: s3.at[1] } });
+    assert(mapMod.peekTile(s3.landing[0], s3.landing[1], 1).floor === "void" && mapMod.itemsAt(s3.landing[0], s3.landing[1], 0).some((e) => e.id === "stone"), `the stair's own landing: ${mapMod.peekTile(s3.landing[0], s3.landing[1], 1).floor}, the stone on the ground ${mapMod.itemsAt(s3.landing[0], s3.landing[1], 0).length} (${why})`);
+    for (const e of mapMod.itemsAt(s3.landing[0], s3.landing[1], 0)) mapMod.takeItem(s3.landing[0], s3.landing[1], e, 0);
+    // A snare is set on the ground alone; a cliff top never over a storey's floor the map laid (not a player's).
+    stand(x + 8.2, y + 1.2, 1);
+    const snare = give("snare");
+    why = send({ kind: "setdown", uid: snare.uid, tx: x + 10, ty: y + 1 });
+    assert(why === "Rabbits keep to the ground" && !mapMod.peekTile(x + 10, y + 1, 1)?.prop, `a snare upstairs: "${why}"`);
+    const ft = mapMod.growTile(x + 10, y + 3, 1);
+    ft.floor = "floor_wood"; // as the map lays an upper floor: no `built`
+    mapMod.touch(x + 10, y + 3, 1);
+    floors.push([x + 10, y + 3, 1]);
+    why = send({ kind: "build", what: "floor_cliff_top", tx: x + 10, ty: y + 3, tx2: x + 10, ty2: y + 3 });
+    assert(why === "Not on a built floor" && mapMod.peekTile(x + 10, y + 3, 1).floor === "floor_wood", `a cliff top over the map's upper floor: "${why}"`);
     // ---- The storey cap.
     assert(mapMod.floorBuildProblem(x, y, "floor_stone", 7) === "High enough" && mapMod.stairBuildProblem(x, y, "w", 6) === "High enough", "the storey cap");
     // ---- The arrow loops: one in every ten along a run.

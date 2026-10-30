@@ -1716,6 +1716,7 @@ export function ringProblem(x0, y0, n, layer = 0) {
       if (h && h.well && !onCurve(x, y)) continue;
       return h && h.well ? "A stairwell is under the curve: keep it off the ring's edge" : "A round room upstairs needs a floor under all of it";
     }
+    if (layer > 0 && landingAt(x, y, layer) && onCurve(x, y)) return "A stair's landing is under the curve"; // as a stair is refused under a ring built first (the review of #607)
     if (floorRule(t.floor).walk !== 1 || floorRule(t.floor).drink) return "Not on water or empty ground";
     if (t.prop || t.rug) return "Something is in the way";
     if (t.items && t.items.length) return "Clear the floor first";
@@ -3116,9 +3117,19 @@ export function buildStair(x0, y0, dir, material, layer = 0, { free = false } = 
 // landing's is reached (a way down that is not this stair) or nothing is left. `bodies` the living bodies; a search that runs out of its
 // budget counts what it saw as cut off, so the answer errs toward refusing.
 const CUT_OFF_SEARCH = 6000;
+// The walk's one step: onto open floor, by a stair only along its line, across no wall a body cannot pass, but through any door, shut or
+// boarded or a castle gate, since a body opens it (the review of #607: a room behind a shut door was left out of the walk).
+function walkStep(x0, y0, x1, y1, L) {
+  if (!isWalkableTile(x1, y1, L) || !stairStepOk(x0, y0, x1, y1, L)) return false;
+  const w = wallBetween(x0, y0, x1, y1, L);
+  return !w || !blocksMove(w) || w.kind === "door";
+}
 export function stairCutsOff(s, bodies) {
-  const up = s.layer + 1;
-  const above = bodies.filter((b) => (b.layer || 0) >= up);
+  // The side away from the ground: up for a stair off the ground or a storey; down for a cellar's. The walk starts there and is done when it
+  // reaches the ground by another way (the review of #607: any floor below was not enough, a platform with no way down counted as one).
+  const fromUp = s.layer >= 0;
+  const up = fromUp ? s.layer + 1 : s.layer;
+  const above = bodies.filter((b) => (fromUp ? (b.layer || 0) >= up : (b.layer || 0) <= up));
   if (!above.length) return false;
   const ups = new Map(); // "x,y,L" of a stair's foot-before tile -> the landing it climbs to
   const downs = new Map(); // "x,y,L" of a stair's landing -> the tile before its foot
@@ -3128,14 +3139,15 @@ export function stairCutsOff(s, bodies) {
     downs.set(`${o.landing[0]},${o.landing[1]},${o.layer + 1}`, [o.before[0], o.before[1], o.layer]);
   }
   const seen = new Set();
-  const queue = [[s.landing[0], s.landing[1], up]];
-  seen.add(`${s.landing[0]},${s.landing[1]},${up}`);
+  const start = fromUp ? s.landing : s.before;
+  const queue = [[start[0], start[1], up]];
+  seen.add(`${start[0]},${start[1]},${up}`);
   let n = 0;
   while (queue.length && n++ < CUT_OFF_SEARCH) {
     const [x, y, L] = queue.shift();
-    if (L < up) return false; // a way down that is not this stair
+    if (L === 0) return false; // the ground, by another way than this stair
     const next = [];
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (canStep(x, y, x + dx, y + dy, L)) next.push([x + dx, y + dy, L]);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (walkStep(x, y, x + dx, y + dy, L)) next.push([x + dx, y + dy, L]);
     const k = `${x},${y},${L}`;
     if (ups.has(k)) next.push(ups.get(k));
     if (downs.has(k)) next.push(downs.get(k));
@@ -3146,6 +3158,7 @@ export function stairCutsOff(s, bodies) {
       queue.push(t);
     }
   }
+  if (queue.length) return true; // out of its budget: counted as cut off, so the answer errs toward refusing (the review of #607)
   return above.some((b) => seen.has(`${Math.round(b.gx)},${Math.round(b.gy)},${b.layer || 0}`));
 }
 
@@ -3158,6 +3171,11 @@ export function stairTakeUpProblem(s, bodies = []) {
   if (stairKind(s.material).ramp) return "A ramp is part of its hill";
   const lt = peekTile(s.landing[0], s.landing[1], s.layer + 1);
   if (lt && !lt.built && (lt.prop || lt.rug)) return "Something is on its landing";
+  if (lt && !lt.built) { // its own planks go with it: never a wall left standing on the void (the review of #607)
+    const [lx, ly] = s.landing;
+    const L1 = s.layer + 1;
+    if (lt.n || lt.w || tileAt(lx, ly + 1, L1).n || tileAt(lx + 1, ly, L1).w) return "A wall stands on its landing";
+  }
   if (stairCutsOff(s, bodies)) return "Someone up there would have no way down";
   return "";
 }

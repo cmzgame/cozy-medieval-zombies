@@ -181,7 +181,7 @@ export function place(player, uid, tx, ty) {
   tx = Math.round(Number(tx));
   ty = Math.round(Number(ty));
   if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
-  const why = reachFor(player, tx, ty) || standProblem(p.stand, tx, ty, player.layer || 0);
+  const why = reachFor(player, tx, ty) || standProblem(p.stand, tx, ty, player.layer || 0) || (getDef(p.sprite).snare && (player.layer || 0) ? "Rabbits keep to the ground" : ""); // a snare catches only on the ground (the review of #607)
   if (why) {
     showMessage(why);
     return false;
