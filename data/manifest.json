@@ -1,5 +1,5 @@
 {
-  "version": "22e8c0a9",
+  "version": "db270f33",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 17009, "stamp": "54a5b6de"},
@@ -17,7 +17,7 @@
     "data/poses.json": {"size": 6215, "stamp": "170f76da"},
     "data/recipes.json": {"size": 29951, "stamp": "96de3315"},
     "data/references.json": {"size": 899, "stamp": "81bd77a4"},
-    "data/sounds.json": {"size": 9375, "stamp": "95740ac7"},
+    "data/sounds.json": {"size": 9523, "stamp": "783c55d2"},
     "data/tuning.json": {"size": 7374, "stamp": "28591269"},
     "data/wardrobes.json": {"size": 9067, "stamp": "ce830859"},
     "data/wood_tones.json": {"size": 5576, "stamp": "380f20b5"},

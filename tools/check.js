@@ -8481,6 +8481,54 @@ check("height, step 4: a burning body's embers and smoke, a spark, and splinters
   return `${shed.length} embers and puffs on floor 2 at rise 40; a spark on 1, a burst in a cellar; heights 22, 118, 300, -84 back to their floors`;
 });
 
+// docs/53 step 7: everyone by layer. A deer under a walk grazes on, a villager does not cower at the dead upstairs, a boar never bites across a floor.
+const villagerForRows = await import("../src/entities/villager.js");
+check("height, step 7: everyone by layer: a deer under a wall walk grazes on with a player on the walk over it and flees one on its own floor; a villager cowers at the dead on its floor and not at one a storey up; a boar's bite never crosses a floor", () => {
+  const at = clearGround();
+  assert(at, "no clear ground");
+  const [x, y] = at;
+  const S = gameMod.state;
+  const me = S.player;
+  const DT = 1 / 60;
+  const was = { gx: me.gx, gy: me.gy, layer: me.layer, rise: me.rise, hp: me.hp };
+  const floors = [];
+  const floor = (a, b, L) => { const t = mapMod.growTile(a, b, L); t.floor = "floor_stone"; mapMod.touch(a, b, L); floors.push([a, b, L]); };
+  try {
+    for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) floor(x + i, y + j, 1);
+    // The deer: under the walk with the player a storey over it, it grazes on; the player on the ground beside it, it runs.
+    const deer = animalMod.createAnimal("deer", x + 2, y + 1, { home: [x + 2, y + 1] });
+    me.gx = x + 2.2; me.gy = y + 1.3; me.layer = 1; me.rise = 0;
+    for (let i = 0; i < 120; i++) animalMod.updateAnimal(deer, DT, [deer], [me]);
+    const grazing = deer.state;
+    const deer2 = animalMod.createAnimal("deer", x + 10, y + 6, { home: [x + 10, y + 6] });
+    me.gx = x + 11; me.gy = y + 6; me.layer = 0;
+    for (let i = 0; i < 120; i++) animalMod.updateAnimal(deer2, DT, [deer2], [me]);
+    assert(!/flee|run/.test(String(grazing)) && /flee|run|alert/.test(String(deer2.state)), `the deer: under the walk "${grazing}", beside a player on its floor "${deer2.state}"`);
+    // A villager: one of the dead on the walk over it frightens it not; one beside it on its floor does.
+    const v = villagerForRows.createVillager(x + 3, y + 1, { id: "v_step7" });
+    const up = zombieMod.createZombie(x + 3.4, y + 1.2, { hp: 1000 });
+    up.layer = 1;
+    me.gx = x + 14; me.gy = y + 14; me.layer = 0;
+    for (let i = 0; i < 60; i++) villagerForRows.updateVillager(v, DT, [up], [me]);
+    const calm = v.state;
+    const near = zombieMod.createZombie(x + 4, y + 1, { hp: 1000 });
+    for (let i = 0; i < 60; i++) villagerForRows.updateVillager(v, DT, [near], [me]);
+    assert(calm !== "cower" && calm !== "flee" && (v.state === "cower" || v.state === "flee"), `the villager: with the dead a storey up "${calm}", with one on its floor "${v.state}"`);
+    // A boar's bite: an "animalBite" for a victim a floor away does nothing.
+    const boar = animalMod.createAnimal("boar", x + 6, y + 1, { home: [x + 6, y + 1] });
+    me.gx = x + 6.3; me.gy = y + 1; me.layer = 1; me.hp = 100;
+    eventsMod.emit("animalBite", { animal: boar, victim: me, damage: 10 });
+    const upHp = me.hp;
+    me.layer = 0;
+    eventsMod.emit("animalBite", { animal: boar, victim: me, damage: 10 });
+    assert(upHp === 100 && me.hp < 100, `a boar's bite: a floor up ${upHp}, on its floor ${me.hp}`);
+    return `a deer grazes on under a player on the walk ("${grazing}") and runs from one on its floor; a villager calm at the dead a storey up, cowering at one beside it; a boar's bite stops at a floor`;
+  } finally {
+    for (const [a, b, L] of floors) { const t = mapMod.peekTile(a, b, L); if (t) { t.floor = "void"; mapMod.touch(a, b, L); } }
+    me.gx = was.gx; me.gy = was.gy; me.layer = was.layer; me.rise = was.rise; me.hp = was.hp;
+  }
+});
+
 // The layer audit (docs/53 step 0, section 6.5): no call in the simulation leaves its layer to a default of the ground or the drawn storey,
 // beyond the allow list of those known on 2026-10-30, each named with the step that gives it its layer. The list only shrinks: a new
 // layer-less call fails, and so does an entry with more calls than remain (take it down as the step lands).

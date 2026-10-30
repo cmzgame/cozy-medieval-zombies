@@ -93,10 +93,10 @@ function deadInSight(v, others, radius) {
   let best = null;
   let bestD = radius;
   for (const z of others) {
-    if (z.kind !== "zombie" || z.dead) continue;
+    if (z.kind !== "zombie" || z.dead || (z.layer || 0) !== (v.layer || 0)) continue; // the dead on another floor frighten no one (docs/53 step 7)
     const d = Math.hypot(z.gx - v.gx, z.gy - v.gy);
     if (d > bestD) continue;
-    if (!lineOfSight(v.gx, v.gy, z.gx, z.gy)) continue;
+    if (!lineOfSight(v.gx, v.gy, z.gx, z.gy, v.layer || 0)) continue;
     best = z;
     bestD = d;
   }
@@ -104,7 +104,7 @@ function deadInSight(v, others, radius) {
 }
 
 function anyDeadWithin(v, others, radius) {
-  return others.some((z) => z.kind === "zombie" && !z.dead && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= radius);
+  return others.some((z) => z.kind === "zombie" && !z.dead && (z.layer || 0) === (v.layer || 0) && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= radius);
 }
 
 function cower(v, z) {
@@ -138,7 +138,7 @@ function fleeTo(v, from) {
     for (const dist of [T.fleeTiles, Math.max(1, Math.round(T.fleeTiles / 2))]) {
       const t = [Math.round(v.gx + dx * dist), Math.round(v.gy + dy * dist)];
       if (t[0] === here[0] && t[1] === here[1]) continue;
-      if (!isWalkableTile(t[0], t[1]) || roomAt(t[0], t[1]) !== room) continue;
+      if (!isWalkableTile(t[0], t[1], v.layer || 0) || roomAt(t[0], t[1], v.layer || 0) !== room) continue; // on its own floor (docs/53 step 7)
       repath(v, t);
       if (!v.pathFailed && v.path.length) return t;
     }
@@ -290,7 +290,7 @@ function keepTalkers(v, players) {
   if (v.state !== "talk" || v.dead) { v.talkingWith = []; return; }
   const keep = v.talkingWith.filter((id) => {
     const p = players.find((q) => q.id === id);
-    return p && !p.dead && Math.hypot(p.gx - v.gx, p.gy - v.gy) <= T.talkReach + T.talkWalkAway && lineOfSight(p.gx, p.gy, v.gx, v.gy); // reach, and a clear line (a wall ends it)
+    return p && !p.dead && (p.layer || 0) === (v.layer || 0) && Math.hypot(p.gx - v.gx, p.gy - v.gy) <= T.talkReach + T.talkWalkAway && lineOfSight(p.gx, p.gy, v.gx, v.gy, v.layer || 0); // reach on one floor, and a clear line (a wall ends it)
   });
   if (keep.length !== v.talkingWith.length) v.talkingWith = keep;
   if (!keep.length) {
@@ -311,7 +311,7 @@ export function talkContext(v, player) {
 export function startTalk(v, player) {
   if (v.dead) return false;
   if (v.state === "cower" || v.state === "flee") return false; // too frightened to answer, as a poke (docs/43 section 7); the flight goes on
-  if (!lineOfSight(player.gx, player.gy, v.gx, v.gy)) return false; // the same test `keepTalkers` ends a conversation on: never through a wall
+  if ((player.layer || 0) !== (v.layer || 0) || !lineOfSight(player.gx, player.gy, v.gx, v.gy, v.layer || 0)) return false; // the same test `keepTalkers` ends a conversation on: never through a wall
   const w = talkWorld();
   const deadClose = !!w && (w.zombies || []).some((z) => !z.dead && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= T.talkDeadRadius);
   if (!talk.has(v.talk) || deadClose) {

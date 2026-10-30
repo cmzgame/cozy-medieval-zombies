@@ -66,7 +66,7 @@ export function contextFor(villager, talker, world) {
     deadInWorld: zombies.some((z) => !z.dead),
     alive,
     roster,
-    indoors: !!villager && map.roomAt(Math.round(villager.gx), Math.round(villager.gy)) > 0,
+    indoors: !!villager && map.roomAt(Math.round(villager.gx), Math.round(villager.gy), villager.layer || 0) > 0,
     hurt: !!villager && villager.hp < (villager.maxHp ?? 100),
     talker,
   };

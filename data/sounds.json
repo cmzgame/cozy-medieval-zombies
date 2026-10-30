@@ -332,10 +332,11 @@
     "rise": 0.1
   },
   "openings": {
-    "note": "Doors and shutters (#386): the ear scans the openings within `radius` tiles of the listener every `every` seconds of sim time and remembers each by its edge; a change it has seen plays `slot` at the opening (open and close alike), a break plays nothing (step 4), an opening first seen is learned silently.",
+    "note": "Doors and shutters (#386): the ear scans the openings within `radius` tiles of the listener every `every` seconds of sim time and remembers each by its edge; a change it has seen plays `slot` at the opening (open and close alike), a break plays nothing (step 4), an opening first seen is learned silently. On the listener's floor and the storeys next to it (docs/53 step 7), one a storey apart at `storeyVolume` of its loudness.",
     "radius": 14,
     "every": 0.05,
-    "slot": "door"
+    "slot": "door",
+    "storeyVolume": 0.5
   },
   "bow": {
     "note": "The bow's draw loop's rate from `rateFrom` at no draw to `rateTo` at a full one (docs/40, section 5).",
