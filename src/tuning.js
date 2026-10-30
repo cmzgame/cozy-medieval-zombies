@@ -204,6 +204,17 @@ export const floaters = {
   gathers: { chop: ["woodcutting", "logs"], mine: ["mining", "mined"], fish: ["fishing", "caught"], pick: ["farming", "picked"], harvest: ["farming", "harvested"], honey: ["beastlore", "taken"] },
 };
 
+// The cover rule (docs/53 section 6.2, Michael 2026-10-30: "hide what is in the way, never fade"): the near walls of the room you stand in
+// are cut to a stub of `stub` px at their foot, their cap drawn along the cut; a door or a window in one is drawn whole at `openingAlpha`
+// ("barely there, but definitely there when you need it"); `fogAlpha` is how dark the unseen is drawn (Zomboid's "everything outside is
+// black" is the direction to take it). Defaults, Michael's to tune (docs/42).
+export const cover = {
+  stub: 8,
+  openingAlpha: 0.3,
+  fogAlpha: 0.36,
+  seenAlpha: 0.5, // a body seen but covered (a cliff, a plateau, a wall in front of it) shows its shape over what covers it, in Object Highlight's colour at this opacity
+};
+
 // Object Highlight (#301; src/highlight.js, render/highlight.js): the outline round the game object under the cursor. `color` is the flat colour of the one-pixel outline (a soft
 // soft near-white, not the swing outline's green nor the Inspect tile mark's gold), `refreshMs` how often the hit test is asked again while the mouse and the camera stand still.
 export const objectHighlight = {
@@ -288,7 +299,7 @@ export const potions = {
   between: 10,
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work, water, resources, trees, potions };
+const sections = { zombie, player, villager, world, population, sight, cover, feel, floaters, objectHighlight, hoverCard, work, water, resources, trees, potions };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

@@ -19,7 +19,7 @@ import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
 import { renderScene, night, shakeFence } from "./render.js";
-import { tilesOf } from "./render/storeys.js"; // the tiles a storey is drawn over, which its sight is cast on (docs/53 section 6.1)
+import { tilesOf, hiderFor } from "./render/storeys.js"; // the tiles a storey is drawn over, which its sight is cast on (docs/53 section 6.1)
 import { createPlayer, aimOrigin, TAINTED_ONLY } from "./entities/player.js";
 import * as host from "./host.js"; // the authority's half of the game, shared with the server world (item 5's first step)
 import { lookOf } from "./host.js";
@@ -1314,7 +1314,7 @@ function stepGame(dt) {
     axis: input.moveAxis(),
     sprint: input.isDown("ShiftLeft") || input.isDown("ShiftRight"),
     aim: { x: mouse.x - o.x, y: mouse.y - o.y }, // the cursor relative to the chest, a vector a host can read (net.js)
-    aimAt: archery.aimPoint(client.me, { mouse, seen: visible }), // the floor point the cursor means, its layer the highest floor in my sight under it (docs/53 step 2), for a bow drawn on a host (net.js)
+    aimAt: archery.aimPoint(client.me, { mouse, seen: visible, hidden: hiderFor(client.me) }), // the floor point the cursor means, its layer the highest floor in my sight under it (docs/53 step 2), for a bow drawn on a host (net.js)
     clicked,
     clickSpent,
     keys,

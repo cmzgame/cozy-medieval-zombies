@@ -105,17 +105,17 @@ export async function run(game, opts = {}) {
     const posts = seen.filter((d) => d.post && vertices.has(`${d.post.tx},${d.post.ty}`));
     row("the ring is two drawables, its far half and its near half; no ring edge drawn straight (its door and window included), no post on its outline", halves.length === 2 && halves.some((d) => d.ring.near) && halves.some((d) => !d.ring.near) && !straight.length && !posts.length, `${halves.length} halves, ${straight.length} straight walls, ${posts.length} posts on the outline`);
 
-    // The near half's fade.
+    // The near half's cut (docs/53 section 6.2: the stretch over the room cut to the stub, its door or window drawn faint).
     const nearOnly = (d) => !(d.ring && d.ring.id === ring.id && d.ring.near);
     shot(nearOnly);
     const opaque = scene.lastStats.translucent;
     standAt(24, 3);
     shot(nearOnly);
     const faded = scene.lastStats.translucent;
-    // Inside, only the stretch over the room fades: the flanks keep opaque quads (Michael's playtest, 2026-10-27: the sides went see-through).
+    // Inside, only the stretch over the room is cut: the flanks keep their whole faces (Michael's playtest, 2026-10-27: the sides went see-through).
     const opaqueQuads = G.gl.passVertices(G.gl.PASS_STAND);
     const fadedQuads = G.gl.passVertices(G.gl.PASS_TRANS);
-    row("the near half fades over the room with the player in it, its flanks opaque; all opaque outside it", opaque === 0 && faded === 1 && opaqueQuads > 0 && fadedQuads > 0, `translucent drawables: ${opaque} outside, ${faded} inside; inside, ${opaqueQuads} opaque vertices and ${fadedQuads} faded`);
+    row("the near half is opaque outside; inside, its stretch over the room is cut to the stub, nothing of it translucent but a door or a window in it, its flanks whole", opaque === 0 && faded <= 1 && opaqueQuads > 0, `translucent drawables: ${opaque} outside, ${faded} inside; inside, ${opaqueQuads} opaque vertices and ${fadedQuads} translucent`);
 
     // The sort's worst cases, by pixels, each where the proving ground's tower (its second storey drawn lifted, docs/49) stands clear of
     // the figure on screen: the player inside against the north-east of the far half, outside behind its north-west, outside before its
@@ -124,6 +124,7 @@ export async function run(game, opts = {}) {
     const insideFar = share(me);
     standAt(21, 0);
     const behindFar = share(me);
+    const xrayBehind = G.gl.passVertices(G.gl.PASS_XRAY);
     standAt(28.5, 3);
     const frontNear = share(me);
     const z = createZombie(26.4, 2.1, { hp: 1000 });
@@ -138,10 +139,10 @@ export async function run(game, opts = {}) {
     const throughNear = share(z);
     S.zombies = [];
     row("inside against the far half's inner face, the player shows whole", insideFar > 0.97, pct(insideFar));
-    row("outside behind the far half, the player is hidden", behindFar < 0.05, pct(behindFar));
+    row("outside behind the far half, the player shows as the seen-but-covered shape (docs/53 section 6.2)", behindFar > 0.9 && xrayBehind > 0, `${pct(behindFar)}; ${xrayBehind} vertices in the seen-but-covered pass`);
     row("outside in front of the near half, the player shows whole", frontNear > 0.97, pct(frontNear));
     row("one of the dead inside behind the near half, the player outside: hidden (bar a head over its top)", behindNear < 0.15, pct(behindNear));
-    row("the same with the player inside, the near half faded: seen through it", throughNear > 0.3, pct(throughNear));
+    row("the same with the player inside, the near half cut to the stub: seen over it", throughNear > 0.3, pct(throughNear));
 
     // The world on this page: the room, a body at the curve, sight.
     let p = { gx: 24, gy: 3 };
@@ -184,12 +185,12 @@ export async function run(game, opts = {}) {
     const f2 = fillersAt(all, 21, 2);
     const f5 = fillersAt(all, 21, 5);
     row("a filler drawn at each join, along the wall's own line into the curve (0.34 of the step edge), and no post there", f2.length === 1 && f5.length === 1 && f2[0].filler.edge === "n" && f2[0].filler.tx === 21 && f2[0].filler.ty === 2 && f5[0].filler.tx === 21 && f5[0].filler.ty === 5 && Math.abs(f2[0].filler.d - 0.338) < 0.002 && !postAt(all, 21, 2) && !postAt(all, 21, 5), `fillers ${f2.length} and ${f5.length} (${JSON.stringify([...f2, ...f5].map((d) => [d.filler.tx, d.filler.ty, d.filler.edge, +d.filler.d.toFixed(3)]))}), posts ${postAt(all, 21, 2)} and ${postAt(all, 21, 5)}`);
-    // From inside the yard its south wall is a near wall: its filler fades with it; the north wall's does not.
+    // From inside the yard its south wall is a near wall: its filler is cut with it; the north wall's is not.
     standAt(19.6, 3.2);
     all = drawn();
     const in2 = fillersAt(all, 21, 2);
     const in5 = fillersAt(all, 21, 5);
-    row("standing in the yard, the filler of its near (south) wall fades with that wall, the far (north) wall's stays opaque", in5.length === 1 && in5[0].faded && in2.length === 1 && !in2[0].faded, `south ${in5.map((d) => d.faded)}, north ${in2.map((d) => d.faded)}`);
+    row("standing in the yard, the filler of its near (south) wall is cut to the stub with that wall, the far (north) wall's stands whole", in5.length === 1 && in5[0].cut && in2.length === 1 && !in2[0].cut, `south ${in5.map((d) => d.cut)}, north ${in2.map((d) => d.cut)}`);
     // Along the square's west side (tangent), built from the step corner out through the pocket: the filler turns down the step edge, a post at
     // the corner; a wall to the west window's end: no filler, no post.
     for (const [x, y, e] of built.splice(0)) G.map.destroyWall(x, y, e);
@@ -212,7 +213,7 @@ export async function run(game, opts = {}) {
     const j2 = fillersAt(all, 21, 2);
     const { getSheet } = await import("/src/assets.js");
     const half = (getSheet("wall_stone").thickness || 18) / 2;
-    row("at a join with a post, faded from inside the room it bounds: the filler fades and is cut at the post's face", built.length - nBefore === 6 && westRoom && westRoom.size === 4 && postAt(all, 21, 2) && j2.length === 1 && j2[0].faded && j2[0].filler.top && Math.abs(j2[0].filler.cuts.far - half) < 1e-6, `built ${built.length - nBefore} of 6, the room ${westRoom && westRoom.size}, a post ${postAt(all, 21, 2)}, the filler ${JSON.stringify(j2.map((d) => ({ faded: d.faded, cuts: d.filler.cuts })))} (the post's half thickness ${half})`);
+    row("at a join with a post, from inside the room it bounds: the filler is cut to the stub with its wall", built.length - nBefore === 6 && westRoom && westRoom.size === 4 && postAt(all, 21, 2) && j2.length === 1 && j2[0].cut && j2[0].filler.top, `built ${built.length - nBefore} of 6, the room ${westRoom && westRoom.size}, a post ${postAt(all, 21, 2)}, the filler ${JSON.stringify(j2.map((d) => ({ cut: d.cut, cuts: d.filler.cuts })))} (the post's half thickness ${half})`);
   } finally {
     for (const [x, y, e] of built) G.map.destroyWall(x, y, e);
     if (built.length) G.map.rebuildRooms();

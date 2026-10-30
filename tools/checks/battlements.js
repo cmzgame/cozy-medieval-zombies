@@ -199,19 +199,19 @@ export async function run(game) {
     row("bodies are blocked, sight and light pass, no room is bounded, the dead cannot strike it down", map.blocksMove(w0) && map.transmission(w0) === 1 && !map.isFence(w0) && !map.canStep(X0 + 2, Y0, X0 + 2, Y0 - 1, 1) && map.roomAt(X0 + 2, Y0, 1) === map.roomAt(X0 + 2, Y0 + 1, 1), "");
     row("a shot below the parapet (28) is stopped by it and one over it passes (a merlon's 44 is not modelled)", archery.wallStops(w0, 12) === true && archery.wallStops(w0, 40) === false, "");
 
-    // ---- 5. The near battlement's fade ----
+    // ---- 5. The near battlement's cut (docs/53 section 6.2: cut to the stub, never faded) ----
     const fadedAt = (vx, vy) => {
       walls.setViewerAt({ x: vx, y: vy, layer: 1 });
       try {
-        return drawables(X0 - 1, Y0 - 1, X0 + N + 1, Y0 + N + 1).filter((d) => d.wall && d.faded).map((d) => `${d.wall.edge}${d.wall.tx},${d.wall.ty}`).sort().join(" ");
+        return drawables(X0 - 1, Y0 - 1, X0 + N + 1, Y0 + N + 1).filter((d) => d.wall && d.cut).map((d) => `${d.wall.edge}${d.wall.tx},${d.wall.ty}`).sort().join(" ");
       } finally {
         walls.setViewerAt(null);
       }
     };
     const behindSouth = fadedAt(X0 + 2, Y0 + N - 1);
     const onNorth = fadedAt(X0 + 2, Y0);
-    const nobody = drawables(X0 - 1, Y0 - 1, X0 + N + 1, Y0 + N + 1).filter((d) => d.faded).length;
-    row("the near battlement fades where the viewer stands on the walkway behind it (the tile and the one either side), and the far one never does", behindSouth === `n${X0 + 1},${Y0 + N} n${X0 + 2},${Y0 + N} n${X0 + 3},${Y0 + N}` && onNorth === "" && nobody === 0, `behind the south: ${behindSouth}; on the north: "${onNorth}"; no viewer: ${nobody}`);
+    const nobody = drawables(X0 - 1, Y0 - 1, X0 + N + 1, Y0 + N + 1).filter((d) => d.cut || d.faded).length;
+    row("the near battlement is cut to the stub where the viewer stands on the walkway behind it (the tile and the one either side), and the far one never is", behindSouth === `n${X0 + 1},${Y0 + N} n${X0 + 2},${Y0 + N} n${X0 + 3},${Y0 + N}` && onNorth === "" && nobody === 0, `behind the south: ${behindSouth}; on the north: "${onNorth}"; no viewer: ${nobody}`);
 
     // ---- 6. A jogged walk: an inner corner and its cuts, the free ends ----
     const JX = X0 + N + 3;

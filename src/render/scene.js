@@ -23,6 +23,7 @@ import { postDrawables, setStoreyView, setViewerAt, wallDrawables } from "./wall
 import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
 import { emitFadedFloors, emitFloors, faderFor, hiderFor, layersFor, liftOf, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
+import { cover as coverTuning } from "../tuning.js"; // the cover rule's levers (docs/53 section 6.2)
 
 // The night, as before: tunables Michael picks by eye, live on
 // window.__game.render.night. `climb` is how many pixels a pool climbs a wall
@@ -40,7 +41,7 @@ export const night = {
   debug: 0, // 0 none, 1 the light texture, 2 ambient, 3 fog (the L key)
 };
 const FOG_COLOR = [22 / 255, 14 / 255, 32 / 255];
-const FOG_ALPHA = 0.36;
+const FOG_ALPHA = () => coverTuning.fogAlpha; // the unseen's darkness, a lever (docs/53 section 6.2; tuning.js `cover`)
 const CLEAR = [0x16 / 255, 0x12 / 255, 0x1c / 255];
 
 export const NEAR_WALL_ALPHA = 0.42;
@@ -68,7 +69,7 @@ export const DEPTH_ROOM = { post: 0.5, wall: 1, floorItem: 0.5, prop: 1, figure:
 // mark, the highlight, the fog), so a check can stage what the client's own modules would; `mark` ({ is, color }) draws the drawables `is`
 // returns true for in one flat colour (gl.setMark), in their own passes and depths, so a check finds a thing's own pixels by drawing it
 // in two colours, whatever the colours behind it; `floor` ({ layer, color }, check("cliffs")) draws a storey's floors so. All null in play.
-export const probe = { skip: null, override: null, mark: null, floor: null };
+export const probe = { skip: null, override: null, mark: null, floor: null, noCover: false }; // noCover: no seen-but-covered shapes (a check that reads the depth sort alone)
 
 // The fade of a storey you stand behind (docs/49 section 6), on in play; check("storeys") turns it off to see what it shows.
 export const storeyFade = { on: true };
@@ -289,7 +290,7 @@ export function renderScene(args) {
       setViewerAt(player && L === VL ? { x: Math.round(player.gx), y: Math.round(player.gy), layer: L } : null); // a near battlement fades where the viewer stands behind it (art round 13)
       // The walls' view of the storeys round this layer (render/walls.js): the storey above drawn over a tile (a wall under its floor draws no
       // cap), and the stair the viewer stands on (the walls along it fade).
-      setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) && !(faded.any && faded.layers.has(L + 1) && faded(x, y, L + 1)) : null, viewerStair); // a fading storey is no floor over a wall (the review of #551)
+      setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) && !(faded.any && faded.layers.has(L + 1) && faded(x, y, L + 1)) : null, viewerStair, L > VL ? (x, y) => hidden(x, y, L) : null); // a fading storey is no floor over a wall (the review of #551); a hidden tile's edge walls go with it (docs/53 section 6.2)
       // The drawables standing on `tilesT`, and the bodies, stairs, and flights whose tile `mine` takes.
       const visL = seenOn(L); // this layer's own sight
       const gather = (tilesT, mine) => {
@@ -384,7 +385,7 @@ export function renderScene(args) {
     poolStrength: night.poolStrength,
     climb: night.climb,
     fogColor: FOG_COLOR,
-    fogAlpha: fog && !drawAll ? FOG_ALPHA : 0,
+    fogAlpha: fog && !drawAll ? FOG_ALPHA() : 0,
     holes,
     holeInner: HOLE_INNER,
     holeOuter: HOLE_OUTER,

@@ -15,7 +15,8 @@ import { getSheet, getDef } from "../assets.js";
 import { shade } from "../render-util.js";
 import { tileKey } from "../visibility.js";
 import { WALL_T, BRACKET_UP, DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "../placeholders.js";
-import { NEAR_WALL_ALPHA, DEPTH_ROOM, DEPTH_BIAS } from "./scene.js";
+import { DEPTH_ROOM, DEPTH_BIAS } from "./scene.js";
+import { cover } from "../tuning.js"; // the stub and the openings' opacity (docs/53 section 6.2)
 import * as depth from "./depth.js";
 import { emitBracket } from "./walls.js";
 import { ghostColor } from "./props.js";
@@ -174,7 +175,8 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
         const lm = lightPoint(s, amid, so);
         const vis = !visible || visible.has(tileKey(Math.round(lm[0]), Math.round(lm[1])));
         const flags = ghostTint ? ghostFlags : vis ? gl.FLAG_NOFOG : 0;
-        const alpha = fades(a0, a1) ? NEAR_WALL_ALPHA : 1;
+        const cutHere = fades(a0, a1); // the stretch over the room, cut to the stub with the player inside (docs/53 section 6.2)
+        const alpha = 1;
         // The face looks along its outward normal (the inner face toward the centre); lit from the top left, darker as it turns to the right.
         const look = so > 0 ? amid : amid + Math.PI;
         const k = 1 - 0.18 * (1 - Math.cos(look - Math.PI / 2));
@@ -203,21 +205,24 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
         }
         gl.layer(0);
         const hole = o ? holeOf(o.wall, h) : null;
-        if (!hole) band(0, h);
+        if (cutHere) {
+          const top = hole ? Math.min(cover.stub, hole[0]) : cover.stub;
+          if (top > 0) band(0, top);
+        } else if (!hole) band(0, h);
         else {
           if (hole[0] > 0) band(0, hole[0]);
           if (hole[1] < h) band(hole[1], h);
         }
         // The cap: the band between the faces at the wall's height, on the sky, unbroken over the openings; faded with its face.
         gl.layer(1);
-        const cap = [ground(a0, s.R - t), ground(a1, s.R - t), ground(a1, s.R + t), ground(a0, s.R + t)].map(scr).map(([x, y]) => [x, y - h]);
+        const cap = [ground(a0, s.R - t), ground(a1, s.R - t), ground(a1, s.R + t), ground(a0, s.R + t)].map(scr).map(([x, y]) => [x, y - (cutHere ? cover.stub : h)]); // cut, along the stub
         gl.poly(cap, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [lm[0], lm[1]], flags: flags | gl.FLAG_SKY });
       }
       // The door points' doors and windows, drawn in the hole the curve leaves for them (art round 9, Michael approved 2026-10-27).
       if (!ghostTint) {
         for (const o of openings) {
           if (!o.wall || o.c >= 2 * Math.PI || nearHalf(o.c) !== near) continue;
-          first = emitOpening(r, s, o, near, visible, fades(o.c, o.c) ? NEAR_WALL_ALPHA : 1, first);
+          first = emitOpening(r, s, o, near, visible, fades(o.c, o.c) ? cover.openingAlpha : 1, first); // in the cut stretch, whole and faint
         }
       }
       // The cut's two ends: the wall's thickness seen end on, from the inner line to the outer face, the whole height, opaque.
