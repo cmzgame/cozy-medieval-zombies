@@ -34,7 +34,7 @@ export function withLift(px, fn) {
 // order; on a storey, on the lifted floor's horizontal plane a step over the floor's picture, tested against what stands, so it lies on its
 // own floor and never under it (the storey's floor, drawn with depth, painted over the flat pass's).
 export function flatHere(fn, liftedFloorBias = 0.25) {
-  if (!(gl.getLift() > 0)) return gl.withPass(gl.PASS_FLAT, fn);
+  if (!gl.getLift()) return gl.withPass(gl.PASS_FLAT, fn); // the ground's; a storey's or a cellar's lies on its own floor's plane
   const o = iso.getOrigin();
   const was = gl.getPass();
   gl.setPass(gl.PASS_STAND);

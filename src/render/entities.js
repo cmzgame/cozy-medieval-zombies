@@ -153,7 +153,7 @@ export function fireDrawables(particles, visible, out) {
     if (!visible.has(tileKey(Math.round(gx), Math.round(gy)))) continue;
     const s = iso.toScreen(gx, gy);
     const x = Math.round(s.x + p.ox);
-    const y = Math.round(s.y - p.z - ((p.ch && p.ch.rise) || 0)); // a burning body on a stair burns at its rise (its storey is the pass's lift)
+    const y = Math.round(s.y - p.z - ((p.ch ? p.ch.rise : p.rise) || 0)); // a burning body on a stair burns at its rise, its embers and smoke with it (its storey is the pass's lift)
     const u = p.t / p.life;
     let name;
     let color;

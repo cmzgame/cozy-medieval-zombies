@@ -362,7 +362,7 @@ void main() {
   // Texel i of the tile textures covers [origin + i - 0.5, origin + i + 0.5);
   // the light texture spans the same area at more texels per tile.
   vec2 tileUV = (v_world - u_areaOrigin + 0.5) / u_areaTiles;
-  vec2 setUV = vec2(tileUV.x, (clamp(tileUV.y, 0.0, 1.0) + setN - 1.0) / STOREY_SETS_F); // its own band of the stacked storey textures
+  vec2 setUV = vec2(tileUV.x, (clamp(tileUV.y, 0.5 / u_areaTiles.y, 1.0 - 0.5 / u_areaTiles.y) + setN - 1.0) / STOREY_SETS_F); // its own band of the stacked storey textures, half a tile inside it so no read reaches the next (the review of #605)
   vec3 rgb = solid ? v_color.rgb : tex.rgb;
   // Debug views (docs/08): the light, ambient, or fog texture as grey over the
   // world, read at the fragment's own sample point.

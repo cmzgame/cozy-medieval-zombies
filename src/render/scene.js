@@ -246,12 +246,11 @@ export function renderScene(args) {
   // Each storey in view its own light, ambient, and fog (docs/53 section 6.4): the storeys held in view, the viewer's first, then the lowest
   // up, a set each to STOREY_SETS; one past the cap is lit as the open sky. A village with no storey in view builds the ground's alone.
   const setOf = new Map();
-  for (const L of [VL, ...layers].filter((l, i, a) => l > 0 && (held.has(l) || l === VL) && a.indexOf(l) === i)) {
+  for (const L of [VL, ...layers].filter((l, i, a) => l !== 0 && (held.has(l) || l === VL) && a.indexOf(l) === i)) { // a cellar too (the review of #605)
     if (setOf.size >= gl.STOREY_SETS) break;
     setOf.set(L, setOf.size + 1);
   }
   for (const [L, n] of setOf) buildStoreyArea(grown.get(L) || [], seenOn(L), drawAll || !fog, cam.gx, cam.gy, L, n);
-  const upperL = setOf.size ? VL || [...setOf.keys()][0] : null; // the probe's and the checks' name for the viewer's storey set
   gl.setUpperSet(setOf.size > 0);
   if (layers[0] === 0) {
     emitGround(tiles);
@@ -325,7 +324,7 @@ export function renderScene(args) {
         }
         if (arrows && arrows.length) arrowDrawables(arrows.filter((a) => (a.layer || 0) === L && mine(a.gx, a.gy)), visL, drawables); // a flight on its own layer (docs/49)
         if (splashes && splashes.length) splashDrawables(splashes.filter((s) => (s.layer || 0) === L && mine(s.gx, s.gy)), visL, drawables); // a thrown potion's or poison's splash (docs/47 section 7)
-        if (fire && fire.length) fireDrawables(fire.filter((p) => ((p.ch ? p.ch.layer : p.layer) || 0) === L), visL, drawables); // a body burns on its own floor (docs/53 section 6.4)
+        if (fire && fire.length) fireDrawables(fire.filter((p) => ((p.ch ? p.ch.layer : p.layer) || 0) === L && (p.ch ? mine(p.ch.gx, p.ch.gy) : mine(p.gx, p.gy))), visL, drawables); // a body burns on its own floor, and its embers and smoke with it (docs/53 section 6.4), never over what the cover rule hides
         drawables.sort((a, b) => a.key - b.key);
         return drawables;
       };
