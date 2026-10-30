@@ -223,6 +223,17 @@
     "group": "Floors and stairs",
     "note": "docs/49 section 5: a stair three tiles long from the tile under the cursor, climbing on away from the player, its landing's planks laid on the storey above (one of its planks); north and west only for now (Primary's default: \"Stairs climb away from the camera\", Michael to confirm); the drawn stair (art round 8); never taken apart (ruled); Free building only for now; the cost docs/49 section 5's default, never charged while Free building is on; the seconds the builder's default"
   },
+  "ladder_wood": {
+    "label": "Wood ladder",
+    "kind": "ladder",
+    "sprite": "ladder_wood",
+    "cost": { "plank": 4 },
+    "seconds": 10,
+    "tool": "build",
+    "dev": true,
+    "group": "Floors and stairs",
+    "note": "docs/53 step 6b (`49` section 4b, folded in by Michael's ruling of 2026-10-30, \"towers by ladders\"): one tile, leaning on its far edge north or west, climbed up through the hole over it to its landing a storey up (its planks laid with it where there were none); a timed climb, never a walk, so the dead, villagers, and animals ignore it; Free building only for now, as the stairs; taken apart with Free building when nobody would be cut off; the cost and the seconds Primary's defaults"
+  },
   "stair_stone": {
     "label": "Stone stair",
     "kind": "stair",

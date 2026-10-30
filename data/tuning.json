@@ -87,6 +87,7 @@
     "gap": 14
   },
   "cover": { "stub": 8, "openingAlpha": 0.3, "fogAlpha": 0.36, "seenAlpha": 0.5 },
+  "ladder": { "climbSeconds": 1.5 },
   "objectHighlight": {
     "color": "#f4f0e6",
     "alpha": 1,

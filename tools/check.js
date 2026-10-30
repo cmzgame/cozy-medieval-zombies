@@ -8661,6 +8661,118 @@ check("height, step 6: building's rules: a rug, a painting, a torch, a set-down,
   }
 });
 
+// docs/53 step 6b: ladders. A tower of three storeys climbed by ladders, built and taken apart through the commands a guest sends.
+check("height, step 6b: ladders: built by a guest's command, climbed up two storeys and down by E as a timed state (the walk ignored, the rise climbing), the dead at the tower's foot never coming up and breaking the door below; a ladder taken apart with nobody above and refused with someone; a guest's copy dropping it with its chunk", () => {
+  const at = clearGround();
+  assert(at, "no clear ground");
+  const [x, y] = at;
+  const S = gameMod.state;
+  const me = S.player;
+  const DT = 1 / 60;
+  const was = { gx: me.gx, gy: me.gy, layer: me.layer, rise: me.rise, free: rulesImport.rules.freeBuilding, aggro: rulesImport.rules.zombieAggro };
+  const said = [];
+  promptImport.setMessageSink((t) => (said.push(t), true));
+  const floors = [];
+  const walls = [];
+  const built = [];
+  const dead = [];
+  const floor = (a, b, L) => { const t = mapMod.growTile(a, b, L); t.built = { under: t.floor, free: true }; t.floor = "floor_wood"; mapMod.touch(a, b, L); floors.push([a, b, L]); };
+  const wall = (tx, ty, edge, L, kind = "wall") => { assert(mapMod.buildWall(tx, ty, edge, kind, "wall_stone", null, L), `a ${kind} at ${tx},${ty} ${edge} on ${L}`); walls.push([tx, ty, edge, L]); return mapMod.peekTile(tx, ty, L)[edge]; };
+  const stand = (gx, gy, L) => { me.gx = gx; me.gy = gy; me.layer = L; me.rise = 0; delete me.ladder; };
+  const send = (cmd) => { said.length = 0; placementImport.performPlacement(me, cmd); return said[said.length - 1] || ""; };
+  const steps = (n) => { for (let i = 0; i < n; i++) playerMod.updatePlayer(me, DT); };
+  try {
+    rulesImport.rules.freeBuilding = true;
+    // A tower: a three by three stone room on the ground with a door on its east wall, and two floors over it, each with a hole for its ladder.
+    for (let i = 0; i < 3; i++) { wall(x + i, y, "n", 0); wall(x + i, y + 3, "n", 0); }
+    for (let j = 0; j < 3; j++) { wall(x, y + j, "w", 0); wall(x + 3, y + j, "w", 0, j === 1 ? "door" : "wall"); }
+    const door = mapMod.peekTile(x + 3, y + 1, 0).w;
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) { if (!(i === 1 && j === 1)) floor(x + i, y + j, 1); if (!(i === 2 && j === 2)) floor(x + i, y + j, 2); }
+    mapMod.roomsIfDirty();
+    // The ladders, by the command a guest sends: one in the ground room up to the first floor, one there up to the second.
+    stand(x + 0.2, y + 2, 0);
+    let why = send({ kind: "build", what: "ladder_wood", tx: x + 1, ty: y + 1, dir: "n" });
+    const l1 = mapMod.ladderAt(x + 1, y + 1, 0);
+    assert(l1 && l1.part === "foot", `the first ladder: ${why || "not built"}`);
+    built.push(l1.l);
+    stand(x + 0.2, y + 2, 1);
+    why = send({ kind: "build", what: "ladder_wood", tx: x + 2, ty: y + 2, dir: "n" });
+    const l2 = mapMod.ladderAt(x + 2, y + 2, 1);
+    assert(l2 && l2.part === "foot", `the second ladder: ${why || "not built"}`);
+    built.push(l2.l);
+    assert(send({ kind: "build", what: "ladder_wood", tx: x, ty: y, dir: "e" }) === "Ladders lean away from the camera", "a ladder leaning toward the camera");
+    // Up the first by E: a timed climb, the walk inputs ignored, the rise climbing, the climb pose.
+    stand(x + 1, y + 1.9, 0);
+    let a = interactMod.nearestSimpleAction(me);
+    assert(a && a.label === "Climb ladder", `E at the ladder's foot: ${a ? a.label : "nothing"}`);
+    a.perform();
+    assert(me.ladder && me.ladder.up && me.layer === 0, "the climb did not start");
+    let last = -1;
+    let mono = true;
+    for (let i = 0; i < 200 && me.ladder; i++) {
+      playerMod.updatePlayer(me, DT, { axis: { x: 1, y: 0 } }); // a walk key held all the while
+      if (me.ladder && me.rise < last) mono = false;
+      if (me.ladder) last = me.rise;
+      if (me.ladder && me.anim.name !== "climb") mono = false;
+    }
+    assert(!me.ladder && me.layer === 1 && me.gx === l1.l.landing[0] && me.gy === l1.l.landing[1] && mono, `up the first ladder: on ${me.layer} at ${me.gx},${me.gy}, the rise always climbing ${mono}`);
+    // Up the second, then down it again.
+    stand(x + 2, y + 1.2, 1);
+    a = interactMod.nearestSimpleAction(me);
+    assert(a && a.label === "Climb ladder", `E at the second ladder: ${a ? a.label : "nothing"}`);
+    a.perform();
+    steps(120);
+    assert(!me.ladder && me.layer === 2, `up the second ladder: on ${me.layer}`);
+    a = interactMod.nearestSimpleAction(me);
+    assert(a && a.label === "Descend ladder", `E on the landing: ${a ? a.label : "nothing"}`);
+    a.perform();
+    steps(120);
+    assert(!me.ladder && me.layer === 1 && me.gx === x + 2 && me.gy === y + 2, `down the second ladder: on ${me.layer} at ${me.gx},${me.gy}`);
+    // Up on the second floor, with the dead at the tower's foot: they never climb, and break the ground room's door under him.
+    stand(x + 1, y, 2);
+    rulesImport.rules.zombieAggro = true;
+    const foot = zombieMod.createZombie(x + 5, y + 1, { hp: 1000 });
+    foot.sightTimer = 1e9;
+    foot.idleTimer = 1e9;
+    foot.aggro = true;
+    foot.lastSeen = mapMod.addr(x + 1, y, 2);
+    foot.state = "chase";
+    dead.push(foot);
+    const hp0 = door.hp;
+    let rose = false;
+    for (let i = 0; i < 1800; i++) { zombieMod.updateZombie(foot, DT, [me], [foot]); if ((foot.layer || 0) !== 0) rose = true; }
+    assert(!rose && door.hp < hp0, `the dead at the tower's foot: climbed ${rose}, the door ${door.hp} of ${hp0} (its state ${foot.state})`);
+    // Taken apart: refused with someone above, done with nobody; a guest's copy drops it with its chunk.
+    stand(x + 0.2, y + 2, 0);
+    const up = zombieMod.createZombie(x, y, { hp: 1000 });
+    up.layer = 1;
+    S.zombies.push(up);
+    dead.push(up);
+    why = placementImport.takeApartProblem(me, { type: "ladder", l: l1.l, tx: x + 1, ty: y + 1, layer: 0 });
+    assert(why === "Someone up there would have no way down", `a ladder taken apart with one of the dead above: "${why}"`);
+    S.zombies.splice(S.zombies.indexOf(up), 1);
+    const [ccx, ccy] = mapMod.chunkCoord(x + 1, y + 1);
+    const rec0 = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(ccx, ccy, false, 0))));
+    why = send({ kind: "remove", target: { type: "ladder", tx: x + 1, ty: y + 1 } });
+    assert(!mapMod.ladderAt(x + 1, y + 1, 0) && (rec0.ladders || []).length >= 1, `the ladder not taken apart with nobody above: "${why}"`);
+    const rec1 = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(ccx, ccy, false, 0))));
+    mapMod.installChunk(rec0);
+    const back = !!mapMod.ladderAt(x + 1, y + 1, 0);
+    mapMod.installChunk(rec1);
+    assert(back && !mapMod.ladderAt(x + 1, y + 1, 0), `a guest's copy: back with the old record ${back}, gone with the new one`);
+    return `two ladders built by a guest's command, climbed up two storeys and down by E (a walk key ignored, the rise always climbing); the dead at the foot broke the door below (${hp0} to ${door.hp}) and never climbed; take-apart refused with one above and done with nobody; a guest's copy drops it`;
+  } finally {
+    promptImport.setMessageSink(null);
+    for (const z of dead) { const i = S.zombies.indexOf(z); if (i >= 0) S.zombies.splice(i, 1); }
+    for (const l of built) { try { mapMod.removeLadder(l); } catch { /* gone */ } }
+    for (const [tx, ty, e, L] of walls.reverse()) { try { if (mapMod.peekTile(tx, ty, L)?.[e]) mapMod.destroyWall(tx, ty, e, false, L); } catch { /* gone */ } }
+    for (const [a, b, L] of floors) { const t = mapMod.peekTile(a, b, L); if (t) { if (t.items) t.items.length = 0; delete t.built; t.floor = "void"; mapMod.touch(a, b, L); } }
+    me.gx = was.gx; me.gy = was.gy; me.layer = was.layer; me.rise = was.rise; delete me.ladder;
+    rulesImport.rules.freeBuilding = was.free;
+    rulesImport.rules.zombieAggro = was.aggro;
+  }
+});
+
 // The layer audit (docs/53 step 0, section 6.5): no call in the simulation leaves its layer to a default of the ground or the drawn storey,
 // beyond the allow list of those known on 2026-10-30, each named with the step that gives it its layer. The list only shrinks: a new
 // layer-less call fails, and so does an entry with more calls than remain (take it down as the step lands).

@@ -65,6 +65,7 @@ import * as trees from "./trees.js"; // sticks under a tree, a sapling's Inspect
 import * as water from "./water.js"; // tainted and clean water, and the boil verb (docs/44)
 import { taintedDrink } from "./sick.js"; // a tainted drink's one roll, Sick and the infection (docs/44)
 import * as potions from "./potions.js"; // a potion drunk, its vial back (docs/47 section 4, #481)
+import * as ladders from "./entities/ladders.js"; // a ladder's climb (docs/53 step 6b)
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -99,6 +100,28 @@ const onBracket = (b) => ({ kind: "bracket", tx: b.tx, ty: b.ty, edge: b.edge })
 const onItem = (entry, tx, ty) => ({ kind: "item", uid: entry.uid, tile: [tx, ty] });
 const onCharacter = (c) => ({ kind: "character", id: c.id });
 const onPainting = (h) => ({ kind: "painting", tx: h.tx, ty: h.ty, edge: h.edge }); // a hung painting, by the segment that holds it (#326)
+const onLadder = (l) => ({ kind: "ladder", id: l.id }); // a ladder by its id (docs/53 step 6b)
+
+// A ladder's Climb ladder (from its tile, on its floor) or Descend ladder (from its landing, a storey up): simple, so E takes it, the climb
+// itself a timed state of the player (entities/ladders.js) run on the host, a guest's by its E or its menu entry's label (docs/53 step 6b).
+function ladderActions(l, player) {
+  const up = (player.layer || 0) === l.layer;
+  if (!up && (player.layer || 0) !== l.layer + 1) return [];
+  return [act({
+    kind: "ladder",
+    simple: true,
+    label: up ? "Climb ladder" : "Descend ladder",
+    tiles: [up ? [l.at[0], l.at[1]] : [l.landing[0], l.landing[1]]],
+    mx: l.at[0],
+    my: l.at[1],
+    range: 1.4,
+    perform() {
+      const why = ladders.begin(player, l, up);
+      if (why) showMessage(why);
+      return !why;
+    },
+  })];
+}
 
 // The actions on an address, rebuilt here from the world (a host's, for a guest's command).
 export function actionsForTarget(t, player) {
@@ -124,6 +147,10 @@ export function actionsForTarget(t, player) {
   if (t.kind === "edge") {
     const o = map.openingsNear(t.tx, t.ty, 2.5, player.layer || 0).find((q) => q.tx === t.tx && q.ty === t.ty && q.edge === t.edge);
     return o ? tag(openingActions(o, player), t) : [];
+  }
+  if (t.kind === "ladder") {
+    const l = map.ladders().find((q) => q.id === t.id);
+    return l ? tag(ladderActions(l, player), t) : [];
   }
   if (t.kind === "bracket") {
     const b = map.bracketAt(t.tx, t.ty, t.edge, player.layer || 0); // on the player's own layer (docs/49 section 9)
@@ -1332,6 +1359,8 @@ function actionsAtHere(sx, sy, player) {
     }
   }
   // A rug under the cursor's tile: its Pick up, with Walk here still offered beside it (#327).
+  const ladderHere = map.ladderAt(tx, ty, L); // a ladder's tile on its floor, or its hole or landing a storey up (docs/53 step 6b)
+  if (ladderHere) out.push(...tag(ladderActions(ladderHere.l, player), onLadder(ladderHere.l)));
   const rugHere = map.peekTile(tx, ty, L)?.rug;
   const rugActs = rugHere ? tag(rugActions(rugHere, player), onProp(rugHere)) : [];
   for (const o of openingsAtScreen(sx, sy)) out.push(...tag(openingActions(o, player), onEdge(o)));
@@ -1374,6 +1403,8 @@ export function nearestSimpleAction(player) {
   const px = Math.round(player.gx);
   const py = Math.round(player.gy);
   const seen = new Set();
+  const nearLadder = ladders.ladderNear(player, 1.4); // E climbs a ladder beside you (docs/53 step 6b)
+  if (nearLadder) consider(tag(ladderActions(nearLadder.l, player), onLadder(nearLadder.l)));
   for (let dy = -2; dy <= 2; dy++) {
     for (let dx = -2; dx <= 2; dx++) {
       const t = map.peekTile(px + dx, py + dy, player.layer || 0); // a hit test never grows a chunk (docs/23a, A4)

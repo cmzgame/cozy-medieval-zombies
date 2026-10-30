@@ -82,6 +82,10 @@ export function emitGhost(ghost) {
     } else if (t.type === "wall") {
       const shut = { ...t.wall, open: false, shutter: t.wall.kind === "window" ? "closed" : null };
       makeWall(shut, t.edge, t.tx, t.ty, true, false, tint).emit();
+    } else if (t.type === "ladder") {
+      const base = ((t.l.layer || 0) - (ghost.layer || 0)) * map.STOREY;
+      emitGhostTile(t.l.at[0], t.l.at[1], base, tint);
+      emitGhostTile(t.l.landing[0], t.l.landing[1], base + map.STOREY, tint);
     } else if (t.type === "stair") {
       // A stair taken apart (docs/53 step 6): each step's tread washed at its height, and its landing, drawn from the floor the ghost is on.
       const base = ((t.s.layer || 0) - (ghost.layer || 0)) * map.STOREY;
@@ -92,6 +96,12 @@ export function emitGhost(ghost) {
     } else if (t.prop) {
       emitPropCells(getSheet(t.prop.sprite, t.prop.tiles.length), t.prop.tiles.map(([x, y], i) => [x, y, i]), ghost.ok, t.prop);
     }
+    return;
+  }
+  if (ghost.kind === "ladder") {
+    // A ladder as it would stand (docs/53 step 6b): its tile, and its landing a storey up.
+    emitGhostTile(ghost.x, ghost.y, 0, tint);
+    emitGhostTile(ghost.landing[0], ghost.landing[1], map.STOREY, tint);
     return;
   }
   if (ghost.kind === "round") {

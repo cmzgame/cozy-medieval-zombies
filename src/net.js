@@ -179,7 +179,11 @@ export function makeCode() {
 // 30 (2026-10-30, docs/53 step 6, building's rules): the `remove` command may name `{ type: "stair", tx, ty }` (a built stair by its low tile), and a
 // chunk's record without a built stair whose foot it holds takes that stair away; an older guest would keep a stair the host took up, and an older
 // host would drop the command.
-export const PROTOCOL = 30;
+// 31 (2026-10-30, docs/53 step 6b, ladders): a chunk's record may carry `ladders` ([lx, ly, dir, free?] by a ladder's tile, a record without one
+// whose tile it holds taking it away); a player's light record may carry `ladder` ({ id, up, t }, a climb under way); a `build` command may name
+// a ladder (`tx`, `ty`, `dir`) and a `remove` `{ type: "ladder", tx, ty }`; the menu's and E's Climb ladder and Descend ladder by label. An older
+// guest would draw no ladder and a climber standing still, and an older host would drop the commands.
+export const PROTOCOL = 31;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -1412,6 +1416,7 @@ function applyFrame(f) {
       if (!isLight || rest.gx !== undefined) {
         c.layer = layerIn(rest.layer);
         c.rise = Number.isFinite(rest.rise) ? rest.rise : 0;
+        if (rest.ladder === undefined) delete c.ladder; // a climb over (docs/53 step 6b): the record is whole, so no `ladder` is none
       }
       c.poison = poisonOf(po); // the slim record is whole: no `po` is no poison (docs/47 section 6)
       if (r.id !== myPlayerId && typeof rest.gx === "number") { const toX = c.gx; const toY = c.gy; c.gx = wasX; c.gy = wasY; aimAt(c, toX, toY); }

@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "box", "color": "#7a5a36", "height": 96, "inset": 26, "label": "Ladder"}, "note": "the wood ladder's placeholder (docs/53 step 6b): the build menu's picture; in the world a ladder is drawn by render/storeys.js (ladderDrawables), its rails and rungs in the dev stairs' wood, until the art pass draws one"}
