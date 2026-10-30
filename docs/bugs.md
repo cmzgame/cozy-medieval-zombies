@@ -18,8 +18,6 @@
 
 - **A prop removed or restaged in an ungrown chunk leaves a solid ghost out of the registry** (found building #447 and reproduced by its review under Node, 2026-10-25, on `primary/447-resources-comeback`; not reachable in play today). `map.removeProp` (`src/map.js` ~787) and `map.restage` reach the tile through `tileAt`, which for an ungrown chunk is the frozen blank tile: the prop leaves the registry, but the authored tile keeps it, so when the chunk grows it stands on its tile again, solid, not minable, and a sync mismatch. Every remover today stands in its own grown ring. Likely fix: reach the tile through `growTile`, as `placeProp` does (a mutator grows its chunk).
 
-- **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`, *needs repro*). `src/moodles.js` (~26): the first stage's words assume a bite, and water gives no bite.
-
 ## Open: surprises for Michael to rule on
 
 Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling (`docs/02`) before anyone changes code.
@@ -31,6 +29,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 - **A free sharpening spends the rung the anvil uses** (found syncing the wiki for #416, 2026-10-25, at `e045b31`). One count serves both places (`src/repair.js` ~44-48, ~103), as `docs/43` section 6 rules, so a sword sharpened once at the grindstone (to 60%) can no longer be repaired to 100% at the anvil, only to 80%. Read literally that is the ruling; it may surprise a player who sharpens first. For Michael: keep, or let the grindstone's rungs not lower the anvil's.
 
 - **The fishing rod is repaired with a plank, though no plank made it** (found syncing the wiki for #416, 2026-10-25, at `e045b31`). `data/items.json` gives the rod `repair.with: "plank"` (the spec's "a plank for wood"); its recipe is a stick and cloth. The bow likewise. Listed to be seen, not as a bug.
+
+- **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`; reread 2026-10-29, confirmed in the code: not a *needs repro* row at all, since `sick.taintedDrink` calls the same `infection.infect` a bite does, with nothing recording which gave it). `src/moodles.js` (~27), the one shared "infection" moodle's first stage. Already logged as open, not yet ruled, in `docs/44-water.md` section 2 ("The infection from water has no line of its own: the moodle shows it, and its first stage still reads 'Bitten' (open: a water infection may want its own first words)."). Recategorised here rather than fixed: the code change is trivial (carry a cause on `player.infection`, read it in `moodles.js`), but the words themselves are Michael's to write, not a coding call. For Michael: keep "Bitten" for both causes, or give a water infection its own first line (and, if so, what it says).
 
 
 ## Became issues
