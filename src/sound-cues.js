@@ -161,7 +161,15 @@ function footsteps(S, sim) {
 
 // The floor's step slot; a floor not listed, grass among them since #386, takes the default (the dead's shuffle).
 function stepSlot(c) {
-  const t = map.tileAt(Math.round(c.gx), Math.round(c.gy), c.layer || 0); // the walker's own floor (docs/53 step 7): planks upstairs, not the grass under them
+  const L = c.layer || 0;
+  const x = Math.round(c.gx);
+  const y = Math.round(c.gy);
+  const h = c.rise > 0 ? map.stairAt(x, y, L) : null; // on a stair: its treads, the floor its landing takes (the review of #609)
+  if (h && !h.well) {
+    const name = steps[map.stairKind(h.s.material).landing];
+    if (typeof name === "string") return name;
+  }
+  const t = map.tileAt(x, y, L); // the walker's own floor (docs/53 step 7): planks upstairs, not the grass under them
   const name = t && steps[t.floor];
   return typeof name === "string" ? name : steps.default || "shuffle";
 }

@@ -311,7 +311,7 @@
     }
   },
   "footsteps": {
-    "note": "The floor under a foot (map.tileAt(round(gx), round(gy)).floor) to its step slot; a floor not listed takes `default`. The dead shuffle whatever the floor; grass shuffles too, so a player on grass and the dead sound alike (Michael, 2026-10-24, #385).",
+    "note": "The floor under a foot on the walker's own floor (map.tileAt(round(gx), round(gy), layer).floor; on a stair the floor its landing takes, docs/53 step 7) to its step slot; a floor not listed takes `default`. The dead shuffle whatever the floor; grass shuffles too, so a player on grass and the dead sound alike (Michael, 2026-10-24, #385).",
     "floor_grass": "shuffle",
     "floor_dirt": "step_dirt",
     "floor_farm": "step_dirt",

@@ -313,7 +313,7 @@ export function startTalk(v, player) {
   if (v.state === "cower" || v.state === "flee") return false; // too frightened to answer, as a poke (docs/43 section 7); the flight goes on
   if ((player.layer || 0) !== (v.layer || 0) || !lineOfSight(player.gx, player.gy, v.gx, v.gy, v.layer || 0)) return false; // the same test `keepTalkers` ends a conversation on: never through a wall
   const w = talkWorld();
-  const deadClose = !!w && (w.zombies || []).some((z) => !z.dead && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= T.talkDeadRadius);
+  const deadClose = !!w && (w.zombies || []).some((z) => !z.dead && (z.layer || 0) === (v.layer || 0) && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= T.talkDeadRadius); // on its own floor (the review of #609)
   if (!talk.has(v.talk) || deadClose) {
     pokeVillager(v, player); // no file, or the dead are close: a bark, not a conversation
     return false;
@@ -349,7 +349,7 @@ function ambientBark(v, players) {
   let near = null;
   let best = T.barkRadius;
   for (const p of players) {
-    if (p.dead) continue;
+    if (p.dead || (p.layer || 0) !== (v.layer || 0)) continue; // a player on its own floor (the review of #609)
     const d = Math.hypot(p.gx - v.gx, p.gy - v.gy);
     if (d <= best) { near = p; best = d; }
   }

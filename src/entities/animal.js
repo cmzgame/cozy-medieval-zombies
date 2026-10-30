@@ -365,7 +365,7 @@ export function updateAnimal(a, dt, others, threats) {
 function charge(a, dt, others, threats, sp) {
   const f = sp.fight;
   const t = threats.find((q) => q.id === a.targetId && q.kind === "player");
-  const d = t ? Math.hypot(t.gx - a.gx, t.gy - a.gy) : Infinity;
+  const d = t && (t.layer || 0) === (a.layer || 0) ? Math.hypot(t.gx - a.gx, t.gy - a.gy) : Infinity; // one on another floor is out of its reach: it gives up (the review of #609)
   if (!f || !t || t.dead || loop.simTime() >= a.calmAt || d > f.giveUp) {
     a.targetId = null;
     a.windup = 0;

@@ -8732,6 +8732,13 @@ check("height, step 7: everyone by layer: a deer under a wall walk grazes on wit
     me.gx = x + 6.3; me.gy = y + 1; me.layer = 1; me.hp = 100;
     eventsMod.emit("animalBite", { animal: boar, victim: me, damage: 10 });
     const upHp = me.hp;
+    // Struck from a floor up (a shot down from the walk), the boar winds up at no one and gives up (the review of #609).
+    boar.state = "charge";
+    boar.targetId = me.id;
+    boar.calmAt = loopMod.simTime() + 30;
+    let wound = false;
+    for (let i = 0; i < 120; i++) { animalMod.updateAnimal(boar, DT, [boar], [me]); if (boar.windup > 0) wound = true; }
+    assert(!wound && boar.targetId === null, `a boar under a player a floor up: wound up ${wound}, still after ${boar.targetId}`);
     me.layer = 0;
     eventsMod.emit("animalBite", { animal: boar, victim: me, damage: 10 });
     assert(upHp === 100 && me.hp < 100, `a boar's bite: a floor up ${upHp}, on its floor ${me.hp}`);
