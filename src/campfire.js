@@ -23,7 +23,7 @@ export const REACH = 2.6; // tiles from the player to the tile it is set down on
 export function standProblem(tx, ty, layer = 0) {
   const t = map.peekTile(tx, ty, layer); // a read never grows a chunk (src/CLAUDE.md): a tile not grown is no room
   if (!t || !map.isWalkableTile(tx, ty, layer) || t.prop || t.rug) return "No room";
-  if (map.stairAt(tx, ty, layer) || map.landingAt(tx, ty, layer)) return "No room";
+  if (map.stairAt(tx, ty, layer) || map.landingAt(tx, ty, layer) || map.ladderAt(tx, ty, layer)) return "No room";
   if (t.room > 0) return "Outdoors only";
   const r = map.floorRule(t.floor);
   if (r.drink || r.walk !== 1) return "Not on water";

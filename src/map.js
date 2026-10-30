@@ -1090,6 +1090,9 @@ export function floorBuildProblem(x, y, id, layer = 0, grows = null) {
   const t = peekTile(x, y, layer) || tileAt(x, y, layer);
   if (stairAt(x, y, layer)) return "Not over a stair";
   if (landingAt(x, y, layer)) return "Not on a stair's landing";
+  const lad = ladderAt(x, y, layer); // a ladder's hole and its landing are its own (the review of #608)
+  if (lad && lad.part === "hole") return "Not over a ladder's hole";
+  if (lad && lad.part === "landing") return "Not on a ladder's landing";
   if (t.floor === EARTH || t.floor === HOLE) return "Not here";
   if (!isEngineFloor(t.floor) && (floorRule(t.floor).walk === false || floorRule(t.floor).drink || /^floor_water/.test(t.floor))) return "Not on water"; // a ford is never paved (the review of #549)
   if (t.floor === id) return "Already laid";
@@ -1156,6 +1159,7 @@ export function floorTakeUpProblem(x, y, layer = 0) {
   if (t.n || t.w || s.n || e.w) return "A wall stands on it";
   if (stairAt(x, y, layer)) return "A stair stands on it";
   if (landingAt(x, y, layer)) return "It is a stair's landing: take the stair apart"; // the landing's words (docs/53 step 6)
+  if (ladderAt(x, y, layer) && ladderAt(x, y, layer).part === "landing") return "It is a ladder's landing: take the ladder apart"; // the review of #608
   if (t.prop || t.rug) return "Something stands on it";
   return ""; // what lies on it falls to the floor below as it comes up (docs/53 section 6.3)
 }
@@ -1236,6 +1240,12 @@ export function canStampOver(existing, kind) {
 // edge of its stairwell on the layer above (a body going down crosses the top edge into the stairwell, whose tiles the collision passes
 // whole). Along a stair's sides on its own layer a wall may stand (its sides hold bodies anyway).
 export function stairEdgeProblem(tx, ty, edge, layer = 0) {
+  if (ladderIndex.size) { // nor across a ladder's top, between its hole and its landing (the review of #608)
+    const [a, b] = edgeTiles(tx, ty, edge);
+    const la = ladderIndex.get(tileKey3(a[0], a[1], layer));
+    const lb = ladderIndex.get(tileKey3(b[0], b[1], layer));
+    if (la && lb && la.l === lb.l && la.part !== "foot") return "Not across a ladder's top";
+  }
   if (!stairIndex.size) return "";
   const [a, b] = edgeTiles(tx, ty, edge);
   const ha = stairIndex.get(tileKey3(a[0], a[1], layer));
@@ -1717,7 +1727,8 @@ export function ringProblem(x0, y0, n, layer = 0) {
       if (h && h.well && !onCurve(x, y)) continue;
       return h && h.well ? "A stairwell is under the curve: keep it off the ring's edge" : "A round room upstairs needs a floor under all of it";
     }
-    if (layer > 0 && landingAt(x, y, layer) && onCurve(x, y)) return "A stair's landing is under the curve"; // as a stair is refused under a ring built first (the review of #607)
+    if (layer > 0 && landingAt(x, y, layer) && onCurve(x, y)) return "A stair's landing is under the curve";
+    if (ladderAt(x, y, layer) && onCurve(x, y)) return "A ladder is under the curve"; // the review of #608 // as a stair is refused under a ring built first (the review of #607)
     if (floorRule(t.floor).walk !== 1 || floorRule(t.floor).drink) return "Not on water or empty ground";
     if (t.prop || t.rug) return "Something is in the way";
     if (t.items && t.items.length) return "Clear the floor first";
@@ -3065,7 +3076,7 @@ export function stairBuildProblem(x0, y0, dir, layer = 0, material = "wood") {
   if (!isWalkableTile(bx, by, layer) || stairAt(bx, by, layer)) return "Its foot needs a floor to step from";
   for (const [x, y] of rec.tiles) {
     const t = tileAt(x, y, layer);
-    if (!isWalkableTile(x, y, layer) || stairAt(x, y, layer) || landingAt(x, y, layer)) return "Not here";
+    if (!isWalkableTile(x, y, layer) || stairAt(x, y, layer) || landingAt(x, y, layer) || ladderAt(x, y, layer) || ladderAt(x, y, up)) return "Not here"; // never over a ladder's tile, hole, or landing (the review of #608)
     if (t.prop || t.rug || (t.items && t.items.length)) return "Something is in the way";
     if (tileAt(x, y, up).floor !== VOID) return "A floor is over it";
     if (stairAt(x, y, up)) return "Another stair is over it";
@@ -3079,7 +3090,8 @@ export function stairBuildProblem(x0, y0, dir, layer = 0, material = "wood") {
   if (wallBetween(rec.tiles[2][0], rec.tiles[2][1], rec.landing[0], rec.landing[1], up)) return "A wall is over it";
   if ([...rec.tiles, rec.landing].some(([x, y]) => curveCrossed(x, y, up) || unreachableAt(x, y, up))) return "A round wall is over it";
   const lt = tileAt(rec.landing[0], rec.landing[1], up);
-  if (!(lt.floor === VOID || lt.built) || stairAt(rec.landing[0], rec.landing[1], up) || landingAt(rec.landing[0], rec.landing[1], up)) return "Its landing must be open";
+  if (!(lt.floor === VOID || lt.built) || stairAt(rec.landing[0], rec.landing[1], up) || landingAt(rec.landing[0], rec.landing[1], up) || ladderAt(rec.landing[0], rec.landing[1], up)) return "Its landing must be open";
+  if (ladderAt(bx, by, layer)) return "Its foot needs a floor to step from";
   if (lt.prop || lt.rug || (lt.items && lt.items.length)) return "Something is on its landing";
   return "";
 }
@@ -3266,7 +3278,8 @@ export function ladderBuildProblem(x, y, dir, layer = 0) {
   if (h.floor !== VOID || stairAt(x, y, up) || ladderAt(x, y, up)) return "A floor is over it";
   const [lx, ly] = rec.landing;
   const lt = peekTile(lx, ly, up) || blankTile(up);
-  if (!(lt.floor === VOID || isWalkableTile(lx, ly, up)) || stairAt(lx, ly, up) || landingAt(lx, ly, up) || ladderAt(lx, ly, up)) return "Its landing must be open";
+  if (!(lt.floor === VOID || (lt.built && isWalkableTile(lx, ly, up))) || stairAt(lx, ly, up) || landingAt(lx, ly, up) || ladderAt(lx, ly, up)) return "Its landing must be open"; // the void, or a floor a player laid: never the map's (the review of #608)
+  if (stairList.some((s) => s.layer === layer && s.before[0] === x && s.before[1] === y)) return "Not at a stair's foot";
   if (lt.prop || lt.rug) return "Something is on its landing";
   if (wallBetween(x, y, lx, ly, up)) return "A wall is over it";
   if ([[x, y], [lx, ly]].some(([a, b]) => curveCrossed(a, b, up) || unreachableAt(a, b, up))) return "A round wall is over it";
@@ -3296,6 +3309,11 @@ export function ladderTakeUpProblem(l, bodies = []) {
   if (!l.built) return "That is the village's.";
   const lt = peekTile(l.landing[0], l.landing[1], l.layer + 1);
   if (lt && !lt.built && (lt.prop || lt.rug)) return "Something is on its landing";
+  if (lt && !lt.built) { // its own planks go with it: never a wall left standing on the void (the review of #608)
+    const [lx, ly] = l.landing;
+    const L1 = l.layer + 1;
+    if (lt.n || lt.w || tileAt(lx, ly + 1, L1).n || tileAt(lx + 1, ly, L1).w) return "A wall stands on its landing";
+  }
   if (stairCutsOff(l, bodies)) return "Someone up there would have no way down"; // the walk skips this ladder as it skips a stair taken away
   return "";
 }

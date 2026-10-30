@@ -51,6 +51,7 @@ import { controlPlayer } from "./player-controller.js";
 import * as animal from "./entities/animal.js"; // the valley's game and livestock (docs/45)
 import { handedOf } from "./handed.js"; // right- or left-handed (Michael, 2026-10-25): stamped on a player from the identity
 import { getDef } from "./assets.js"; // a sprite definition's data (a feeding trough's `feed`; the item a placed prop stands as, itemCensus #101): read, never drawn
+import * as ladders from "./entities/ladders.js"; // the climbers a ladder knows (docs/53 step 6b)
 
 export const state = {
   info: null, // what the map file gave: spawn, the authored dead and villagers, the name
@@ -130,6 +131,7 @@ export function create({ json, look = null, name = null, handed = null, devChest
   S.animals = animal.populate(S.animalHomes);
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
   stations.setBodies(() => [...S.players, ...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]); // a made prop lands on no one
+  ladders.setClimbers(() => S.players); // one climber a ladder (docs/53 step 6b)
   burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
   wireAnimals();
@@ -370,6 +372,7 @@ export function restore(saved, json) {
   }
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
   stations.setBodies(() => [...S.players, ...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]); // a made prop lands on no one
+  ladders.setClimbers(() => S.players); // one climber a ladder (docs/53 step 6b)
   burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
   wireAnimals();
@@ -422,8 +425,14 @@ setSiegeQuery((player) => siegeHeldOn(state.zombies, player));
 // A player falls (Michael, 2026-10-14): whatever they were doing stops, what they carried on their head is set down
 // beside them where there is room (else it stays with the body and comes back with a search of nothing: it is kept in
 // the save), and the fall plays. The body is made once the fall is over (step).
+// What a death does to the body, for the headless checks (the review of #608: a fall mid-climb lands it at the ladder's foot).
+export { fall as fallForChecks };
 function fall(p) {
   p.sleeping = null;
+  if (p.ladder) { // fallen from a ladder: it lies at the foot, on its floor (the review of #608)
+    delete p.ladder;
+    p.rise = 0;
+  }
   p.action = null;
   p.auto = null;
   p.blocking = false;

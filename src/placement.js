@@ -737,7 +737,7 @@ export function canPutDown(player, tx, ty) {
       const L = layerOf(player); // on the player's own storey (docs/49)
       const t = map.tileAt(x, y, L);
       if (t.prop || !map.isWalkableTile(x, y, L)) return false;
-      if (map.stairAt(x, y, L) || map.landingAt(x, y, L)) return false; // never on a stair's step or its landing (the review of #549)
+      if (map.stairAt(x, y, L) || map.landingAt(x, y, L) || map.ladderAt(x, y, L)) return false; // never on a stair's step or its landing (the review of #549), nor a ladder's (#608)
       if (map.besideDoor(x, y, L)) return false; // a door's two tiles stay clear: the dead go for it and need to stand there (#134)
       if (map.curveCrossed(x, y, L)) return false; // no furniture where a ring's curve crosses (Michael, 2026-10-26, docs/50)
       if (stations.bodyOnTiles([[x, y]], L)) return false; // no body, the carrier's or another's, within a body's reach of it: it would be trapped inside
@@ -1776,6 +1776,10 @@ function addressOf(t) {
 // checked here against the guest's player, the refusal said to it through the acting player.
 export function performPlacement(player, cmd) {
   if (!player || !cmd) return false;
+  if (player.ladder) { // nothing is placed, built, or taken apart from a ladder (the review of #608)
+    showMessage("Not while on a ladder.");
+    return true;
+  }
   if (cmd.kind === "rug") {
     // A guest laying a rug from its bag (the host's own click calls placeRug directly): the same reach and fit, the refusal said through the acting player.
     rugs.placeRug(player, cmd.uid, cmd.tx, cmd.ty, cmd.facing);

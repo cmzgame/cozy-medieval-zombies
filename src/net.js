@@ -1383,6 +1383,7 @@ function applyFrame(f) {
         Object.assign(c, rest);
         c.layer = layerIn(rest.layer); // the record is whole: no `rise` is none (serializeCharacter leaves a 0 out)
         c.rise = Number.isFinite(rest.rise) ? rest.rise : 0;
+        if (rest.ladder === undefined) delete c.ladder; // nor a climb (the review of #608)
         if (r.id !== myPlayerId && typeof rest.gx === "number") { const toX = c.gx; const toY = c.gy; c.gx = wasX; c.gy = wasY; aimAt(c, toX, toY); }
         // A two-handed thing is one object in both hands (restoreCharacter does this on a character's first appearance):
         // came through JSON as two, the watcher drew a bow or a halberd in each hand (found 2026-10-13).

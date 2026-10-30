@@ -306,7 +306,7 @@ function fits(x, y, [w, h], near, layer = 0) {
     const ty = y + dy;
     const t = map.tileAt(tx, ty, layer); // the station's own floor (docs/53 step 6: a workbench upstairs makes upstairs)
     if (t.prop || t.items || !map.isWalkableTile(tx, ty, layer) || map.besideDoor(tx, ty, layer) || map.curveCrossed(tx, ty, layer)) return false; // never on a tile a ring's curve crosses (docs/50)
-    if (map.stairAt(tx, ty, layer) || map.landingAt(tx, ty, layer)) return false;
+    if (map.stairAt(tx, ty, layer) || map.landingAt(tx, ty, layer) || map.ladderAt(tx, ty, layer)) return false;
     if (dx > 0 && map.wallBetween(tx - 1, ty, tx, ty, layer)) return false;
     if (dy > 0 && map.wallBetween(tx, ty - 1, tx, ty, layer)) return false;
     if (near.some((c) => touchesTile(c, tx, ty))) return false;

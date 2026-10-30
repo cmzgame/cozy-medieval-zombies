@@ -8749,6 +8749,7 @@ check("height, step 7: everyone by layer: a deer under a wall walk grazes on wit
   }
 });
 
+const ladderMod = await import("../src/entities/ladders.js");
 // docs/53 step 6b: ladders. A tower of three storeys climbed by ladders, built and taken apart through the commands a guest sends.
 check("height, step 6b: ladders: built by a guest's command, climbed up two storeys and down by E as a timed state (the walk ignored, the rise climbing), the dead at the tower's foot never coming up and breaking the door below; a ladder taken apart with nobody above and refused with someone; a guest's copy dropping it with its chunk", () => {
   const at = clearGround();
@@ -8805,7 +8806,7 @@ check("height, step 6b: ladders: built by a guest's command, climbed up two stor
     }
     assert(!me.ladder && me.layer === 1 && me.gx === l1.l.landing[0] && me.gy === l1.l.landing[1] && mono, `up the first ladder: on ${me.layer} at ${me.gx},${me.gy}, the rise always climbing ${mono}`);
     // Up the second, then down it again.
-    stand(x + 2, y + 1.2, 1);
+    stand(x + 2, y + 2.3, 1); // on its tile, the side it is climbed from
     a = interactMod.nearestSimpleAction(me);
     assert(a && a.label === "Climb ladder", `E at the second ladder: ${a ? a.label : "nothing"}`);
     a.perform();
@@ -8816,6 +8817,28 @@ check("height, step 6b: ladders: built by a guest's command, climbed up two stor
     a.perform();
     steps(120);
     assert(!me.ladder && me.layer === 1 && me.gx === x + 2 && me.gy === y + 2, `down the second ladder: on ${me.layer} at ${me.gx},${me.gy}`);
+    // The review of #608: a ladder's tiles are its own. No floor in its hole, no wall across its top, no stair onto it, its landing's floor
+    // taken up only with the ladder; a climber behind it gets nothing; a fall mid-climb lands at its foot; nothing is done from a ladder.
+    const L1 = l1.l;
+    assert(mapMod.floorBuildProblem(L1.at[0], L1.at[1], "floor_wood", 1) === "Not over a ladder's hole", `a floor in a ladder's hole: "${mapMod.floorBuildProblem(L1.at[0], L1.at[1], "floor_wood", 1)}"`);
+    const topEdge = L1.dir === "n" ? [L1.at[0], L1.at[1], "n"] : [L1.at[0], L1.at[1], "w"];
+    assert(mapMod.stairEdgeProblem(topEdge[0], topEdge[1], topEdge[2], 1) === "Not across a ladder's top", "a wall across a ladder's top");
+    assert(mapMod.floorTakeUpProblem(L1.landing[0], L1.landing[1], 1) === "It is a ladder's landing: take the ladder apart", `the landing's floor taken up: "${mapMod.floorTakeUpProblem(L1.landing[0], L1.landing[1], 1)}"`);
+    assert(!!mapMod.stairBuildProblem(L1.at[0] + 2, L1.at[1], "w", 0, "wood"), "a stair over a ladder's tile");
+    stand(L1.at[0], L1.at[1] - 0.8, 0);
+    a = interactMod.nearestSimpleAction(me);
+    assert(!a || a.label !== "Climb ladder", "Climb ladder from behind the edge it leans on");
+    // A fall mid-climb: the body lies at the foot, on its floor.
+    stand(x + 1, y + 1.9, 0);
+    ladderMod.begin(me, L1, true);
+    steps(40);
+    assert(me.ladder && me.rise > 20, "the climb for the fall did not start");
+    const zcd0 = me.attackCooldown || 0;
+    controllerMod.controlPlayer(me, [], DT, { clicked: true, leftDown: true, axis: { x: 0, y: 0 } });
+    why = send({ kind: "build", what: "ladder_wood", tx: x + 4, ty: y + 5, dir: "n" });
+    assert((me.attackCooldown || 0) === zcd0 && why === "Not while on a ladder.", `acting from a ladder: cooldown ${me.attackCooldown}, a build "${why}"`);
+    gameMod.fallForChecks(me); // what a death does to the body (game.js fall), short of the death itself
+    assert(!me.ladder && me.rise === 0 && me.layer === 0, "a fall mid-climb leaves the body in mid-air");
     // Up on the second floor, with the dead at the tower's foot: they never climb, and break the ground room's door under him.
     stand(x + 1, y, 2);
     rulesImport.rules.zombieAggro = true;

@@ -243,6 +243,7 @@ export function setSiegeQuery(fn) {
 }
 
 export function startSleep(player, bed) {
+  if (player.ladder) return; // never asleep on a ladder (the review of #608)
   player.sleeping = { bed: bed.id, since: loop.simTime(), hour: clock.getHour() };
   player.moving = false;
   player.sprinting = false;

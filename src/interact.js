@@ -1445,6 +1445,7 @@ export function nearestSimpleAction(player) {
 
 export function startAction(player, action) {
   if (!action || action.enabled === false) return false;
+  if (player && player.ladder) return false; // nothing is done from a ladder (the review of #608)
   if (action.onStart) action.onStart();
   if (action.duration <= 0) {
     action.perform();
@@ -1686,6 +1687,7 @@ export function keyEvents(dt) {
 // player's own client's (keyEvents), handed in by the step with its snapshot.
 export function updateInteract(player, dt, keys) {
   if (!keys) return;
+  if (player.ladder) return; // on a ladder: E, the belt, B, and T wait for its end (the review of #608)
   // A sleeper woken early by its own key or click (wakeEvents): it gets up, and that press does nothing else.
   if (player.sleeping) {
     if (keys.wake) wake(player);

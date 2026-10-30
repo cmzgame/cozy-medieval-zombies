@@ -17,7 +17,9 @@ export function ladderNear(player, reach = 1.2) {
   for (const l of map.ladders()) {
     if (l.layer === L) {
       const d = Math.hypot(player.gx - l.at[0], player.gy - l.at[1]);
-      if (d <= reach && (!best || d < best.d)) best = { l, up: true, d };
+      // From its tile or the side it is climbed from, never from behind the edge it leans on (the review of #608).
+      const behind = l.dir === "n" ? player.gy < l.at[1] - 0.5 : player.gx < l.at[0] - 0.5;
+      if (!behind && d <= reach && (!best || d < best.d)) best = { l, up: true, d };
     } else if (l.layer + 1 === L) {
       const d = Math.hypot(player.gx - l.at[0], player.gy - l.at[1]);
       if (d <= reach + 0.6 && (!best || d < best.d)) best = { l, up: false, d };
@@ -32,7 +34,17 @@ export function climbProblem(player, l, up) {
   if (player.ladder) return "You are already on a ladder.";
   if (player.carrying) return "Not while carrying that.";
   if ((player.layer || 0) !== (up ? l.layer : l.layer + 1)) return "That is on another floor.";
+  if (busy(l, player)) return "Someone is on the ladder.";
   return "";
+}
+
+// Whether another body is climbing `l` (a player is the only climber).
+let others = () => [];
+export function setClimbers(fn) {
+  others = fn;
+}
+function busy(l, player) {
+  return others().some((p) => p !== player && p.ladder && p.ladder.id === l.id);
 }
 
 // Start the climb: the body on the ladder's tile, at the foot going up or a storey up going down, facing the ladder.
@@ -52,7 +64,7 @@ export function begin(player, l, up) {
 }
 
 // One step of a climb: the rise by the clock of the step, and at its end the body off the ladder at its landing (up) or its foot (down).
-// A ladder taken away under a climber (a guest's copy, a save) lands it at the nearer end.
+// A ladder taken away under a climber (a guest's copy, a save) leaves it at the foot, on the floor its climb began from.
 export function step(player, dt) {
   const c = player.ladder;
   if (!c) return;
@@ -61,14 +73,14 @@ export function step(player, dt) {
   const k = Math.min(1, c.t / Math.max(0.1, T.climbSeconds));
   const frac = c.up ? k : 1 - k;
   if (!l) {
-    finish(player, null, frac >= 0.5);
+    finish(player, null);
     return;
   }
   player.rise = Math.round(map.STOREY * frac * 100) / 100;
   if (k >= 1) finish(player, l, c.up);
 }
 
-function finish(player, l, top) {
+function finish(player, l, top = false) {
   delete player.ladder;
   player.rise = 0;
   if (!l) return;
