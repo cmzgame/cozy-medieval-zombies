@@ -249,6 +249,10 @@ A preview of the quarry, the bandit camp, and the stones, at 1x and 3x.
 - **The willow**: import the four drawn colours from the shelf (`docs/art/02`); the green one for the village pond and the mere (the eyes variant was cut, `02` 2026-10-12); it needs a definition and a shadow width wider than the oaks'.
 - **Cursors**: on the shelf (`docs/art/08`); not this plan's.
 
+## Art round 14: the cliff top and the stone floor's blend (Michael, 2026-10-30)
+
+Asked on `53`'s caves ruling, from his hollowed hill at night (a fire pit under a plateau, the plateau's grass and the bare stone floor meeting the ground with hard diamond edges): "I would just ask that we do an art round to get a cliff TOP that is not a single pixel floor art. And also blending that bare stone floor with the grass and dirt. Those two things will get rid of the few harsh edges in that screenshot." Two pieces, drawn as round 10's cliffs were (`tools/art-gen/round10`, the README its model): **a cliff top** (`floor_cliff_top`, `floor_cliff_grass`) with the rock's texture and a worn edge where it meets the cliff's lip, in the few flat shades of `art/01`, several variants that tile; and **the stone floor's edge** (`floor_stone`, and the cliff top's grass) blending into grass and dirt the way the ground's own dirt does (`15`, the ragged edge), as blend frames the storey bake reads once `53` step 4 gives a storey's floor the ground's blend. No change to the walls' art. The engine side is `53` step 4.
+
 ## What is already drawn and only needs placing
 
 The wood, stone, and log walls with every variant and the boards; the floors; the well with its bucket; the bed, table, chairs, and fireplace; five crops in three stages and two directions; both soils; the water; the four rocks; the mushrooms; all the decals; thirty-six trees; the two pumpkins and the two jack-o'-lanterns; the four magic items. The village's cottages, the chapel's walls, the farms' fields, and the whole forest can be laid out today with these, which is why the order to build in (`30`, section 11) started with the village.
