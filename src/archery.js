@@ -123,7 +123,9 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
   // A spear and a spell (`flat`) keep to the shooter's floor (`level`) and stop at its edge.
   const fromLayer = (shooter && shooter.layer) || 0;
   const level = flat || projectile === "spear";
-  const landLayer = level || !Number.isInteger(aimLayer) ? fromLayer : aimLayer;
+  const aimed = level || !Number.isInteger(aimLayer) ? fromLayer : aimLayer;
+  // A draw that falls short of the floor aimed at (a partial draw, the range's cap) comes down on the first floor under where it lands.
+  const landLayer = level ? fromLayer : map.restingLayer(Math.round(p.land[0]), Math.round(p.land[1]), aimed);
   const zStart = z0 + map.STOREY * (fromLayer - landLayer) + ((shooter && shooter.rise) || 0);
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
@@ -228,12 +230,18 @@ function edgeStops(ax, ay, bx, by, z, layer) {
 // The layer a height over the ground is in, and the height over that layer's floor.
 const bandOf = (zAbs) => { const L = Math.floor(zAbs / map.STOREY); return [L, zAbs - map.STOREY * L]; };
 
-// Whether a flight between two heights over tile (x, y) passes a floor there (a plane at a storey's height; the void, a hole, and a
-// stairwell are none). The floor it comes down on is its end, never a crossing: the arc ends on it.
-function floorBetween(x, y, z0, z1) {
-  const lo = Math.min(z0, z1);
-  const hi = Math.max(z0, z1);
-  for (let k = Math.floor(lo / map.STOREY) + 1; k * map.STOREY < hi; k++) if (planeAt(x, y, k)) return k;
+// Whether a flight going from height z0 to z1 over tile (x, y) passes a floor there (a plane at a storey's height; the void, a hole, and
+// a stairwell are none), the interval half open in the direction of travel: a plane met exactly at the end of a step is met, rising (its
+// underside: a low arc thrown up meets the floor it is aimed at from below) or falling, but for the falling end of the whole flight, which
+// is the floor it comes down on.
+function floorBetween(x, y, z0, z1, last = false) {
+  if (z0 === z1) return null;
+  const S = map.STOREY;
+  if (z1 > z0) {
+    for (let k = Math.floor(z0 / S) + 1; k * S <= z1; k++) if (planeAt(x, y, k)) return k;
+  } else {
+    for (let k = Math.ceil(z0 / S) - 1; k * S >= z1; k--) if (!(last && k * S === z1) && planeAt(x, y, k)) return k;
+  }
   return null;
 }
 
@@ -279,7 +287,7 @@ function scanPath(a) {
     const ny = Math.round(gy);
     if (nx !== tx || ny !== ty) {
       crossed = true;
-      if (a.level && !planeAt(nx, ny, a.from || 0)) return { d: before, why: "edge", layer: a.from || 0 };
+      if (a.level && (a.from || 0) > 0 && !planeAt(nx, ny, a.from || 0)) return { d: before, why: "edge", layer: a.from || 0 }; // upstairs only: a hole in the ground is no edge
       if (edgeStops(tx, ty, nx, ny, z, L)) return { d: before, why: "wall", layer: L };
       const prop = map.tileAt(nx, ny, L).prop;
       if (prop && prop.solid && !(prop.radius > 0) && z < tilePropHeight(prop)) return { d: before, why: "prop", layer: L };
@@ -287,7 +295,7 @@ function scanPath(a) {
       ty = ny;
     }
     if (!a.level && !(leaning && !crossed)) {
-      const k = floorBetween(tx, ty, zPrev, zAbs);
+      const k = floorBetween(tx, ty, zPrev, zAbs, i === n);
       if (k !== null) return { d: before, why: "floor", layer: zPrev > zAbs ? k : k - 1 }; // met from above it lies on that floor; from below, under it
     }
     zPrev = zAbs;
@@ -359,12 +367,13 @@ function land(a, met = null) {
   const gy = a.y0 + a.dy * d;
   const layer = !met && a.stopD != null && Number.isInteger(a.stopLayer) ? a.stopLayer : a.layer || 0; // what it lies on: the floor aimed at, or the foot of what stopped it
   a.landAt = [gx, gy]; // where it came down, which a guest's flight ends at (net.js, endRecord)
+  a.landLayer = layer; // and on which floor (a stopped flight's, the foot of what stopped it)
   // A thrown potion's or poison's splash (docs/47 section 7): it shatters where it lands, the vial gone, never a single-target hit (no
   // `damage` of its own to deal) — the area alone, within its item's own `thrown.splash.radius`. Reaches the thrower too, standing in it.
   const sdef = splashItemOf(a.projectile);
   const sradius = sdef && sdef.thrown && sdef.thrown.splash && sdef.thrown.splash.radius;
   if (sradius > 0) {
-    splashAt(gx, gy, sradius, sdef);
+    splashAt(gx, gy, sradius, sdef, layer);
     splashes.push({ gx, gy, t: 0, layer, color: sdef.color || "#ffffff" }); // the burst and the stain (cosmetic; render/entities.js), on its landing floor
     emit("arrowLanded", { arrow: a, gx, gy, hit: null, kept: false, broken: false, stoppedBy: a.stopWhy });
     return;
@@ -527,7 +536,9 @@ export function launchRecord(a, age = a.t) {
 // A flight that came down, sent once: its id, its age then, and where it came down.
 export function endRecord(a) {
   const at = a.landAt || [a.gx, a.gy];
-  return [a.id, rounded(a.t, 1e6), rounded(at[0], 1e4), rounded(at[1], 1e4)];
+  const rec = [a.id, rounded(a.t, 1e6), rounded(at[0], 1e4), rounded(at[1], 1e4)];
+  if (Number.isInteger(a.landLayer) && a.landLayer !== (a.layer || 0)) rec.push(a.landLayer); // where a stopped flight came down, when not the floor aimed at (PROTOCOL 28)
+  return rec;
 }
 
 export function flightStore() {
@@ -553,6 +564,7 @@ export function applyFlights(store, news, h) {
     a.hostEnd = E[1];
     if (!finite(E[2]) || !finite(E[3])) continue;
     a.landAt = [E[2], E[3]];
+    if (Number.isInteger(E[4]) && Math.abs(E[4]) <= 8) a.landLayer = E[4];
     const stop = Math.min(a.end, a.hostEnd);
     const mine = groundAt(a, stop);
     const ex = a.landAt[0] - mine[0];
@@ -584,7 +596,7 @@ export function stepFlights(store, R) {
         const sdef = splashItemOf(a.projectile);
         if (sdef) {
           const at = a.landAt || groundAt(a, stop);
-          store.splashes.push({ gx: at[0], gy: at[1], t: age - stop, born: a.born + stop, layer: a.layer || 0, color: sdef.color || "#ffffff" });
+          store.splashes.push({ gx: at[0], gy: at[1], t: age - stop, born: a.born + stop, layer: Number.isInteger(a.landLayer) ? a.landLayer : a.layer || 0, color: sdef.color || "#ffffff" }); // where the host's came down
         }
       }
       a.done = true;
@@ -677,16 +689,17 @@ function splashItemOf(projectile) {
 // `land` below. Healing and mana help every player and every villager there (a villager has no mana to restore, docs/47 section 7); stamina
 // only a player (villagers have none); poison stacks on every one of the dead and every *wild* animal there, never a player, a villager, or
 // a tame animal ("a harmful splash never hurts" is a law, not an oversight).
-function splashAt(gx, gy, radius, def) {
+function splashAt(gx, gy, radius, def, layer = 0) {
+  const on = (b) => (b.layer || 0) === layer; // its own floor only: a splash on a walk never reaches the ground under it (docs/53 step 2)
   if (def.potion) {
     const { players = [], villagers = [] } = splashBodiesOf() || {};
-    for (const p of players) if (Math.hypot(p.gx - gx, p.gy - gy) <= radius) potions.splashDrink(p, def.potion);
-    if (def.potion !== "stamina") for (const v of villagers) if (Math.hypot(v.gx - gx, v.gy - gy) <= radius) potions.splashEffect(v, def.potion);
+    for (const p of players) if (on(p) && Math.hypot(p.gx - gx, p.gy - gy) <= radius) potions.splashDrink(p, def.potion);
+    if (def.potion !== "stamina") for (const v of villagers) if (on(v) && Math.hypot(v.gx - gx, v.gy - gy) <= radius) potions.splashEffect(v, def.potion);
   } else if (def.poison) {
     const tier = def.poison.tier;
     for (const z of targets()) {
       if (z.dead || (z.kind === "animal" && !isWild(z))) continue; // never a tame animal (docs/47 section 7)
-      if (Math.hypot(z.gx - gx, z.gy - gy) <= radius) poison.apply(z, tier, "thrown");
+      if (on(z) && Math.hypot(z.gx - gx, z.gy - gy) <= radius) poison.apply(z, tier, "thrown");
     }
   }
 }
@@ -1012,15 +1025,15 @@ export function aimPoint(player, ctx) {
   const mouse = ctx && ctx.mouse ? ctx.mouse : ctx;
   const seen = ctx && ctx.seen;
   const mine = (player && player.layer) || 0;
-  const layers = seen && seen.layers ? [...seen.layers.keys()].filter((k) => k >= 0).sort((x, y) => y - x) : mine ? [mine, 0] : [0];
+  const layers = seen && seen.layers ? [...seen.layers.keys()].sort((x, y) => y - x) : mine ? [mine, 0] : [0];
   for (const k of layers) {
     const g = iso.toGrid(mouse.x, mouse.y + tunables.aimLift + k * map.STOREY);
     const tx = Math.round(g.gx);
     const ty = Math.round(g.gy);
     if (planeAt(tx, ty, k) && (k === mine || !seen || !seen.sees || seen.sees(tx, ty, k))) return [g.gx, g.gy, k]; // a floor there, and mine or in my sight
   }
-  const g = iso.toGrid(mouse.x, mouse.y + tunables.aimLift);
-  return [g.gx, g.gy, 0];
+  const g = iso.toGrid(mouse.x, mouse.y + tunables.aimLift + mine * map.STOREY);
+  return [g.gx, g.gy, mine];
 }
 
 function aimFrom(player, ctx) {

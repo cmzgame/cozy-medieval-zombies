@@ -172,7 +172,7 @@ export function makeCode() {
 // older guest would draw each edge as a door with no picture and let the dead bite and a blow through the bars, and an older host drops the build.
 // 28 (2026-10-30, docs/53 step 2, shooting down and up): a guest's aim point is always [gx, gy, layer], the layer the floor it aims at (the
 // ground named 0), kept as sent; a flight's launch record names the floor it comes down on (`l`) and its `z0` is measured from that floor, so a
-// shot down from a storey starts high and one shot up starts under it. An older guest would draw a shot from the walk starting at the ground's
+// shot down from a storey starts high and one shot up starts under it; a flight's end record may carry a fifth number, the floor a stopped one came down on. An older guest would draw a shot from the walk starting at the ground's
 // chest height, and an older host would read a ground aim from a storey as the storey's own floor.
 export const PROTOCOL = 28;
 

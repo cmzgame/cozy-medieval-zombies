@@ -8148,6 +8148,7 @@ check("height, step 1: on a stair: a climber near its top sees the floor above a
   }
 });
 
+const isoForRows = await import("../src/iso.js");
 // docs/53 step 2: shooting down and up, and items fall. Built on pieces of its own (step 0).
 check("height, step 2: a shot from a walk and from a second-storey window lands on the ground and hits there, the blow remembered on the archer's floor; one into the parapet stops and lies on the walk; a spear stops at the walk's edge; a shot up lands on a slab and hits there; nothing lies on the void, and a floor taken up drops what lay on it", () => {
   const at = clearGround();
@@ -8232,7 +8233,44 @@ check("height, step 2: a shot from a walk and from a second-storey window lands 
     // The guest's side: the launch record names the floor it comes down on and the height from it (PROTOCOL 28).
     const rec = archeryMod.launchRecord(hit, 0);
     assert(netMod.PROTOCOL >= 28 && !rec.l && rec.z0 === hit.z0 && archeryMod.launchRecord(up, 0).l === 1, `the records: ${JSON.stringify(rec)}`);
-    return "down from a battlement and a window, the parapet, the spear's edge, up onto a slab, a fall from the air and from a floor taken up";
+    // The review of #602. A low throw up from under the slab meets its floor from below and comes down under it, never on top.
+    stand(x + 13, y + 9.4, 0);
+    const knifeUp = fly([x + 13, y + 7.5], 1, { arcMin: 6, arcMax: 20, range: 9, projectile: "throwing_knife", item: { id: "throwing_knife", count: 1, uid: "e-tk" } });
+    assert(knifeUp.stopWhy === "floor" && knifeUp.stopLayer === 0, `a knife thrown up from under the slab: ${knifeUp.stopWhy} on ${knifeUp.stopLayer}`);
+    // A half draw up at the slab that falls short comes down on the ground where it lands, and hits there.
+    const short = zombie(x + 13, y + 16 - 7 * (1 - (1 - 0.31) ** 2), 0); // where a 0.31 draw of 7 tiles lands, under the slab's south edge
+    stand(x + 13, y + 16, 0);
+    const hpShort = short.hp;
+    const half = archeryMod.shoot(me, [0, -1], 7, 0.31, { layer: 1 });
+    for (let i = 0; i < 900 && !half.done; i++) archeryMod.update(STEP);
+    assert(half.layer === 0 && short.hp < hpShort, `a short shot up: landing layer ${half.layer}, s ${half.s.toFixed(2)}, hp ${hpShort} to ${short.hp}`);
+    // A spear on the ground crosses a hole in the ground (a cellar's stairwell) as it always did: no edge there.
+    { const t = mapMod.growTile(x + 6, y + 13, 0); t.floor = "hole"; }
+    stand(x + 6, y + 16, 0);
+    const spear0 = fly([x + 6, y + 10], 0, { projectile: "spear", item: { id: "spear", count: 1, uid: "e-spear0" } });
+    { const t = mapMod.growTile(x + 6, y + 13, 0); t.floor = "floor_grass"; }
+    assert(spear0.stopWhy !== "edge", `a spear on the ground stopped at a hole: ${spear0.stopWhy}`);
+    // A poison splash on the walk never reaches the dead on the ground under it, and the host's end record says where a stopped flight came down.
+    const underWalk = zombie(x + 4, y + 0.6, 0);
+    stand(x + 4, y + 1.2, 1);
+    const vial = archeryMod.shoot(me, [0, -1], 0.6, 1, { layer: 1, projectile: "poison", item: { id: "poison", count: 1, uid: "e-poison" } });
+    for (let i = 0; i < 900 && !vial.done; i++) archeryMod.update(STEP);
+    assert(!underWalk.poison, `the splash on the walk poisoned one on the ground under it: ${JSON.stringify(underWalk.poison)}`);
+    assert(archeryMod.endRecord(low).length === 5 && archeryMod.endRecord(low)[4] === 1 && archeryMod.endRecord(hit).length === 4, `the end records: ${JSON.stringify([archeryMod.endRecord(low), archeryMod.endRecord(hit)])}`);
+    // Melee on a storey: one of the dead 0.8 tiles off on the same storey, aimed at as it is drawn, is in the swing's wedge every way round.
+    stand(x + 2, y + 0.5, 1);
+    const sword = { range: 1.4, arc: 90 };
+    let wedgeMiss = 0;
+    for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4;
+      const target = { gx: me.gx + Math.cos(a) * 0.8, gy: me.gy + Math.sin(a) * 0.8, layer: 1, rise: 0 };
+      const pt = isoForRows.toScreen(target.gx, target.gy);
+      const o = playerMod.aimOrigin(me);
+      me.aim = { sx: pt.x - o.x, sy: pt.y - 96 - 24 - o.y };
+      if (!combatMod.inWedge(me, sword, target)) wedgeMiss++;
+    }
+    assert(wedgeMiss === 0, `${wedgeMiss} of 8 directions miss one of the dead on the same storey aimed at as drawn`);
+    return "down from a battlement and a window, the parapet, the spear's edge, up onto a slab, a fall from the air and from a floor taken up; the review's: a low throw up meets the floor from below, a short shot up lands below, a spear crosses a hole on the ground, a splash keeps to its floor, melee on a storey";
   } finally {
     archeryMod.reset();
     for (const z of dead) { const i = S.zombies.indexOf(z); if (i >= 0) S.zombies.splice(i, 1); }
