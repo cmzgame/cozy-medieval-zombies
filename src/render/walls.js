@@ -17,6 +17,7 @@ import { emitHangings } from "./paintings.js"; // what hangs on a wall's face (#
 import { sheetFor } from "../woods.js"; // a door or window of another wood than its wall (#334)
 import * as cliffs from "../cliffs.js"; // a cliff's pictures by its edges and its plateau (art round 10)
 import * as battlements from "../battlements.js"; // a castle battlement's pictures by the floors and the neighbouring edges (art round 13)
+import * as round from "../round.js"; // a ring's outline vertices, where a straight wall's filler runs to the curve (docs/50 section 3)
 
 // ---- walls ----
 
@@ -442,10 +443,14 @@ function vertexAt(tx, ty, playerRoom) {
   // A ramp's own side (`wall.solid` and no cliff: wall_ramp_side, art round 11) stands post-less: its picture is the whole face.
   // A battlement (art round 13) has no post: its corners and ends are pieces of their own (battlements.vertexAt), asked only where one meets the vertex.
   const straight = (w, x, y, e) => (w && !map.drawnByRing(w) && !(cliffs.cliffWallOf(w) && cliffs.buried(x, y, e, map.drawLayerNow())) && !map.wallRule(w.sprite).side && !map.wallRule(w.sprite).battlement ? w : null);
-  const nE = straight(map.tileAt(tx, ty).n, tx, ty, "n");
-  const nW = straight(map.tileAt(tx - 1, ty).n, tx - 1, ty, "n");
-  const wS = straight(map.tileAt(tx, ty).w, tx, ty, "w");
-  const wN = straight(map.tileAt(tx, ty - 1).w, tx, ty - 1, "w");
+  const rnE = map.tileAt(tx, ty).n;
+  const rnW = map.tileAt(tx - 1, ty).n;
+  const rwS = map.tileAt(tx, ty).w;
+  const rwN = map.tileAt(tx, ty - 1).w;
+  let nE = straight(rnE, tx, ty, "n");
+  let nW = straight(rnW, tx - 1, ty, "n");
+  let wS = straight(rwS, tx, ty, "w");
+  let wN = straight(rwN, tx, ty - 1, "w");
   if (battlements.battlementOf(map.tileAt(tx, ty).n) || battlements.battlementOf(map.tileAt(tx - 1, ty).n) || battlements.battlementOf(map.tileAt(tx, ty).w) || battlements.battlementOf(map.tileAt(tx, ty - 1).w)) {
     const batt = battlements.vertexAt(tx, ty, map.drawLayerNow());
     if (batt) return { batt };
@@ -456,15 +461,153 @@ function vertexAt(tx, ty, playerRoom) {
     const corner = cliffCorner(tx, ty);
     if (corner) return { corner };
   }
+  // A straight wall joining a ring at a vertex of its outline (docs/50 section 3, #588): the filler is a straight piece of the joining wall on
+  // the outline edge it runs along (fillerDrawables), so for the post it stands in that edge's slot as the joining wall. Where the wall runs
+  // on into the curve along its own line, that is one straight run, and no post stands at the join (the wall goes on into the curve, as along
+  // any run); where the wall runs along the square's side and the filler turns down the step edge, it is a corner, and the post stands there
+  // as at any corner (it hides both pictures' ends). At a door point's end, where nothing is filled, a wall ending there takes no post: its
+  // end is in the curve, and a post would stand on the curve's cap (the playtest of 2026-10-27 refused posts on the ring there).
+  const fade = { nE: [tx, ty, "n"], nW: [tx - 1, ty, "n"], wS: [tx, ty, "w"], wN: [tx, ty - 1, "w"] }; // whose near-wall fade each slot's wall takes
+  if (map.drawnByRing(rnE) || map.drawnByRing(rnW) || map.drawnByRing(rwS) || map.drawnByRing(rwN)) {
+    const j = map.ringJoin(tx, ty, map.drawLayerNow());
+    if (j) {
+      const fills = j.fills.filter((f) => fillerSheet(f.by.wall));
+      if (!j.fills.length && [nE, nW, wS, wN].filter(Boolean).length === 1) return null;
+      for (const f of fills) {
+        const slot = f.edge === "n" ? (f.top ? "nE" : "nW") : f.top ? "wS" : "wN";
+        fade[slot] = [f.by.tx, f.by.ty, f.by.edge];
+        if (slot === "nE" && !nE) nE = f.by.wall;
+        else if (slot === "nW" && !nW) nW = f.by.wall;
+        else if (slot === "wS" && !wS) wS = f.by.wall;
+        else if (slot === "wN" && !wN) wN = f.by.wall;
+      }
+    }
+  }
   const base = postBase(tx, ty, nE, nW, wS, wN);
   if (!base) return null;
   // Translucent only when every wall it joins is a near wall (the front corner);
   // where a near wall meets a far one the post stays solid with the far wall
   // (Michael's designer, 2026-10-12: a ghost post over a solid wall's end read
   // as a pale column).
-  const near = (playerRoom > 0 || !!viewerStair) && (!nE || isNearWall(tx, ty, "n", playerRoom)) && (!nW || isNearWall(tx - 1, ty, "n", playerRoom))
-    && (!wS || isNearWall(tx, ty, "w", playerRoom)) && (!wN || isNearWall(tx, ty - 1, "w", playerRoom));
+  const nearAt = (slot) => isNearWall(fade[slot][0], fade[slot][1], fade[slot][2], playerRoom);
+  const near = (playerRoom > 0 || !!viewerStair) && (!nE || nearAt("nE")) && (!nW || nearAt("nW")) && (!wS || nearAt("wS")) && (!wN || nearAt("wN"));
   return { sheet: base.sheet, near, thin: base.thin };
+}
+
+// ---- a straight wall meeting a ring: the filler (docs/50 section 3, #588) ----
+// A picture, drawn from the walls alone (map.ringJoin finds its pieces; nothing saved, nothing sent): where a straight wall ends at a vertex
+// of a ring's stepped outline, the joining wall's own straight picture runs on from the vertex along the outline edge the curve crosses, to
+// the curve and no further (half a tile at most: along the wall's own line when it runs on into the curve, down the step edge when the wall
+// runs along the square's side), cut there inside the ring's thickness. It is that edge's picture cut short (emitCutWall), on that edge's
+// plane (docs/51: depth from true geometry), its cap redrawn on the sky as far as it goes, lit where the joining wall's end is (outside the
+// steps: the edge's own near tile may be the ring's room), and faded with the joining wall when that wall is a near wall.
+function fillerSprite(wall) {
+  return wall.gate ? map.wallRule(wall.sprite).run : wall.sprite; // a castle gate at the join: its run's plain wall
+}
+// The joining wall's sheet when it draws a filler: a drawn wall's plain faces, never a see-through one (a fence, bars), a cliff, a ramp's
+// side, or a battlement, which keep their own ends.
+function fillerSheet(wall) {
+  const sprite = fillerSprite(wall);
+  const rule = map.wallRule(sprite);
+  if (rule.seeThrough || rule.cliff || rule.battlement || rule.side) return null;
+  const sheet = getSheet(sprite);
+  return sheet && sheet.wall && sheet.frames && sheet.frames.north_plain && sheet.frames.west_plain ? sheet : null;
+}
+
+// Whether the wall on (tx, ty, edge) has a filler drawn from the vertex (vx, vy).
+function fillsFrom(vx, vy, tx, ty, edge) {
+  const j = map.ringJoin(vx, vy, map.drawLayerNow());
+  return !!j && j.fills.some((f) => f.by.tx === tx && f.by.ty === ty && f.by.edge === edge && !!fillerSheet(f.by.wall));
+}
+
+// The fillers for the rings on the layer being drawn whose joining walls are among the tiles drawn.
+function fillerDrawables(tiles, visible, playerRoom, out) {
+  const L = map.drawLayerNow();
+  const rings = map.allRings(L);
+  if (!rings.length || !tiles.length) return;
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const t of tiles) {
+    if (t[0] < x0) x0 = t[0];
+    if (t[0] > x1) x1 = t[0];
+    if (t[1] < y0) y0 = t[1];
+    if (t[1] > y1) y1 = t[1];
+  }
+  let drawn = null;
+  for (const r of rings) {
+    if (r.x0 > x1 + 1 || r.y0 > y1 + 1 || r.x0 + r.n < x0 - 1 || r.y0 + r.n < y0 - 1) continue;
+    for (const [vx, vy] of round.fillVerticesOf(r.x0, r.y0, r.n)) {
+      const j = map.ringJoin(vx, vy, L);
+      if (!j || j.ring !== r) continue;
+      for (const f of j.fills) {
+        if (!drawn) {
+          drawn = new Set();
+          for (const [tx, ty] of tiles) drawn.add(tileKey(tx, ty));
+        }
+        if (!drawn.has(tileKey(f.by.tx, f.by.ty))) continue; // drawn with the wall it belongs to (a storey's hiding rule thins the tiles)
+        const d = makeFiller(r, f, visible, playerRoom);
+        if (d) out.push(d);
+      }
+    }
+  }
+}
+
+function makeFiller(r, f, visible, playerRoom) {
+  const w = f.by;
+  const sheet = fillerSheet(w.wall);
+  if (!sheet) return null;
+  const { tx, ty, edge } = f; // the outline edge it runs along
+  const name = edge === "n" ? "north_plain" : "west_plain";
+  const anchor = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
+  const p = iso.toScreen(tx, ty);
+  const x = Math.round(p.x);
+  const y = Math.round(p.y);
+  const h = sheet.wallHeight || 96;
+  const T = sheet.thickness || WALL_T;
+  const stub = isNearWall(w.tx, w.ty, w.edge, playerRoom); // faded with the wall it belongs to
+  const alpha = stub ? NEAR_WALL_ALPHA : 1;
+  const across = w.edge === "n" ? [w.tx, w.ty - 1] : [w.tx - 1, w.ty];
+  const vis = visible.has(tileKey(w.tx, w.ty)) || visible.has(tileKey(across[0], across[1]));
+  const flags = vis ? gl.FLAG_NOFOG : 0;
+  const stack = stackOf(w.tx, w.ty, w.edge);
+  const lift = stack.onWall ? STACK_BIAS : 0;
+  // The joining wall's light at its end at the vertex (makeWall's foot points, 0.4 along from its middle and 0.2 off it on its near side).
+  const lp = w.edge === "n" ? [w.tx + (f.vx === w.tx ? -0.4 : 0.4), w.ty - 0.2] : [w.tx - 0.2, w.ty + (f.vy === w.ty ? -0.4 : 0.4)];
+  // How much of the edge it takes, from its top vertex (0) to its other end (1), and the cuts that leave just that (screen px along it).
+  const k0 = f.top ? 0 : 1 - f.d;
+  const k1 = f.top ? f.d : 1;
+  // Faded, a piece whose camera-side end is the vertex leaves its end face to the wall that goes on from there, as a faded run's segments do
+  // at a joint (wallCuts), so no overlap shows twice as dark; the wall cuts its own end where the filler goes on from its camera-side end.
+  const cuts = { far: k0 > 0 ? k0 * iso.HW : null, near: k1 < 1 ? (1 - k1) * iso.HW : stub ? 0 : null };
+  // Its depth: the edge's near face, its ridge where a straight segment's would be (a post at the edge's camera-side end moves it back).
+  const endPost = edge === "n" ? postAt(tx + 1, ty, null) : postAt(tx, ty + 1, null);
+  const postSheet = endPost && endPost.sheet.wall && endPost.sheet.wall.post ? endPost.sheet : null;
+  const face = depth.wallSurface(edge, tx, ty, T, (postSheet ? (postSheet.thickness || WALL_T) + 3 - T / 2 : 2) / depth.UNIT);
+  const sortDepth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
+  return {
+    key: sortDepth * 1000,
+    kind: "wall",
+    filler: { ring: r.id, vx: f.vx, vy: f.vy, tx, ty, edge, d: f.d, wall: { tx: w.tx, ty: w.ty, edge: w.edge } }, // check("round") finds it
+    stack,
+    faded: !!stub,
+    emit() {
+      gl.surface(face, lift, DEPTH_ROOM.wall);
+      gl.layer(L_FACE);
+      emitCutWall(sheet, name, edge, x, y, h, T, { wa: lp, wb: lp, tint: [1, 1, 1, alpha], flags }, cuts);
+      if (!stub && !stack.covered) {
+        // Its cap on the sky, as far as it goes (emitDrawnWall's, cut at the same lines).
+        gl.layer(L_ON);
+        const m = CAP_MARGIN;
+        const a = k0 * 32 - m;
+        const b = k1 * 32 + m;
+        const corners = edge === "n" ? [[a, -T / 2 - m], [b, -T / 2 - m], [b, T / 2 + m], [a, T / 2 + m]] : [[-T / 2 - m, a], [T / 2 + m, a], [T / 2 + m, b], [-T / 2 - m, b]];
+        emitCapFromFrame(sheet, name, anchor, [x, y - iso.HH], corners, h, lp, flags);
+      }
+      gl.layer(null);
+    },
+  };
 }
 
 // The storeys' seam (docs/49 section 6; Michael's playtest, 2026-10-27: a notched ledge between the storeys and the ground's caps poking up
@@ -673,6 +816,7 @@ function wallCuts(edge, tx, ty, playerRoom) {
   if (near === undefined) {
     const next = edge === "n" ? map.tileAt(nx, ny).n : map.tileAt(nx, ny).w;
     near = next && isNearWall(nx, ny, edge, playerRoom) ? 0 : null;
+    if (near === null && map.drawnByRing(next) && fillsFrom(nx, ny, tx, ty, edge)) near = 0; // its filler runs on from there into the curve, faded with it (#588)
   }
   const far = atPost(tx, ty);
   return { near, far: far === undefined ? null : far };
@@ -950,6 +1094,7 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
       out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub && !bat ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
     }
   }
+  fillerDrawables(tiles, visible, playerRoom, out); // where a straight wall meets a ring, its picture run on to the curve (docs/50 section 3)
 }
 
 // `ghostTint` draws the wall as the placement ghost (docs/13): tinted, unlit, and unfogged.

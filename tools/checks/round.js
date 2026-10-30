@@ -6,8 +6,13 @@
 // - the sort's worst cases, by pixels (the probe of check("depth"): a thing's quads drawn in two flat colours, the pixels that differ are what
 //   shows): the player inside against the far half's inner face shows whole; outside behind the far half, hidden; outside in front of the near
 //   half, whole; inside behind the near half with the near half opaque, hidden, and with it faded (the player's own room), seen through it;
-// - the headless rows' world proofs again on the page's world: the room of 37, a body stopped at the curve, no sight through the ring.
-// Everything it moves is put back in its finally: the player's place and hands, the hour, the blend, the zoom, the dead and the villagers.
+// - the headless rows' world proofs again on the page's world: the room of 37, a body stopped at the curve, no sight through the ring;
+// - a straight wall meeting the ring (#588): ending in a corner pocket refused with its words; a yard walled square to the ring's west side
+//   into its step corners a room of 6, the ring's still 37; a filler drawable at each join and no post there, the near wall's faded from
+//   inside the yard; a wall along the square's side built from the step corner out, its filler down the step edge and a post at the corner;
+//   none at a door point's end.
+// Everything it moves is put back in its finally: the player's place and hands, the hour, the blend, the zoom, the dead and the villagers,
+// and the walls it builds.
 
 export async function run(game, opts = {}) {
   const G = game;
@@ -74,6 +79,7 @@ export async function run(game, opts = {}) {
   const { createZombie } = await import("/src/entities/zombie.js");
   const pct = (x) => `${(100 * x).toFixed(1)}%`;
   const roomId = G.map.roomAt(24, 3);
+  const built = []; // the walls a row below builds, taken down in the finally
   try {
     G.loop.setPaused(true);
     feel.blend = false;
@@ -154,7 +160,49 @@ export async function run(game, opts = {}) {
     const out = press([20.6, -0.4], [1, 1]);
     const gap = Math.hypot(inn.gx - out.gx, inn.gy - out.gy);
     row("the 7 by 7's outer corner: the two within a bite's reach, and no line of sight between them either way", gap < 0.9 && !lineOfSight(inn.gx, inn.gy, out.gx, out.gy) && !lineOfSight(out.gx, out.gy, inn.gx, inn.gy), `${gap.toFixed(2)} apart`);
+
+    // A straight wall meeting the ring (docs/50 section 3, #588), on its west side (the house to the west has its east wall at x 18.5).
+    const WHY = "Start it at a step of the round wall";
+    const why = [G.map.ringWallProblem(21, 0, "w", "wall"), G.map.ringWallProblem(20, 1, "n", "wall"), G.map.ringWallProblem(20, 6, "n", "wall"), G.map.ringWallProblem(20, 2, "n", "wall"), G.map.ringWallProblem(20, 3, "n", "wall")];
+    row(`a wall ending in a corner pocket is refused ("${WHY}"); one to a step corner or a door point's end is not`, why[0] === WHY && why[1] === WHY && why[2] === WHY && !why[3] && !why[4], why.map((w) => `"${w}"`).join(", "));
+    // A yard of six between the house and the ring, its walls square to the ring's side into its two west step corners (21, 2) and (21, 5).
+    const yardWalls = [[19, 2, "w"], [19, 2, "n"], [20, 2, "n"], [19, 5, "n"], [20, 5, "n"]];
+    for (const [x, y, e] of yardWalls) if (!G.map.tileAt(x, y)[e] && G.map.buildWall(x, y, e, "wall", "wall_stone")) built.push([x, y, e]);
+    G.map.rebuildRooms();
+    const yardRoom = G.map.getRoom(G.map.roomAt(20, 3));
+    const ringRoom = G.map.getRoom(G.map.roomAt(24, 3)); // the rooms found again: their ids may have moved
+    row("the yard walled to the ring's step corners is a room of 6 sealed by the ring's edges, the ring's own still 37", built.length === yardWalls.length && yardRoom && yardRoom.size === 6 && G.map.roomAt(20, 3) !== G.map.roomAt(24, 3) && ringRoom && ringRoom.size === 37, `built ${built.length} of ${yardWalls.length}; the yard ${yardRoom && yardRoom.size}, the ring's ${ringRoom && ringRoom.size}`);
+    const drawn = () => {
+      const all = [];
+      shot((d) => { all.push(d); return false; });
+      return all;
+    };
+    standAt(24, 9);
+    let all = drawn();
+    const fillersAt = (list, vx, vy) => list.filter((d) => d.filler && d.filler.ring === ring.id && d.filler.vx === vx && d.filler.vy === vy);
+    const postAt = (list, vx, vy) => list.some((d) => d.post && d.post.tx === vx && d.post.ty === vy);
+    const f2 = fillersAt(all, 21, 2);
+    const f5 = fillersAt(all, 21, 5);
+    row("a filler drawn at each join, along the wall's own line into the curve (0.34 of the step edge), and no post there", f2.length === 1 && f5.length === 1 && f2[0].filler.edge === "n" && f2[0].filler.tx === 21 && f2[0].filler.ty === 2 && f5[0].filler.tx === 21 && f5[0].filler.ty === 5 && Math.abs(f2[0].filler.d - 0.338) < 0.002 && !postAt(all, 21, 2) && !postAt(all, 21, 5), `fillers ${f2.length} and ${f5.length} (${JSON.stringify([...f2, ...f5].map((d) => [d.filler.tx, d.filler.ty, d.filler.edge, +d.filler.d.toFixed(3)]))}), posts ${postAt(all, 21, 2)} and ${postAt(all, 21, 5)}`);
+    // From inside the yard its south wall is a near wall: its filler fades with it; the north wall's does not.
+    standAt(19.6, 3.2);
+    all = drawn();
+    const in2 = fillersAt(all, 21, 2);
+    const in5 = fillersAt(all, 21, 5);
+    row("standing in the yard, the filler of its near (south) wall fades with that wall, the far (north) wall's stays opaque", in5.length === 1 && in5[0].faded && in2.length === 1 && !in2[0].faded, `south ${in5.map((d) => d.faded)}, north ${in2.map((d) => d.faded)}`);
+    // Along the square's west side (tangent), built from the step corner out through the pocket: the filler turns down the step edge, a post at
+    // the corner; a wall to the west window's end: no filler, no post.
+    for (const [x, y, e] of built.splice(0)) G.map.destroyWall(x, y, e);
+    const tangentFirst = G.map.ringWallProblem(21, 0, "w", "wall");
+    for (const [x, y, e] of [[21, 1, "w"], [21, 0, "w"], [20, 3, "n"]]) if (!G.map.tileAt(x, y)[e] && !G.map.ringWallProblem(x, y, e, "wall") && G.map.buildWall(x, y, e, "wall", "wall_stone")) built.push([x, y, e]);
+    standAt(24, 9);
+    all = drawn();
+    const t2 = fillersAt(all, 21, 2);
+    const t3 = fillersAt(all, 21, 3);
+    row("along the square's side: refused from the pocket's far end, built from the step corner out; its filler down the step edge with a post at the corner; none at a door point's end", tangentFirst === WHY && built.length === 3 && t2.length === 1 && t2[0].filler.edge === "n" && postAt(all, 21, 2) && !t3.length && !postAt(all, 21, 3), `first "${tangentFirst}", built ${built.length} of 3; at the step corner ${t2.length} filler (${JSON.stringify(t2.map((d) => [d.filler.tx, d.filler.ty, d.filler.edge]))}) and a post ${postAt(all, 21, 2)}; at the window's end ${t3.length} and ${postAt(all, 21, 3)}`);
   } finally {
+    for (const [x, y, e] of built) G.map.destroyWall(x, y, e);
+    if (built.length) G.map.rebuildRooms();
     feel.blend = saved.blend;
     S.zombies = saved.held.zombies;
     S.villagers = saved.held.villagers;

@@ -12,7 +12,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from mapgen import Place  # noqa: E402
+from mapgen import Place, check_round_joins  # noqa: E402
 
 NAME = "the tower house"
 PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "maps", "square.json")
@@ -70,6 +70,7 @@ if __name__ == "__main__":
         sq = json.load(f)
     build(sq)
     build_rounds(sq)
+    check_round_joins(sq)  # an authored wall never ends in a ring's corner pocket (docs/50 section 3)
     with open(PATH, "w", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(sq, indent=2) + "\n")
     print(f"wrote {os.path.normpath(PATH)}: {NAME}, {ROUND_NAME}")

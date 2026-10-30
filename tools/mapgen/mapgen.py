@@ -229,6 +229,7 @@ class MapGen:
             del j["reserve"]
         if not j["animals"]:
             del j["animals"]
+        check_round_joins(j)
         with open(path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(j, f, indent=1)
             f.write("\n")
@@ -382,6 +383,112 @@ class Place:
                 k = kinds[(dx + dy * 7 + seed) % len(kinds)]
                 st = stages[(dx * 3 + dy + seed) % len(stages)]
                 self.prop(f"crop_{k}_{st}", (x0 + dx, y0 + dy), solid=False)  # walked through, and it wobbles (CLAUDE.md's law)
+
+
+def _round_shape(n):
+    """A round room's stepped outline in its square's frame, as src/round.js has it (docs/50 section 2): the tiles whose centres lie inside
+    the circle, the outline's edges and vertices, and the corner pockets' vertices off the outline (a vertex (vx, vy) is the top vertex of
+    tile (vx, vy))."""
+    k = (n - 1) / 2
+    R = n / 2
+    inside = lambda x, y: (x - k) ** 2 + (y - k) ** 2 < R * R
+    stepped = {(x, y) for y in range(n) for x in range(n) if inside(x, y)}
+    pockets = {(x, y) for y in range(n) for x in range(n)} - stepped
+    outline = set()
+    for x, y in stepped:
+        if (x, y - 1) not in stepped:
+            outline.add((x, y, "n"))
+        if (x, y + 1) not in stepped:
+            outline.add((x, y + 1, "n"))
+        if (x - 1, y) not in stepped:
+            outline.add((x, y, "w"))
+        if (x + 1, y) not in stepped:
+            outline.add((x + 1, y, "w"))
+    over = set()
+    for x, y, e in outline:
+        over.add((x, y))
+        over.add((x + 1, y) if e == "n" else (x, y + 1))
+    pocket_v = {(x + dx, y + dy) for x, y in pockets for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1))} - over
+    return {"k": k, "stepped": stepped, "outline": outline, "outline_v": over, "pocket_v": pocket_v}
+
+
+def check_round_joins(j):
+    """A straight wall meeting a round room ends at a vertex of its stepped outline (docs/50 section 3, #588), so the rooms on either side are
+    sealed by the ring's edges: an authored wall ending at a corner pocket's vertex (the square's own corner, or a 7 by 7's pocket corner on
+    its side) with no other wall there, at its end nearer the ring's centre, leaves the room open, and so does a wall between two of a ring's
+    stepped tiles. Either is a loud error here. The walls are read as src/map.js loadMap lays them: every building's and storey's perimeter
+    and partitions, and every fence, by set."""
+    rings = []  # (layer, x0, y0, n)
+    walls = {}  # layer -> set of (tx, ty, edge)
+
+    def origin_of(s):
+        if s.get("origin"):
+            return s["origin"][0], s["origin"][1]
+        if s.get("rect"):
+            return s["rect"][0], s["rect"][1]
+        if s.get("rects"):
+            return s["rects"][0][0], s["rects"][0][1]
+        return 0, 0
+
+    def lay_rect(layer, rect, ox, oy, sides=("n", "s", "w", "e")):
+        x0, y0, w, h = rect[0] + ox, rect[1] + oy, rect[2], rect[3]
+        es = walls.setdefault(layer, set())
+        for x in range(x0, x0 + w):
+            if "n" in sides:
+                es.add((x, y0, "n"))
+            if "s" in sides:
+                es.add((x, y0 + h, "n"))
+        for y in range(y0, y0 + h):
+            if "w" in sides:
+                es.add((x0, y, "w"))
+            if "e" in sides:
+                es.add((x0 + w, y, "w"))
+        return x0, y0
+
+    def lay_building(b, ox, oy, layer):
+        bx, by = lay_rect(layer, b["rect"], ox, oy)
+        for part in b.get("partitions", []):
+            px, py = bx + part["at"][0], by + part["at"][1]
+            for i in range(part["len"]):
+                walls[layer].add((px + i, py, "n") if part["edge"] == "n" else (px, py + i, "w"))
+
+    sets = [({"buildings": j.get("buildings", []), "fences": [], "rounds": j.get("rounds", [])}, (0, 0))]
+    sets += [(s, origin_of(s)) for s in j.get("sets", [])]
+    for f in j.get("features", []):
+        if f.get("kind") == "fence":
+            lay_rect(0, f["rect"], 0, 0, f.get("sides") or ("n", "s", "w", "e"))
+    for s, (ox, oy) in sets:
+        for f in s.get("fences", []):
+            lay_rect(0, f["rect"], ox, oy, f.get("sides") or ("n", "s", "w", "e"))
+        for b in s.get("buildings", []):
+            lay_building(b, ox, oy, 0)
+            for st in b.get("floors", []):
+                if int(st.get("layer", 0)):
+                    lay_building(st, ox, oy, int(st["layer"]))
+        for rd in s.get("rounds", []):
+            rings.append((int(rd.get("layer", 0)), rd["at"][0] + ox, rd["at"][1] + oy, int(rd["size"])))
+    for layer, x0, y0, n in rings:
+        sh = _round_shape(n)
+        outline = {(x + x0, y + y0, e) for x, y, e in sh["outline"]}
+        es = walls.get(layer, set()) - outline  # an authored wall on the outline is laid over by the ring's own (map.loadMap)
+        others = [(x0b, y0b, nb) for lb, x0b, y0b, nb in rings if lb == layer]
+        cx, cy = x0 + sh["k"], y0 + sh["k"]
+        for tx, ty, e in sorted(es):
+            a, b = (tx, ty), (tx + 1, ty) if e == "n" else (tx, ty + 1)
+            t2 = (tx, ty - 1) if e == "n" else (tx - 1, ty)
+            if (tx - x0, ty - y0) in sh["stepped"] and (t2[0] - x0, t2[1] - y0) in sh["stepped"]:
+                raise ValueError(f"an authored wall at {tx},{ty} {e} stands inside the round room at {x0},{y0} on layer {layer} (docs/50 section 5)")
+            for v, o in ((a, b), (b, a)):
+                if (v[0] - x0, v[1] - y0) not in sh["pocket_v"]:
+                    continue
+                if any((v[0] - x0b, v[1] - y0b) in _round_shape(nb)["outline_v"] for x0b, y0b, nb in others):
+                    continue
+                d = lambda p: ((p[0] - 0.5 - cx) ** 2 + (p[1] - 0.5 - cy) ** 2) ** 0.5
+                if d(v) > d(o) + 1e-9:
+                    continue  # its end away from the ring: a wall may run on outward as far as it likes
+                at_v = {(v[0], v[1], "n"), (v[0] - 1, v[1], "n"), (v[0], v[1], "w"), (v[0], v[1] - 1, "w")} - {(tx, ty, e)}
+                if not (at_v & walls.get(layer, set())):
+                    raise ValueError(f"an authored wall at {tx},{ty} {e} ends in a corner pocket of the round room at {x0},{y0} on layer {layer}, at {v[0]},{v[1]}: run it on to a vertex of the stepped outline (docs/50 section 3)")
 
 
 def _merge_runs(rects):
