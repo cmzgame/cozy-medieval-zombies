@@ -109,7 +109,7 @@ export function actionsForTarget(t, player) {
     if (player.carrying) out.push(putDownAction(player, tx, ty));
     else if (map.peekTile(tx, ty, player.layer || 0) && map.drinkableAt(tx, ty, player.layer || 0)) out.push(...waterTileActions(tx, ty, player));
     if (!player.carrying) out.push(...farmTileActions(tx, ty, player), ...bucket.tileActions(tx, ty, player, act, world));
-    if (map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
+    if (map.isWalkableTile(tx, ty, player.layer || 0)) out.push(walkAction([tx, ty]));
     return tag(out, t);
   }
   if (t.kind === "item") {
@@ -217,7 +217,7 @@ export function addressOfBag(player, bag) {
     for (let dx = -r; dx <= r; dx++) {
       const x = px + dx;
       const y = py + dy;
-      const t = map.peekTile(x, y);
+      const t = map.peekTile(x, y, player.layer || 0); // the containers on the player's own floor (docs/53 step 6)
       if (!t) continue;
       const p = t.prop;
       if (p && !seen.has(p)) {
@@ -248,7 +248,7 @@ function openWithin(player, entry, outerBag) {
   if (!outer || !outer.bag.items.includes(entry)) return false;
   const bag = containerBagOf(entry, true); // take-only, as a belt's slots are (the review of #508)
   if (!bag) return false;
-  for (const [tx, ty] of outer.tiles) map.touch(tx, ty); // a bag's grid made on first use travels with what holds it
+  for (const [tx, ty] of outer.tiles) map.touch(tx, ty, player.layer || 0); // a bag's grid made on first use travels with what holds it, on the player's floor
   const address = { entryUid: entry.uid, within };
   emit("containerOpened", { bag, tiles: outer.tiles, name: getItem(entry.id).name.toLowerCase(), entry, within, address });
   return true;
@@ -311,7 +311,7 @@ function itemActions(entry, tx, ty, player) {
       mx: tx,
       my: ty,
       perform() {
-        map.touch(tx, ty); // the bag's grid made on first use travels with its tile (docs/31/05, item 6)
+        map.touch(tx, ty, player.layer || 0); // the bag's grid made on first use travels with its tile (docs/31/05, item 6)
         emit("containerOpened", { bag, tiles, name: def.name.toLowerCase(), entry, tile: [tx, ty], address: { entryUid: entry.uid, tile: [tx, ty] } });
         return true;
       },
@@ -335,7 +335,7 @@ function itemActions(entry, tx, ty, player) {
       perform() {
         const view = containerBagOf(entry);
         if (!view) return false;
-        map.touch(tx, ty); // its slots made on first use and laid out in the view travel with its tile, as a bag's grid does
+        map.touch(tx, ty, player.layer || 0); // its slots made on first use and laid out in the view travel with its tile, as a bag's grid does
         emit("containerOpened", { bag: view, tiles, name: def.name.toLowerCase(), entry, tile: [tx, ty], address: { entryUid: entry.uid, tile: [tx, ty] } });
         return true;
       },
@@ -394,7 +394,7 @@ function pickUpAction(entry, tx, ty, player, simple) {
           any = true;
           e.count -= added;
           if (e.count <= 0) map.takeItem(x, y, e, player.layer || 0);
-          else map.touch(x, y); // a part of a stack came up: the count left on the floor reaches a guest
+          else map.touch(x, y, player.layer || 0); // a part of a stack came up: the count left on the floor reaches a guest
         }
         if (!any) {
           showMessage("No room in your bag.");
@@ -930,7 +930,8 @@ export function cropReport(prop) {
 function farmTileActions(tx, ty, player) {
   const out = [];
   const soil = farming.get().soil;
-  const t = map.peekTile(tx, ty);
+  if (player.layer || 0) return out; // the fields are the ground's (docs/53 step 9 gives a storey its soil, if ever)
+  const t = map.peekTile(tx, ty, 0);
   if (!t || t.prop) return out;
   if (!lineOfSight(player.gx, player.gy, tx, ty, player.layer || 0)) return out; // a wall in the way: not offered, rather than offered and refused (the verbs refuse it too)
   const base = { tiles: [[tx, ty]], mx: tx, my: ty };
@@ -1251,7 +1252,7 @@ function openingsAtScreen(sx, sy) {
   const out = [];
   for (const dy of [0, WALL_FACE / 2, WALL_FACE]) {
     const g = iso.toGrid(sx, sy + dy);
-    for (const o of map.openingsNear(g.gx, g.gy, 2.5)) {
+    for (const o of map.openingsNear(g.gx, g.gy, 2.5, map.drawLayerNow())) { // the floor the cursor is read on (onFloorOf)
       const gs = o.wall.gate ? map.gateStart(o.tx, o.ty, o.edge, o.wall) : null; // a castle gate is one thing under the cursor: its first edge's key
       const k = gs ? `gate:${o.edge}@${gs[0]},${gs[1]}` : `${o.edge}@${o.tx},${o.ty}`;
       if (seen.has(k)) continue;
@@ -1273,7 +1274,7 @@ function openingsAtScreen(sx, sy) {
 // a lantern is a switch since docs/43, lit again once put out).
 export function bracketAt(sx, sy) {
   const g = iso.toGrid(sx, sy);
-  const near = map.bracketsNear(g.gx, g.gy, 0.8); // any bracket: a Use on a lantern or an empty one gets its own word, not the grass's
+  const near = map.bracketsNear(g.gx, g.gy, 0.8, map.drawLayerNow()); // on the floor the cursor is read on (onFloorOf); any bracket: a Use on a lantern or an empty one gets its own word, not the grass's
   return near.length ? near[0].bracket : null;
 }
 
@@ -1307,20 +1308,21 @@ function actionsAtHere(sx, sy, player) {
   if (player.carrying) {
     // Only walking and putting the thing down.
     out.push(...tag([putDownAction(player, tx, ty)], onTile(tx, ty)));
-    if (map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty)));
+    if (map.isWalkableTile(tx, ty, player.layer || 0)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty)));
     return out;
   }
   for (const entry of map.itemsAt(tx, ty, player.layer || 0)) out.push(...tag(itemActions(entry, tx, ty, player), onItem(entry, tx, ty)));
-  if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...tag(waterTileActions(tx, ty, player), onTile(tx, ty))); // the river, a pond (docs/30, law 8)
+  const L = player.layer || 0; // what is under the cursor on the player's own floor (onFloorOf lifted the cursor there)
+  if (map.peekTile(tx, ty, L) && map.drinkableAt(tx, ty, L)) out.push(...tag(waterTileActions(tx, ty, player), onTile(tx, ty))); // the river, a pond (docs/30, law 8)
   const farmActs = tag(farmTileActions(tx, ty, player), onTile(tx, ty)); // Till the soil with a hoe, Plant with a seed (#194)
   out.push(...farmActs);
-  const bucketActs = !map.peekTile(tx, ty) || map.peekTile(tx, ty).prop ? [] : tag(bucket.tileActions(tx, ty, player, act, world), onTile(tx, ty)); // a bucket: fill at water, pour on tilled soil beside a crop (#199)
+  const bucketActs = !map.peekTile(tx, ty, L) || map.peekTile(tx, ty, L).prop ? [] : tag(bucket.tileActions(tx, ty, player, act, world), onTile(tx, ty)); // a bucket: fill at water, pour on tilled soil beside a crop (#199)
   out.push(...bucketActs);
   // Props: on their tile, or under their sprite in the tiles around (a tall tree).
   const seen = new Set();
   for (let dy = -3; dy <= 1; dy++) {
     for (let dx = -3; dx <= 1; dx++) {
-      const prop = map.peekTile(tx + dx, ty + dy)?.prop; // a hit test never grows a chunk (docs/23a, A4)
+      const prop = map.peekTile(tx + dx, ty + dy, L)?.prop; // a hit test never grows a chunk (docs/23a, A4)
       if (!prop || seen.has(prop)) continue;
       const onTile = dx === 0 && dy === 0;
       const onSprite = !onTile && pointInRect(sx, sy, propRect(prop, tx + dx, ty + dy));
@@ -1330,7 +1332,7 @@ function actionsAtHere(sx, sy, player) {
     }
   }
   // A rug under the cursor's tile: its Pick up, with Walk here still offered beside it (#327).
-  const rugHere = map.peekTile(tx, ty)?.rug;
+  const rugHere = map.peekTile(tx, ty, L)?.rug;
   const rugActs = rugHere ? tag(rugActions(rugHere, player), onProp(rugHere)) : [];
   for (const o of openingsAtScreen(sx, sy)) out.push(...tag(openingActions(o, player), onEdge(o)));
   const hung = paintings.paintingAt(sx, sy, player.layer || 0); // a painting hung on a wall face under the cursor: its Pick up, with Walk here beside it (#326)
@@ -1341,7 +1343,7 @@ function actionsAtHere(sx, sy, player) {
   if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
   else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
   out.push(...rugActs); // after the characters': a villager standing on the rug is the thing pointed at (#327)
-  if (out.length === farmActs.length + bucketActs.length + rugActs.length + paintActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
+  if (out.length === farmActs.length + bucketActs.length + rugActs.length + paintActs.length && map.isWalkableTile(tx, ty, L)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
   return out;
 }
 
@@ -1397,7 +1399,7 @@ export function nearestSimpleAction(player) {
     const seenRugs = new Set();
     for (let dy = -2; dy <= 2; dy++) {
       for (let dx = -2; dx <= 2; dx++) {
-        const r = map.peekTile(px + dx, py + dy)?.rug;
+        const r = map.peekTile(px + dx, py + dy, player.layer || 0)?.rug;
         if (r && !seenRugs.has(r)) {
           seenRugs.add(r);
           consider(tag(rugActions(r, player), onProp(r)));
@@ -2050,7 +2052,7 @@ export function hitsAt(sx, sy, wanted = (prop) => prop.interactable) {
   // tile, so look that far down the grid as well as a little around.
   for (let dy = -2; dy <= 7; dy++) {
     for (let dx = -2; dx <= 7; dx++) {
-      const prop = map.peekTile(tx + dx, ty + dy)?.prop; // a hit test never grows a chunk (docs/23a, A4)
+      const prop = map.peekTile(tx + dx, ty + dy, map.drawLayerNow())?.prop; // a hit test never grows a chunk (docs/23a, A4); on the floor the cursor is read on (onFloorOf)
       if (!prop || seen.has(prop) || !wanted(prop)) continue;
       seen.add(prop);
       // Its pixels: every slice a sliced piece draws, each at its own tile (a fireplace's second tile, the fire pit's three columns, whose
@@ -2173,7 +2175,7 @@ export function brushThrough(ch) {
   if (!moved) return;
   ch.brushX = ch.gx;
   ch.brushY = ch.gy;
-  const prop = map.peekTile(Math.round(ch.gx), Math.round(ch.gy))?.prop;
+  const prop = map.peekTile(Math.round(ch.gx), Math.round(ch.gy), ch.layer || 0)?.prop; // on the walker's own floor
   if (!prop || !prop.interactable || prop.solid) return;
   const def = getDef(prop.sprite);
   if (def.sway === false || def.clickAnim) return;

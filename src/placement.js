@@ -1119,7 +1119,7 @@ function removalTargetHere(sx, sy, layer) {
   const seen = new Set();
   for (let dy = -3; dy <= 1; dy++) {
     for (let dx = -3; dx <= 1; dx++) {
-      const prop = map.tileAt(cx + dx, cy + dy).prop;
+      const prop = map.tileAt(cx + dx, cy + dy, layer).prop;
       if (!prop || seen.has(prop) || !prop.made) continue;
       const onTile = dx === 0 && dy === 0;
       if (!onTile && !pointInRect(sx, sy, propRect(prop, cx + dx, cy + dy))) continue;
@@ -1137,7 +1137,7 @@ function removalTargetHere(sx, sy, layer) {
     for (let ty = gy - 1; ty <= gy + 1; ty++) {
       for (let tx = gx - 1; tx <= gx + 1; tx++) {
         for (const edge of ["n", "w"]) {
-          const wall = map.tileAt(tx, ty)[edge];
+          const wall = map.tileAt(tx, ty, layer)[edge];
           if (!wall || !wall.built || walls.has(wall)) continue;
           if (!pointInQuad(sx, sy, wallFace(tx, ty, edge, wall))) continue;
           walls.add(wall);
@@ -1148,7 +1148,7 @@ function removalTargetHere(sx, sy, layer) {
   }
   // The edge on the ground under the cursor, as building picks it, a little behind a face hit.
   const e = pickEdge(g0.gx, g0.gy);
-  const ew = map.tileAt(e.tx, e.ty)[e.edge];
+  const ew = map.tileAt(e.tx, e.ty, layer)[e.edge];
   if (ew && ew.built && !walls.has(ew)) consider({ type: "wall", tx: e.tx, ty: e.ty, edge: e.edge, wall: ew, layer }, e.tx + e.ty - 0.75);
   // A floor a player laid (docs/49 section 5), under all else: what stands on it is taken first.
   if (!best) {

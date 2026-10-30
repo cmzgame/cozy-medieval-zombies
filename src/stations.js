@@ -79,7 +79,7 @@ export function sources(player, prop) {
   const py = Math.round(player.gy);
   const seen = new Set();
   for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
-    const p = map.peekTile(px + dx, py + dy)?.prop;
+    const p = map.peekTile(px + dx, py + dy, player.layer || 0)?.prop; // the containers on the player's own floor (docs/53 step 6)
     if (!p || p === prop || seen.has(p) || !p.bag) continue;
     seen.add(p);
     if (canReach(player, p.tiles, REACH, p.layer || 0)) out.push(p.bag); // a chest in the next room feeds nothing through the wall (#208)
@@ -303,10 +303,11 @@ function fits(x, y, [w, h], near, layer = 0) {
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
     const tx = x + dx;
     const ty = y + dy;
-    const t = map.tileAt(tx, ty);
-    if (t.prop || t.items || !map.isWalkableTile(tx, ty) || map.besideDoor(tx, ty) || map.curveCrossed(tx, ty, layer)) return false; // never on a tile a ring's curve crosses (docs/50)
-    if (dx > 0 && map.wallBetween(tx - 1, ty, tx, ty)) return false;
-    if (dy > 0 && map.wallBetween(tx, ty - 1, tx, ty)) return false;
+    const t = map.tileAt(tx, ty, layer); // the station's own floor (docs/53 step 6: a workbench upstairs makes upstairs)
+    if (t.prop || t.items || !map.isWalkableTile(tx, ty, layer) || map.besideDoor(tx, ty, layer) || map.curveCrossed(tx, ty, layer)) return false; // never on a tile a ring's curve crosses (docs/50)
+    if (map.stairAt(tx, ty, layer) || map.landingAt(tx, ty, layer)) return false;
+    if (dx > 0 && map.wallBetween(tx - 1, ty, tx, ty, layer)) return false;
+    if (dy > 0 && map.wallBetween(tx, ty - 1, tx, ty, layer)) return false;
     if (near.some((c) => touchesTile(c, tx, ty))) return false;
   }
   return true;
@@ -325,13 +326,14 @@ function spotFor(prop, fp) {
   if (hit && hit.at === now) return hit.spot;
   if (spotCache.size > 64) spotCache.clear();
   const R = SPOT_STEPS + Math.max(fp[0], fp[1]) + 2;
-  const near = bodies().filter((c) => c && Math.abs(c.gx - prop.tile[0]) <= R && Math.abs(c.gy - prop.tile[1]) <= R);
+  const L = prop.layer || 0;
+  const near = bodies().filter((c) => c && (c.layer || 0) === L && Math.abs(c.gx - prop.tile[0]) <= R && Math.abs(c.gy - prop.tile[1]) <= R);
   const seen = new Set(prop.tiles.map(([x, y]) => `${x},${y}`));
   const grow = (from) => {
     const out = [];
     for (const [x, y] of from) for (const [dx, dy] of SIDES) {
       const k = `${x + dx},${y + dy}`;
-      if (seen.has(k) || !map.canStep(x, y, x + dx, y + dy)) continue;
+      if (seen.has(k) || !map.canStep(x, y, x + dx, y + dy, L)) continue;
       seen.add(k);
       out.push([x + dx, y + dy]);
     }
@@ -341,7 +343,7 @@ function spotFor(prop, fp) {
   let spot = null;
   for (let step = 0; step < SPOT_STEPS && ring.length && !spot; step++) {
     ring.sort((a, b) => (a[1] - b[1]) || (a[0] - b[0])); // a fixed order: the same spot wherever the step runs
-    for (const [x, y] of ring) if (fits(x, y, fp, near, prop.layer || 0)) { spot = [x, y]; break; }
+    for (const [x, y] of ring) if (fits(x, y, fp, near, L)) { spot = [x, y]; break; }
     ring = grow(ring);
   }
   spotCache.set(key, { at: now, spot });
@@ -394,7 +396,7 @@ function deliver(prop, r) {
         made.bag = createBag(cols, rows, containerName(made.sprite));
         made.searched = true;
       }
-      map.placeProp(made, at[0], at[1]);
+      map.placeProp(made, at[0], at[1], prop.layer || 0); // beside its station, on its floor
       spotCache.clear();
       return o;
     }
@@ -405,8 +407,9 @@ function deliver(prop, r) {
   const bag = outputOf(prop);
   const put = grid.add(bag, o.id, o.count);
   if (put < o.count) {
-    const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1);
-    if (at) map.dropItem(at[0], at[1], { id: o.id, count: o.count - put });
+    const L = prop.layer || 0;
+    const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1, () => false, 12, L);
+    if (at) map.dropItem(at[0], at[1], { id: o.id, count: o.count - put }, L);
   }
   return o;
 }

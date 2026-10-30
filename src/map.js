@@ -695,7 +695,7 @@ export function inResourceArea(kind, x, y) {
 // A tile for a pure read that knows the authored map where nothing has grown: the live tile if its chunk is loaded, else the authored one
 // (an ungrown chunk inside the bounds is as the file made it, and a valley chunk is never dropped), else null, the plain base tile.
 function readTile(x, y) {
-  const t = peekTile(x, y);
+  const t = peekTile(x, y, 0); // the ground's: the resources' areas and the authored map's (docs/53 step 6)
   if (t) return t;
   return (inBounds(x, y) && source && source(x, y)) || null;
 }
@@ -769,7 +769,7 @@ export function resourceSpotProblem(kind, x, y, { live = true, bodies = [], not 
   const key = `${x},${y}`;
   const own = kind.own || kind.open.some((name) => openPlaces.has(name) && openPlaces.get(name).has(key));
   if (reservedTiles.has(key) && !own) return "a reserved tile";
-  const t = live ? peekTile(x, y) : readTile(x, y);
+  const t = live ? peekTile(x, y, 0) : readTile(x, y); // a resource stands on the ground (docs/46)
   if (live && !t) return "not grown";
   const tile = t || blank;
   if (tile.prop || tile.rug) return "under a prop";
@@ -783,7 +783,7 @@ export function resourceSpotProblem(kind, x, y, { live = true, bodies = [], not 
     if (!near) return "no tree near";
   }
   if (kind.water && !waterNear(x, y, kind.water, kind.waterGroup)) return kind.waterGroup ? `no ${kind.waterGroup} near` : "no water near";
-  if (live && roomAt(x, y) > 0) return "inside a room";
+  if (live && roomAt(x, y, 0) > 0) return "inside a room";
   if (!kind.own && fencedIn(x, y)) return "inside a fenced yard";
   for (const b of bodies) if (b && Math.hypot(b.gx - x, b.gy - y) < 1) return "a body stands there";
   return null;
@@ -2198,6 +2198,11 @@ export function takeTouched() {
   touched.clear();
   return out;
 }
+// Every chunk on every layer changed at once (a restore, a wall that knows no tile): `touch` with no tile, named so it is never a read that
+// forgot its layer (the layer audit, docs/53 step 0).
+export function touchAll() {
+  touch(null, null, 0);
+}
 export function touch(x = null, y = null, layer = 0) {
   worldVersion++;
   if (x === null) {
@@ -2221,7 +2226,7 @@ export function touch(x = null, y = null, layer = 0) {
 // a tile address carries its layer, left out when it is 0).
 function touchWall(wall) {
   if (wall.at) touch(wall.at[0], wall.at[1], wall.at[2] || 0);
-  else touch();
+  else touchAll();
 }
 // A tile address [x, y] with its layer when it is not the ground's (docs/49 section 12), and the layer an address names.
 export function addr(x, y, layer = 0) {
@@ -2524,7 +2529,7 @@ export function restoreMap(data) {
   pendingSpawns.length = 0;
   for (const [x, y] of data.pending || []) pendingSpawns.push([x, y]);
   rebuildRooms();
-  touch();
+  touchAll();
 }
 
 // ---- eviction, and the dead that sleep with their chunk (docs/23a, B1, B2: a first slice of 03's records) ----
@@ -3774,7 +3779,7 @@ function setFootprint(s) {
 // built one grows its chunk through its mutator): the void and the earth are the blanks, and nothing empty is saved or sent.
 export function ensureAround(x, y, radius = 4) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
-  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) getChunk(cx + dx, cy + dy);
+  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) getChunk(cx + dx, cy + dy, true, 0); // the ground's ring
   for (const [layer, keys] of authoredChunks) {
     for (const [k, [acx, acy]] of keys) {
       if (chunks.has(k) || Math.max(Math.abs(acx - cx), Math.abs(acy - cy)) > radius) continue;
