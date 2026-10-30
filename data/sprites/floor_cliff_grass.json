@@ -1,4 +1,5 @@
 {
+ "hill": "top",
  "images": {
   "idle_0": "data/art/cliffs/floor_cliff_grass_0.png",
   "idle_1": "data/art/cliffs/floor_cliff_grass_1.png",
