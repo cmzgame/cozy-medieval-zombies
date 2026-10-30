@@ -32,7 +32,7 @@ const LANDS = new Set(["arrow", "fire_arrow", "poison_arrow", "strong_poison_arr
 
 let steps = { nearest: 6, gap: 0.18, dead: "shuffle", default: "shuffle" }; // data/sounds.json `footsteps`
 let swingCfg = { heavyAt: 0.8, rise: 0.1 }; // data/sounds.json `swing`
-let openCfg = { radius: 14, every: 0.05, slot: "door" }; // data/sounds.json `openings`
+let openCfg = { radius: 14, every: 0.05, slot: "door", storeyVolume: 0.5 }; // data/sounds.json `openings`
 let bowCfg = { rateFrom: 0.9, rateTo: 1.2 }; // data/sounds.json `bow`
 let moanCfg = { from: ["idle", "wander", "search", "siege"], to: ["chase", "breach", "press"], again: 10, gap: 1.2 }; // data/sounds.json `moan`
 const walkers = new Map(); // id -> { name, frame, last, count }: a character's walk as heard last frame
@@ -161,7 +161,15 @@ function footsteps(S, sim) {
 
 // The floor's step slot; a floor not listed, grass among them since #386, takes the default (the dead's shuffle).
 function stepSlot(c) {
-  const t = map.tileAt(Math.round(c.gx), Math.round(c.gy));
+  const L = c.layer || 0;
+  const x = Math.round(c.gx);
+  const y = Math.round(c.gy);
+  const h = c.rise > 0 ? map.stairAt(x, y, L) : null; // on a stair: its treads, the floor its landing takes (the review of #609)
+  if (h && !h.well) {
+    const name = steps[map.stairKind(h.s.material).landing];
+    if (typeof name === "string") return name;
+  }
+  const t = map.tileAt(x, y, L); // the walker's own floor (docs/53 step 7): planks upstairs, not the grass under them
   const name = t && steps[t.floor];
   return typeof name === "string" ? name : steps.default || "shuffle";
 }
@@ -334,27 +342,34 @@ export function scanCost(S, n = 50) {
   return { ms: (performance.now() - t0) / n, openings: openings.size, every: openCfg.every };
 }
 
+// The doors, shutters, and gates on the listener's floor and the storeys next to it (docs/53 step 7: an upstairs door creaks), one a storey
+// apart at `storeyVolume` of its loudness (data/sounds.json `openings`), each remembered by its edge and its floor. A read never grows a chunk.
 function scanOpenings(S, play) {
   const [lx, ly] = listenerAt(S);
+  const me = client.me;
+  const LL = (me && !me.dead && me.layer) || 0;
   const r = Math.ceil(openCfg.radius);
   const cx = Math.round(lx);
   const cy = Math.round(ly);
   const seen = new Set();
-  for (let y = cy - r; y <= cy + r; y++) {
-    for (let x = cx - r; x <= cx + r; x++) {
-      const t = map.tileAt(x, y);
-      for (const edge of ["n", "w"]) {
-        const w = t[edge];
-        if (!w || (w.kind !== "door" && w.kind !== "window")) continue;
-        if (w.gate && w.gate.i) continue; // a castle gate creaks once, at its first edge, not once for each of its edges
-        const key = `${x},${y},${edge}`;
-        seen.add(key);
-        const now = { open: w.kind === "door" ? !!w.open : w.shutter === "open", broken: !!w.broken };
-        const was = openings.get(key);
-        openings.set(key, now);
-        if (!play || !was) continue;
-        if (now.broken !== was.broken) continue; // a break, not an open
-        if (now.open !== was.open) audio.play(openCfg.slot, { at: edge === "n" ? [x, y - 0.5] : [x - 0.5, y] });
+  for (const L of [LL - 1, LL, LL + 1]) {
+    for (let y = cy - r; y <= cy + r; y++) {
+      for (let x = cx - r; x <= cx + r; x++) {
+        const t = map.peekTile(x, y, L);
+        if (!t) continue;
+        for (const edge of ["n", "w"]) {
+          const w = t[edge];
+          if (!w || (w.kind !== "door" && w.kind !== "window")) continue;
+          if (w.gate && w.gate.i) continue; // a castle gate creaks once, at its first edge, not once for each of its edges
+          const key = `${x},${y},${edge},${L}`;
+          seen.add(key);
+          const now = { open: w.kind === "door" ? !!w.open : w.shutter === "open", broken: !!w.broken };
+          const was = openings.get(key);
+          openings.set(key, now);
+          if (!play || !was) continue;
+          if (now.broken !== was.broken) continue; // a break, not an open
+          if (now.open !== was.open) audio.play(openCfg.slot, { at: edge === "n" ? [x, y - 0.5] : [x - 0.5, y], volume: L === LL ? 1 : openCfg.storeyVolume });
+        }
       }
     }
   }

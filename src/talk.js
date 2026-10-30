@@ -58,7 +58,7 @@ export function contextFor(villager, talker, world) {
   const roster = (world && world.roster) || new Set();
   const near = T.barkDeadRadius;
   let deadNear = false;
-  if (villager) for (const z of zombies) if (!z.dead && Math.hypot(z.gx - villager.gx, z.gy - villager.gy) <= near) { deadNear = true; break; }
+  if (villager) for (const z of zombies) if (!z.dead && (z.layer || 0) === (villager.layer || 0) && Math.hypot(z.gx - villager.gx, z.gy - villager.gy) <= near) { deadNear = true; break; } // on its own floor (the review of #609)
   const alive = new Set(villagers.filter((v) => !v.dead && v.talk).map((v) => v.talk));
   return {
     phase: clock.getPhase(),
@@ -66,7 +66,7 @@ export function contextFor(villager, talker, world) {
     deadInWorld: zombies.some((z) => !z.dead),
     alive,
     roster,
-    indoors: !!villager && map.roomAt(Math.round(villager.gx), Math.round(villager.gy)) > 0,
+    indoors: !!villager && map.roomAt(Math.round(villager.gx), Math.round(villager.gy), villager.layer || 0) > 0,
     hurt: !!villager && villager.hp < (villager.maxHp ?? 100),
     talker,
   };
