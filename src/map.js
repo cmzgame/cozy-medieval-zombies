@@ -1085,8 +1085,21 @@ export function landingAt(x, y, layer = 0) {
 // one, which count as walkable for the touching rule, so a drag grows a floor out from its first tile.
 // The highest storey anything is built on (docs/53 step 6, a default): six storeys over the ground, a castle's tower top and room to spare.
 export const STOREY_CAP = 6;
+
+// Whether a cliff top lies on (x, y) of layer L or on one of the eight tiles round it (Michael, 2026-10-30, docs/02: the mountains are the map's
+// and separate zones, so no player-built floor, stair, or ladder ever reaches a hill's top; a mountain pass is made by the map alone).
+export function nearHillTop(x, y, L) {
+  if (L < 1) return false;
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const t = peekTile(x + dx, y + dy, L);
+    if (t && floorRule(t.floor).hill === "top") return true;
+  }
+  return false;
+}
+export const NOT_ONTO_A_HILL = "Not up onto a hill";
 export function floorBuildProblem(x, y, id, layer = 0, grows = null) {
   if (layer > STOREY_CAP) return "High enough";
+  if (floorRule(id).hill !== "top" && nearHillTop(x, y, layer)) return NOT_ONTO_A_HILL; // a player's floor never reaches a hill's top (docs/02, 2026-10-30)
   const t = peekTile(x, y, layer) || tileAt(x, y, layer);
   if (stairAt(x, y, layer)) return "Not over a stair";
   if (landingAt(x, y, layer)) return "Not on a stair's landing";
@@ -2913,7 +2926,8 @@ export function floorRule(id) {
   let def = null;
   try { def = getDef(id); } catch { def = null; }
   const walk = def && def.walk !== undefined ? def.walk : true;
-  r = { walk: walk === false ? false : walk === true ? 1 : Number(walk) || 1, drink: !!(def && def.drink) };
+  // `hill`: what a hill may stand on (Michael, 2026-10-30, docs/02): "base" (dirt, grass) and "top" (a cliff top, the ground for a hill's next tier).
+  r = { walk: walk === false ? false : walk === true ? 1 : Number(walk) || 1, drink: !!(def && def.drink), hill: (def && def.hill) || null };
   floorRules.set(id, r);
   return r;
 }
@@ -3072,6 +3086,7 @@ export function stairBuildProblem(x0, y0, dir, layer = 0, material = "wood") {
   if (layer < 0) return "Not here";
   if (layer + 1 > STOREY_CAP) return "High enough"; // the storey cap (docs/53 step 6)
   const up = layer + 1;
+  if (!stairKind(material).ramp && nearHillTop(rec.landing[0], rec.landing[1], up)) return NOT_ONTO_A_HILL; // only the map's ramps climb a hill (docs/02, 2026-10-30)
   const [bx, by] = rec.before;
   if (!isWalkableTile(bx, by, layer) || stairAt(bx, by, layer)) return "Its foot needs a floor to step from";
   for (const [x, y] of rec.tiles) {
@@ -3271,6 +3286,7 @@ export function ladderBuildProblem(x, y, dir, layer = 0) {
   const rec = ladderRecord(x, y, dir, layer, false);
   if (!rec) return "Not here";
   const up = layer + 1;
+  if (nearHillTop(rec.landing[0], rec.landing[1], up) || nearHillTop(x, y, up)) return NOT_ONTO_A_HILL; // no ladder up a hill (docs/02, 2026-10-30)
   const t = peekTile(x, y, layer);
   if (!t || !isWalkableTile(x, y, layer) || stairAt(x, y, layer) || landingAt(x, y, layer) || ladderAt(x, y, layer)) return "Not here";
   if (t.prop || t.rug) return "Something is in the way";

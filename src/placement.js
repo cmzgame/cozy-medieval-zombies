@@ -501,7 +501,7 @@ function stairTilesOf(x, y, dir) {
 function stairBlock(player, what, x, y, dir) {
   if (buildData[what].dev && !rules.freeBuilding) return "Stairs are not in the game yet"; // Free building only for now
   const L = layerOf(player);
-  const why = landformProblem(what, x, y, L) || map.stairBuildProblem(x, y, dir, L, buildData[what].material || "wood"); // the ramp climbs from the ground (step 6)
+  const why = landformProblem(what, x, y, L, dir) || map.stairBuildProblem(x, y, dir, L, buildData[what].material || "wood"); // a ramp on dirt, grass, or a hill
   if (why) return why;
   const { tiles, landing } = stairTilesOf(x, y, dir);
   if (stations.bodyOnTiles(tiles, L)) return "Someone is in the way";
@@ -840,21 +840,36 @@ export function wallKindOf(what) {
 export const isBattlementBuild = (what) => !!(buildData[what] && buildData[what].sprite && map.wallRule(buildData[what].sprite).battlement);
 export const isCliffBuild = (what) => !!(buildData[what] && buildData[what].sprite && map.wallRule(buildData[what].sprite).cliff);
 
-// A landform (the Terrain tab's Landforms: a cliff wall, a cliff top, the Stone ramp) stands between the ground and the storey over it, never on a
-// building's floor (docs/53 section 4 line 11, step 6; Primary's default): the ramp and a cliff wall on the ground, a cliff top on the ground or
-// one storey up, never over a storey's floor; a hill on a hill waits for Michael's ruling (section 7, step 9). Why not, or "".
-const landformFloor = (id) => Object.values(buildData).some((d) => d.group === "Landforms" && d.kind === "floor" && d.sprite === id);
+// A landform (the Terrain tab's Landforms: a cliff wall, a cliff top, the Stone ramp) is the map's: built only with Free building, for testing
+// (Michael, 2026-10-30, docs/02: "all hills are going to be pre-baked with the map, so no player will ever add them, just me when testing"). It
+// stands on dirt, grass, or a hill alone ("No hill should build on anything but dirt, grass, or other hills"), in tiers to the storey cap ("The
+// multistory mountains are very important to me"): on the ground on dirt or grass (a floor definition's `hill` "base") or a hill's top, a storey
+// up on a hill's top alone (`hill` "top"), never on a building's floor. A cliff wall wants both tiles of its edge so, a cliff top the tile under
+// it and the void or a hill's top where it goes, the Stone ramp its foot, its steps, and the void or a hill's top at its landing. Why not, or "".
+const HILLS_ONLY = "Hills stand on dirt, grass, or hills";
 const isLandform = (what) => !!(buildData[what] && buildData[what].group === "Landforms");
-function landformProblem(what, x, y, L) {
-  if (!isLandform(what) || L === 0) return "";
-  const kind = buildData[what].kind;
-  if (kind === "floor" && L === 1) {
-    const t = map.peekTile(x, y, 1);
-    return t && t.floor !== map.VOID && !landformFloor(t.floor) ? "Not on a built floor" : ""; // the map's upper floors too (the review of #607)
-  }
+function hillGround(x, y, L) {
   const t = map.peekTile(x, y, L);
-  const below = kind === "floor" ? map.peekTile(x, y, L - 1) : t;
-  return below && landformFloor(below.floor) ? "Hills on hills are not in the game yet" : "Not on a built floor";
+  const h = t ? map.floorRule(t.floor).hill : null;
+  return L === 0 ? h === "base" || h === "top" : h === "top";
+}
+const airOrHillTop = (x, y, L) => { const t = map.peekTile(x, y, L); return !t || t.floor === map.VOID || map.floorRule(t.floor).hill === "top"; };
+function landformProblem(what, x, y, L, way = null) {
+  if (!isLandform(what)) return "";
+  const kind = buildData[what].kind;
+  if (kind === "floor") return (L === 0 ? hillGround(x, y, 0) : airOrHillTop(x, y, L) && hillGround(x, y, L - 1)) ? "" : HILLS_ONLY;
+  if (L + 1 > map.STOREY_CAP) return "High enough";
+  if (kind === "wall") {
+    const [a, b] = map.edgeTiles(x, y, way || "n");
+    return hillGround(a[0], a[1], L) && hillGround(b[0], b[1], L) ? "" : HILLS_ONLY;
+  }
+  if (kind === "stair") {
+    const d = { n: [0, -1], w: [-1, 0], s: [0, 1], e: [1, 0] }[way] || [0, -1];
+    const foot = [-1, 0, 1, 2].map((k) => [x + d[0] * k, y + d[1] * k]); // the tile before it and its three steps
+    if (!foot.every(([a, b]) => hillGround(a, b, L))) return HILLS_ONLY;
+    return airOrHillTop(x + d[0] * 3, y + d[1] * 3, L + 1) ? "" : HILLS_ONLY;
+  }
+  return "";
 }
 
 // A build entry that stands a prop on its tiles, not a wall on an edge (the Fireplace, the fire pit, the feeding trough): `kind: "prop"`, its `sprite`.
@@ -898,7 +913,7 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   const over = buildData[what] && buildData[what].over;
   if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
   if (buildData[what] && buildData[what].dev && !rules.freeBuilding) return isCliffBuild(what) ? "Cliffs are not in the game yet" : "Not in the game yet"; // Free building only (a guest's command too)
-  const land = landformProblem(what, tx, ty, L);
+  const land = landformProblem(what, tx, ty, L, edge);
   if (land) return land;
   if (isBattlementBuild(what)) {
     const why = battlements.problem(tx, ty, edge, L); // a wall walk to stand on, the floor on one side of the edge alone (art round 13)
