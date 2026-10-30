@@ -144,6 +144,11 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
   const fades = (a0, a1) => near && inside && Math.min(Math.abs(dxOf(a0)), Math.abs(dxOf(a1))) < span;
   const color = sheet.color || "#7b7670";
   const key = (s.cx + s.cy + out * s.R) * 1000;
+  // The storeys' seam (docs/53 section 6.4, the walls' rule): a ring with the same ring over it draws no cap, and the one over it draws its face a
+  // step nearer, so the seam shows one face two storeys tall.
+  const same = (q) => q.x0 === r.x0 && q.y0 === r.y0 && q.n === r.n;
+  const capped = ghostTint || !map.allRings((r.layer || 0) + 1).some(same);
+  const onRing = !ghostTint && (r.layer || 0) !== 0 && map.allRings((r.layer || 0) - 1).some(same) ? 1 : 0;
   const sideOf = (a0, a1) => (near && !fades(a0, a1) ? 1 : -1); // the face a segment is drawn as: +1 the outer, -1 the inner
   const ground = (a, rad) => [s.cx + Math.cos(a) * rad, s.cy + Math.sin(a) * rad];
   const scr = ([gx, gy]) => {
@@ -166,7 +171,7 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
         const g1 = ground(a1, s.R + so * t);
         const plane = depth.planeThrough(g0[0], g0[1], g1[0], g1[1]);
         if (first) {
-          gl.surface(plane, 0, DEPTH_ROOM.wall);
+          gl.surface(plane, onRing, DEPTH_ROOM.wall);
           first = false;
         } else gl.setPlane(plane);
         const amid = (a0 + a1) / 2;
@@ -215,6 +220,7 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
         }
         // The cap: the band between the faces at the wall's height, on the sky, unbroken over the openings; faded with its face.
         gl.layer(1);
+        if (!capped && !cutHere) continue; // a ring over it: no cap at the seam
         const cap = [ground(a0, s.R - t), ground(a1, s.R - t), ground(a1, s.R + t), ground(a0, s.R + t)].map(scr).map(([x, y]) => [x, y - (cutHere ? cover.stub : h)]); // cut, along the stub
         gl.poly(cap, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [lm[0], lm[1]], flags: flags | gl.FLAG_SKY });
       }
