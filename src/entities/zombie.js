@@ -261,7 +261,7 @@ function wayIn(z, room, want, seen = new Set([room.id]), depth = 0) {
   const doors = breachTargets(room, z.gx, z.gy, 0, depth === 0, z.layer || 0);
   // The opening they saw the player use comes first (Michael, #147: "the dead go where they saw you go"), among those they can
   // walk to, then the nearest.
-  const known = (c) => depth === 0 && !!z.siege && z.siege.openings.some((o) => o.tx === c.tx && o.ty === c.ty && o.edge === c.edge);
+  const known = (c) => depth === 0 && !!z.siege && z.siege.openings.some((o) => o.tx === c.tx && o.ty === c.ty && o.edge === c.edge && (o.layer || 0) === (c.layer || 0)); // on its own floor (the review of #606)
   const direct = doors.find((c) => known(c) && canReach(z, c.stand)) || doors.find((c) => canReach(z, c.stand));
   if (direct) return direct;
   if (depth >= 3) return null;
@@ -520,7 +520,7 @@ function startSearch(z) {
 const hashId = (id) => [...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
 function rememberOpening(s, o, layer = 0) {
-  if (s.openings.some((k) => k.tx === o.tx && k.ty === o.ty && k.edge === o.edge)) return;
+  if (s.openings.some((k) => k.tx === o.tx && k.ty === o.ty && k.edge === o.edge && (k.layer || 0) === layer)) return; // a door over a door is another opening (the review of #606)
   s.openings.push(layer ? { tx: o.tx, ty: o.ty, edge: o.edge, layer } : { tx: o.tx, ty: o.ty, edge: o.edge }); // its layer off the ground (docs/49 section 12)
   if (s.openings.length > 4) s.openings.shift();
 }
@@ -809,15 +809,19 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         const roomId = goalRoom(z);
         const ZL = z.layer || 0;
         const here = tileAt(Math.round(z.gx), Math.round(z.gy), ZL).room;
-        // The goal on another floor with no way up found (docs/53 step 5): the way into its own room first (its doors, by the stairs
-        // that reach its floor), else the room under it on this floor, by its door, as if the goal were there (`want`); already in the
-        // room under it, or none under it, it stands where it sees them, and searches once it does not.
+        // The goal on another floor with no way there found (docs/53 step 5): the way into its own room first (its doors, by the stairs
+        // that reach its floor); else, shut in a room of its own (not the one under the goal), out of it by its door, toward the room under
+        // the goal or to a stair outside; else, outside, the room under a goal above it, by its door, as if the goal were there (`want`).
+        // Already in the room under it, or with none of these, it stands where it sees them, and searches once it does not.
         if (layerOf(goal) !== ZL) {
           let target = roomId > 0 && getRoom(roomId) ? wayIn(z, getRoom(roomId), roomId) : null;
           if (target) target.want = roomId;
-          const under = tileAt(goal[0], goal[1], ZL).room;
-          if (!target && under > 0 && under !== here && getRoom(under)) {
-            target = here > 0 && getRoom(here) ? breachTarget(getRoom(here), z.gx, z.gy, under, false, ZL) : wayIn(z, getRoom(under), under);
+          const under = layerOf(goal) > ZL ? tileAt(goal[0], goal[1], ZL).room : 0; // only a goal above has a room under it (the review of #606)
+          if (!target && here > 0 && here !== under && getRoom(here)) {
+            target = breachTarget(getRoom(here), z.gx, z.gy, under, false, ZL);
+            if (target && under > 0) target.want = under;
+          } else if (!target && here === 0 && under > 0 && getRoom(under)) {
+            target = wayIn(z, getRoom(under), under);
             if (target) target.want = under;
           }
           if (target) {
@@ -898,7 +902,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       const mx = b.edge === "n" ? b.tx : b.tx - 0.5;
       const my = b.edge === "n" ? b.ty - 0.5 : b.ty;
       const dEdge = Math.hypot(mx - z.gx, my - z.gy);
-      if (dEdge > T.breachReach) {
+      if ((z.layer || 0) !== BL || dEdge > T.breachReach) { // under it or over it is not at it: up or down to its own floor first (the review of #606)
         moveToward(z, dt, b.stand, others);
         if (z.pathFailed) {
           // Cannot even reach the opening: give the search a go instead.
@@ -1090,7 +1094,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         show(z, "idle");
         break;
       }
-      const known = cands.filter((c) => s.openings.some((k) => k.tx === c.tx && k.ty === c.ty && k.edge === c.edge));
+      const known = cands.filter((c) => s.openings.some((k) => k.tx === c.tx && k.ty === c.ty && k.edge === c.edge && (k.layer || 0) === (c.layer || 0)));
       const pool = known.length ? known : cands;
       if (clock.getElapsed() >= s.switchAt) {
         s.idx = (s.idx >>> 0) + 1;
@@ -1099,7 +1103,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       const c = pool[(s.idx >>> 0) % pool.length];
       const mx = c.edge === "n" ? c.tx : c.tx - 0.5;
       const my = c.edge === "n" ? c.ty - 0.5 : c.ty;
-      if (Math.hypot(mx - z.gx, my - z.gy) <= T.breachReach) {
+      if ((z.layer || 0) === layerOf(c.stand) && Math.hypot(mx - z.gx, my - z.gy) <= T.breachReach) { // at it on its own floor, never under it (the review of #606)
         z.lastSeen = s.at.slice();
         startBreach(z, { ...c, want: roomHere });
         break;
