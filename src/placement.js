@@ -632,7 +632,8 @@ function gateBlock(player, what, tx, ty, edge) {
 function gateReason(player, what, tx, ty, edge) {
   const reach = Math.min(...gateEdges(what, tx, ty, edge).map(([x, y]) => { const [mx, my] = map.edgeMid(x, y, edge); return Math.hypot(player.gx - mx, player.gy - my); }));
   if (reach > buildReach()) return "Too far";
-  if (gateEdges(what, tx, ty, edge).every(([x, y]) => edgeSight(player, x, y, edge, buildReach() + 0.6))) return edgeSight(player, tx, ty, edge, buildReach() + 0.6); // none of its edges in sight
+  const gateSight = edgeSight(player, tx, ty, edge, buildReach() + 0.6); // its first edge, the one the bar watches (the review of #607)
+  if (gateSight) return gateSight;
   return gateBlock(player, what, tx, ty, edge);
 }
 function gateGhost(player, what) {
@@ -849,7 +850,7 @@ function landformProblem(what, x, y, L) {
   const kind = buildData[what].kind;
   if (kind === "floor" && L === 1) {
     const t = map.peekTile(x, y, 1);
-    return t && t.built && !landformFloor(t.floor) ? "Not on a built floor" : "";
+    return t && t.floor !== map.VOID && !landformFloor(t.floor) ? "Not on a built floor" : ""; // the map's upper floors too (the review of #607)
   }
   const t = map.peekTile(x, y, L);
   const below = kind === "floor" ? map.peekTile(x, y, L - 1) : t;
@@ -1398,7 +1399,7 @@ export function takeApartProblem(player, t) {
     if (L !== t.s.layer && L !== t.s.layer + 1) return "There is nothing there.";
     if (!rules.freeBuilding) return "Stairs come apart only in Free building"; // built only with it (docs/53 step 6)
     const living = stations.allBodies().filter((c) => c && !c.dead && !c.corpse);
-    const why = map.stairTakeUpProblem(t.s, living) || (stations.bodyOnTiles(t.s.tiles, t.s.layer) || stations.bodyOnTiles([t.s.landing], t.s.layer + 1) ? "Someone is on it" : "");
+    const why = map.stairTakeUpProblem(t.s, living) || (stations.bodyOnTiles(t.s.tiles, t.s.layer, true) || stations.bodyOnTiles([t.s.landing], t.s.layer + 1, true) ? "Someone is on it" : ""); // a corpse too: nothing is left lying on the void (the review of #607)
     if (why) return why;
     const tool = partsOf(t).tool;
     return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);
@@ -1541,7 +1542,7 @@ function setdownGhost(player) {
   const g = cursorGrid(player); // on the player's own floor (the review of #549)
   const tx = Math.round(g.gx);
   const ty = Math.round(g.gy);
-  const reason = setdown.reachFor(player, tx, ty) || setdown.standProblem(c.stand, tx, ty, layerOf(player)); // on the player's own floor (docs/53 step 6)
+  const reason = setdown.reachFor(player, tx, ty) || setdown.standProblem(c.stand, tx, ty, layerOf(player)) || (getDef(c.sprite).snare && layerOf(player) ? "Rabbits keep to the ground" : ""); // on the player's own floor (docs/53 step 6), a snare on the ground alone
   const label = c.decoration ? `Click to set the ${c.name} down as decoration · Esc cancel` : `Click to set the ${c.campfire ? "campfire" : c.name} down · Esc cancel`;
   return { kind: "prop", prop: { sprite: c.sprite }, tx, ty, layer: layerOf(player), footprint: [1, 1], ok: reason === "", reason, setdown: { uid: c.uid }, label };
 }
