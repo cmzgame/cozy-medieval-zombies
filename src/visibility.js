@@ -284,16 +284,18 @@ export function computeSeen(viewer, tiles, tilesFor = null) {
       if (tileSeen(at, x, y, L, false)) keys.add(tileKey(x, y));
       else hidden.push(x, y);
     }
-    // The four-corner rule, cheaply (the review of #601: four more rays for every hidden tile cost a wide view from a walk 30 ms): a tile
-    // whose middle is hidden is seen when a neighbour's middle is seen and nothing on the edge between them on its layer stops sight, so
-    // the slivers at a wall's end fill in and nothing is seen through a wall.
+    // The four-corner rule, where it can matter (the review of #601: four more rays for every hidden tile cost a wide view from a walk 30
+    // ms): only a hidden tile beside a seen one is asked at its corners, since a corner seen past a wall's end is always at the edge of
+    // what the middles see.
     const add = [];
     for (let i = 0; i < hidden.length; i += 2) {
       const x = hidden[i];
       const y = hidden[i + 1];
-      for (const [dx, dy] of NEIGHBOURS) {
-        if (keys.has(tileKey(x + dx, y + dy)) && !blocksSight(wallBetween(x, y, x + dx, y + dy, L))) { add.push(tileKey(x, y)); break; }
-      }
+      if (!NEIGHBOURS.some(([dx, dy]) => keys.has(tileKey(x + dx, y + dy)))) continue;
+      const rise = riseAtTile(x, y, L);
+      const z = STOREY * L + rise + CHEST;
+      const eye = eyeOf(at);
+      if (CORNERS.some(([dx, dy]) => trace(eye, { x: x + dx, y: y + dy, z, layer: L, rise, lean: false }))) add.push(tileKey(x, y));
     }
     for (const k of add) keys.add(k);
     out.set(L, keys);

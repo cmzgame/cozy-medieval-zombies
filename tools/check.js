@@ -8092,6 +8092,7 @@ check("height, step 1: sight across storeys by one walk: a walk's edge seen and 
     assert(seen.sees(x + 4, y, 1) && seen.has(vis.tileKey(x + 4, y)), "the walk's own floor is not seen from it, by `sees` and by `has`");
     const fromGround = vis.computeSeen(far, tiles);
     assert(fromGround.sees(x + 2, y, 1), "from the ground far out, the walk's back row is not seen (a friend there would not be drawn)");
+    assert(!vis.computeSeen(body(x + 2, y + 3, 0), tiles).sees(x + 2, y, 1), "from close under the wall, the walk's back row is seen (a friend there would be drawn through the wall)");
     // One storey is the flat walk exactly: the dead on the ground, and two bodies on layer 1, against lineOfSight.
     let n = 0;
     for (let k = 0; k < 400; k++) {
