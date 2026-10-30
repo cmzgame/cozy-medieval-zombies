@@ -15,8 +15,6 @@
   {"file":"src/bucket.js","call":"lineOfSight(player.gx, player.gy, x, y)","n":1,"step":"ground"},
   {"file":"src/campfire.js","call":"map.peekTile(tx, ty)","n":1,"step":6},
   {"file":"src/campfire.js","call":"map.isWalkableTile(tx, ty)","n":1,"step":6},
-  {"file":"src/chart.js","call":"map.peekTile(x, y)","n":2,"step":1},
-  {"file":"src/chart.js","call":"tileVisible(gx, gy, x, y)","n":1,"step":1},
   {"file":"src/chop.js","call":"map.dropItem(tx, ty, { id: \"log\", count: 1 })","n":1,"step":2},
   {"file":"src/entities/animal.js","call":"lineOfSight(a.gx, a.gy, t.gx, t.gy)","n":2,"step":7},
   {"file":"src/entities/animal.js","call":"isWalkableTile(t[0], t[1])","n":1,"step":7},
@@ -38,7 +36,6 @@
   {"file":"src/entities/zombie.js","call":"tileAt(c.stand[0], c.stand[1])","n":1,"step":5},
   {"file":"src/entities/zombie.js","call":"wallBetween(px, py, nx, ny)","n":1,"step":5},
   {"file":"src/entities/zombie.js","call":"tileAt(f.tx, f.ty)","n":4,"step":5},
-  {"file":"src/entities/zombie.js","call":"light.lightAt(gx, gy)","n":1,"step":1},
   {"file":"src/entities/zombie.js","call":"openingsNear(p.gx, p.gy, 1.6)","n":1,"step":5},
   {"file":"src/entities/zombie.js","call":"fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy)","n":2,"step":5},
   {"file":"src/entities/zombie.js","call":"tileAt(Math.round(z.gx), Math.round(z.gy))","n":2,"step":5},
@@ -104,7 +101,6 @@
   {"file":"src/setdown.js","call":"map.peekTile(tx + dx, ty + dy)","n":1,"step":6},
   {"file":"src/setdown.js","call":"fitProblem(rule, sprite, tx, ty, facing)","n":2,"step":6},
   {"file":"src/setdown.js","call":"map.ringFace(tx, ty, edge, 1)","n":1,"step":6},
-  {"file":"src/sight.js","call":"light.lightAt(z.gx, z.gy)","n":1,"step":1},
   {"file":"src/sound-cues.js","call":"map.tileAt(Math.round(c.gx), Math.round(c.gy))","n":1,"step":7},
   {"file":"src/sound-cues.js","call":"map.tileAt(x, y)","n":1,"step":7},
   {"file":"src/stations.js","call":"map.peekTile(px + dx, py + dy)","n":1,"step":6},
@@ -123,7 +119,7 @@
   {"file":"src/trees.js","call":"map.peekTile(x + 1, y)","n":1,"step":"ground"},
   {"file":"src/trees.js","call":"map.dropItem(tx, ty, items.makeEntry(T.sapling.item, 1, tree ? { tree } : {}))","n":1,"step":2},
   {"file":"src/trees.js","call":"map.touch(x, y)","n":1,"step":"ground"},
-  {"file":"src/visibility.js","call":"wallBetween(ix, iy, nx, ny)","n":1,"step":1},
+  {"file":"src/visibility.js","call":"wallBetween(ix, iy, nx, ny)","n":1,"step":5},
   {"file":"src/water.js","call":"map.peekTile(x, y)","n":1,"step":"ground"},
   {"file":"src/water.js","call":"map.peekTile(px + dx, py + dy)","n":1,"step":"ground"}
  ]

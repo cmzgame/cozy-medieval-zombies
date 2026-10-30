@@ -166,6 +166,7 @@ export const sight = {
   drawCutoff: 0.02, // below this a faded dead one is not drawn at all (render/entities.js; #158)
   groanGap: 20, // sim seconds between two lines "Something groans in the dark." in the log (ui/speech.js; #158, #177: 3 gave a line every few seconds with dozens of the dead about)
   groanRadius: 6, // tiles: a dead one in the dark farther than this from the listener is not heard at all (a builder's default, #177)
+  leanReach: 0.8, // tiles from a body to the edge it looks out over (an open window, a battlement, a floor's drop) within which it looks, and is seen, from the edge itself (docs/53 section 6.1, a default)
 };
 
 // How movement feels on screen (#161; docs/02, 2026-10-18): the camera's follow, the draw between steps. Feel numbers, Michael's to tune. There is no input

@@ -96,7 +96,7 @@ const seen = (x, y) => surfaceOfCell(cellAt(x, y)) !== 0;
 // Read one cell from the world as the chart should hold it now: the surface only if the tile has been seen (it is never written for one nobody has),
 // and each of the two walls the tile owns if a tile on either side of it has been seen. A tile in a chunk not grown reads as nothing.
 function refresh(x, y) {
-  const t = map.peekTile(x, y);
+  const t = map.peekTile(x, y, 0); // the chart is the ground's
   if (!t) return false;
   const old = cellAt(x, y);
   const mine = seen(x, y);
@@ -110,7 +110,7 @@ function refresh(x, y) {
 // The one function that writes a seen tile: its surface, the two walls it owns, and the two faces it shares with the tiles south and east of it (their `n` and `w`, which
 // those tiles own). Returns whether anything changed (a tile in a chunk not grown reads as nothing and charts nothing).
 export function chartTile(x, y) {
-  const t = map.peekTile(x, y);
+  const t = map.peekTile(x, y, 0); // the chart is the ground's
   if (!t) return false;
   const surface = surfaceOf(t);
   if (!surface) return false;
@@ -142,7 +142,7 @@ export function reveal(gx, gy, radius = W.chartRadius) {
     for (let x = px - r; x <= px + r; x++) {
       if (Math.hypot(x - gx, y - gy) > radius) continue;
       if (surfaceOfCell(cellAt(x, y))) continue;
-      if (!tileVisible(gx, gy, x, y)) continue;
+      if (!tileVisible(gx, gy, x, y, 0)) continue; // from the ground: only a player on layer 0 reveals (chart.step)
       if (chartTile(x, y)) n++;
     }
   }

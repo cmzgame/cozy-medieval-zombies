@@ -216,7 +216,8 @@ const campfireMod = await import("../src/campfire.js");
 const verbsMod = await import("../src/verbs.js");
 const netsmoothTool = await import("./netsmooth.js");
 const archeryMod = await import("../src/archery.js");
-const { lineOfSight } = await import("../src/visibility.js");
+const visibilityMod = await import("../src/visibility.js");
+const { lineOfSight } = visibilityMod;
 const { getDef } = await import("../src/assets.js");
 const stationsMod = await import("../src/stations.js");
 const clientMod = await import("../src/client.js"); // the client's own side, which a world made headless still feeds by its picks (#102)
@@ -8014,6 +8015,136 @@ check("the battlements: the side is read from the floors of the wall's own layer
     me.layer = 0;
     for (const [tx, ty, e] of made) { try { mapMod.destroyWall(tx, ty, e, false, 1); } catch { /* gone */ } }
     for (const [a, b] of floors) { try { mapMod.takeUpFloor(a, b, 1); } catch { /* gone */ } }
+  }
+});
+
+// Ground with no wall and no storey over a 29 by 25 patch round (x, y) (from x - 7, y - 7), searched round the spawn of a fresh valley
+// (docs/53 steps 1 and 2: each step builds its own pieces; props never stop sight, none being opaque).
+const clearGround = () => {
+  openGrass(1, 1);
+  const me = gameMod.state.player;
+  mapMod.ensureAround(me.gx, me.gy, 4);
+  const clear = (x0, y0) => {
+    for (let j = -7; j <= 17; j++) for (let i = -7; i <= 21; i++) {
+      const t = mapMod.peekTile(x0 + i, y0 + j, 0);
+      if (!t || t.n || t.w || mapMod.peekTile(x0 + i, y0 + j, 1)) return false;
+    }
+    return true;
+  };
+  for (let r = 0; r < 60; r += 3) for (let d = -r; d <= r; d += 3) for (const [i, j] of [[d, -r], [d, r], [-r, d], [r, d]]) if (clear(Math.round(me.gx) + i, Math.round(me.gy) + j)) return [Math.round(me.gx) + i, Math.round(me.gy) + j];
+  return null;
+};
+
+// docs/53 step 1: one height, one walk, for sight. Built on pieces of its own on the valley's open grass (step 0: no scripted castle).
+check("height, step 1: sight across storeys by one walk: a walk's edge seen and seeing down (leaning), its back row not from close under the wall, the dead never through a floor, an upstairs window shut and open; from the walk a ground room stays hidden; one storey is the flat walk exactly", () => {
+  const vis = visibilityMod;
+  const at = clearGround();
+  assert(at, "no clear ground");
+  const [x, y] = at;
+  const floors = [];
+  const walls = [];
+  const floor = (a, b, L = 1) => { const t = mapMod.growTile(a, b, L); t.floor = "floor_stone"; mapMod.touch(a, b, L); floors.push([a, b, L]); };
+  const wall = (tx, ty, edge, L, kind = "wall", sprite = "wall_stone") => { assert(mapMod.buildWall(tx, ty, edge, kind, sprite, null, L), `a ${sprite} at ${tx},${ty} ${edge} on ${L}`); walls.push([tx, ty, edge, L]); return mapMod.peekTile(tx, ty, L)[edge]; };
+  const body = (gx, gy, layer) => ({ gx, gy, layer, rise: 0 });
+  const sees = zombieMod.sees;
+  try {
+    // A wall walk: two rows of floor on layer 1 (y, y + 1), a stone wall under its south edge and a battlement on it; the ground south of it open.
+    for (let i = 0; i < 6; i++) { floor(x + i, y); floor(x + i, y + 1); wall(x + i, y + 2, "n", 0); wall(x + i, y + 2, "n", 1, "wall", "wall_battlement"); }
+    const edge = body(x + 2, y + 1.3, 1); // 0.2 from the battlement: leaning out
+    const back = body(x + 2, y, 1); // 1.5 from it
+    const near = body(x + 2, y + 3.5, 0);
+    const far = body(x + 2, y + 8.5, 0);
+    assert(sees(near, edge) && sees(edge, near), "the dead under the walk and the archer at its battlement see each other");
+    assert(!sees(near, back) && !sees(back, near), "the dead close under the wall see the walk's back row through its wall");
+    assert(sees(far, back) && sees(back, far), "the dead far out and the walk's back row do not see each other over the battlement");
+    assert(vis.tileSeen(edge, x + 2, y + 2, 0) && !vis.tileSeen(back, x + 2, y + 2, 0), "the wall's foot: seen leaning out, not from the back row");
+    assert(!vis.tileSeen(edge, x + 2, y + 1, 0), "the ground under the walk is seen through its floor");
+    // A slab: three by three of floor on layer 1, nothing round it.
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) floor(x + 8 + i, y + 8 + j);
+    const under = body(x + 9, y + 9, 0);
+    const on = body(x + 9, y + 9, 1);
+    assert(!sees(on, under) && !sees(under, on), "a body on a slab and one under it see each other through the floor");
+    assert(sees(body(x + 10.4, y + 9, 1), body(x + 14, y + 9, 0)), "a body at the slab's edge does not see down past it");
+    // An upstairs room: three by three on layer 1, stone walls round it on layer 1, a window in its south wall.
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) floor(x + i, y + 8 + j);
+    let win = null;
+    for (let i = 0; i < 3; i++) { wall(x + i, y + 8, "n", 1); if (i === 1) win = wall(x + i, y + 11, "n", 1, "window"); else wall(x + i, y + 11, "n", 1); }
+    for (let j = 0; j < 3; j++) { wall(x, y + 8 + j, "w", 1); wall(x + 3, y + 8 + j, "w", 1); }
+    const sill = body(x + 1, y + 10.2, 1);
+    const deep = body(x + 1, y + 8.6, 1);
+    const below = body(x + 1, y + 13, 0);
+    win.shutter = "closed"; win.open = false;
+    assert(!sees(below, sill) && !sees(sill, below), "a shut shutter upstairs does not hide");
+    win.shutter = "open";
+    assert(sees(below, sill) && sees(sill, below), "an open window upstairs: the body at it and the dead below do not see each other");
+    assert(!sees(below, deep), "the dead see a body deep in an upstairs room through its floor");
+    // From the walk's edge: a ground room's inside stays hidden, the open ground beyond is seen; the old flat set from layer 1 saw the room.
+    for (let j = 0; j < 2; j++) { wall(x + 12, y + 2 + j, "w", 0); wall(x + 14, y + 2 + j, "w", 0); }
+    for (let i = 0; i < 2; i++) { wall(x + 12 + i, y + 2, "n", 0); wall(x + 12 + i, y + 4, "n", 0); }
+    const tiles = [];
+    for (let j = -6; j <= 16; j++) for (let i = -6; i <= 20; i++) tiles.push([x + i, y + j]);
+    const t0 = performance.now();
+    const seen = vis.computeSeen(edge, tiles);
+    const ms = performance.now() - t0;
+    assert(!seen.sees(x + 12, y + 2, 0) && !seen.sees(x + 13, y + 3, 0), "from the walk, the inside of a closed ground room is seen");
+    assert(vis.computeVisible(Math.round(edge.gx), Math.round(edge.gy), [[x + 12, y + 2]], 1).size === 1, "the old flat walk on layer 1 does not see into the room, so the row above proves nothing");
+    assert(seen.sees(x + 2, y + 6, 0) && seen.sees(x + 8, y + 5, 0), "from the walk, the open ground beyond the battlement is not seen");
+    assert(seen.sees(x + 4, y, 1) && seen.has(vis.tileKey(x + 4, y)), "the walk's own floor is not seen from it, by `sees` and by `has`");
+    const fromGround = vis.computeSeen(far, tiles);
+    assert(fromGround.sees(x + 2, y, 1), "from the ground far out, the walk's back row is not seen (a friend there would not be drawn)");
+    assert(!vis.computeSeen(body(x + 2, y + 3, 0), tiles).sees(x + 2, y, 1), "from close under the wall, the walk's back row is seen (a friend there would be drawn through the wall)");
+    // One storey is the flat walk exactly: the dead on the ground, and two bodies on layer 1, against lineOfSight.
+    let n = 0;
+    for (let k = 0; k < 400; k++) {
+      const a = body(x - 4 + (k * 7) % 25, y - 4 + (k * 11) % 21, k % 3 ? 0 : 1);
+      const b = body(x - 4 + (k * 13) % 25 + 0.3, y - 4 + (k * 5) % 21 - 0.2, a.layer);
+      if (sees(a, b) !== lineOfSight(a.gx, a.gy, b.gx, b.gy, a.layer)) n++;
+    }
+    assert(n === 0, `${n} pairs on one storey differ from the flat walk`);
+    return `a ${tiles.length}-tile view from the walk cast in ${ms.toFixed(1)} ms, ${seen.size} seen over ${seen.layers.size} layers`;
+  } finally {
+    for (const [tx, ty, e, L] of walls.reverse()) { try { mapMod.destroyWall(tx, ty, e, false, L); } catch { /* gone */ } }
+    for (const [a, b, L] of floors) { try { mapMod.takeUpFloor(a, b, L); } catch { /* gone */ } }
+  }
+});
+
+// The review of #601: a body on a stair is looked at where it stands, and a viewer on one looks from where it stands.
+check("height, step 1: on a stair: a climber near its top sees the floor above and the dead on it, and a dead one climbing toward a player past the landing is drawn on his screen wherever the dead one sees him", () => {
+  const vis = visibilityMod;
+  const at = clearGround();
+  assert(at, "no clear ground");
+  const [x, y] = at;
+  const floors = [];
+  const floor = (a, b) => { const t = mapMod.growTile(a, b, 1); t.floor = "floor_stone"; mapMod.touch(a, b, 1); floors.push([a, b]); };
+  let st = null;
+  for (let j = 0; j < 10 && !st; j++) for (let i = 4; i < 14 && !st; i++) if (!mapMod.stairBuildProblem(x + i, y + j, "w", 0, "wood")) st = mapMod.buildStair(x + i, y + j, "w", "wood", 0, { free: true });
+  assert(st, "no stair could be built");
+  try {
+    const [lx, ly] = st.landing;
+    for (let j = -2; j <= 2; j++) for (let i = 1; i <= 5; i++) floor(lx - i, ly + j);
+    const tiles = [];
+    for (let j = -10; j <= 10; j++) for (let i = -12; i <= 12; i++) tiles.push([lx + i, ly + j]);
+    const top = st.tiles[st.tiles.length - 1];
+    const climber = { gx: top[0], gy: top[1], layer: 0, rise: 0 };
+    mapMod.stairStep(climber);
+    const up = { gx: lx - 3, gy: ly, layer: 1, rise: 0 };
+    assert(climber.rise > 48, `the climber's rise ${climber.rise}`);
+    assert(zombieMod.sees(climber, up) && vis.computeSeen(climber, tiles).sees(up.gx, up.gy, 1), "the climber near the top does not see the one on the floor above");
+    let bad = [];
+    for (const back of [1, 2, 3]) {
+      const viewer = { gx: lx - back, gy: ly, layer: 1, rise: 0 };
+      const seen = vis.computeSeen(viewer, tiles);
+      for (const [tx, ty] of st.tiles) {
+        const z = { gx: tx, gy: ty, layer: 0, rise: 0 };
+        mapMod.stairStep(z);
+        if (zombieMod.sees(z, viewer) && !seen.sees(z.gx, z.gy, z.layer)) bad.push(`${back} back, rise ${z.rise}`);
+      }
+    }
+    assert(!bad.length, `a dead one on the stair sees the player past the landing but is not drawn: ${bad.join("; ")}`);
+    return `a climber at rise ${climber.rise} sees the floor above; the dead on every step drawn for a player 1 to 3 tiles past the landing`;
+  } finally {
+    for (const [a, b] of floors) { const t = mapMod.peekTile(a, b, 1); if (t) { t.floor = "void"; mapMod.touch(a, b, 1); } }
+    try { mapMod.removeStair ? mapMod.removeStair(st) : null; } catch { /* gone */ }
   }
 });
 

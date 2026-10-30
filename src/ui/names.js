@@ -8,6 +8,7 @@ import { liftOf } from "../render/storeys.js"; // a body drawn at its storey and
 import * as view from "../view.js";
 import * as settings from "../settings.js";
 import { getSheet } from "../assets.js";
+import { seesIn } from "../visibility.js"; // a body on its own storey (docs/53 section 6.1)
 
 const HEAD_TOP = 78; // world px above the feet: over the bubble's tail (speech.js HEAD_TOP 68)
 let root = null;
@@ -68,8 +69,7 @@ export function updateNames(players, visible, me) {
   if (on) {
     for (const p of players) {
       if (p === me || p.dead) continue;
-      const key = (Math.round(p.gx) + 32768) * 65536 + (Math.round(p.gy) + 32768);
-      if (!visible.has(key)) continue;
+      if (!seesIn(visible, p.gx, p.gy, p.layer || 0)) continue; // on their own storey (docs/53 section 6.1)
       const el = tagFor(p.id);
       const name = p.name || p.id;
       if (el.textContent !== name) el.textContent = name;

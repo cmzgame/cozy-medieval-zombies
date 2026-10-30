@@ -6,9 +6,9 @@
 import * as iso from "../iso.js";
 import { hiderFor, liftOf, shownTo } from "../render/storeys.js"; // a body drawn at its storey and its rise (docs/49 section 6)
 import * as view from "../view.js";
-import { tileKey } from "../visibility.js";
 import * as sight from "../sight.js";
 import { client } from "../client.js"; // who a tall prop hides, from the renderer (#102)
+import { seesIn } from "../visibility.js"; // a body on its own storey (docs/53 section 6.1)
 
 // World px above the feet anchor (iso.toScreen's tile centre, where the
 // figure is drawn from): figure.js's sprite is FH 72 px tall from the feet,
@@ -59,7 +59,7 @@ export function updateZombieBars(zombies, visible, player) {
     if (z.dead || z.hp >= z.maxHp) continue;
     if (player && !shownTo(player, z, hide)) continue; // on a storey hidden from me, or under the ground (docs/49 section 6)
     if (client.behind.has(z.id) && Math.hypot(z.gx - player.gx, z.gy - player.gy) > NEAR) continue;
-    if (!visible.has(tileKey(Math.round(z.gx), Math.round(z.gy)))) continue;
+    if (!seesIn(visible, z.gx, z.gy, z.layer || 0)) continue; // on its own storey (docs/53 section 6.1)
     if (!sight.seen(player, z)) continue; // a dead one lost in the dark has no bar floating where it stands (#88)
     seen.add(z.id);
     const { el, fill } = barFor(z.id);

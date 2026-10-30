@@ -14,8 +14,8 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles, sideOf, addr, layerOf, stairStep, stairsOn, stairAlong } from "../map.js";
-import { lineOfSight, lineOfReach, openingOnLine } from "../visibility.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles, sideOf, addr, layerOf, stairStep, STOREY } from "../map.js";
+import { lineOfReach, openingOnLine, trace, eyeOf, chestOf, EYE } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
 import { getSheet } from "../assets.js";
@@ -373,36 +373,25 @@ export function mayBite(z, tgt, others) {
 }
 
 
-// How far the dead see something standing at (gx, gy): `base` scaled by the light there (the cozy parent's rule), unlit at night
-// `sightDarkFraction` of it, in a pool or by day the whole of it. A player, a villager, and a pull's caller (docs/48) by the one rule.
-export function sightRange(base, gx, gy) {
-  return base * (T.sightDarkFraction + (1 - T.sightDarkFraction) * light.lightAt(gx, gy));
+// How far the dead see something standing at (gx, gy) on `layer`: `base` scaled by the light there (the cozy parent's rule), unlit at night
+// `sightDarkFraction` of it, in a pool or by day the whole of it. A player, a villager, and a pull's caller (docs/48) by the one rule, each
+// by the light on its own storey (docs/53 section 6.1).
+export function sightRange(base, gx, gy, layer) {
+  return base * (T.sightDarkFraction + (1 - T.sightDarkFraction) * light.lightAt(gx, gy, layer));
 }
 
-// Symmetric with the player's own sight: if you could see it, it can see you.
+// Whether one body sees another: the walk with heights from its eye to the other's chest (docs/53 section 6.1). On one storey, neither on
+// a stair, it is the flat walk it always was; across storeys the walls by their heights and the floors between, from an opening a body
+// leans out of. Symmetric with the player's own sight: if you could see it, it can see you.
+export function sees(a, b) {
+  return trace(eyeOf(a), chestOf(b));
+}
+
 function canSee(z, player) {
   if (player.dead || !rules.zombieAggro) return false;
-  if (!layersMeet(z, player)) return false;
-  const range = sightRange(T.sight, player.gx, player.gy);
+  const range = sightRange(T.sight, player.gx, player.gy, player.layer || 0);
   if (distTo(z, player) > range) return false;
-  return lineOfSight(z.gx, z.gy, player.gx, player.gy, z.layer || 0);
-}
-
-// Whether two bodies can see each other across storeys: on one layer always (the flat walk decides); a storey apart only by a stair
-// between them, both within a few tiles of it (on it, at its foot, on its landing), so one that saw you go up follows you up, and the
-// floor hides everything else (the ray with heights, seeing through a window up or down, is docs/49 step 4).
-function layersMeet(a, b) {
-  const la = a.layer || 0;
-  const lb = b.layer || 0;
-  if (la === lb) return true;
-  if (Math.abs(la - lb) !== 1) return false;
-  const low = Math.min(la, lb);
-  for (const { s, well } of stairsOn(low)) {
-    if (well) continue;
-    const near = (c) => { const { t, off } = stairAlong(s, c.gx, c.gy); return t > -3 && t < 6 && Math.abs(off) < 2.5; };
-    if (near(a) && near(b)) return true;
-  }
-  return false;
+  return sees(z, player);
 }
 
 // The nearest living player, seen or not (the chase's fallback, the spawned-aggro target).
@@ -437,8 +426,8 @@ function nearestSeenPlayer(z, players) {
 // A villager in sight, the same rule as the player's: the range scales with the
 // light on them, and a clear line.
 function canSeeCharacter(z, c, d) {
-  const range = sightRange(T.sight, c.gx, c.gy);
-  return d <= range && (c.layer || 0) === (z.layer || 0) && lineOfSight(z.gx, z.gy, c.gx, c.gy, z.layer || 0);
+  const range = sightRange(T.sight, c.gx, c.gy, c.layer || 0);
+  return d <= range && sees(z, c);
 }
 
 // The nearest living mortal villager in sight (docs/19). Only asked when the player is not in sight: the dead always prefer the player.
@@ -474,11 +463,11 @@ function nearestFlame(z, carriedOnly = false) {
   let bestD = Infinity;
   for (const s of light.allSources()) {
     if (carriedOnly && !s.carried) continue;
-    if ((s.layer || 0) !== (z.layer || 0)) continue; // a flame on another layer is behind a floor: seeing across storeys is docs/49 step 4's ray
     const d = Math.hypot(s.gx - z.gx, s.gy - z.gy);
     // A torch on the belt is a weaker flame (docs/02): seen from `beltLight` (0.6) as far.
     if (d > range * (s.strength ?? 1) || d >= bestD) continue;
-    if (!lineOfSight(z.gx, z.gy, s.gx, s.gy, z.layer || 0)) continue;
+    const L = s.layer || 0; // a flame on another storey by the one walk (docs/53 section 6.1), looked at at a head's height on its own floor
+    if (!trace(eyeOf(z), { x: s.gx, y: s.gy, z: STOREY * L + EYE, layer: L, rise: 0, lean: false })) continue;
     best = s;
     bestD = d;
   }
@@ -604,11 +593,11 @@ function startSiege(z) {
 // rolled.
 function callOthers(z, others) {
   if (!(T.pullRadius > 0) || !others) return;
-  const r = sightRange(T.pullRadius, z.gx, z.gy);
+  const r = sightRange(T.pullRadius, z.gx, z.gy, z.layer || 0);
   let drawn = 0;
   for (const o of others) {
     if (o === z || o.kind !== "zombie" || o.dead || o.huntsPlayer || (isDown(o) && !o.gettingUp)) continue;
-    if (Math.hypot(o.gx - z.gx, o.gy - z.gy) > r || (o.layer || 0) !== (z.layer || 0) || !lineOfSight(o.gx, o.gy, z.gx, z.gy, z.layer || 0)) continue;
+    if (Math.hypot(o.gx - z.gx, o.gy - z.gy) > r || !sees(o, z)) continue; // across storeys too, by the one walk (docs/53 section 6.1)
     o.huntsPlayer = true;
     o.aggro = true;
     if (!o.breach) o.lastSeen = z.lastSeen ? z.lastSeen.slice() : addr(z.gx, z.gy, z.layer || 0); // a breacher keeps its door (docs/48)

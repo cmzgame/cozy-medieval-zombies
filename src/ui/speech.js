@@ -11,11 +11,11 @@ import * as iso from "../iso.js";
 import { hiderFor, liftOf, shownTo } from "../render/storeys.js"; // a body drawn at its storey and its rise (docs/49 section 6)
 import * as log from "./log.js";
 import * as view from "../view.js";
-import { tileKey } from "../visibility.js";
 import * as sight from "../sight.js";
 import * as loop from "../loop.js";
 import { sight as sightTuning } from "../tuning.js";
 import { client } from "../client.js"; // who a tall prop hides, from the renderer (#102)
+import { seesIn } from "../visibility.js"; // a body on its own storey (docs/53 section 6.1)
 
 // World px above the feet where the tail's tip lands: just over the top of the
 // figure's frame (FH 72, feet 66 from its top), so at any zoom the tail meets
@@ -72,7 +72,7 @@ export function updateSpeech(characters, visible, player, dt) {
     if (ch.dead) continue; // cleared by the world's step on the authority (game.js ageSpeech, #154); a guest's replica gets the end in the record
     const shown =
       ch === player ||
-      (visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !(client.behind.has(ch.id) && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) > NEAR) &&
+      (seesIn(visible, ch.gx, ch.gy, ch.layer || 0) && !(client.behind.has(ch.id) && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) > NEAR) &&
         !(ch.kind === "zombie" && !sight.seen(player, ch))); // a groan from the dark shows no bubble where it stands (#88)
     if (!shown) {
       // A groan from one lost in the dark, in line of sight but unseen: no bubble where it stands, and a line in the log with no
@@ -80,7 +80,7 @@ export function updateSpeech(characters, visible, player, dt) {
       // Only for one the dark hides (not seen by the viewer's own sight): a dead one behind a tree's canopy in daylight is hidden by the
       // canopy, which is not the dark, and says nothing (#158).
       // Only within `groanRadius` of the listener, and no more than one line in `groanGap` seconds (#177: dozens of the dead gave a line every few seconds).
-      if (ch.kind === "zombie" && visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !sight.seen(player, ch) && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) <= sightTuning.groanRadius) {
+      if (ch.kind === "zombie" && seesIn(visible, ch.gx, ch.gy, ch.layer || 0) && !sight.seen(player, ch) && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) <= sightTuning.groanRadius) {
         withLine.add(ch.id);
         const prev = lastLeft.get(ch.id);
         lastLeft.set(ch.id, line.left);
