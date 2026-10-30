@@ -287,15 +287,18 @@ if (apple.sprite !== "tree_apple" || apple.regrowAt !== undefined) fail(`the app
   const grown = map.allProps().filter((q) => q.sprite === "ore_rock");
   if (grown.length !== before + 1 || resources.owed("ore").length || grown.some((q) => q.tile[0] === oreRock.tile[0] && q.tile[1] === oreRock.tile[1])) fail(`no new ore rock rose elsewhere (${before} before, ${grown.length} after, ${resources.owed("ore").length} owed)`);
   me.hands.main = null;
-  // A hive's honey taken (docs/43 section 6, #410): the day it has more rides on the prop.
+  // A hive's honey taken (docs/43 section 6, #410, Honey goes into a clay jar, 2026-10-26, #500): an empty clay jar carried, filled; the day
+  // it has more rides on the prop.
   await import("../src/hives.js");
   const hive = map.allProps().find((q) => q.sprite === "beehive" && Math.hypot(q.tile[0] - me.gx, q.tile[1] - me.gy) < 40);
   if (!hive) fail("no beehive near the player");
   me.gx = hive.tile[0];
   me.gy = hive.tile[1] + 1;
+  me.hands.off = items.makeEntry("clay_jar", 1); // carried in a free hand: the bag is full of the earlier steps' things by now
   const h1 = verbs.run("honey", game.state, me, { prop: hive.id });
   if (!h1.ok) fail(`honey: ${h1.reason}`);
   did("a hive's honey taken");
+  me.hands.off = null;
   // Gathering (docs/46 step 2, #448): an herb gathered by hand, a clay bank dug with a shovel carried, a salt rock mined: each node gone (its
   // chunk marked), a debt on its area's record, and the replacements growing elsewhere in their areas on their days.
   await import("../src/gather.js");
