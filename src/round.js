@@ -206,6 +206,14 @@ export function isPocketVertex(x0, y0, n, vx, vy) {
   return base(n).pocketV.has(`${vx - x0},${vy - y0}`);
 }
 
+// The corner pockets' vertices off the outline, as [vx, vy] (the square's corners among them): where no straight wall may end.
+const pocketVertexLists = new Map(); // n -> [[vx, vy]] in the square's frame
+export function pocketVerticesOf(x0, y0, n) {
+  let v = pocketVertexLists.get(n);
+  if (!v) pocketVertexLists.set(n, (v = [...base(n).pocketV].map((k) => k.split(",").map(Number))));
+  return v.map(([x, y]) => [x + x0, y + y0]);
+}
+
 // The fills at an outline vertex (docs/50 section 3, the filler): each outline edge leaving the vertex that the curve crosses, as
 // { tx, ty, edge, d, dir }: the edge, how far from the vertex the curve crosses it (tiles, half a tile at most), and the way along it from the
 // vertex ([1, 0], [-1, 0], [0, 1], or [0, -1]). Empty at an inner corner of the steps and at a door point's ends.

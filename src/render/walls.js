@@ -472,7 +472,8 @@ function vertexAt(tx, ty, playerRoom) {
     const j = map.ringJoin(tx, ty, map.drawLayerNow());
     if (j) {
       const fills = j.fills.filter((f) => fillerSheet(f.by.wall));
-      if (!j.fills.length && [nE, nW, wS, wN].filter(Boolean).length === 1) return null;
+      const lone = [nE, nW, wS, wN].filter(Boolean);
+      if (!j.fills.length && lone.length === 1 && fillerSheet(lone[0])) return null; // a fence or bars there keep their own end post (the review of #589)
       for (const f of fills) {
         const slot = f.edge === "n" ? (f.top ? "nE" : "nW") : f.top ? "wS" : "wN";
         fade[slot] = [f.by.tx, f.by.ty, f.by.edge];
@@ -535,18 +536,22 @@ function fillerDrawables(tiles, visible, playerRoom, out) {
     if (t[1] < y0) y0 = t[1];
     if (t[1] > y1) y1 = t[1];
   }
-  let drawn = null;
+  let drawn = null; // a storey's drawn tiles (its hiding rule thins them), made only there and only once a join is in view, as rings.js does
   for (const r of rings) {
     if (r.x0 > x1 + 1 || r.y0 > y1 + 1 || r.x0 + r.n < x0 - 1 || r.y0 + r.n < y0 - 1) continue;
     for (const [vx, vy] of round.fillVerticesOf(r.x0, r.y0, r.n)) {
       const j = map.ringJoin(vx, vy, L);
       if (!j || j.ring !== r) continue;
       for (const f of j.fills) {
-        if (!drawn) {
-          drawn = new Set();
-          for (const [tx, ty] of tiles) drawn.add(tileKey(tx, ty));
+        const { tx: wx, ty: wy } = f.by;
+        if (wx < x0 || wx > x1 || wy < y0 || wy > y1) continue; // drawn with the wall it belongs to
+        if (L !== 0) {
+          if (!drawn) {
+            drawn = new Set();
+            for (const [tx, ty] of tiles) drawn.add(tileKey(tx, ty));
+          }
+          if (!drawn.has(tileKey(wx, wy))) continue;
         }
-        if (!drawn.has(tileKey(f.by.tx, f.by.ty))) continue; // drawn with the wall it belongs to (a storey's hiding rule thins the tiles)
         const d = makeFiller(r, f, visible, playerRoom);
         if (d) out.push(d);
       }
@@ -581,6 +586,11 @@ function makeFiller(r, f, visible, playerRoom) {
   // Faded, a piece whose camera-side end is the vertex leaves its end face to the wall that goes on from there, as a faded run's segments do
   // at a joint (wallCuts), so no overlap shows twice as dark; the wall cuts its own end where the filler goes on from its camera-side end.
   const cuts = { far: k0 > 0 ? k0 * iso.HW : null, near: k1 < 1 ? (1 - k1) * iso.HW : stub ? 0 : null };
+  // And faded where a post stands at the vertex (a wall along the square's side turning down the step edge), it stops at the post's face, as
+  // wallCuts cuts a faded wall there, so its first stretch inside the faded post is not drawn twice (the review of #589).
+  const vPost = stub ? postAt(f.vx, f.vy, playerRoom) : null;
+  if (vPost) cuts[f.top ? "far" : "near"] = (vPost.sheet.thickness || WALL_T) / 2;
+  const bare = vPost && (vPost.sheet.thickness || WALL_T) / 2 >= f.d * iso.HW; // the post covers all of it: no face to draw
   // Its depth: the edge's near face, its ridge where a straight segment's would be (a post at the edge's camera-side end moves it back).
   const endPost = edge === "n" ? postAt(tx + 1, ty, null) : postAt(tx, ty + 1, null);
   const postSheet = endPost && endPost.sheet.wall && endPost.sheet.wall.post ? endPost.sheet : null;
@@ -589,13 +599,13 @@ function makeFiller(r, f, visible, playerRoom) {
   return {
     key: sortDepth * 1000,
     kind: "wall",
-    filler: { ring: r.id, vx: f.vx, vy: f.vy, tx, ty, edge, d: f.d, wall: { tx: w.tx, ty: w.ty, edge: w.edge } }, // check("round") finds it
+    filler: { ring: r.id, vx: f.vx, vy: f.vy, tx, ty, edge, d: f.d, wall: { tx: w.tx, ty: w.ty, edge: w.edge }, cuts, top: f.top }, // check("round") finds it, and reads its cuts
     stack,
     faded: !!stub,
     emit() {
       gl.surface(face, lift, DEPTH_ROOM.wall);
       gl.layer(L_FACE);
-      emitCutWall(sheet, name, edge, x, y, h, T, { wa: lp, wb: lp, tint: [1, 1, 1, alpha], flags }, cuts);
+      if (!bare) emitCutWall(sheet, name, edge, x, y, h, T, { wa: lp, wb: lp, tint: [1, 1, 1, alpha], flags }, cuts);
       if (!stub && !stack.covered) {
         // Its cap on the sky, as far as it goes (emitDrawnWall's, cut at the same lines).
         gl.layer(L_ON);

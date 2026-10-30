@@ -1643,6 +1643,13 @@ export function ringJoinProblem(tx, ty, edge, layer = 0) {
 // the curve (a wall square to the ring's side, or into a 7 by 7's diagonal corner), else down the step edge (a wall along the square's
 // side, tangent to the curve). None at a door point's ends, where the curve touches the outline. The picture's alone (render/walls.js):
 // nothing here is saved, sent, or read by the world.
+// Whether a straight wall meeting a ring takes a filler there: a solid plain wall (a castle gate as its run's), never a see-through one (a fence,
+// bars), a cliff, a ramp's side, or a battlement, which keep their own ends.
+export function ringJoinFills(wall) {
+  const rule = wallRule(wall.gate ? wallRule(wall.sprite).run : wall.sprite);
+  return !(rule.seeThrough || rule.cliff || rule.battlement || rule.side);
+}
+
 export function ringJoin(vx, vy, layer = drawLayer) {
   if (!rings.size) return null;
   for (const r of ringsAtVertex(vx, vy, layer)) {
@@ -1659,8 +1666,9 @@ export function ringJoin(vx, vy, layer = drawLayer) {
       if (!fills.some((g) => g.tx === f.tx && g.ty === f.ty && g.edge === f.edge)) fills.push({ ...f, top: f.tx === vx && f.ty === vy, vx, vy, by });
     };
     const lined = (w) => can.find((f) => f.dir[0] === -w.dir[0] && f.dir[1] === -w.dir[1]); // the wall's own line running on past the vertex
-    for (const w of walls) if (lined(w)) add(lined(w), w);
-    for (const w of walls) if (!lined(w)) for (const f of can) add(f, w);
+    const solid = walls.filter((w) => ringJoinFills(w.wall)); // a fence, bars, a cliff, a ramp's side, or a battlement takes no fill (the review of #589: a fence square into a step corner took the fill a stone wall tangent there needed)
+    for (const w of solid) if (lined(w)) add(lined(w), w);
+    for (const w of solid) if (!lined(w)) for (const f of can) add(f, w);
     return { ring: r, walls, fills };
   }
   return null;
@@ -1696,6 +1704,20 @@ export function ringProblem(x0, y0, n, layer = 0) {
     if (w.kind === "wall" && !wallRule(w.sprite).seeThrough) continue;
     if ((w.kind === "door" || w.kind === "window") && round.isDoorPoint(x0, y0, n, tx, ty, edge) && !wallRule(w.sprite).seeThrough) continue;
     return w.kind === "wall" ? "Not over a fence" : "A door or a window is in the way";
+  }
+  // No straight wall already ending in one of its corner pockets (the review of #589): the join rule (ringJoinProblem) asked of the walls that
+  // stand, as it would be asked of each if it were built after the ring. A wall alone at a pocket's vertex, that vertex its end nearer the
+  // ring's centre, would leave the room open past its end.
+  for (const [vx, vy] of round.pocketVerticesOf(x0, y0, n)) {
+    const at = [];
+    for (const [dx, dy, e, ux, uy] of VERTEX_EDGES) {
+      const t = peekTile(vx + dx, vy + dy, layer);
+      if (t && t[e]) at.push([ux, uy]);
+    }
+    if (at.length !== 1) continue;
+    const [ux, uy] = at[0];
+    const d = (x, y) => Math.hypot(x - 0.5 - s.cx, y - 0.5 - s.cy);
+    if (d(vx, vy) <= d(vx + ux, vy + uy) + 1e-9) return "A wall ends in its corner: start it at a step";
   }
   return "";
 }

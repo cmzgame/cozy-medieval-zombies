@@ -10,7 +10,7 @@
 // - a straight wall meeting the ring (#588): ending in a corner pocket refused with its words; a yard walled square to the ring's west side
 //   into its step corners a room of 6, the ring's still 37; a filler drawable at each join and no post there, the near wall's faded from
 //   inside the yard; a wall along the square's side built from the step corner out, its filler down the step edge and a post at the corner;
-//   none at a door point's end.
+//   none at a door point's end; from inside a room at that corner, the filler faded and cut at the faded post's face.
 // Everything it moves is put back in its finally: the player's place and hands, the hour, the blend, the zoom, the dead and the villagers,
 // and the walls it builds.
 
@@ -200,6 +200,19 @@ export async function run(game, opts = {}) {
     const t2 = fillersAt(all, 21, 2);
     const t3 = fillersAt(all, 21, 3);
     row("along the square's side: refused from the pocket's far end, built from the step corner out; its filler down the step edge with a post at the corner; none at a door point's end", tangentFirst === WHY && built.length === 3 && t2.length === 1 && t2[0].filler.edge === "n" && postAt(all, 21, 2) && !t3.length && !postAt(all, 21, 3), `first "${tangentFirst}", built ${built.length} of 3; at the step corner ${t2.length} filler (${JSON.stringify(t2.map((d) => [d.filler.tx, d.filler.ty, d.filler.edge]))}) and a post ${postAt(all, 21, 2)}; at the window's end ${t3.length} and ${postAt(all, 21, 3)}`);
+    // The fade where a post stands at the join (the review of #589): a room of 4 west of that run (x 19 to 20, y 0 to 1), its south wall square
+    // into the step corner (21, 2) where the run along the side meets it. From inside, that wall and the run are near walls: the filler fades
+    // with its wall and stops at the faded post's face (half the post's thickness), so the two do not overlap twice as dark.
+    const nBefore = built.length;
+    for (const [x, y, e] of [[20, 0, "n"], [19, 0, "n"], [19, 0, "w"], [19, 1, "w"], [19, 2, "n"], [20, 2, "n"]]) if (!G.map.tileAt(x, y)[e] && !G.map.ringWallProblem(x, y, e, "wall") && G.map.buildWall(x, y, e, "wall", "wall_stone")) built.push([x, y, e]);
+    G.map.rebuildRooms();
+    const westRoom = G.map.getRoom(G.map.roomAt(19, 1));
+    standAt(19.6, 0.7);
+    all = drawn();
+    const j2 = fillersAt(all, 21, 2);
+    const { getSheet } = await import("/src/assets.js");
+    const half = (getSheet("wall_stone").thickness || 18) / 2;
+    row("at a join with a post, faded from inside the room it bounds: the filler fades and is cut at the post's face", built.length - nBefore === 6 && westRoom && westRoom.size === 4 && postAt(all, 21, 2) && j2.length === 1 && j2[0].faded && j2[0].filler.top && Math.abs(j2[0].filler.cuts.far - half) < 1e-6, `built ${built.length - nBefore} of 6, the room ${westRoom && westRoom.size}, a post ${postAt(all, 21, 2)}, the filler ${JSON.stringify(j2.map((d) => ({ faded: d.faded, cuts: d.filler.cuts })))} (the post's half thickness ${half})`);
   } finally {
     for (const [x, y, e] of built) G.map.destroyWall(x, y, e);
     if (built.length) G.map.rebuildRooms();
