@@ -6209,7 +6209,7 @@ check("the build palette's tabs are data: every entry's `tab` is a known one, ev
   assert(!bad.length, bad.join("; "));
   const terrain = Object.entries(build).filter(([, b]) => b.tab === "terrain").map(([id]) => id);
   for (const want of ["terrain_grass", "terrain_dirt", "terrain_cobble", "terrain_water_shallow", "terrain_water", "terrain_randomspawn", "wall_cliff", "wall_cliff_grass", "floor_cliff_top", "floor_cliff_grass", "stair_ramp_stone"]) assert(terrain.includes(want), `${want} is not on the Terrain tab`);
-  assert(!terrain.some((id) => /^(wall|wall_\w+|door|window|fence|gate|floor_wood|floor_stone|stair_wood|stair_stone|fireplace|fire_pit|feed_trough|round_stonew*)$/.test(id) && !/cliff|ramp/.test(id)), "a Build entry is on the Terrain tab");
+  assert(!terrain.some((id) => /^(wall|wall_\w+|door|window|fence|gate|floor_wood|floor_stone|stair_wood|stair_stone|fireplace|fire_pit|feed_trough|round_stone\w*)$/.test(id) && !/cliff|ramp/.test(id)), "a Build entry is on the Terrain tab");
   const pink = read("data/sprites/floor_randomspawn.json");
   assert(pink.mapColor && pink.mapColor.toLowerCase() === pink.placeholder.color.toLowerCase() && pink.walk === undefined && /nothing reads it/.test(pink.note), "the pink floor's definition");
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(pink.mapColor.slice(i, i + 2), 16));

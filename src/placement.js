@@ -213,7 +213,7 @@ function startRoundBuild(player, what, x0, y0, n) {
   const near = nearestOutline(player, x0, y0, n);
   const action = {
     kind: "build",
-    label: `Building ${d.label.replace(/ (.*)$/, "").toLowerCase()}`, // its name without its size, as Take apart says it
+    label: `Building ${d.label.replace(/ \(.*\)$/, "").toLowerCase()}`, // its name without its size, as Take apart says it
     tiles: map.edgeTiles(near.tx, near.ty, near.edge),
     mx: near.mx,
     my: near.my,
