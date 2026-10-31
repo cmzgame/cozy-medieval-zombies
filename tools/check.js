@@ -8062,6 +8062,19 @@ check("the battlements: the side is read from the floors of the wall's own layer
     put(x + 7, y, "n", x + 7, y + 0.6);
     me.layer = 1;
     assert(!mapMod.peekTile(x, y + 2, 1).n && !(mapMod.peekTile(x + 9, y + 9, 1) || {}).n && !(mapMod.peekTile(x + 7, y, 0) || {}).n, "a refused battlement stood");
+    // Beside a stair against the wall (Michael, 2026-10-31: refused with "No floor there"): a stair climbing west up to a landing on layer 1, its
+    // stairwell's tiles the walkway's, and a battlement on the stairwell's outer (north) edge, built by the command a guest sends.
+    const swWhy = mapMod.stairBuildProblem(x + 6, y + 8, "w", 0, "wood");
+    const sw = swWhy ? null : mapMod.buildStair(x + 6, y + 8, "w", "wood", 0, { free: true });
+    assert(sw && mapMod.stairAt(x + 5, y + 8, 1) && mapMod.stairAt(x + 5, y + 8, 1).well, `the stair: ${swWhy}`);
+    try {
+      put(x + 5, y + 8, "n", x + 3, y + 8.2);
+      const bw = mapMod.peekTile(x + 5, y + 8, 1).n;
+      assert(bw && mapMod.wallRule(bw.sprite).battlement && battMod.sideOf(x + 5, y + 8, "n", 1) === "far", `a battlement beside the stairwell: ${bw ? bw.sprite : "none"}`);
+      mapMod.destroyWall(x + 5, y + 8, "n", false, 1);
+    } finally {
+      mapMod.removeStair(sw);
+    }
     placementImport.performPlacement(me, { kind: "build", what: "door", tx: x + 1, ty: y, edge: "n" });
     assert(mapMod.peekTile(x + 1, y, 1).n.kind === "wall", "a door was stamped into a battlement");
     // The frames: the artist's names by side and run (plain variants by the edge's hash), the corners and no ends on a closed ring.
