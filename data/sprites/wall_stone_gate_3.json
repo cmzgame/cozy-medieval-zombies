@@ -51,7 +51,7 @@
     "note": "the grille's plane, in units from the edge line toward the camera; tips = the height of its spiked points"
    },
    "name": "Stone gate (3 wide)",
-   "swing": 1.2,
+   "swing": 0.5,
    "grille": true,
    "deadBreak": true,
    "bitesPass": false,

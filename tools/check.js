@@ -4794,7 +4794,7 @@ check("splash: potions and poisons held and thrown, the shatter, the splash heal
     // The cards.
     assert(has("healing_potion", "Throw (middle button or Q): shatters where it lands, up to 9 tiles, splashing 1.5 tiles across.") && has("healing_potion", "Heals 40 at once in every player and villager it splashes.") && has("healing_potion", "A splash counts as a drink: a player within 10 seconds of one gets nothing from it."), card("healing_potion").join(" | "));
     assert(has("stamina_potion", "Fills stamina in every player it splashes, coming back twice as fast for 30 seconds."), card("stamina_potion").join(" | "));
-    assert(has("mana_potion", "Restores 50 mana at once in every player and villager it splashes."), card("mana_potion").join(" | "));
+    assert(has("mana_potion", "Restores 50 mana at once in every player it splashes."), card("mana_potion").join(" | "));
     assert(has("poison", "Splashes every one of the dead and every wild animal within reach; never a player, a villager, or a tame animal."), card("poison").join(" | "));
 
     // A guest's replica (headless, no browser needed, archery.flightStore/applyFlights/stepFlights taking their own store): the burst and the
@@ -4814,7 +4814,7 @@ check("splash: potions and poisons held and thrown, the shatter, the splash heal
     archeryMod.stepFlights(store, end[1] + 1);
     assert(store.splashes.length === 1 && store.splashes[0].color === itemsMod.getItem("healing_potion").color, `the guest's replica splash: ${JSON.stringify(store.splashes)}, wanted ${itemsMod.getItem("healing_potion").color}`);
 
-    return `the data on all five; a hand slot draws, the utility slot drinks or says the line, a left click swings nothing; a soft throw lands under the thrower, the vial never lying there; heals and restores mana in every player and villager it splashes, fills stamina in every player alone; a splash as a drink per player, the thrower's own cooldown no exception; poison on the dead and the wild deer, never the far one, the tame cow, a player, or a villager; the sync part; the cards; a guest's replica from the launch record alone`;
+    return `the data on all five; a hand slot draws, the utility slot drinks or says the line, a left click swings nothing; a soft throw lands under the thrower, the vial never lying there; heals every player and villager it splashes and restores mana in every player, fills stamina in every player alone; a splash as a drink per player, the thrower's own cooldown no exception; poison on the dead and the wild deer, never the far one, the tame cow, a player, or a villager; the sync part; the cards; a guest's replica from the launch record alone`;
   } finally {
     promptMod.setMessageSink(null);
   }
@@ -8978,6 +8978,47 @@ check("height, step 6b: ladders: built by a guest's command, climbed up two stor
     me.gx = was.gx; me.gy = was.gy; me.layer = was.layer; me.rise = was.rise; delete me.ladder;
     rulesImport.rules.freeBuilding = was.free;
     rulesImport.rules.zombieAggro = was.aggro;
+  }
+});
+
+// ---- the small-fix batch (2026-10-31, the wiki sync's findings of 2026-10-30) ----
+check("the small fixes: a stone wall and a battlement refused without Free building in their own words, no painting on a battlement, the empty clay jar rides the belt, the mana splash's card names players alone", () => {
+  const me = gameMod.state.player;
+  const said = [];
+  promptImport.setMessageSink((t) => (said.push(t), true));
+  const free0 = rulesImport.rules.freeBuilding;
+  try {
+    rulesImport.rules.freeBuilding = false;
+    me.layer = 0;
+    placementImport.performPlacement(me, { kind: "build", what: "wall_stone", tx: Math.round(me.gx) + 2, ty: Math.round(me.gy) + 2, edge: "n" });
+    me.layer = 1;
+    placementImport.performPlacement(me, { kind: "build", what: "battlement_stone", tx: Math.round(me.gx) + 2, ty: Math.round(me.gy) + 2, edge: "n" });
+    me.layer = 0;
+    assert(said.includes("Stone walls are not in the game yet") && said.includes("Battlements are not in the game yet"), `the words: ${said.join(" / ")}`);
+    const at = clearGround();
+    assert(at, "no clear ground");
+    const [x, y] = at;
+    const t = mapMod.growTile(x, y, 1);
+    t.floor = "floor_stone";
+    mapMod.touch(x, y, 1);
+    mapMod.buildWall(x, y, "n", "wall", "wall_battlement", null, 1);
+    try {
+      const why = paintingsMod.segmentProblem(x, y, "n", 1);
+      assert(why === "Not on a battlement", `a painting on a battlement: "${why}"`);
+    } finally {
+      mapMod.destroyWall(x, y, "n", false, 1);
+      delete t.built;
+      t.floor = "void";
+      mapMod.touch(x, y, 1);
+    }
+    assert(itemsMod.getItem("clay_jar").belt === true && itemsMod.getItem("clay_vial").belt === true, "the empty jar and vial ride the belt");
+    const card = itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry("mana_potion", 1)));
+    assert(card.some((l) => /mana at once in every player it splashes/.test(l)) && !card.some((l) => /villager it splashes/.test(l) && /mana/.test(l)), `the mana card: ${card.join(" | ")}`);
+    return "the stone wall's and the battlement's words; no painting on a battlement; the jar on the belt; the mana card";
+  } finally {
+    promptImport.setMessageSink(null);
+    rulesImport.rules.freeBuilding = free0;
+    me.layer = 0;
   }
 });
 

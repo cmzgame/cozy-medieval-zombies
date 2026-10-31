@@ -343,6 +343,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-31 — The portcullis rises and falls in half a second (Michael)
+
+Michael: "The gate opening animation either needs more frames or probably needs to be sped way up. Like 2-3x what it is now in terms of duration." **Ruled:** the castle gates' `wall.gate.swing` from 1.2 to 0.5 seconds (2.4 times as fast), the three frames kept (`42`, Castle gates).
+
 ### 2026-10-31 — Villagers never follow or stay (Michael)
 
 Michael, going through what was planned: "Kill villagers following and staying, this is a mechanic I have simply changed my mind on, so that issue and any built code for it can go." **Ruled:** a villager is never told to follow a player or to stay on a tile; the mechanic is struck wherever it was planned (`00`'s law 8, `04`, `30`, `39`, `49`, #103) and nothing of it was built (a comment in `src/entities/villager.js` alone named it). Villagers still idle, wander on a tether, talk, cower, flee, and stand wary, and are immune to the dead. The animal companion's three commands (follow, stay, attack and come back; #289, `45` section 5) are a companion's, not a villager's, and stand.
