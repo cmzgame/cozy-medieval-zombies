@@ -433,9 +433,17 @@ function onViewerStair(x, y) {
 function isNearWall(tx, ty, edge, playerRoom) {
   const far = edge === "n" ? [tx, ty - 1] : [tx - 1, ty];
   if (viewerStair && onViewerStair(far[0], far[1]) && !onViewerStair(tx, ty)) return true;
-  if (cutaway.active() && cutaway.edgeCut(tx, ty, edge)) { // in the cutaway's way, or the walls down; a cliff never (a hill never hides, docs/53 section 6.2)
+  if (cutaway.active()) {
+    // In the cutaway's way, or the walls down; never a cliff or a ramp's side (a hill never hides, docs/53 section 6.2), nor a fence, bars, or a
+    // battlement, which are never cut (the review of #616: a fence's posts went to the stub under its whole rails); a castle gate as one, cut
+    // when any edge of it is (the review of #616: a gate half ghosted at the cut band's end).
     const w = map.tileAt(tx, ty)[edge];
-    if (!(w && cliffs.cliffWallOf(w))) return true;
+    const rule = w ? map.wallRule(w.sprite) : null;
+    if (w && !(cliffs.cliffWallOf(w) || rule.side || rule.seeThrough || rule.battlement)) {
+      if (w.gate) {
+        if (map.gateMembers(tx, ty, edge, map.drawLayerNow()).some((g) => cutaway.edgeCut(g.tx, g.ty, edge))) return true;
+      } else if (cutaway.edgeCut(tx, ty, edge)) return true;
+    }
   }
   if (playerRoom <= 0) return false;
   const t = map.tileAt(tx, ty);

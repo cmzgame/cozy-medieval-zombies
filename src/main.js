@@ -1039,7 +1039,8 @@ function cutawayFor(me) {
     const at = iso.toGrid(m.x, m.y + (me.layer || 0) * map.STOREY); // the tile under the cursor on my storey, as the ghost finds it
     points.push({ x: at.gx, y: at.gy });
   }
-  return { points, down: wallsDown && buildPalette.isOpen() };
+  if (!buildPalette.isOpen()) wallsDown = false; // the walls come back up when the menu shuts (the review of #616)
+  return { points, down: wallsDown };
 }
 
 // N: the build palette, or out of build mode if in it. Not while carrying or
