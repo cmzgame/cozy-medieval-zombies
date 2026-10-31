@@ -97,7 +97,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - A hand-authored world with procedural filling of the spaces it leaves empty: a direction, not a wall (2026-10-16, The four lines of 00-vision.md, ruled)
 - One continuous map with real line of sight; chunks, rooms by flood fill, never authored (2026-10-08, The project exists)
 - Fire and resources are the economy; nothing shuts off on a timer; farming is load-bearing (2026-10-08, The project exists)
-- Villagers carry no weapons, never fight for the player; they flee, follow, and stay (2026-10-08, The project exists; immune to the dead, 2026-10-28)
+- Villagers carry no weapons, never fight for the player; they flee~~, follow, and stay~~ (2026-10-08, The project exists; immune to the dead, 2026-10-28; following and staying struck 2026-10-31, `02` "Villagers never follow or stay")
 - Medieval, low fantasy, no guns; dark medieval fantasy, not strictly medieval (2026-10-08, The project exists; 2026-10-09, Milestone 1 passed, and the vibe pass)
 - Trees block only their trunk; the dead know only where they last saw you; a bite needs line of sight (2026-10-09, Milestone 1 passed, and the vibe pass; the search narrowed by the siege, 2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
 - Authored structure, scattered filler: sets with padding rings, features, scatter by rule, the wild beyond; harvest first (2026-10-09, Milestone 1 passed, and the vibe pass)
@@ -342,6 +342,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-31 — Villagers never follow or stay (Michael)
+
+Michael, going through what was planned: "Kill villagers following and staying, this is a mechanic I have simply changed my mind on, so that issue and any built code for it can go." **Ruled:** a villager is never told to follow a player or to stay on a tile; the mechanic is struck wherever it was planned (`00`'s law 8, `04`, `30`, `39`, `49`, #103) and nothing of it was built (a comment in `src/entities/villager.js` alone named it). Villagers still idle, wander on a tether, talk, cower, flee, and stand wary, and are immune to the dead. The animal companion's three commands (follow, stay, attack and come back; #289, `45` section 5) are a companion's, not a villager's, and stand.
 
 ### 2026-10-30 — The Planning tool (Michael)
 
@@ -2348,7 +2352,7 @@ The conversation that opens Milestone 2. Its design is `07-lighting.md`.
   - **Rooms by flood fill, never authored.** Same reason as block storage: it keeps building and the dev tool possible.
 - **Fire and resources are the economy; nothing shuts off on a timer.** Michael, 2026-10-08, on what separates this from Zomboid while the chunked world moves toward it: the setting, and the absence of Zomboid's infrastructure arc (water shutoff, power cut, broadcasts going dead). "Fire is everything, and every natural resource is so important." Things run out because you used them: wood for the hearth, water from the well, seed in the ground. Added to `00-vision.md` as a pillar. My lean on the first consequence: the hearth burns firewood and goes out without it, which is the cozy parent's parked "candle burn time" made central rather than fiddly.
 - **Farming is in, and it is load-bearing.** Michael: simpler than Zomboid's, closer to Stardew; big for him and for cozy games in general; "if it doesn't work the game probably won't." Cooking comes with it, in some simple fashion. Both are now in the vision and the milestone sketch. The cozy parent's take (planters with three growth stages that need water; cooking as one step with no recipes) is an input.
-- **NPCs are in, and not crippled for the browser's sake.** Michael, 2026-10-08. They carry no weapons and never fight for the player; that is the compromise and it holds. They **flee** from the dead they see (immune to them since 2026-10-28, Villagers are immune to the dead). The player can tell one to **follow** or to **stay** on a tile, which is how you bring a villager home and keep him. Beyond the active region they are frozen notes like the dead. See `04-npcs.md`.
+- **NPCs are in, and not crippled for the browser's sake.** Michael, 2026-10-08. They carry no weapons and never fight for the player; that is the compromise and it holds. They **flee** from the dead they see (immune to them since 2026-10-28, Villagers are immune to the dead). ~~The player can tell one to **follow** or to **stay** on a tile, which is how you bring a villager home and keep him.~~ (struck 2026-10-31, `02` "Villagers never follow or stay".) Beyond the active region they are frozen notes like the dead. See `04-npcs.md`.
 - **Quests: never say never, but not for a good long while.** The game has to be playable, fun, and content-rich first. RPG-like elements were part of the original medieval wish and are not forgotten. Logged in `05-someday.md`.
 - **~~Probe viewport 960×540~~ (superseded 2026-10-10, night: The view, the screens, and a law: the world fills the window), no roofs.** Michael accepted both. Nothing may be written in a way that forecloses roofs; they sit in `05-someday.md`.
 - **Single storey first.** Michael agreed on 2026-10-08. Tile data carries a layer index from day one so upper floors can be added without a format change; how they render is decided after the probe.

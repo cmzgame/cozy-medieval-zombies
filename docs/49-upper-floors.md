@@ -100,7 +100,7 @@ Michael, 2026-10-26: "I want shooting down to be a thing for bows and thrown wea
 - **Nobody climbs through a window** (law): no jumping down from an upper window, and nothing falls; void is not walkable.
 - **Reach is on one layer:** `reach.js`'s test (distance and a clear line, #208) adds the layer, so nothing upstairs reaches a chest or a tile below through the floor or out of a window (#206's open window is in reach on its own layer only); every verb addressed by a tile (till, plant, pour, fish, Use on a tile) reads the actor's layer.
 - **The dead may be placed upstairs or in a cellar** by the map (a sleeper in an upstairs bed, one in the dark of a cellar).
-- **Villagers stay on the ground for now** (*default*; homes upstairs are step 9), but one that is led (`45`'s lead for animals is not theirs; `04`'s follow is not built) is not an issue yet. **Animals stay on the ground** and never take a stair.
+- **Villagers stay on the ground for now** (*default*; homes upstairs are step 9), but one that is led (`45`'s lead for animals is not theirs; a villager never follows, struck 2026-10-31, `02` "Villagers never follow or stay") is not an issue yet. **Animals stay on the ground** and never take a stair.
 
 ## 10. Light
 

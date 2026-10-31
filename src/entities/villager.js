@@ -4,7 +4,7 @@
 // them to be there"): the `immune` flag, true unless a map entry says `immune: false`. The mortal path is kept, off by data, for a
 // later ruling: the dead hunt a villager whose flag is false, and one bitten to death turns (`turnVillager`). A swing passes
 // through them, they have no needs. `hp`, `maxHp`, `dead`, `radius`, `worn`, and
-// `look` are on them so that fleeing and following (docs/04) need no reshaping.
+// `look` are on them so that fleeing (docs/04) needs no reshaping (a villager never follows or stays: Michael, 2026-10-31).
 // They walk with the walking they share with the dead (movement.js), on a tether
 // to `home`.
 

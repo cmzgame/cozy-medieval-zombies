@@ -196,7 +196,7 @@ Step 6, the forest places and the loop:
 After the pass:
 
 19. **Fishing** (`29/08`'s option, now in `docs/history/29-world-ideation.md`): an action on a water-adjacent tile with a rod in hand, a table per water feature, two items. ~~**Small to medium**, after the big pass's item verbs exist.~~ **Built (#190, 2026-10-18; moved into valley 1.0):** `src/fishing.js` and `data/fishing.json`; three fish (perch, trout, carp), each grilled at a fire; the map names its waters (a floor feature's `group`: the river and the village pond now, the mere when it is built), each with its own table.
-20. **NPC routines, follow, stay, lines** (`04`): **large**, planned; the plan places fourteen villagers with a home, a job, and a line each so the pass has its cast.
+20. **NPC routines, ~~follow, stay,~~ lines** (`04`; following and staying struck 2026-10-31, `02` "Villagers never follow or stay"): **large**, planned; the plan places fourteen villagers with a home, a job, and a line each so the pass has its cast.
 21. **Records beyond the active region** (`03`): alarm, lure, trickle. **Large**, its own milestone; the plan's dead are authored where they stand and the wild's per-chunk rule covers the rest, so nothing here waits for it; the mine mouth's "something comes out at night" and the castle's lure across the water are what it will make true.
 
 ## 13. Art, and the rule that nothing waits for it
