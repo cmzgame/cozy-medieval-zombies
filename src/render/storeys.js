@@ -634,17 +634,35 @@ function frameNamesOf(sheet) {
 }
 // The round rooms on the storey under a chunk of floor, as a signature: a ring built or taken away there bakes the floor over it again (its tiles
 // are cut to the ring's outer face, floorSheet), though nothing on the floor's own chunk changed.
-function ringsUnder(c) {
-  return ringsOver(c).map((r) => {
-    // With how many of its stepped tiles are floored a storey up: a tower's top is filled to its rim once it is whole (fillTowerTops), and its
-    // tiles may lie on another chunk.
-    const floored = round.shape(r.x0, r.y0, r.n).stepped.filter(([x, y]) => { const t = map.peekTile(x, y, c.layer); return t && !map.isEngineFloor(t.floor); }).length;
-    return `${r.id}:${floored}`;
-  }).sort().join(",");
+// Whether a stepped tile of a tower's top is part of the top: a floor laid, or the way up through it (a stairwell, a ladder's hole; the review of
+// #618: a tower with a stair to its top was never whole).
+function topTile(x, y, L) {
+  const t = map.peekTile(x, y, L);
+  if (t && (!map.isEngineFloor(t.floor) || t.floor === map.HOLE)) return true;
+  const s = map.stairAt(x, y, L);
+  return !!(s && s.well) || !!map.ladderAt(x, y, L - 1);
 }
-// The round rooms on the storey under a chunk whose square reaches into it.
+// The rings under a chunk with how many of their stepped tiles are part of the top a storey up (a tower's top is filled to its rim once it is
+// whole, fillTowerTops, and its tiles may lie on another chunk) and their size (a ring rebuilt at the other size keeps its id; the review of #618).
+// Asked for every upper chunk drawn, so worked out once a frame per chunk.
+const underMemo = new Map();
+let underFrame = -1;
+function ringsUnder(c) {
+  if (gl.frameId() !== underFrame) {
+    underMemo.clear();
+    underFrame = gl.frameId();
+  }
+  const key = map.chunkKey(c.cx, c.cy, c.layer);
+  let sig = underMemo.get(key);
+  if (sig === undefined) {
+    sig = ringsOver(c).map((r) => `${r.id}:${r.n}:${round.shape(r.x0, r.y0, r.n).stepped.filter(([x, y]) => topTile(x, y, c.layer)).length}`).sort().join(",");
+    underMemo.set(key, sig);
+  }
+  return sig;
+}
+// The round rooms on the storey under a chunk whose square reaches into it (above the ground only: a cellar's floor is the earth's).
 function ringsOver(c) {
-  if (!c.layer) return [];
+  if (!(c.layer > 0)) return [];
   const C = map.CHUNK;
   const [x0, y0] = [c.cx * C, c.cy * C];
   return map.allRings(c.layer - 1).filter((r) => r.x0 < x0 + C && r.x0 + r.n > x0 && r.y0 < y0 + C && r.y0 + r.n > y0);
@@ -717,8 +735,9 @@ function fillTowerTops(c, ctx) {
   const C = map.CHUNK;
   for (const r of ringsOver(c)) {
     const s = round.shape(r.x0, r.y0, r.n);
+    if (!s.stepped.every(([x, y]) => topTile(x, y, c.layer))) continue; // only a whole top: a floor laid partway is still being built
     const tops = s.stepped.map(([x, y]) => map.peekTile(x, y, c.layer)).filter((t) => t && !map.isEngineFloor(t.floor));
-    if (tops.length < s.stepped.length) continue; // only a whole top: a floor laid partway is still being built
+    if (!tops.length) continue;
     let sh = null;
     try { sh = getSheet(tops[Math.floor(tops.length / 2)].floor); } catch { sh = null; }
     if (!sh) continue;
