@@ -45,8 +45,11 @@ export async function run(game) {
   const rect = (el) => el.getBoundingClientRect();
   const overlap = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
   const rowsOf = () => [...listEl().querySelectorAll(".bp-row")];
-  const names = () => rowsOf().map((r) => r.querySelector(".bp-name").textContent);
-  const groups = () => [...listEl().querySelectorAll(".bp-group")].map((g) => g.textContent);
+  // The pieces and their headings, the ruler's Tools row on every tab left out (Michael, 2026-10-30; its own row below).
+  const names = () => rowsOf().filter((r) => r.dataset.kind !== "ruler").map((r) => r.querySelector(".bp-name").textContent);
+  const groups = () => [...listEl().querySelectorAll(".bp-group")].map((g) => g.textContent).filter((g) => g !== "Tools");
+  const firstRow = () => { const r = rowsOf()[0]; return r ? r.dataset.kind : null; };
+  const firstGroup = () => { const g = listEl().querySelector(".bp-group"); return g ? g.textContent : null; };
   try {
     G.screens.hide();
     G.loop.setPaused(true);
@@ -58,7 +61,7 @@ export async function run(game) {
     G.rules.set({ freeBuilding: false });
     bp.openPalette(me);
     const barOff = palEl().querySelector(".bp-tabs");
-    row("with Free building off the palette is Build alone: no tab bar, no Terrain row, Take apart and the hint kept", barOff.hidden && !placement.paletteKinds().some((k) => placement.tabOf(k) === "terrain") && !!palEl().querySelector(".bp-remove") && /N or Esc/.test(palEl().querySelector(".bp-hint").textContent), `tabs ${placement.paletteTabs().map((t) => t.id)}; ${names().length} rows`);
+    row("with Free building off the palette is Build alone: no tab bar, no Terrain row, Take apart and the hint kept", barOff.hidden && !placement.paletteKinds().some((k) => placement.tabOf(k) === "terrain") && !!palEl().querySelector(".bp-remove") && /Esc puts it down; N closes/.test(palEl().querySelector(".bp-hint").textContent), `tabs ${placement.paletteTabs().map((t) => t.id)}; ${names().length} rows`);
     bp.close();
     G.rules.set({ freeBuilding: true });
     bp.openPalette(me);
@@ -67,7 +70,9 @@ export async function run(game) {
     const buildGroups = groups();
     const buildNames = names();
     row("Build holds walls, openings, props, floors, stairs, and the castle's gates under four headings, with Take apart; the cliffs and the ground are not here", buildGroups.join() === "Walls and openings,Props,Floors and stairs,Castle" && buildNames.includes("Log wall") && buildNames.includes("Door") && buildNames.includes("Plank floor") && buildNames.includes("Stone stair") && buildNames.includes("Stone gate (2 wide)") && buildNames.includes("Stone gate (3 wide)") && !buildNames.some((n) => /Cliff|ramp|Grass|Dirt|Water/.test(n)) && !palEl().querySelector(".bp-foot").hidden, `${buildGroups.join(" | ")}; ${buildNames.length} rows`);
+    const rulerBuild = [firstGroup(), firstRow()];
     tabBtns[1].click();
+    row("the Ruler is the first row of both tabs, under Tools (Michael, 2026-10-30)", rulerBuild.join() === "Tools,ruler" && firstGroup() === "Tools" && firstRow() === "ruler", `Build ${rulerBuild.join(" ")}; Terrain ${firstGroup()} ${firstRow()}`);
     const terrNames = names();
     row("a click on Terrain shows the ground's surfaces, the water, and the landforms, each under its heading, with no Take apart", groups().join() === "Ground,Water,Landforms" && terrNames.join() === "Grass,Dirt,Cobblestone,Random spawn,Shallow water,Water,Cliff wall,Grassy cliff wall,Cliff top,Grassy cliff top,Stone ramp" && palEl().querySelector(".bp-foot").hidden && bp.currentTab() === "terrain", `${groups().join(" | ")}; ${terrNames.join(", ")}`);
     const sw = [...listEl().querySelectorAll(".bp-sw")].map((e) => e.style.background);
@@ -126,7 +131,8 @@ export async function run(game) {
     // A picked row is scrolled into view when the palette opens again.
     const last = rowsOf().filter((r) => r.dataset.kind !== "__remove").pop();
     last.click();
-    row("picking a row enters its mode and shuts the palette", placement.state.kind === "build" && placement.state.build.what === last.dataset.kind && !bp.isOpen(), `${last.dataset.kind}: ${placement.state.kind}`);
+    row("picking a row enters its mode and leaves the palette open (Michael, 2026-10-30: \"using it does not close the build tool\")", placement.state.kind === "build" && placement.state.build.what === last.dataset.kind && bp.isOpen(), `${last.dataset.kind}: ${placement.state.kind}, palette ${bp.isOpen() ? "open" : "shut"}`);
+    bp.close();
     listEl().scrollTop = 0;
     bp.openPalette(me);
     const lr = rowsOf().find((r) => r.dataset.kind === last.dataset.kind);

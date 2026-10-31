@@ -1,8 +1,8 @@
 {
-  "version": "60c7726f",
+  "version": "54bec84a",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
-    "data/build.json": {"size": 18392, "stamp": "49ba9805"},
+    "data/build.json": {"size": 18921, "stamp": "f1ec3280"},
     "data/combat.json": {"size": 6412, "stamp": "2bc2110b"},
     "data/crops.json": {"size": 2313, "stamp": "36c5359c"},
     "data/dyes.json": {"size": 2539, "stamp": "b65fc8c1"},

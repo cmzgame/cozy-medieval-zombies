@@ -35,6 +35,7 @@ function propSlice(sheet, name, f, x, y, tx, ty, flags, color, skew = 0) {
 // and red where it may not. It never joins the sort or occlusion lists.
 const GHOST_OK = [0.6, 1, 0.6, 0.55];
 const GHOST_BAD = [1, 0.5, 0.5, 0.55];
+const RULER = [1, 0.85, 0.15, 0.6]; // the ruler's yellow
 export const GHOST_FLAGS = () => gl.FLAG_NOFOG | gl.FLAG_UNLIT;
 
 // A flat colour multiplied by the ghost's tint, as a fresh array (gl.rgb's are shared).
@@ -106,6 +107,13 @@ export function emitGhost(ghost) {
   }
   if (ghost.kind === "round") {
     rings.emitRingGhost({ id: "ghost", x0: ghost.x0, y0: ghost.y0, n: ghost.n, layer: ghost.layer || 0, sprite: ghost.sprite }, tint, GHOST_FLAGS()); // a round room as it would stand (docs/50 section 5)
+    return;
+  }
+  if (ghost.kind === "ruler") {
+    // The ruler (Michael, 2026-10-30: "Yellow?"): the edge tiles of the drag's rectangle, so a run reads as a line and a big square costs no more.
+    const [xa, xb] = [Math.min(ghost.x0, ghost.x1), Math.max(ghost.x0, ghost.x1)];
+    const [ya, yb] = [Math.min(ghost.y0, ghost.y1), Math.max(ghost.y0, ghost.y1)];
+    for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) if (y === ya || y === yb || x === xa || x === xb) emitGhostTile(x, y, 0, RULER);
     return;
   }
   if (ghost.kind === "floor") {

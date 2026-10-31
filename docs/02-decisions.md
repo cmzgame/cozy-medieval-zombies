@@ -10,6 +10,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 - Height is one unit, world pixels above the ground, with one walk for sight, the dead, and flights; shooting down and up from any storey; the picture hides what is in the way and never fades: the storeys over your room and any slab covering your body are not drawn, your room's camera-side walls are cut to a stub at the floor with their doors and windows drawn whole at low opacity; a plateau never hides; items fall to the first floor below, bodies never (2026-10-30, Height ruled, on `53`).
 - The castle gates break, at about three doors' hit points (2026-10-30, Height ruled; strikes the 2026-10-29 gate ruling's "the dead cannot break it").
+- The build menu stays open while its piece is in hand (Esc puts the piece down, N shuts it), and has a Ruler on both tabs that counts the tiles of a drag in yellow (2026-10-30, The ruler; the build menu stays open).
 - The build menu has a search box, kept until it is changed or the browser tab is closed (2026-10-30, The build menu's search).
 - The round stone wall is two palette entries, 5 across and 7 across, each placed by a click centred on the cursor, no drag (2026-10-30, Round walls by size).
 - Everything in the build menu is built at once: every `seconds` in `data/build.json` is 0, for building the map by hand (2026-10-30, Build times 0).
@@ -339,6 +340,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-30 — The ruler; the build menu stays open (Michael)
+
+Michael, building his castle: "Okay now make me a click and drag ruler tool. drag and it tells you tile count. Yellow? Put it in the build menu and using it [does not] close build menu. Nor does building. It can stay open" ("using it does not close the build tool"). **Ruled:** a **Ruler** row in the build menu, on both tabs under a Tools heading: press and drag on the ground, the rectangle drawn in yellow and its size said ("7 tiles", "5 × 4 tiles (20)"), kept after the release until the next press; it builds nothing and is each client's own. Picking a row, the ruler or a piece to build, no longer shuts the menu; Escape puts the piece down first and shuts the menu next, and N shuts both (the builder's reading of the keys). The ruler is offered always, Free building or not (the builder's).
 
 ### 2026-10-30 — The build menu's search: kept until changed or logged off (Michael)
 

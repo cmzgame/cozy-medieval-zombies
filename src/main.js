@@ -1013,8 +1013,8 @@ function handleEscape() {
   if (stationPanel.close()) return;
   if (talkPanel.close()) return; // Escape closes a conversation in the panels' order
   if (navRow.closeSkills()) return;
-  if (buildPalette.isOpen()) {
-    buildPalette.close();
+  if (buildPalette.isOpen()) { // the palette stays open while its piece is in hand (Michael, 2026-10-30): Escape puts the piece down, then shuts it
+    if (!placement.cancel()) buildPalette.close();
     return;
   }
   if (placement.cancel()) return;
@@ -1030,11 +1030,12 @@ function handleEscape() {
 // N: the build palette, or out of build mode if in it. Not while carrying or
 // with the bag open (docs/13).
 function toggleBuild() {
-  if (placement.cancel()) return;
-  if (buildPalette.isOpen()) {
+  if (buildPalette.isOpen()) { // N shuts the palette and puts its piece down with it
     buildPalette.close();
+    placement.cancel();
     return;
   }
+  if (placement.cancel()) return;
   if (client.me.carrying) return showMessage("Your hands are full.");
   if (panel.isOpen()) return showMessage("Close your bag to build."); // the palette and the bag take turns on the screen (02, 2026-10-15)
   buildPalette.openPalette(client.me);
@@ -1048,8 +1049,7 @@ function toggleRemove() {
   }
   if (client.me.carrying) return showMessage("Your hands are full.");
   if (panel.isOpen()) return showMessage("Close your bag to build.");
-  buildPalette.close();
-  placement.beginRemove();
+  placement.beginRemove(); // the palette, if open, stays (Michael, 2026-10-30)
 }
 
 function applyDebugCorner() {
@@ -1595,6 +1595,7 @@ async function boot() {
       // Everything is loaded already; this adds the two-tile variants, and a name the manifest lacks fails here with its id.
       await assets.loadMapSprites(json);
       for (const k of placement.buildKinds()) { // what can be built must be drawable, at its own footprint (the Fireplace's two tiles, the fire pit's four)
+        if (!k.sprite) continue; // the ruler draws no sprite
         const fp = assets.footprintOf(await assets.loadSpriteDef(k.sprite));
         await assets.loadSprite(k.sprite, { tileCount: fp[0] * fp[1] });
       }
@@ -1815,8 +1816,7 @@ async function boot() {
       placement.init({ startAction: interact.startAction });
       mapPanel.initMapPanel();
       buildPalette.initBuildPalette({
-        onPick: (what) => {
-          buildPalette.close();
+        onPick: (what) => { // the palette stays open while building or measuring (Michael, 2026-10-30: "using it does not close the build tool")
           if (what === "__remove") placement.beginRemove();
           else placement.beginBuild(what);
         },
