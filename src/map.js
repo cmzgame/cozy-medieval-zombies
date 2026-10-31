@@ -1880,6 +1880,9 @@ export function gateOf(wall) {
   return wall && wall.gate ? wallRule(wall.sprite).gate : null;
 }
 export const isGate = (wall) => !!wall && !!wall.gate;
+// A stone arch (art round 14a, Michael 2026-10-29, #571: "it is just a stone arch"): a gate whose definition says `always: "open"`, built open
+// and never shut, so every door path (bodies, sight, light, rooms, the dead, reach, shots) reads it as an open doorway, with nothing to open.
+export const isArch = (wall) => !!(wall && wall.gate && wallRule(wall.sprite).gate && wallRule(wall.sprite).gate.always === "open");
 
 function gateFlag(wall, flag) {
   const g = gateOf(wall);
@@ -1944,6 +1947,8 @@ export function gateMembers(tx, ty, edge, layer = 0) {
 
 // Open or shut the whole gate the wall at (tx, ty, edge) is part of: every edge of it, each touched so the save and the wire carry it. Returns whether it was a gate.
 export function setGateOpen(tx, ty, edge, open, layer = 0) {
+  const t0 = peekTile(tx, ty, layer);
+  if (t0 && isArch(t0[edge])) return false; // an arch has nothing to shut
   const members = gateMembers(tx, ty, edge, layer);
   for (const m of members) {
     m.wall.open = !!open;
@@ -2001,6 +2006,7 @@ export function buildGate(tx, ty, edge, sprite, layer = 0, { free = false } = {}
     const existing = t[edge];
     const wall = createWall("door", sprite);
     wall.gate = { i: k };
+    if (g.always === "open") wall.open = true; // an arch: open from the start, and never shut (setGateOpen)
     wall.under = existing.sprite;
     if (existing.built) wall.underBuilt = true;
     if (existing.free) wall.underFree = true;
@@ -2884,13 +2890,13 @@ export function openingsNear(gx, gy, r = 1.15, layer = 0) {
   for (let ty = cy - 2; ty <= cy + 2; ty++) {
     for (let tx = cx - 2; tx <= cx + 2; tx++) {
       const t = tileAt(tx, ty, layer);
-      if (t.n && t.n.kind !== "wall") {
+      if (t.n && t.n.kind !== "wall" && !isArch(t.n)) { // an arch is no opening to open or batter: a passage
         const mx = tx;
         const my = ty - 0.5;
         const d = Math.hypot(gx - mx, gy - my);
         if (d <= r) out.push({ wall: t.n, edge: "n", tx, ty, mx, my, d, to: gy < my ? [tx, ty] : [tx, ty - 1] });
       }
-      if (t.w && t.w.kind !== "wall") {
+      if (t.w && t.w.kind !== "wall" && !isArch(t.w)) {
         const mx = tx - 0.5;
         const my = ty;
         const d = Math.hypot(gx - mx, gy - my);

@@ -130,8 +130,8 @@ export async function run(game) {
     const off = placement.paletteKinds().filter((k) => placement.isGateBuild(k.id)).length;
     G.rules.set({ freeBuilding: true });
     const on = placement.paletteKinds().filter((k) => placement.isGateBuild(k.id));
-    row("the gates are offered under \"Castle\" on the Build tab as \"Stone gate (2 wide)\" and \"(3 wide)\", each with a hint, only while Free building is on, and cost nothing",
-      off === 0 && on.length === 2 && on.every((k) => k.group === "Castle" && placement.tabOf(k) === "build" && k.dev && k.hint && placement.costText(k.id) === "free" && Object.keys(placement.costOf(k.id)).length === 0) && on.map((k) => k.label).join("|") === "Stone gate (2 wide)|Stone gate (3 wide)",
+    row("the gates and arches are offered under \"Castle\" on the Build tab (the 2- and 3-wide gates, the 1-wide gate and the arches of art round 14a), each with a hint, only while Free building is on, and cost nothing",
+      off === 0 && on.length === 6 && on.every((k) => k.group === "Castle" && placement.tabOf(k) === "build" && k.dev && k.hint && placement.costText(k.id) === "free" && Object.keys(placement.costOf(k.id)).length === 0) && on.map((k) => k.label).join("|") === "Stone gate (2 wide)|Stone gate (3 wide)|Stone gate (1 wide)|Stone arch (1 wide)|Stone arch (2 wide)|Stone arch (3 wide)",
       `${off} with it off; on: ${on.map((k) => `${k.label} [${k.group}]`).join(", ")}`);
     G.rules.set({ freeBuilding: false });
     me.gx = X0 + 4.5; me.gy = Y0 + 3;
