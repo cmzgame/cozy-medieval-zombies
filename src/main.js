@@ -966,7 +966,10 @@ function openActionsMenu(m) {
   // A guest's choice goes to the host by its address and label (net.js, docs/31/05 item 10); the host walks
   // the guest's player there and performs it. Building stays this client's own until it is a command too.
   const guest = net.isGuest();
-  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, card: a.card || null, onSelect: () => (guest && !a.local ? net.sendAct(a.target, a.label) : interact.runAction(client.me, a)) })); // a local action (Inspect) is this client's own
+  const run = (a) => (guest && !a.local ? net.sendAct(a.target, a.label) : interact.runAction(client.me, a)); // a local action (Inspect) is this client's own
+  // Walk here in two steps (Michael, 2026-10-29, #571): the menu's entry puts an outline on the cursor's tile, and the left click walks there.
+  const walkPick = () => placement.beginWalk((tile) => run(interact.walkHere(tile)));
+  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, card: a.card || null, onSelect: () => (a.kind === "floor" && a.label === "Walk here" ? walkPick() : run(a)) }));
   // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
   entries.push({ label: "Build", enabled: !client.me.carrying && !panel.isOpen(), onSelect: toggleBuild });
   entries.push({ label: "Plan", enabled: !client.me.carrying && !panel.isOpen(), onSelect: togglePlanning }); // the Planning tool beside Build (Michael, 2026-10-30)

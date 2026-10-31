@@ -343,6 +343,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-31 — Walk here in two steps (Michael, #571)
+
+Michael (2026-10-29, #571; asked to build 2026-10-31): "Right Click -> 'Walk Here' gives you a tile outline you can move your mouse around and position perfectly, and THEN left click to start the pathing. Right now you don't get this extra click, you path as soon as walk here is clicked." **Ruled and built:** the menu's Walk here puts an outline on the tile under the cursor (white where a body can stand, red with "You can't walk there" where not); the left click walks there, a guest's as the same `act` by the tile's address; Escape or a right click puts it away (`placement.beginWalk`).
+
 ### 2026-10-31 — The portcullis rises and falls in half a second (Michael)
 
 Michael: "The gate opening animation either needs more frames or probably needs to be sped way up. Like 2-3x what it is now in terms of duration." **Ruled:** the castle gates' `wall.gate.swing` from 1.2 to 0.5 seconds (2.4 times as fast), the three frames kept (`42`, Castle gates).
