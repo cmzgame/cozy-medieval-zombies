@@ -67,9 +67,9 @@ function fill(text, title = null) {
 }
 
 // An Inspect done: the card for the prop `id` (its tiles marked), its words `read(prop)`, its title `name` when the words are not "Name: facts".
-export function open({ id, tiles, read, name = null }) {
+export function open({ id, tiles, read, name = null, layer = 0 }) {
   cur = { id, tiles: tiles.map(([x, y]) => [x, y]), read, name, text: null };
-  inspectMark.mark(cur.tiles, Infinity); // marked while the card shows
+  inspectMark.mark(cur.tiles, Infinity, layer); // marked while the card shows, on the thing's own floor
   if (!ensure()) return;
   refresh();
 }

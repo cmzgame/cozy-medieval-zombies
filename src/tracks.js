@@ -31,7 +31,7 @@ export function update(animals) {
     const d = Math.hypot(dx, dy);
     if (d > 6) t.last = [a.gx, a.gy]; // a jump (a frame after a long gap, a snare's catch): no print across it
     else if (d >= R.every) {
-      t.prints.push({ gx: a.gx, gy: a.gy, dx: dx / d, dy: dy / d, at: now, species: a.species });
+      t.prints.push({ gx: a.gx, gy: a.gy, dx: dx / d, dy: dy / d, at: now, species: a.species, layer: a.layer || 0 }); // drawn on its own floor (docs/53 step 4's leftover)
       if (t.prints.length > R.keep) t.prints.shift();
       t.last = [a.gx, a.gy];
     }
