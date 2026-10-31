@@ -7,16 +7,17 @@
     "floor_farm_y": "farm",
     "floor_cobble": "cobble",
     "floor_water": "water",
-  "floor_water_shallow": "laid",
+  "floor_water_shallow": "shallow",
     "floor_wood": "laid",
     "floor_stone": "laid",
     "floor_randomspawn": "laid"
   },
   "terrain": {
-    "dirt":   { "priority": 1, "texture": "ground_dirt", "threshold": [0.15, 0.3], "lip": 0.18, "lipBand": 0.06, "includes": ["cobble", "water"] },
+    "dirt":   { "priority": 1, "texture": "ground_dirt", "threshold": [0.15, 0.3], "lip": 0.18, "lipBand": 0.06, "includes": ["cobble", "water", "shallow"] },
     "farm":   { "priority": 2, "tiles": ["floor_farm", "floor_farm_y"], "threshold": [0.40, 0.12], "lip": 0 },
     "cobble": { "priority": 3, "texture": "ground_cobble", "thresholdAbove": "dirt", "verge": 0.15, "lip": 0.12, "lipBand": 0.06 },
-    "water":  { "priority": 4, "texture": "ground_water", "threshold": [0.40, 0.5], "thresholdAbove": "dirt", "verge": 0.15, "lip": 0.25, "lipBand": 0.07 }
+    "shallow": { "priority": 4, "texture": "ground_shallow", "threshold": [0.3, 0.3], "thresholdAbove": "dirt", "verge": 0.15, "includes": ["water"], "lip": 0, "rim": { "colour": "#6f9a9c", "band": 0.03 }, "bank": { "darken": 0.22, "band": 0.07 }, "note": "the shallows (art round 14b; Michael's #571: \"it needs to tile nicely with dirt, stone, and deep water\"): inside a dirt verge as deep water is, and deep water inside them (`includes` water, so a pond has a shallow margin); `rim` a pale waterline at its edge, `bank` the wet dark earth just outside it" },
+    "water":  { "priority": 5, "texture": "ground_water", "threshold": [0.40, 0.5], "thresholdAbove": "shallow", "verge": 0.12, "lip": 0.25, "lipBand": 0.07 }
   },
   "edgeNoise": "ground_noise",
   "zones": {
@@ -44,7 +45,9 @@
         { "id": "twig", "kind": "perTree", "layer": "flat", "on": ["grass", "dirt"], "count": [0, 2], "radius": 1.2, "files": ["data/art/ground/twig_0.png", "data/art/ground/twig_1.png", "data/art/ground/twig_2.png"] },
         { "id": "pebbles", "layer": "flat", "on": ["grass", "dirt"], "where": "any", "chance": 0.03, "count": [1, 1], "files": ["data/art/ground/pebbles_0.png", "data/art/ground/pebbles_1.png", "data/art/ground/pebbles_2.png"] },
         { "id": "flowers", "layer": "flat", "stand": true, "where": "open", "chance": 0.05, "count": [1, 1], "files": ["data/art/ground/flowers_0.png", "data/art/ground/flowers_1.png", "data/art/ground/flowers_2.png", "data/art/ground/flowers_3.png"] },
-        { "id": "tuft", "layer": "flat", "stand": true, "where": "any", "chance": 0.117, "count": [1, 2], "files": ["data/art/ground/tuft_0.png", "data/art/ground/tuft_1.png", "data/art/ground/tuft_2.png", "data/art/ground/tuft_3.png"] }
+        { "id": "tuft", "layer": "flat", "stand": true, "where": "any", "chance": 0.117, "count": [1, 2], "files": ["data/art/ground/tuft_0.png", "data/art/ground/tuft_1.png", "data/art/ground/tuft_2.png", "data/art/ground/tuft_3.png"] },
+        { "id": "lily", "layer": "flat", "on": ["shallow", "water"], "where": "any", "chance": 0.16, "count": [1, 2], "inset": 0.7, "files": ["data/art/ground/lily_pad_0.png", "data/art/ground/lily_pad_1.png", "data/art/ground/lily_pad_2.png", "data/art/ground/lily_pad_3.png", "data/art/ground/lily_pad_4.png", "data/art/ground/lily_pad_flower_0.png"], "note": "lily pads on the shallows and deep water (art round 14b), kept off the bank by `inset`" },
+        { "id": "waterplant", "layer": "flat", "stand": true, "on": ["shallow"], "where": "shore", "chance": 0.6, "count": [1, 3], "inset": 0.8, "files": ["data/art/ground/reeds_0.png", "data/art/ground/reedmace_0.png", "data/art/ground/arrowhead_0.png", "data/art/ground/sedge_0.png"], "note": "rushes, reedmace, arrowhead, and sedge poking through the shallows at the shore (art round 14b): a shallow tile beside one that is not water" }
       ]
     }
   }
