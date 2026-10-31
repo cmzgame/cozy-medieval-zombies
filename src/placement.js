@@ -978,13 +978,22 @@ function propBuildReason(player, what, tx, ty) {
   return fitReach(player, f) || f.problem || (stations.bodyOnTiles(fitTiles(f), layerOf(player)) ? "Someone is in the way" : "") || shortfall(player, what);
 }
 
+// What a piece offered only with Free building says without it, in its own words where a player would ask which (the wiki sync's finding,
+// 2026-10-30: the stone wall and the battlement said only "Not in the game yet", where cliffs and gates had their own).
+function devRefusal(what) {
+  if (isCliffBuild(what)) return "Cliffs are not in the game yet";
+  if (isBattlementBuild(what)) return "Battlements are not in the game yet";
+  if (buildData[what].kind === "wall" && buildData[what].sprite === "wall_stone") return "Stone walls are not in the game yet";
+  return "Not in the game yet";
+}
+
 function buildBlock(player, what, tx, ty, edge, leaf = "") {
   const L = layerOf(player);
   const existing = map.tileAt(tx, ty, L)[edge];
   const kind = wallKindOf(what);
   const over = buildData[what] && buildData[what].over;
   if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
-  if (buildData[what] && buildData[what].dev && !rules.freeBuilding) return isCliffBuild(what) ? "Cliffs are not in the game yet" : "Not in the game yet"; // Free building only (a guest's command too)
+  if (buildData[what] && buildData[what].dev && !rules.freeBuilding) return devRefusal(what); // Free building only (a guest's command too)
   const land = landformProblem(what, tx, ty, L, edge);
   if (land) return land;
   if (isBattlementBuild(what)) {
