@@ -6244,7 +6244,8 @@ check("planning: a ruler laid and taken up by the commands a guest sends, on the
     const before = said.length;
     placementImport.performPlacement(me, { kind: "plan", ax: 0, ay: 0, bx: 400, by: 0, color: "green" });
     placementImport.performPlacement(me, { kind: "plan", ax: 0, ay: 0, bx: 1, by: 1, color: "orange" });
-    assert(S.plans.length === 2 && said.length === before + 2, `out of bounds laid: ${S.plans.length} plans, ${said.slice(before).join(" / ")}`);
+    placementImport.performPlacement(me, { kind: "plan", ax: 1e15, ay: 0, bx: 1e15, by: 0, color: "blue" });
+    assert(S.plans.length === 2 && said.length === before + 3, `out of bounds laid: ${S.plans.length} plans, ${said.slice(before).join(" / ")}`);
     const hashWith = gameMod.syncParts().plans;
     const save = JSON.parse(JSON.stringify(gameMod.serialize()));
     assert(save.plans.length === 2 && save.planNext === 2, `the save's plans: ${JSON.stringify(save.plans)} next ${save.planNext}`);

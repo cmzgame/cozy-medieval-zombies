@@ -249,6 +249,7 @@ function closeModes() {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  planningPanel.close(); // with the build palette (the review of #617: it stayed over the away screen)
   mapPanel.close();
   mapPanel.forgetDrawn();
   menu.closeContextMenu();
@@ -287,6 +288,7 @@ function afterWorldSet() {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  planningPanel.close(); // with the build palette (the review of #617: it stayed over the away screen)
   mapPanel.close();
   mapPanel.forgetDrawn();
   floatersUi.clear(); // a world put back has none of the last one's numbers
@@ -634,6 +636,7 @@ function toSite(page, data = {}) {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  planningPanel.close(); // with the build palette (the review of #617: it stayed over the away screen)
   mapPanel.close();
   mapPanel.forgetDrawn();
   screens.show(page, data);
@@ -1463,6 +1466,7 @@ async function restoreWorld(snap) {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  planningPanel.close(); // with the build palette (the review of #617: it stayed over the away screen)
   mapPanel.close();
   mapPanel.forgetDrawn();
   floatersUi.clear();

@@ -16,6 +16,7 @@ export function bind(S) {
 export const world = () => W;
 export const MAX_SPAN = 256; // the longest side a plan may have, in tiles
 export const MAX_PLANS = 500; // how many a world keeps
+export const MAX_COORD = 1e6; // no corner farther out than this (the review of #617: a command's corner is the guest's to name)
 
 // "7 tiles", or "5 × 4 tiles (20)".
 export function sizeText(w, h) {
@@ -50,7 +51,7 @@ export function planAt(S, x, y, layer) {
 // Lay a plan from tile (ax, ay) to (bx, by) on `layer` in `color`: its record, or why not.
 export function add(S, ax, ay, bx, by, layer, color) {
   const n = [ax, ay, bx, by].map((v) => Math.round(Number(v)));
-  if (n.some((v) => !Number.isFinite(v)) || !COLORS.includes(color) || !Number.isInteger(layer)) return { why: "Not here" };
+  if (n.some((v) => !Number.isFinite(v) || Math.abs(v) > MAX_COORD) || !COLORS.includes(color) || !Number.isInteger(layer)) return { why: "Not here" };
   const [x0, x1] = [Math.min(n[0], n[2]), Math.max(n[0], n[2])];
   const [y0, y1] = [Math.min(n[1], n[3]), Math.max(n[1], n[3])];
   if (x1 - x0 + 1 > MAX_SPAN || y1 - y0 + 1 > MAX_SPAN) return { why: "Too big to plan" };

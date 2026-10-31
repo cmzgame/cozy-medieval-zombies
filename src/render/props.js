@@ -39,7 +39,7 @@ const GHOST_BAD = [1, 0.5, 0.5, 0.55];
 export const GHOST_FLAGS = () => gl.FLAG_NOFOG | gl.FLAG_UNLIT;
 // The Planning tool's pastels (Michael, 2026-10-30: "think pastel post it notes, yellow blue green purple pink"), as tints for a tile's diamond.
 export const PLAN_RGB = { yellow: [1, 0.93, 0.55], blue: [0.62, 0.84, 1], green: [0.66, 0.94, 0.66], purple: [0.82, 0.72, 1], pink: [1, 0.72, 0.85] };
-export const planTint = (color) => [...(PLAN_RGB[color] || PLAN_RGB.yellow), 0.8];
+export const planTint = (color) => [...(PLAN_RGB[color] || PLAN_RGB.yellow), 1]; // the diamond's own opacity is emitGhostTile's (the review of #617)
 const planEdge = edgeTiles;
 // Every plan on a storey, its edge tiles in its colour (render/scene.js, on top with the ghost).
 export function emitPlans(list) {
