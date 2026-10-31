@@ -2,13 +2,17 @@
 // player has it. Clicking a row enters build mode for it. Two tabs (Michael, 2026-10-28: "Build menu becomes 2: Build, and Terrain"): an
 // entry's `tab` in data/build.json says which, its `group` the small heading it sits under; the Terrain tab is offered only while Free
 // building is on (placement.paletteTabs). The title, the tab bar, Take apart, and the hint stay put; only the list scrolls, and its place is
-// kept across the per-step rebuild. Plain DOM in the UI layer.
+// kept across the per-step rebuild. A search box filters both tabs' rows (Michael, 2026-10-30: "if I search "stone" and close the build menu, I
+// want it to still be filtered to that until I log off or change it"): the words typed, each found in a row's name, heading, or id, kept in this
+// tab's sessionStorage, so it outlives the palette shut and a reload and ends with the tab. This client's own; nothing reaches the world. Plain
+// DOM in the UI layer.
 
 import * as placement from "../placement.js";
 
 let root = null;
 let titleEl = null;
 let tabsEl = null;
+let searchEl = null;
 let listEl = null;
 let footEl = null;
 let hintEl = null;
@@ -24,6 +28,22 @@ let uiHeight = 0; // the UI's height in UI px, read again after a resize
 window.addEventListener("resize", () => { uiHeight = 0; });
 let seenActive = null; // the mode's row at the last render
 
+// The search, kept for the browser tab's life (sessionStorage; a page whose storage is blocked keeps it in memory alone).
+const SEARCH_KEY = "cmz.buildSearch";
+let query = "";
+try { query = sessionStorage.getItem(SEARCH_KEY) || ""; } catch { /* no storage: this page's alone */ }
+function setQuery(q) {
+  query = q;
+  try { if (q) sessionStorage.setItem(SEARCH_KEY, q); else sessionStorage.removeItem(SEARCH_KEY); } catch { /* no storage */ }
+}
+// Whether a row is shown under the search: every word typed is found in its name, its heading, or its id.
+function matches(k) {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const text = `${k.label || ""} ${k.group || ""} ${k.id}`.toLowerCase();
+  return words.every((w) => text.includes(w));
+}
+
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 
 export function initBuildPalette(handlers = {}) {
@@ -31,9 +51,32 @@ export function initBuildPalette(handlers = {}) {
   root = document.createElement("div");
   root.id = "build-palette";
   root.hidden = true;
-  root.innerHTML = '<div class="bp-title">Build menu</div><div class="bp-tabs"></div><div class="bp-list"></div><div class="bp-foot"></div><div class="bp-hint"></div>';
+  root.innerHTML = '<div class="bp-title">Build menu</div><div class="bp-tabs"></div><input class="bp-search" type="search" placeholder="Search" autocomplete="off" spellcheck="false"><div class="bp-list"></div><div class="bp-foot"></div><div class="bp-hint"></div>';
   titleEl = root.querySelector(".bp-title");
   tabsEl = root.querySelector(".bp-tabs");
+  searchEl = root.querySelector(".bp-search");
+  searchEl.value = query;
+  // Keys typed here never reach the game (as the chat box's): Escape leaves the box, Enter picks the first row shown.
+  searchEl.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.code === "Escape") {
+      e.preventDefault(); // a search field's Escape would clear it: the search stays until it is changed
+      searchEl.blur();
+    }
+    else if (e.code === "Enter") {
+      const first = listEl.querySelector(".bp-row");
+      searchEl.blur();
+      if (first) {
+        lastPicked = first.dataset.kind;
+        onPick(first.dataset.kind);
+      }
+    }
+  });
+  searchEl.addEventListener("input", () => {
+    setQuery(searchEl.value);
+    listEl.scrollTop = 0;
+    render(lastPlayer);
+  });
   listEl = root.querySelector(".bp-list");
   footEl = root.querySelector(".bp-foot");
   hintEl = root.querySelector(".bp-hint");
@@ -72,9 +115,15 @@ export function openPalette(player) {
 
 export function close() {
   if (open && listEl) scrollOf[shownTab] = listEl.scrollTop;
+  if (searchEl && document.activeElement === searchEl) searchEl.blur(); // the box gives the keys back
   open = false;
   seenActive = null;
   if (root) root.hidden = true;
+}
+
+// The search typed, kept until it is changed or the tab is closed (for the checks).
+export function search() {
+  return query;
 }
 
 // The tab shown now (for the checks).
@@ -115,7 +164,7 @@ export function render(player) {
   const tabs = placement.paletteTabs();
   const shown = tabs.some((t) => t.id === tab) ? tab : tabs.length ? tabs[0].id : "build"; // the Terrain tab goes with Free building: the remembered one stays, and comes back with it
   shownTab = shown;
-  const kinds = placement.paletteKinds().filter((k) => placement.tabOf(k) === shown);
+  const kinds = placement.paletteKinds().filter((k) => placement.tabOf(k) === shown && matches(k));
   // Under small headings (an entry's `group`), in the order they first appear; an entry with none sits at the top.
   const groups = new Map();
   for (const k of kinds) {
@@ -131,7 +180,7 @@ export function render(player) {
     const right = sw ? `<span class="bp-sw" style="background:${esc(sw)}"></span>` : `<span class="bp-cost">${placement.costText(k.id)}</span>`;
     return `<div class="bp-row${short ? " short" : ""}${active === k.id ? " active" : ""}" data-kind="${k.id}" title="${esc(k.label)}: ${esc(short || how)}"><span class="bp-name">${esc(k.label)}</span>${right}</div>${leaf}`;
   };
-  const list = [...groups].map(([g, ks]) => (g ? `<div class="bp-group">${esc(g)}</div>` : "") + ks.map(rowHtml).join("")).join("");
+  const list = [...groups].map(([g, ks]) => (g ? `<div class="bp-group">${esc(g)}</div>` : "") + ks.map(rowHtml).join("")).join("") || `<div class="bp-none">Nothing here matches “${esc(query.trim())}”</div>`;
   const remove = shown === "build" ? '<div class="bp-row bp-remove" data-kind="__remove" title="Take apart: highlights what you made or built; click to take it apart for half its materials (docs/43)"><span class="bp-name">Take apart</span><span class="bp-cost">X</span></div>' : "";
   const hint = shown === "terrain" ? "Click one, then click or drag on the ground to paint. N or Esc to close." : "Click one, then click the ground. N or Esc to close.";
   const keep = listEl.scrollTop;
