@@ -10,6 +10,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 - Height is one unit, world pixels above the ground, with one walk for sight, the dead, and flights; shooting down and up from any storey; the picture hides what is in the way and never fades: the storeys over your room and any slab covering your body are not drawn, your room's camera-side walls are cut to a stub at the floor with their doors and windows drawn whole at low opacity; a plateau never hides; items fall to the first floor below, bodies never (2026-10-30, Height ruled, on `53`).
 - The castle gates break, at about three doors' hit points (2026-10-30, Height ruled; strikes the 2026-10-29 gate ruling's "the dead cannot break it").
+- Everything in the build menu is built at once: every `seconds` in `data/build.json` is 0, for building the map by hand (2026-10-30, Build times 0).
 - Mountains are built in tiers up to the storey cap, of hill pieces on dirt, grass, or other hills alone; they are the map's, never a player's; no player-built floor, stair, or ladder reaches a hill's top (2026-10-30, Mountains in tiers; strikes Height ruled's "hills on hills refused for now").
 - Towers climb by ladders: players build a one-tile ladder, climbed by E, the dead ignore it; stairs come up with Free building when nobody is cut off; the storey cap is 6 (2026-10-30, Height ruled).
 - A cave is a dark room under a plateau, its opening a gap in the cliff; the cliff top gets textured art and the stone floor blends into grass and dirt, an art round (2026-10-30, Height ruled).
@@ -336,6 +337,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-30 — Build times 0: everything in the build menu is built at once (Michael)
+
+Michael: "Everything is still taking forever to build. Can you drop the build times of everything to 0? Waiting forever for each wall segment is going to make slow map building." **Ruled:** every `seconds` in `data/build.json` is 0 (walls, doors, windows, fences, gates, the stone and round walls, the fires, floors, stairs, ladders, the cliff pieces), so a build is done the moment the player is in reach, with no bar, host and guest alike, Free building or not. The numbers stay data: a later ruling puts a time back on a piece by its `seconds`. Nothing else timed is touched (boarding a window, repairs, the stations' recipes, gathering).
 
 ### 2026-10-30 — Mountains in tiers; hills only on dirt, grass, or hills; no player-built way up (Michael, on #607's default)
 
