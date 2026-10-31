@@ -486,7 +486,7 @@ One per skill, teaching recipes and unlocks as you level [to build]; which villa
 - **As built:** idle, wander on a tether, answer a poke with a bark, bark unprompted, talk in a click-only panel, stop and face the talker [built].
 - **Reacting to the dead:** cowering, arms up with a "!", then a short run, standing wary, and the walk back (`docs/43` section 7) [built]; hiding or fleeing indoors, with a bark [open #103].
 - **Routines** (a bed at night, a station by day) [to build, #103].
-- **Follow and stay** [open #103]: kept as the companion's commands (#289).
+- ~~**Follow and stay** [open #103]~~: struck 2026-10-31, `02` "Villagers never follow or stay"; the companion's commands (#289) are its own.
 - **Bags** [to build, #103].
 - **Scripted sequences and in-world cutscenes** [open #106].
 - **Villagers who remember:** after 1.0 (`docs/05`).
@@ -1004,7 +1004,7 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **#217:** the basic lore, the story's spine and the world's names, paired with #92 and taken first.
 - **The rucksack has no source**: leather and woollen cloth are made since #445, and the rucksack's own recipe (`docs/39` above: four leather, four woollen cloth, two spruce planks, the satchel) waits for its build with the skills (#260's ruling; the satchel and a set-down bag are #400).
 - **#92:** the map redrawn (the map as it stands is a testing map) and roomier interiors; the names; how many villagers; the gloom's door; which villager teaches which skill (from #275).
-- **#103:** reactions to the dead beyond the cowering; follow and stay (every villager immune is ruled, 2026-10-28).
+- **#103:** reactions to the dead beyond the cowering (every villager immune is ruled, 2026-10-28; follow and stay struck 2026-10-31, `02` "Villagers never follow or stay").
 - **#106:** scripting and in-world cutscenes.
 - **#123:** a dead-free first day and the curve; whether the dead stay slow; the infection's effects.
 - **#133:** armour, resistances, the bite, max health from gear, the difficulty numbers.

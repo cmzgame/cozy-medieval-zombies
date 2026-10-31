@@ -190,7 +190,7 @@ function shotLines(def) {
     out.push(line(`Throw (middle button or Q): shatters where it lands, up to ${tiles(th.range ?? shot.range)}, splashing ${tiles(r * 2)} across.`));
     if (def.potion === "heal") out.push(line(`Heals ${POTIONS.heal} at once in every player and villager it splashes.`));
     else if (def.potion === "stamina") out.push(line(`Fills stamina in every player it splashes, coming back ${POTIONS.staminaMult === 2 ? "twice" : `${POTIONS.staminaMult} times`} as fast for ${POTIONS.staminaSeconds} seconds.`));
-    else if (def.potion === "mana") out.push(line(`Restores ${POTIONS.mana} mana at once in every player and villager it splashes.`));
+    else if (def.potion === "mana") out.push(line(`Restores ${POTIONS.mana} mana at once in every player it splashes.`)); // a villager has no mana (the wiki sync's finding, 2026-10-30)
     else if (def.poison) out.push(line(`Splashes every one of the dead and every wild animal within reach; never a player, a villager, or a tame animal.`));
     if (def.potion) out.push(line(`A splash counts as a drink: a player within ${POTIONS.between} seconds of one gets nothing from it.`));
   }
