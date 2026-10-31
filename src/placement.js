@@ -687,7 +687,7 @@ const gateEdges = (what, tx, ty, edge) => {
 };
 // Why a castle gate may not be built on the run that begins at (tx, ty, edge) now, or "" (the host's and a guest's alike).
 function gateBlock(player, what, tx, ty, edge) {
-  if (!rules.freeBuilding) return "Castle gates are not in the game yet"; // Free building only (a guest's command too)
+  if (!rules.freeBuilding) return (map.wallRule(buildData[what].sprite).gate || {}).always === "open" ? "Stone arches are not in the game yet" : "Castle gates are not in the game yet"; // Free building only (a guest's command too)
   const L = layerOf(player);
   const why = map.gateProblem(tx, ty, edge, buildData[what].sprite, L);
   if (why) return why;
