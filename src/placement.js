@@ -1764,6 +1764,16 @@ export function tryConfirm(player) {
   if (state.kind === "build") {
     const g = state.ghost;
     if (!g) return false;
+    if (g.kind === "ruler") {
+      // The ruler: the press starts a measure at the tile under the cursor (update keeps it while held, and shown after the release);
+      // it builds nothing, so a build under way does not stop it (the review of #615).
+      const at = cursorGrid(player);
+      const t = [Math.round(at.gx), Math.round(at.gy)];
+      state.build.from = t;
+      state.build.to = t;
+      state.build.measure = null;
+      return true;
+    }
     if (player.action) return true; // one build at a time
     if (g.kind === "round") {
       // A ring: built where the ghost stands, centred on the cursor (a guest's a `build` command naming its square's corner and size).
@@ -1773,15 +1783,6 @@ export function tryConfirm(player) {
       }
       if (sender) sender({ kind: "build", what: g.wallKind, tx: g.x0, ty: g.y0, size: g.n });
       else startRoundBuild(player, g.wallKind, g.x0, g.y0, g.n);
-      return true;
-    }
-    if (g.kind === "ruler") {
-      // The ruler: the press starts a measure at the tile under the cursor (update keeps it while held, and shown after the release).
-      const at = cursorGrid(player);
-      const t = [Math.round(at.gx), Math.round(at.gy)];
-      state.build.from = t;
-      state.build.to = t;
-      state.build.measure = null;
       return true;
     }
     if (g.kind === "floor") {

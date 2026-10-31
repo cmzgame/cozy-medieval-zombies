@@ -64,7 +64,7 @@ export function initBuildPalette(handlers = {}) {
       searchEl.blur();
     }
     else if (e.code === "Enter") {
-      const first = listEl.querySelector(".bp-row");
+      const first = listEl.querySelector('.bp-row:not([data-kind="ruler"])'); // a piece to build, never the ruler (the review of #615)
       searchEl.blur();
       if (first) {
         lastPicked = first.dataset.kind;
