@@ -213,6 +213,11 @@ export const cover = {
   openingAlpha: 0.3,
   fogAlpha: 0.36,
   seenAlpha: 0.5, // a body seen but covered (a cliff, a plateau, a wall in front of it) shows its shape over what covers it, in Object Highlight's colour at this opacity
+  // The cutaway (Michael, 2026-10-30, render/cutaway.js): a wall standing between the camera and the viewer, or the build cursor, is cut to the
+  // stub, indoors or out, when it stands within `cutReach` of the point toward the camera (in tile sums: a 96 px wall covers six) and `cutWidth`
+  // of it across the screen (in tile differences: 32 px each).
+  cutReach: 7,
+  cutWidth: 4,
 };
 
 // Object Highlight (#301; src/highlight.js, render/highlight.js): the outline round the game object under the cursor. `color` is the flat colour of the one-pixel outline (a soft

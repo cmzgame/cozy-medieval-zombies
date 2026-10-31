@@ -47,6 +47,7 @@ const CONTROLS = [
   ]],
   ["Building", [
     ["N", "Build menu: walls, doors, windows"],
+    ["H", "With the build menu open: walls down, every wall on your floor cut to its foot (again to raise them)"],
     ["X", "Take apart: highlights what you built or made; click to take it apart for half its materials"],
     ["R / wheel", "Turn what you are placing, or the item you are dragging"],
     ["B", "Board up the nearest opening; hold to pull a board"],

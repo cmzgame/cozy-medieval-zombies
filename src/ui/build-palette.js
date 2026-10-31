@@ -182,7 +182,7 @@ export function render(player) {
   };
   const list = [...groups].map(([g, ks]) => (g ? `<div class="bp-group">${esc(g)}</div>` : "") + ks.map(rowHtml).join("")).join("") || `<div class="bp-none">Nothing here matches “${esc(query.trim())}”</div>`;
   const remove = shown === "build" ? '<div class="bp-row bp-remove" data-kind="__remove" title="Take apart: highlights what you made or built; click to take it apart for half its materials (docs/43)"><span class="bp-name">Take apart</span><span class="bp-cost">X</span></div>' : "";
-  const hint = shown === "terrain" ? "Click one, then click or drag on the ground to paint. Esc puts it down; N closes." : "Click one, then click the ground. Esc puts it down; N closes.";
+  const hint = shown === "terrain" ? "Click one, then click or drag on the ground to paint. Esc puts it down; N closes; H walls down." : "Click one, then click the ground. Esc puts it down; N closes; H walls down.";
   const keep = listEl.scrollTop;
   set(tabsEl, tabs.length > 1 ? tabs.map((t) => `<button type="button" class="bp-tab${t.id === shown ? " on" : ""}" data-tab="${t.id}">${esc(t.label)}</button>`).join("") : "");
   tabsEl.hidden = tabs.length <= 1;
