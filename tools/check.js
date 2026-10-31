@@ -7584,6 +7584,8 @@ check("round rooms, step 6: the round stone wall is in the palette only with Fre
     rulesImport.set({ freeBuilding: true });
     assert(placementImport.paletteKinds().some((k) => k.id === "round_stone") && placementImport.costText("round_stone") === "free", "the palette does not offer it free with Free building");
     assert(placementImport.performPlacement(me, { kind: "build", what: "round_stone", tx: 2, ty: 2, size: 6 }) === false, "a size of 6 was taken");
+    // Each size its own entry (Michael, 2026-10-30): a command naming the other size is refused.
+    assert(placementImport.performPlacement(me, { kind: "build", what: "round_stone", tx: 2, ty: 2, size: 7 }) === false && placementImport.performPlacement(me, { kind: "build", what: "round_stone_7", tx: 2, ty: 2, size: 5 }) === false, "a size other than its entry's was taken");
     placementImport.performPlacement(me, { kind: "build", what: "round_stone", tx: 2, ty: 2, size: 5 });
     me.action = null;
     const r = mapMod.ringAt(4, 4);
@@ -7593,6 +7595,15 @@ check("round rooms, step 6: the round stone wall is in the palette only with Fre
     rulesImport.set({ freeBuilding: true });
     placementImport.performPlacement(me, { kind: "remove", target: { type: "round", id: r.id } });
     assert(!mapMod.ringById(r.id) && !mapMod.tileAt(3, 2).n && !mapMod.curveCrossed(3, 2), `taken apart: "${said[said.length - 1]}"`);
+    placementImport.performPlacement(me, { kind: "build", what: "round_stone_7", tx: 1, ty: 1, size: 7 });
+    me.action = null;
+    const r7 = mapMod.ringAt(4, 4);
+    assert(r7 && r7.n === 7 && placementImport.costText("round_stone_7") === "free", `the 7 across, its own entry: ${JSON.stringify(r7 && [r7.x0, r7.y0, r7.n])} "${said[said.length - 1]}"`);
+    rulesImport.set({ freeBuilding: false });
+    assert(placementImport.costText("round_stone_7") === "56 stones" && placementImport.costText("round_stone") === "40 stones" && JSON.stringify(placementImport.partsOf({ type: "round", ring: { ...r7, free: false } }).back) === '[{"id":"stone","count":28}]', `the 7's cost ${placementImport.costText("round_stone_7")}, the 5's ${placementImport.costText("round_stone")}, and the 7's back ${JSON.stringify(placementImport.partsOf({ type: "round", ring: { ...r7, free: false } }).back)}`);
+    rulesImport.set({ freeBuilding: true });
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "round", id: r7.id } });
+    assert(!mapMod.ringById(r7.id), `the 7 taken apart: "${said[said.length - 1]}"`);
     me.gx = 24;
     me.gy = 9;
     placementImport.performPlacement(me, { kind: "remove", target: { type: "round", id: "round_0_21_0" } });

@@ -115,10 +115,14 @@ export function paletteKinds() {
 
 // ---- round rooms (docs/50 section 5; Michael, 2026-10-27: "A few on the map, buildable by dev settings, otherwise not in the game yet
 // until we settle on cost, etc.") ----
-// A palette entry of `kind` round builds a ring of its sprite (stone only), 5 or 7 across: the ghost's square starts at the tile where the
-// press began and grows to 7 as the drag goes out; the release builds it. Its cost is its entry's `cost` for each edge of the outline (20 at
-// 5, 28 at 7), never charged while Free building is on, the only time it is offered.
+// A palette entry of `kind` round builds a ring of its sprite (stone only) its `size` across, 5 or 7, each size its own entry (Michael,
+// 2026-10-30: a drag out to 7 built on the release, before the ring could be put where it was wanted): the ghost's square is centred on the
+// tile under the cursor and a click builds it. Its cost is its entry's `cost` for each edge of the outline (20 at 5, 28 at 7), never charged
+// while Free building is on, the only time it is offered.
 export const isRoundBuild = (what) => !!(buildData[what] && buildData[what].kind === "round");
+const roundSizeOf = (what) => (buildData[what] && buildData[what].size) || 5;
+// The palette entry a ring was built from: its sprite and its size.
+const roundEntryOf = (ring) => Object.keys(buildData).find((k) => isRoundBuild(k) && buildData[k].sprite === ring.sprite && roundSizeOf(k) === ring.n);
 
 // What a ring costs: its entry's cost for each edge it lays (one already walled is taken in, free), or for a whole outline when no square is named
 // (the palette's row).
@@ -136,12 +140,10 @@ function roundShortfall(player, what, n, at = null) {
   return "";
 }
 
-// The ring's square for a drag from `from` to `to` (tiles): 7 once the drag covers seven tiles either way, else 5; the square on the drag's side.
-export function roundSquare(from, to) {
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
-  const n = Math.max(Math.abs(dx), Math.abs(dy)) + 1 >= 7 ? 7 : 5;
-  return { x0: dx < 0 ? from[0] - n + 1 : from[0], y0: dy < 0 ? from[1] - n + 1 : from[1], n };
+// The ring's square, `n` across, centred on the tile `at`.
+export function roundSquare(at, n) {
+  const h = (n - 1) / 2;
+  return { x0: at[0] - h, y0: at[1] - h, n };
 }
 
 // The ring's walls and its curve as ground segments: what no body may stand across when it goes up.
@@ -200,9 +202,9 @@ function roundGhost(player, what) {
   if (!m.inside) return null;
   const g = iso.toGrid(m.x, m.y);
   const cur = [Math.round(g.gx), Math.round(g.gy)];
-  const { x0, y0, n } = roundSquare(state.build.from || cur, cur);
+  const { x0, y0, n } = roundSquare(cur, roundSizeOf(what));
   const reason = roundReason(player, what, x0, y0, n);
-  return { kind: "round", wallKind: what, x0, y0, n, layer: player.layer || 0, sprite: buildData[what].sprite, ok: reason === "", reason, dragging: !!state.build.from };
+  return { kind: "round", wallKind: what, x0, y0, n, layer: player.layer || 0, sprite: buildData[what].sprite, ok: reason === "", reason };
 }
 
 // The ring built, timed as a wall is: nothing spent until the bar completes, everything checked again then.
@@ -216,7 +218,7 @@ function startRoundBuild(player, what, x0, y0, n) {
     mx: near.mx,
     my: near.my,
     range: buildReach() + 0.6,
-    duration: (d.seconds || 0) * (n === 7 ? 1.4 : 1),
+    duration: d.seconds || 0,
     enabled: true,
     simple: false,
     perform() {
@@ -235,7 +237,7 @@ function startRoundBuild(player, what, x0, y0, n) {
 
 // What a ring gives back taken apart: half its edges' cost (none if it was free), and its doors' and windows' as they would give alone.
 function ringParts(ring) {
-  const what = Object.keys(buildData).find((k) => isRoundBuild(k) && buildData[k].sprite === ring.sprite);
+  const what = roundEntryOf(ring);
   const per = what ? buildData[what].cost || {} : {};
   const s = round.shape(ring.x0, ring.y0, ring.n);
   const total = {};
@@ -769,7 +771,7 @@ function noun(id, n) {
 // "1 log", "3 planks", or "free".
 export function costText(what) {
   const cost = costOf(what);
-  if (isRoundBuild(what) && Object.keys(cost).length) return Object.entries(cost).map(([id, k]) => `${k * 20} or ${k * 28} ${noun(id, 2)}`).join(", "); // 5 or 7 across: an edge each
+  if (isRoundBuild(what)) return Object.entries(roundCost(what, roundSizeOf(what))).map(([id, k]) => `${k} ${noun(id, k)}`).join(", ") || "free"; // an edge each
   const parts = Object.entries(cost).map(([id, n]) => `${n} ${noun(id, n)}`);
   return parts.length ? parts.join(", ") : "free";
 }
@@ -782,7 +784,7 @@ export function toolProblem(player, verb) {
 
 // The first thing the player lacks for a build, as "You need a smith's hammer." or "Need 3 planks", or "".
 export function shortfall(player, what) {
-  if (isRoundBuild(what)) return roundShortfall(player, what, 5); // the palette's row: what the smaller one needs
+  if (isRoundBuild(what)) return roundShortfall(player, what, roundSizeOf(what)); // the palette's row: a whole outline of its size
   const tool = buildData[what] && buildData[what].tool;
   const noTool = tool ? toolProblem(player, tool) : null;
   if (noTool) return noTool;
@@ -1127,7 +1129,6 @@ export function update(player) {
   else if (state.kind === "torch") state.ghost = torchGhost(player);
   else if (state.kind === "build") {
     state.ghost = buildGhost(player);
-    if (state.build && state.build.from && !input.mouseLeftDown()) finishRound(player); // a ring's drag released: build it (docs/50 section 5)
   }
   else if (state.kind === "remove") state.ghost = removeGhost(player);
   else state.ghost = null;
@@ -1319,8 +1320,8 @@ function targetName(t) {
     return d ? d.label.toLowerCase() : "floor";
   }
   if (t.type === "round") {
-    const what = Object.keys(buildData).find((k) => isRoundBuild(k) && buildData[k].sprite === t.ring.sprite);
-    return what ? buildData[what].label.toLowerCase() : "round wall";
+    const what = roundEntryOf(t.ring);
+    return what ? buildData[what].label.replace(/ \(.*\)$/, "").toLowerCase() : "round wall"; // its name without its size
   }
   if (!t.wall) return "nothing";
   const d = buildEntryOf(t.wall);
@@ -1722,8 +1723,18 @@ export function tryConfirm(player) {
     const g = state.ghost;
     if (!g) return false;
     if (player.action) return true; // one build at a time
-    if (g.kind === "round" || g.kind === "floor") {
-      // A ring, or a floor's rectangle: the press starts the drag at the tile under the cursor; the release builds what the ghost shows then (update).
+    if (g.kind === "round") {
+      // A ring: built where the ghost stands, centred on the cursor (a guest's a `build` command naming its square's corner and size).
+      if (!g.ok) {
+        showMessage(g.reason);
+        return true;
+      }
+      if (sender) sender({ kind: "build", what: g.wallKind, tx: g.x0, ty: g.y0, size: g.n });
+      else startRoundBuild(player, g.wallKind, g.x0, g.y0, g.n);
+      return true;
+    }
+    if (g.kind === "floor") {
+      // A floor's rectangle: the press starts the drag at the tile under the cursor; the release builds what the ghost shows then (update).
       if (!state.build.from) {
         const at = cursorGrid(player);
         state.build.from = [Math.round(at.gx), Math.round(at.gy)];
@@ -1767,20 +1778,6 @@ export function tryConfirm(player) {
     return true;
   }
   return false;
-}
-
-// A ring's drag released: the ghost as it stands is built (a guest's a `build` command naming its square's corner and size), or refused
-// with why; either way the drag is over and the mode stays, for the next.
-function finishRound(player) {
-  const g = state.ghost;
-  state.build.from = null;
-  if (!g || g.kind !== "round") return;
-  if (!g.ok) {
-    showMessage(g.reason);
-    return;
-  }
-  if (sender) sender({ kind: "build", what: g.wallKind, tx: g.x0, ty: g.y0, size: g.n });
-  else startRoundBuild(player, g.wallKind, g.x0, g.y0, g.n);
 }
 
 // A removal target as an address: a prop by id, a wall by its edge.
@@ -1911,7 +1908,7 @@ export function performPlacement(player, cmd) {
     const tx = Math.round(Number(cmd.tx));
     const ty = Math.round(Number(cmd.ty));
     const n = Math.round(Number(cmd.size));
-    if (!Number.isFinite(tx) || !Number.isFinite(ty) || !round.validSize(n)) return false;
+    if (!Number.isFinite(tx) || !Number.isFinite(ty) || !round.validSize(n) || n !== roundSizeOf(cmd.what)) return false; // the entry's own size
     if (player.action) return true;
     const why = roundReason(player, cmd.what, tx, ty, n);
     if (why) {
@@ -2116,7 +2113,7 @@ export function prompt() {
   if (g.kind === "round") {
     const [mx, my] = [g.x0 + (g.n - 1) / 2, g.y0 + (g.n - 1) / 2];
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
-    return { label: g.dragging ? `Release to build ${g.n} across (${costText(g.wallKind)}) · Esc cancel` : "Press and drag out for 7 across · Esc cancel", mx, my, progress: null, enabled: true };
+    return { label: `Click to build ${g.n} across (${costText(g.wallKind)}) · Esc cancel`, mx, my, progress: null, enabled: true };
   }
   const [mx, my] = map.edgeMid(g.tx, g.ty, g.edge);
   if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
