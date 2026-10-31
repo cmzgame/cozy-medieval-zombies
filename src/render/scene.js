@@ -257,8 +257,8 @@ export function renderScene(args) {
     emitGround(tiles);
     if (grid) emitGrid(tiles);
     emitRugs(tiles); // after the ground, before every standing drawable: the rugs lie under what stands on them (#327)
-    if (tileMark) emitTileMark(tileMark); // on the ground: whatever stands on or before the tile is drawn over it
-    if (tracks && tracks.length) emitTracks(tracks, drawAll ? null : seenOn(0)); // game's prints, on the ground and in sight
+    if (tileMark && !tileMark.layer) emitTileMark(tileMark); // on the ground: whatever stands on or before the tile is drawn over it
+    if (tracks && tracks.length) emitTracks(tracks.filter((p) => !p.layer), drawAll ? null : seenOn(0)); // game's prints, on the ground and in sight
   }
   const holes = [];
   let translucent = 0;
@@ -293,6 +293,12 @@ export function renderScene(args) {
           if (markFloor) gl.setMark(null);
         }
         flatHere(() => emitRugs(tilesL)); // on the floor's plane, just over it (docs/53 step 6)
+        // An Inspect's mark and game's prints on this storey's floor, as the ground's are on the ground (docs/53 step 4's leftover, 2026-10-31).
+        if (tileMark && tileMark.layer === L) flatHere(() => emitTileMark(tileMark));
+        if (tracks && tracks.length) {
+          const here = tracks.filter((p) => p.layer === L);
+          if (here.length) flatHere(() => emitTracks(here, drawAll ? null : seenOn(L)));
+        }
       }
       const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
       setViewerAt(player && L === VL ? { x: Math.round(player.gx), y: Math.round(player.gy), layer: L } : null); // a near battlement fades where the viewer stands behind it (art round 13)

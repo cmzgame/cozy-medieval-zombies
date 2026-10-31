@@ -913,7 +913,7 @@ function inspectCropAction(prop, base) {
     range: INSPECT_RANGE,
     local: true,
     perform() {
-      inspectCard.open({ id: prop.id, tiles: prop.tiles, read: (p) => (p.crop ? cropReport(p) : "") });
+      inspectCard.open({ id: prop.id, tiles: prop.tiles, layer: prop.layer || 0, read: (p) => (p.crop ? cropReport(p) : "") });
       return true;
     },
   });
@@ -931,7 +931,7 @@ function inspectSaplingAction(prop) {
     range: INSPECT_RANGE,
     local: true,
     perform() {
-      inspectCard.open({ id: prop.id, tiles: prop.tiles, name: "Sapling", read: (p) => (p.sapling ? trees.report(p) : "") });
+      inspectCard.open({ id: prop.id, tiles: prop.tiles, layer: prop.layer || 0, name: "Sapling", read: (p) => (p.sapling ? trees.report(p) : "") });
       return true;
     },
   });
