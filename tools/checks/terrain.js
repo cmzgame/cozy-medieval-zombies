@@ -45,11 +45,8 @@ export async function run(game) {
   const rect = (el) => el.getBoundingClientRect();
   const overlap = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
   const rowsOf = () => [...listEl().querySelectorAll(".bp-row")];
-  // The pieces and their headings, the ruler's Tools row on every tab left out (Michael, 2026-10-30; its own row below).
-  const names = () => rowsOf().filter((r) => r.dataset.kind !== "ruler").map((r) => r.querySelector(".bp-name").textContent);
-  const groups = () => [...listEl().querySelectorAll(".bp-group")].map((g) => g.textContent).filter((g) => g !== "Tools");
-  const firstRow = () => { const r = rowsOf()[0]; return r ? r.dataset.kind : null; };
-  const firstGroup = () => { const g = listEl().querySelector(".bp-group"); return g ? g.textContent : null; };
+  const names = () => rowsOf().map((r) => r.querySelector(".bp-name").textContent);
+  const groups = () => [...listEl().querySelectorAll(".bp-group")].map((g) => g.textContent);
   try {
     G.screens.hide();
     G.loop.setPaused(true);
@@ -70,9 +67,7 @@ export async function run(game) {
     const buildGroups = groups();
     const buildNames = names();
     row("Build holds walls, openings, props, floors, stairs, and the castle's gates under four headings, with Take apart; the cliffs and the ground are not here", buildGroups.join() === "Walls and openings,Props,Floors and stairs,Castle" && buildNames.includes("Log wall") && buildNames.includes("Door") && buildNames.includes("Plank floor") && buildNames.includes("Stone stair") && buildNames.includes("Stone gate (2 wide)") && buildNames.includes("Stone gate (3 wide)") && !buildNames.some((n) => /Cliff|ramp|Grass|Dirt|Water/.test(n)) && !palEl().querySelector(".bp-foot").hidden, `${buildGroups.join(" | ")}; ${buildNames.length} rows`);
-    const rulerBuild = [firstGroup(), firstRow()];
     tabBtns[1].click();
-    row("the Ruler is the first row of both tabs, under Tools (Michael, 2026-10-30)", rulerBuild.join() === "Tools,ruler" && firstGroup() === "Tools" && firstRow() === "ruler", `Build ${rulerBuild.join(" ")}; Terrain ${firstGroup()} ${firstRow()}`);
     const terrNames = names();
     row("a click on Terrain shows the ground's surfaces, the water, and the landforms, each under its heading, with no Take apart", groups().join() === "Ground,Water,Landforms" && terrNames.join() === "Grass,Dirt,Cobblestone,Random spawn,Shallow water,Water,Cliff wall,Grassy cliff wall,Cliff top,Grassy cliff top,Stone ramp" && palEl().querySelector(".bp-foot").hidden && bp.currentTab() === "terrain", `${groups().join(" | ")}; ${terrNames.join(", ")}`);
     const sw = [...listEl().querySelectorAll(".bp-sw")].map((e) => e.style.background);

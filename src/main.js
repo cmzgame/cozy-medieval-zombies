@@ -84,6 +84,8 @@ import * as placement from "./placement.js";
 import * as woods from "./woods.js"; // the woods: a door or window of another wood than its wall (#334)
 import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
+import * as planningPanel from "./ui/planning-panel.js"; // the Planning tool's panel (Michael, 2026-10-30)
+import { initPlanLabels, updatePlanLabels } from "./ui/plan-labels.js"; // each plan's size, on it
 import * as mapPanel from "./ui/map-panel.js";
 import * as shell from "./boot.js";
 import { createDevApi } from "./dev.js";
@@ -247,6 +249,7 @@ function closeModes() {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  planningPanel.close(); // with the build palette (the review of #617: it stayed over the away screen)
   mapPanel.close();
   mapPanel.forgetDrawn();
   menu.closeContextMenu();
@@ -285,6 +288,7 @@ function afterWorldSet() {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  planningPanel.close(); // with the build palette (the review of #617: it stayed over the away screen)
   mapPanel.close();
   mapPanel.forgetDrawn();
   floatersUi.clear(); // a world put back has none of the last one's numbers
@@ -632,6 +636,7 @@ function toSite(page, data = {}) {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  planningPanel.close(); // with the build palette (the review of #617: it stayed over the away screen)
   mapPanel.close();
   mapPanel.forgetDrawn();
   screens.show(page, data);
@@ -964,6 +969,7 @@ function openActionsMenu(m) {
   const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, card: a.card || null, onSelect: () => (guest && !a.local ? net.sendAct(a.target, a.label) : interact.runAction(client.me, a)) })); // a local action (Inspect) is this client's own
   // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
   entries.push({ label: "Build", enabled: !client.me.carrying && !panel.isOpen(), onSelect: toggleBuild });
+  entries.push({ label: "Plan", enabled: !client.me.carrying && !panel.isOpen(), onSelect: togglePlanning }); // the Planning tool beside Build (Michael, 2026-10-30)
   const u = view.toUi(m.x, m.y);
   menu.openContextMenu(u.x, u.y, entries);
 }
@@ -1013,6 +1019,10 @@ function handleEscape() {
   if (stationPanel.close()) return;
   if (talkPanel.close()) return; // Escape closes a conversation in the panels' order
   if (navRow.closeSkills()) return;
+  if (planningPanel.isOpen()) {
+    closePlanning();
+    return;
+  }
   if (buildPalette.isOpen()) { // the palette stays open while its piece is in hand (Michael, 2026-10-30): Escape puts the piece down, then shuts it
     if (!placement.cancel()) buildPalette.close();
     return;
@@ -1035,7 +1045,7 @@ function cutawayFor(me) {
   if (!me) return null;
   const points = [{ x: me.gx, y: me.gy }];
   const m = input.getMouse();
-  if ((placement.state.kind === "build" || placement.state.kind === "remove") && m.inside) {
+  if ((placement.state.kind === "build" || placement.state.kind === "remove" || placement.state.kind === "plan") && m.inside) {
     const at = iso.toGrid(m.x, m.y + (me.layer || 0) * map.STOREY); // the tile under the cursor on my storey, as the ghost finds it
     points.push({ x: at.gx, y: at.gy });
   }
@@ -1043,9 +1053,27 @@ function cutawayFor(me) {
   return { points, down: wallsDown };
 }
 
+// P, or the right-click menu's Plan: the Planning panel (Michael, 2026-10-30, `02` "The Planning tool"), its own panel beside the build palette's
+// place and never with it, open until it is closed; while open the mode is planning (placement.beginPlan). Same limits as N.
+let plansShown = true; // the panel's Show plans: this client's view of the world's plans
+function closePlanning() {
+  planningPanel.close();
+  if (placement.state.kind === "plan") placement.cancel();
+}
+function togglePlanning() {
+  if (planningPanel.isOpen()) return closePlanning();
+  if (client.me.carrying) return showMessage("Your hands are full.");
+  if (panel.isOpen()) return showMessage("Close your bag to plan.");
+  if (buildPalette.isOpen()) buildPalette.close();
+  placement.cancel();
+  planningPanel.openPanel();
+  placement.beginPlan(planningPanel.colorNow());
+}
+
 // N: the build palette, or out of build mode if in it. Not while carrying or
 // with the bag open (docs/13).
 function toggleBuild() {
+  if (planningPanel.isOpen()) closePlanning(); // the two panels take one place
   if (buildPalette.isOpen()) { // N shuts the palette and puts its piece down with it
     buildPalette.close();
     placement.cancel();
@@ -1065,6 +1093,7 @@ function toggleRemove() {
   }
   if (client.me.carrying) return showMessage("Your hands are full.");
   if (panel.isOpen()) return showMessage("Close your bag to build.");
+  if (planningPanel.isOpen()) closePlanning();
   placement.beginRemove(); // the palette, if open, stays (Michael, 2026-10-30)
 }
 
@@ -1244,6 +1273,7 @@ function stepGame(dt) {
   if (input.wasPressed("Enter") || input.wasPressed("NumpadEnter")) log.focusChat("");
   if (input.wasPressed("Slash")) log.focusChat("/");
   if (input.wasPressed("KeyN")) toggleBuild();
+  if (input.wasPressed("KeyP")) togglePlanning();
   if (input.wasPressed("KeyH") && buildPalette.isOpen()) { // the walls down while the build menu is open (Michael, 2026-10-30): this client's view
     wallsDown = !wallsDown;
     showMessage(wallsDown ? "Walls down (H to raise them)" : "Walls up");
@@ -1282,6 +1312,10 @@ function stepGame(dt) {
   if (buildPalette.isOpen()) {
     if (client.me.carrying || panel.isOpen()) buildPalette.close();
     else buildPalette.render(client.me);
+  }
+  if (planningPanel.isOpen()) { // shut with the hands full, the bag open, or the mode ended another way (a right click)
+    if (client.me.carrying || panel.isOpen() || placement.state.kind !== "plan") closePlanning();
+    else planningPanel.render((game.state.plans || []).length, plansShown);
   }
   // A left click is placement's if it takes it, else a swing (docs/14), made
   // after the player has turned to the cursor this step.
@@ -1394,6 +1428,7 @@ function renderUi() {
   updateSwingTimer(client.me);
   updateSpeech(S.others, visible, client.me, dt);
   updateNames(S.players, visible, client.me);
+  updatePlanLabels(plansShown ? S.plans : null, client.me.layer || 0); // each plan's size on it (the Planning tool)
   {
     // An animal's name while the pointer is on one I can see (docs/45).
     const m = input.getMouse();
@@ -1431,6 +1466,7 @@ async function restoreWorld(snap) {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  planningPanel.close(); // with the build palette (the review of #617: it stayed over the away screen)
   mapPanel.close();
   mapPanel.forgetDrawn();
   floatersUi.clear();
@@ -1503,7 +1539,8 @@ function render() {
     tileMark: inspectMark.marked(), // the patch an Inspect speaks of
     tracks: tracks.near(client.me), // wild game's prints near me (docs/45 section 2; this client's view, nothing sent)
     // The tile grid shows only while building or removing (docs/15).
-    grid: placement.state.kind === "build" || placement.state.kind === "remove",
+    grid: placement.state.kind === "build" || placement.state.kind === "remove" || placement.state.kind === "plan",
+    plans: plansShown ? game.state.plans : null, // the Planning tool's rulers, each on its storey (render/props.js emitPlans)
     cutaway: cutawayFor(client.me),
   };
   // Drawn between steps (interp.js): everything that moves `alpha` of the way from where the last step found it to where it left it, and the camera likewise;
@@ -1616,7 +1653,6 @@ async function boot() {
       // Everything is loaded already; this adds the two-tile variants, and a name the manifest lacks fails here with its id.
       await assets.loadMapSprites(json);
       for (const k of placement.buildKinds()) { // what can be built must be drawable, at its own footprint (the Fireplace's two tiles, the fire pit's four)
-        if (!k.sprite) continue; // the ruler draws no sprite
         const fp = assets.footprintOf(await assets.loadSpriteDef(k.sprite));
         await assets.loadSprite(k.sprite, { tileCount: fp[0] * fp[1] });
       }
@@ -1793,6 +1829,7 @@ async function boot() {
         },
       }); // before anything can show a message
       initNames();
+      initPlanLabels();
       hoverCardUi.initHoverCard();
       debuffRow.initDebuffRow();
       floatersUi.initFloaters();
@@ -1837,10 +1874,19 @@ async function boot() {
       placement.init({ startAction: interact.startAction });
       mapPanel.initMapPanel();
       buildPalette.initBuildPalette({
-        onPick: (what) => { // the palette stays open while building or measuring (Michael, 2026-10-30: "using it does not close the build tool")
+        onPick: (what) => { // the palette stays open while building (Michael, 2026-10-30: "using it does not close the build tool")
           if (what === "__remove") placement.beginRemove();
           else placement.beginBuild(what);
         },
+        onClose: () => { // its close button (Michael, 2026-10-30: "they are panels now"), as N
+          buildPalette.close();
+          placement.cancel();
+        },
+      });
+      planningPanel.initPlanningPanel({
+        onColor: (c) => placement.setPlanColor(c),
+        onClose: closePlanning,
+        onShow: (on) => { plansShown = on; },
       });
       // Any screen up means the game is paused when played alone; the title is up at boot.
       const kitWorn = { chest: { id: "tunic" }, legs: { id: "breeches" }, feet: { id: "boots" }, waist: { id: "belt" }, back: { id: "small_sack" } };

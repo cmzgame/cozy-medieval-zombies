@@ -52,6 +52,7 @@ import * as animal from "./entities/animal.js"; // the valley's game and livesto
 import { handedOf } from "./handed.js"; // right- or left-handed (Michael, 2026-10-25): stamped on a player from the identity
 import { getDef } from "./assets.js"; // a sprite definition's data (a feeding trough's `feed`; the item a placed prop stands as, itemCensus #101): read, never drawn
 import * as ladders from "./entities/ladders.js"; // the climbers a ladder knows (docs/53 step 6b)
+import * as plans from "./plans.js"; // the Planning tool's rulers kept in the world (Michael, 2026-10-30)
 
 export const state = {
   info: null, // what the map file gave: spawn, the authored dead and villagers, the name
@@ -62,10 +63,13 @@ export const state = {
   villagers: [],
   animals: [], // game and livestock, living and dead (docs/45): one list, a dead one marked so
   animalHomes: [], // where the map put each herd and flock, with its cap and its renewal (animal.js)
+  plans: [], // the Planning tool's rulers (plans.js): saved, sent when they change, in the sync check
+  planNext: 0, // the last plan's number
   others: [], // the living, rebuilt each step; the interface reads it between steps
   progress: null, // 0..1 of the player's timed action
   acting: null, // the player whose update or command runs right now, so a message finds its screen (net.js)
 };
+plans.bind(state); // the Planning tool reads and writes this world's plans (plans.js)
 
 // The world's own player (the one a world made or restored stands as; a browser's client follows it as `client.me`,
 // src/client.js, by the `playerPicked` event). In the step it is read by `S.progress` and by `playerHit`'s handler, as the
@@ -128,6 +132,8 @@ export function create({ json, look = null, name = null, handed = null, devChest
   S.corpses = [];
   S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i, immune: immuneOf(v), talk: talkIdOf(v), guide: !!v.guide }));
   S.animalHomes = animal.homesFrom(info.animals); // the herds, the flocks, and the pens' stock where the map put them (docs/45)
+  S.plans = [];
+  S.planNext = 0;
   S.animals = animal.populate(S.animalHomes);
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
   stations.setBodies(() => [...S.players, ...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]); // a made prop lands on no one
@@ -258,6 +264,8 @@ function worldWithout(chunks) {
     rules: { ...rules.rules }, // the world's own rules ride in its save (item 5's second step; a server world reads only these)
     chart: chart.serialize(), // what the world has seen: the world's, not any player's, and it outlives the chunks it was seen in
     resources: resources.serialize(), // the natural resources owed to their areas, and the last look (docs/46): the host's, as the generator is
+    plans: plans.copy(S.plans), // the Planning tool's rulers (Michael, 2026-10-30)
+    planNext: S.planNext || 0,
     map: { chunks: null, pending: map.serializePending(), sleepers: map.sleeperEntries().map(([k, list]) => [k, list.map(serializeCharacter)]) },
     characters: {
       players: S.players.map(serializeCharacter),
@@ -357,6 +365,8 @@ export function restore(saved, json) {
   }
   S.animals = (save.characters.animals || []).map(animal.restoreAnimal);
   S.animalHomes = save.animalHomes || animal.homesFrom(S.info.animals);
+  S.plans = plans.copy(save.plans); // none in a save from before the Planning tool
+  S.planNext = save.planNext || 0;
   S.others = [];
   S.progress = null;
   map.setSleepers((save.map.sleepers || []).map(([k, list]) => [k, bring(list)]));
@@ -502,6 +512,7 @@ export function syncParts() {
     map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : k === "boards" && v && Array.isArray(v.near) ? { near: v.near.length, far: v.far.length } : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening), a board's health (a bare number in `wall.boards`) not either, only how many boards stand, so a broken one still shows
     chart: hashOf(chart.hashText()), // what the world has seen, the charted chunks sorted (docs/33)
     registry: hashOf([...map.allProps()].map((p) => p.id).sort().join(",")),
+    plans: hashOf(plans.hashText(S)), // the Planning tool's rulers (Michael, 2026-10-30)
     rings: hashOf(map.allRings().map((r) => `${r.id} ${r.n} ${r.sprite}${r.built ? " built" : ""}${r.free ? " free" : ""}`).sort().join(",")), // the round rooms' records, made from their walls on every client (docs/50 section 6)
     fires: hashOf(`${[...map.fires()].map((p) => `${p.id}:${p.fire && p.fire.lit ? "lit" : "out"}`).sort().join(",")}`),
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
