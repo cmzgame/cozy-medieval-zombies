@@ -11,6 +11,8 @@ import * as map from "../map.js";
 import * as gl from "../gl.js";
 import { getSheet } from "../assets.js";
 import * as round from "../round.js"; // a laid floor in a ring's square, drawn inside its curve (docs/49 section 5)
+import { WALL_T } from "../placeholders.js"; // a ring's wall thickness, for the floor over it (Michael, 2026-10-31)
+import { UNIT } from "./depth.js";
 import { heightOfWall } from "../visibility.js"; // a wall's height, for what covers a body (docs/53 section 6.2)
 
 const PAD = 48; // px round a chunk's floor picture: a floor frame may reach past its diamond
@@ -630,10 +632,29 @@ function frameNamesOf(sheet) {
   if (!sheet._idle) sheet._idle = Object.keys(sheet.frames).filter((k) => k.startsWith("idle_")).sort();
   return sheet._idle.length ? sheet._idle : Object.keys(sheet.frames);
 }
+// The round rooms on the storey under a chunk of floor, as a signature: a ring built or taken away there bakes the floor over it again (its tiles
+// are cut to the ring's outer face, floorSheet), though nothing on the floor's own chunk changed.
+function ringsUnder(c) {
+  return ringsOver(c).map((r) => {
+    // With how many of its stepped tiles are floored a storey up: a tower's top is filled to its rim once it is whole (fillTowerTops), and its
+    // tiles may lie on another chunk.
+    const floored = round.shape(r.x0, r.y0, r.n).stepped.filter(([x, y]) => { const t = map.peekTile(x, y, c.layer); return t && !map.isEngineFloor(t.floor); }).length;
+    return `${r.id}:${floored}`;
+  }).sort().join(",");
+}
+// The round rooms on the storey under a chunk whose square reaches into it.
+function ringsOver(c) {
+  if (!c.layer) return [];
+  const C = map.CHUNK;
+  const [x0, y0] = [c.cx * C, c.cy * C];
+  return map.allRings(c.layer - 1).filter((r) => r.x0 < x0 + C && r.x0 + r.n > x0 && r.y0 < y0 + C && r.y0 + r.n > y0);
+}
+
 function floorSheet(c) {
   const key = map.chunkKey(c.cx, c.cy, c.layer);
   const had = bakes.get(key);
-  if (had && had.v === c.lightVersion) return had.sheet;
+  const under = ringsUnder(c);
+  if (had && had.v === c.lightVersion && had.under === under) return had.sheet;
   const C = map.CHUNK;
   const W = C * iso.TW + PAD * 2;
   const H = C * iso.TH + PAD * 2;
@@ -656,11 +677,17 @@ function floorSheet(c) {
       if (!f) continue;
       const cx = (lx - ly) * iso.HW + C * iso.HW + PAD;
       const cy = (lx + ly) * iso.HH + iso.HH + PAD;
-      const r = t.built ? map.ringAt(x, y, c.layer) : null;
+      const own = t.built ? map.ringAt(x, y, c.layer) : null;
+      // A floor over a round room on the storey below (Michael, 2026-10-31: a tower's top, "The clipping rules work really well for the base but
+      // not for the ceiling"): cut to the ring's outer face, so its stepped tiles' corners no longer stand out past the wall, and its rim lies on
+      // the floor's edge.
+      const below = !own && c.layer > 0 ? map.ringAt(x, y, c.layer - 1) : null;
+      const r = own || below;
       const s = r ? round.shape(r.x0, r.y0, r.n) : null;
+      const R = s ? (below ? s.R + (getSheet(r.sprite).thickness || WALL_T) / 2 / UNIT : s.R) : 0;
       // Only a tile the ring steps over (the curve cuts it); a floor in the ring's square beyond the stepped tiles (the corners) is the walkway's own,
       // laid round the ring, and stays whole (Michael's playtest, 2026-10-29: the floor round a tower on a wall walk was missing its outer corners).
-      const clip = s && round.isStepped(r.x0, r.y0, r.n, x, y) && Math.hypot(Math.abs(x - s.cx) + 0.5, Math.abs(y - s.cy) + 0.5) > s.R;
+      const clip = s && round.isStepped(r.x0, r.y0, r.n, x, y) && Math.hypot(Math.abs(x - s.cx) + 0.5, Math.abs(y - s.cy) + 0.5) > R;
       if (clip) {
         // A floor a player laid where a ring's curve runs over the tile or between it and the stepped walls: inside the curve alone, as on
         // the ground (src/ground.js; the review of #549: on every layer).
@@ -668,17 +695,53 @@ function floorSheet(c) {
         ctx.beginPath();
         const ex = (s.cx - c.cx * C - (s.cy - c.cy * C)) * iso.HW + C * iso.HW + PAD;
         const ey = (s.cx - c.cx * C + (s.cy - c.cy * C)) * iso.HH + iso.HH + PAD;
-        ctx.ellipse(ex, ey, s.R * iso.HW * Math.SQRT2, s.R * iso.HH * Math.SQRT2, 0, 0, Math.PI * 2);
+        ctx.ellipse(ex, ey, R * iso.HW * Math.SQRT2, R * iso.HH * Math.SQRT2, 0, 0, Math.PI * 2);
         ctx.clip();
       }
       ctx.drawImage(sh.image, f[0], f[1], f[2], f[3], cx - sh.anchor[0], cy - sh.anchor[1], f[2], f[3]);
       if (clip) ctx.restore();
     }
   }
+  if (under) fillTowerTops(c, ctx);
   const sheet = had ? had.sheet : { image: canvas, frames: { all: [0, 0, W, H] }, anchor: [0, 0] };
   if (had) gl.redrawSheet(sheet);
-  bakes.set(key, { sheet, v: c.lightVersion });
+  bakes.set(key, { sheet, v: c.lightVersion, under });
   return sheet;
+}
+
+// A tower's top (Michael, 2026-10-31: "if I remove those tiles that are breaking outside the round wall I end up with holes in the floor"): over a
+// round room on the storey below whose stepped tiles are floored, the corner pockets left bare inside the wall's outer face are drawn in the top's
+// own floor, cut to that face, so the floor fills the circle to its rim. A pocket a player floored is drawn as laid (the walkway's own, floorSheet);
+// a bare one stays bare in the world (nothing walks or stands there: the curve holds it off), this is its picture alone.
+function fillTowerTops(c, ctx) {
+  const C = map.CHUNK;
+  for (const r of ringsOver(c)) {
+    const s = round.shape(r.x0, r.y0, r.n);
+    const tops = s.stepped.map(([x, y]) => map.peekTile(x, y, c.layer)).filter((t) => t && !map.isEngineFloor(t.floor));
+    if (tops.length < s.stepped.length) continue; // only a whole top: a floor laid partway is still being built
+    let sh = null;
+    try { sh = getSheet(tops[Math.floor(tops.length / 2)].floor); } catch { sh = null; }
+    if (!sh) continue;
+    const names = frameNamesOf(sh);
+    const R = s.R + (getSheet(r.sprite).thickness || WALL_T) / 2 / UNIT;
+    const ex = (s.cx - c.cx * C - (s.cy - c.cy * C)) * iso.HW + C * iso.HW + PAD;
+    const ey = (s.cx - c.cx * C + (s.cy - c.cy * C)) * iso.HH + iso.HH + PAD;
+    for (const [x, y] of s.pockets) {
+      const lx = x - c.cx * C;
+      const ly = y - c.cy * C;
+      if (lx < 0 || ly < 0 || lx >= C || ly >= C) continue;
+      const t = map.peekTile(x, y, c.layer);
+      if (t && !map.isEngineFloor(t.floor)) continue; // floored: drawn as laid
+      const f = sh.frames[names[Math.floor(map.hash2(x, y, 4049) * names.length)]];
+      if (!f) continue;
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(ex, ey, R * iso.HW * Math.SQRT2, R * iso.HH * Math.SQRT2, 0, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(sh.image, f[0], f[1], f[2], f[3], (lx - ly) * iso.HW + C * iso.HW + PAD - sh.anchor[0], (lx + ly) * iso.HH + iso.HH + PAD - sh.anchor[1], f[2], f[3]);
+      ctx.restore();
+    }
+  }
 }
 
 // Forget the pictures (a new world, a restored one): the chunks are new under the old keys.
@@ -750,7 +813,7 @@ function maskedSheet(c, test, keep, store) {
   if (!any) return null;
   const base = floorSheet(c);
   const key = map.chunkKey(c.cx, c.cy, c.layer);
-  const sig = test.sig || "";
+  const sig = `${test.sig || ""}#${ringsUnder(c)}`; // the base's own rings under it too: a ring built below bakes it again (floorSheet)
   const had = store.get(key);
   if (had && had.v === c.lightVersion && had.sig === sig) return had.sheet;
   const canvas = had ? had.sheet.image : document.createElement("canvas");
@@ -762,9 +825,19 @@ function maskedSheet(c, test, keep, store) {
   // Clearing: the tiles taken cut out. Keeping: everything but them cut out (the picture drawn in only where their diamonds are).
   ctx.globalCompositeOperation = keep ? "destination-in" : "destination-out";
   ctx.beginPath();
+  // A tower top's filled pockets go with its stepped tiles (fillTowerTops): hidden or kept as the top is, never left over a hidden ceiling.
+  const withTop = new Set();
+  for (const r of ringsOver(c)) {
+    const s = round.shape(r.x0, r.y0, r.n);
+    if (!s.stepped.some(([x, y]) => test(x, y, c.layer))) continue;
+    for (const [x, y] of s.pockets) {
+      const t = map.peekTile(x, y, c.layer);
+      if (!t || map.isEngineFloor(t.floor)) withTop.add(`${x},${y}`); // a bare pocket, drawn as the top's: a floored one is its own tile
+    }
+  }
   for (let ly = 0; ly < C; ly++) {
     for (let lx = 0; lx < C; lx++) {
-      if (!test(c.cx * C + lx, c.cy * C + ly, c.layer)) continue;
+      if (!test(c.cx * C + lx, c.cy * C + ly, c.layer) && !withTop.has(`${c.cx * C + lx},${c.cy * C + ly}`)) continue;
       const cx = (lx - ly) * iso.HW + C * iso.HW + PAD;
       const cy = (lx + ly) * iso.HH + iso.HH + PAD;
       ctx.moveTo(cx, cy - iso.HH - 1);
