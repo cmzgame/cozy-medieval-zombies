@@ -1,0 +1,47 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "north_gate": "data/art/village/arch_stone_1_north.png",
+  "west_gate": "data/art/village/arch_stone_1_west.png"
+ },
+ "anchors": {
+  "north_gate": [
+   8,
+   100
+  ],
+  "west_gate": [
+   40,
+   100
+  ]
+ },
+ "wall": {
+  "height": 96,
+  "thickness": 16,
+  "color": "#7b7670",
+  "material": "stone",
+  "post": "post_stone",
+  "run": "wall_stone",
+  "gate": {
+   "kind": "arch",
+   "span": 1,
+   "opening": {
+    "u": [
+     6,
+     26
+    ],
+    "springing": 60,
+    "crown": 78,
+    "arch": "pointed",
+    "radius": 21.2,
+    "note": "u in world units along the run from the gate's first edge's start; z from the ground; through the wall's whole 16 thickness"
+   },
+   "name": "Stone arch (1 wide)",
+   "always": "open",
+   "deadBreak": false,
+   "bitesPass": true,
+   "shotsPass": true,
+   "fireSpreads": true
+  }
+ },
+ "note": "art round 14a (2026-10-31): a plain stone arch 1 tiles wide, a walkable opening that never closes: a castle gate (one door-kind wall an edge, `gate: { i }`) with no portcullis (no `parts`, no `leaf`) and `always: \"open\"` (new: built open, never shut by E or anything else; README.md lists the engine support). The frames are named north_gate / west_gate so render/walls.js gateSlice cuts them unchanged"
+}

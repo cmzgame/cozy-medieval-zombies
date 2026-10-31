@@ -551,8 +551,11 @@ for path in sorted(glob.glob("data/sprites/*.json")):
         gate_sprites[os.path.basename(path)[:-5]] = (d, w)
 for sid, (d, w) in gate_sprites.items():
     g = w["gate"]
-    if g.get("span") not in (2, 3):
-        fail(f"sprite {sid}: wall.gate.span is 2 or 3")
+    if g.get("span") not in (1, 2, 3):
+        fail(f"sprite {sid}: wall.gate.span is 1, 2, or 3")
+    arch = g.get("always") == "open"  # a stone arch (art round 14a): no portcullis, nothing that swings or shuts
+    if "always" in g and not arch:
+        fail(f"sprite {sid}: wall.gate.always is \"open\" or absent")
     run = w.get("run")
     if not (isinstance(run, str) and os.path.exists(f"data/sprites/{run}.json") and "wall" in load(f"data/sprites/{run}.json")):
         fail(f"sprite {sid}: wall.run {run!r} is not a wall definition")
@@ -560,15 +563,17 @@ for sid, (d, w) in gate_sprites.items():
         if f"{side}_gate" not in d.get("images", {}):
             fail(f"sprite {sid}: no `{side}_gate` picture")
     parts = w.get("parts")
+    if arch and parts:
+        fail(f"sprite {sid}: an arch has no portcullis parts")
     pd = load(f"data/sprites/{parts}.json") if parts and os.path.exists(f"data/sprites/{parts}.json") else {}
     for side in ("north", "west"):
         for st in ("closed", "mid", "raised"):
-            if f"leaf_{side}_{st}" not in pd.get("images", {}):
+            if not arch and f"leaf_{side}_{st}" not in pd.get("images", {}):
                 fail(f"sprite {sid}: parts sheet {parts!r} has no leaf_{side}_{st}")
-    for flag in ("grille", "deadBreak", "bitesPass", "shotsPass", "fireSpreads"):
+    for flag in (("deadBreak", "bitesPass", "shotsPass", "fireSpreads") if arch else ("grille", "deadBreak", "bitesPass", "shotsPass", "fireSpreads")):
         if not isinstance(g.get(flag), bool):
             fail(f"sprite {sid}: wall.gate.{flag} is true or false (a ruling of Michael's, 2026-10-29, as data)")
-    if not (num(g.get("swing")) and g["swing"] > 0):
+    if not arch and not (num(g.get("swing")) and g["swing"] > 0):
         fail(f"sprite {sid}: wall.gate.swing is the seconds to rise or fall, above 0")
     if not (num((g.get("opening") or {}).get("crown")) and 0 < g["opening"]["crown"] <= w.get("height", 96)):
         fail(f"sprite {sid}: wall.gate.opening.crown is the arch's height, up to the wall's")

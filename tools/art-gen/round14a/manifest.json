@@ -1,0 +1,223 @@
+{
+ "1_n": {
+  "gate_frame": {
+   "file": "out/gate_stone_1_north_frame.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ]
+  },
+  "leaf_closed": {
+   "file": "out/gate_stone_1_north_leaf_closed.png",
+   "size": [
+    18,
+    79
+   ],
+   "anchor": [
+    0,
+    65
+   ]
+  },
+  "leaf_mid": {
+   "file": "out/gate_stone_1_north_leaf_mid.png",
+   "size": [
+    18,
+    50
+   ],
+   "anchor": [
+    0,
+    65
+   ]
+  },
+  "leaf_raised": {
+   "file": "out/gate_stone_1_north_leaf_raised.png",
+   "size": [
+    18,
+    21
+   ],
+   "anchor": [
+    0,
+    65
+   ]
+  },
+  "arch": {
+   "file": "out/arch_stone_1_north.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "note": "byte-identical to the gate's frame"
+  }
+ },
+ "1_w": {
+  "gate_frame": {
+   "file": "out/gate_stone_1_west_frame.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ]
+  },
+  "leaf_closed": {
+   "file": "out/gate_stone_1_west_leaf_closed.png",
+   "size": [
+    18,
+    79
+   ],
+   "anchor": [
+    18,
+    65
+   ]
+  },
+  "leaf_mid": {
+   "file": "out/gate_stone_1_west_leaf_mid.png",
+   "size": [
+    18,
+    50
+   ],
+   "anchor": [
+    18,
+    65
+   ]
+  },
+  "leaf_raised": {
+   "file": "out/gate_stone_1_west_leaf_raised.png",
+   "size": [
+    18,
+    21
+   ],
+   "anchor": [
+    18,
+    65
+   ]
+  },
+  "arch": {
+   "file": "out/arch_stone_1_west.png",
+   "size": [
+    49,
+    121
+   ],
+   "anchor": [
+    40,
+    100
+   ],
+   "note": "byte-identical to the gate's frame"
+  }
+ },
+ "2_n": {
+  "arch": {
+   "file": "out/arch_stone_2_north.png",
+   "size": [
+    81,
+    137
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "note": "byte-identical to the gate's frame (data/art/village/gate_stone_2_north_frame.png, round 12)"
+  }
+ },
+ "2_w": {
+  "arch": {
+   "file": "out/arch_stone_2_west.png",
+   "size": [
+    81,
+    137
+   ],
+   "anchor": [
+    72,
+    100
+   ],
+   "note": "byte-identical to the gate's frame (data/art/village/gate_stone_2_west_frame.png, round 12)"
+  }
+ },
+ "3_n": {
+  "arch": {
+   "file": "out/arch_stone_3_north.png",
+   "size": [
+    113,
+    153
+   ],
+   "anchor": [
+    8,
+    100
+   ],
+   "note": "byte-identical to the gate's frame (data/art/village/gate_stone_3_north_frame.png, round 12)"
+  }
+ },
+ "3_w": {
+  "arch": {
+   "file": "out/arch_stone_3_west.png",
+   "size": [
+    113,
+    153
+   ],
+   "anchor": [
+    104,
+    100
+   ],
+   "note": "byte-identical to the gate's frame (data/art/village/gate_stone_3_west_frame.png, round 12)"
+  }
+ },
+ "geometry": {
+  "1": {
+   "run": 32,
+   "opening": [
+    6,
+    26
+   ],
+   "springing": 60,
+   "crown": 78,
+   "radius": 21.2,
+   "ring": 6,
+   "voussoirs_a_side": 3,
+   "leaf_plane": 6,
+   "bars": 3
+  },
+  "2": {
+   "run": 64,
+   "opening": [
+    8,
+    56
+   ],
+   "springing": 38,
+   "crown": 78,
+   "radius": 45.33,
+   "ring": 8,
+   "voussoirs_a_side": 4,
+   "leaf_plane": 6,
+   "bars": 7
+  },
+  "3": {
+   "run": 96,
+   "opening": [
+    8,
+    88
+   ],
+   "springing": 34,
+   "crown": 78,
+   "radius": 44.2,
+   "ring": 8,
+   "voussoirs_a_side": 6,
+   "leaf_plane": 6,
+   "bars": 11
+  }
+ },
+ "portcullis_tips": {
+  "closed": 0,
+  "mid": 29,
+  "raised": 58
+ }
+}

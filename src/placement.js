@@ -678,7 +678,7 @@ function gateRunAt(what, g) {
   const span = (map.wallRule(buildData[what].sprite).gate || { span: 2 }).span;
   const e = pickEdge(g.gx, g.gy);
   const along = e.edge === "n" ? g.gx - e.tx : g.gy - e.ty; // -0.5 to 0.5 along the hovered edge
-  const back = span === 3 ? 1 : along < 0 ? 1 : 0; // edges of the run before the hovered one
+  const back = span === 3 ? 1 : span === 1 ? 0 : along < 0 ? 1 : 0; // edges of the run before the hovered one (a 1-wide on the hovered edge itself)
   return { tx: e.edge === "n" ? e.tx - back : e.tx, ty: e.edge === "n" ? e.ty : e.ty - back, edge: e.edge, span };
 }
 const gateEdges = (what, tx, ty, edge) => {
@@ -2237,7 +2237,8 @@ export function prompt() {
   if (g.kind === "gate") {
     const [mx, my] = map.edgeMid(g.tx + (g.edge === "n" ? (g.span - 1) / 2 : 0), g.ty + (g.edge === "w" ? (g.span - 1) / 2 : 0), g.edge);
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
-    return { label: "Click to place the gate at once · Esc cancel", mx, my, progress: null, enabled: true };
+    const arch = (map.wallRule(g.sprite).gate || {}).always === "open";
+    return { label: `Click to place the ${arch ? "arch" : "gate"} at once · Esc cancel`, mx, my, progress: null, enabled: true };
   }
   if (g.kind === "round") {
     const [mx, my] = [g.x0 + (g.n - 1) / 2, g.y0 + (g.n - 1) / 2];
