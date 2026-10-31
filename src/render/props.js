@@ -117,6 +117,11 @@ export function emitGhost(ghost) {
     rings.emitRingGhost({ id: "ghost", x0: ghost.x0, y0: ghost.y0, n: ghost.n, layer: ghost.layer || 0, sprite: ghost.sprite }, tint, GHOST_FLAGS()); // a round room as it would stand (docs/50 section 5)
     return;
   }
+  if (ghost.kind === "walk") {
+    // Walk here's outline (Michael, 2026-10-29, #571): the tile the click will walk to, white, or red where nobody can stand.
+    emitGhostTile(ghost.x, ghost.y, 0, ghost.ok ? [1, 1, 1, 0.8] : GHOST_BAD);
+    return;
+  }
   if (ghost.kind === "plan") {
     // Planning (Michael, 2026-10-30): the ruler being dragged in its colour, or the plan under the cursor washed white to say a click takes it up.
     const t = ghost.hover ? [1, 1, 1, 0.8] : planTint(ghost.color);

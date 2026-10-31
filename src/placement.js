@@ -52,7 +52,7 @@ const removeReach = () => (rules.freeBuilding ? FREE_REACH : REMOVE_REACH);
 const EDGE_CLEARANCE = 0.45; // the player may not stand closer than this to an edge being built
 
 // kind is null, "prop", "rug", "painting", "build", or "remove". ghost is what the renderer draws.
-export const state = { active: false, kind: null, prop: null, build: null, rug: null, painting: null, setdown: null, torch: null, plan: null, ghost: null, turns: 0 };
+export const state = { active: false, kind: null, prop: null, build: null, rug: null, painting: null, setdown: null, torch: null, plan: null, walk: null, ghost: null, turns: 0 };
 // On a guest (docs/31/05 item 10, tier 3): the ghost is the replica's, and the click goes to the host as
 // a command (main.js sets the sender), which performs it for the guest's player with its own reach.
 let sender = null;
@@ -271,6 +271,27 @@ function onFloor(player, fn) {
 function cursorGrid(player) {
   const m = input.getMouse();
   return iso.toGrid(m.x, m.y + layerOf(player) * map.STOREY);
+}
+
+// ---- Walk here, in two steps (Michael, 2026-10-29, #571: "Right Click -> 'Walk Here' gives you a tile outline you can move your mouse around
+// and position perfectly, and THEN left click to start the pathing") ----
+// The menu's Walk here begins this mode: an outline on the tile under the cursor, on the player's floor, white where a body can stand and red
+// where it cannot; a left click hands the tile to `pick` (main.js: the host's walk, or a guest's `act` by the tile's address) and the mode ends;
+// Escape or a right click puts it away. This client's own until the click: nothing is sent while it follows the cursor.
+export function beginWalk(pick) {
+  end();
+  state.kind = "walk";
+  state.walk = { pick };
+  state.active = true;
+  return true;
+}
+function walkGhost(player) {
+  const m = input.getMouse();
+  if (!m.inside) return null;
+  const at = cursorGrid(player);
+  const [x, y] = [Math.round(at.gx), Math.round(at.gy)];
+  const L = layerOf(player);
+  return { kind: "walk", x, y, layer: L, ok: map.isWalkableTile(x, y, L) };
 }
 
 // ---- planning (Michael, 2026-10-30, `02` "The Planning tool": "It lets me lay down any number of rulers"; plans.js) ----
@@ -1100,7 +1121,7 @@ export function beginRemove() {
 // Carrying cannot be cancelled: the prop stays in the hands, so prop mode
 // answers false.
 export function cancel() {
-  if (!["build", "remove", "rug", "painting", "setdown", "torch", "plan"].includes(state.kind)) return false; // Esc on a set-down or a torch for a wall too (the campfire's never cancelled before)
+  if (!["build", "remove", "rug", "painting", "setdown", "torch", "plan", "walk"].includes(state.kind)) return false; // Esc on a set-down or a torch for a wall too (the campfire's never cancelled before)
   end();
   return true;
 }
@@ -1114,6 +1135,7 @@ function end() {
   state.setdown = null;
   state.torch = null;
   state.plan = null;
+  state.walk = null;
   state.active = false;
   state.ghost = null;
   state.turns = 0;
@@ -1174,6 +1196,7 @@ export function update(player) {
   else if (state.kind === "painting") state.ghost = paintingGhost(player);
   else if (state.kind === "setdown") state.ghost = setdownGhost(player);
   else if (state.kind === "torch") state.ghost = torchGhost(player);
+  else if (state.kind === "walk") state.ghost = walkGhost(player);
   else if (state.kind === "plan") {
     state.ghost = planGhost(player);
     if (state.plan.from && !input.mouseLeftDown()) finishPlan(player); // the drag released: the ruler laid as a plan
@@ -1770,6 +1793,19 @@ export function tryConfirm(player) {
     end();
     return true;
   }
+  if (state.kind === "walk") {
+    // Walk here's second step: the tile under the cursor, walked to, or refused where nobody can stand.
+    const g = state.ghost;
+    if (!g) return false;
+    if (!g.ok) {
+      showMessage("You can't walk there");
+      return true;
+    }
+    const pick = state.walk.pick;
+    end();
+    pick([g.x, g.y]);
+    return true;
+  }
   if (state.kind === "plan") {
     // Planning: a click on a plan takes it up; a press elsewhere starts a ruler (update lays it on the release). It builds nothing, so a build
     // under way does not stop it.
@@ -2166,6 +2202,7 @@ export function prompt() {
     const { back } = partsOf(t);
     return { label: `Click to take apart ${targetName(t)}${back.length ? ` (${partsText(back)} back)` : ""} · Esc cancel`, mx, my, progress: null, enabled: true };
   }
+  if (g.kind === "walk") return { label: g.ok ? "Click to walk here · Esc cancel" : "You can't walk there", mx: g.x, my: g.y, progress: null, enabled: g.ok };
   if (g.kind === "plan") {
     const [mx, my] = [(g.x0 + g.x1) / 2, (g.y0 + g.y1) / 2];
     const size = plans.sizeText(g.x1 - g.x0 + 1, g.y1 - g.y0 + 1);
