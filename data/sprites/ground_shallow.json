@@ -1,0 +1,16 @@
+{
+ "image": "data/art/ground/shallow_big_0.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   256,
+   128
+  ]
+ },
+ "anchor": [
+  0,
+  0
+ ],
+ "note": "shallow water (art round 14b, approved by Michael 2026-10-31), a seamless 256x128 world texture, no shore: the shallows' blended kind (data/ground.json terrain `shallow`)"
+}

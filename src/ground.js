@@ -238,6 +238,10 @@ export async function init(mapJson) {
   const entries = Object.entries(data.terrain || {}).sort((a, b) => a[1].priority - b[1].priority);
   for (const [name, t] of entries) {
     const k = { name, id: 3 + terrain.length, threshold: t.threshold || (t.thresholdAbove ? null : [0.25, 0.5]), above: t.thresholdAbove || null, verge: t.verge || 0, lip: t.lip || 0, lipBand: t.lipBand || 0, includes: t.includes || [] };
+    // A waterline (art round 14b, the shallows): `rim` a pale band of its own colour at the kind's edge, `bank` the kind below darkened just
+    // outside it (wet earth), each `band` of the weight wide.
+    if (t.rim) k.rim = { rgb: hexRgb(t.rim.colour), band: t.rim.band || 0.03 };
+    if (t.bank) k.bank = { darken: t.bank.darken || 0.2, band: t.bank.band || 0.06 };
     if (t.texture) {
       const sheet = await assets.loadSprite(t.texture);
       usedSheets.add(t.texture);
@@ -421,6 +425,16 @@ function stamp(out, img, sx, sy, flip, stand = false) {
   }
 }
 
+// A shallow tile at the shore (art round 14b's water plants, a decal's `where: "shore"`): one of its four neighbours is neither shallow nor deep.
+function shoreAt(x, y) {
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const k = kindOf(map.tileAt(x + dx, y + dy).floor);
+    if (k !== "shallow" && k !== "water") return true;
+  }
+  return false;
+}
+const hexRgb = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+
 // The decals of every tile of the chunk and DECAL_PAD beyond, by the zone's
 // rules. `near` is a tile some tree's canopy reaches (by straight-line
 // distance from the trunk, as the darkening), `open` one no tree reaches.
@@ -447,10 +461,11 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
       const roll = () => map.hash2(x, y, seed + 20 + k++);
       const cxp = (x - y) * 32 - left;
       const cyp = (x + y) * 16 - top;
-      const place = (img, id, colour = null, stand = false) => {
-        // A point uniform in the tile's diamond: uniform in grid space.
-        const u = roll() - 0.5;
-        const v = roll() - 0.5;
+      const place = (img, id, colour = null, stand = false, inset = 1) => {
+        // A point uniform in the tile's diamond: uniform in grid space; `inset` the share of it kept to, round its centre (the lily pads kept
+        // off the bank: art round 14b).
+        const u = (roll() - 0.5) * inset;
+        const v = (roll() - 0.5) * inset;
         const flip = roll() < 0.5;
         const sx = cxp + (u - v) * 32;
         const sy = cyp + (u + v) * 16;
@@ -477,11 +492,11 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
           }
           continue;
         }
-        const ok = d.where === "near" ? !!near : d.where === "open" ? !near : true;
+        const ok = d.where === "near" ? !!near : d.where === "open" ? !near : d.where === "shore" ? shoreAt(x, y) : true;
         if (!ok || roll() >= d.chance) continue;
         const [lo, hi] = d.count;
         const n = lo + Math.floor(roll() * (hi - lo + 1));
-        for (let i = 0; i < n; i++) place(pick(d.files.all), d.id, null, !!d.stand);
+        for (let i = 0; i < n; i++) place(pick(d.files.all), d.id, null, !!d.stand, d.inset || 1);
       }
     }
   }
@@ -762,7 +777,15 @@ export function bakeImage(cx, cy, kindsOut = null) {
             const A = dirtLike(T.above);
             thr = Math.max(thr, A.threshold[0] + A.threshold[1] * n + T.verge);
           }
-          if (wgt < thr) continue;
+          if (wgt < thr) {
+            if (T.bank && wgt >= thr - T.bank.band) { // just outside the kind: what lies there darkened, wet (the shallows' bank)
+              const bf = 1 - T.bank.darken;
+              r *= bf;
+              gg *= bf;
+              bb *= bf;
+            }
+            continue;
+          }
           let cr, cg, cb;
           if (T.texture) {
             const tj = (texRow[ti] + texCol[ti][px]) * 4;
@@ -787,6 +810,7 @@ export function bakeImage(cx, cy, kindsOut = null) {
             cg *= lf;
             cb *= lf;
           }
+          if (T.rim && wgt < thr + T.rim.band) [cr, cg, cb] = T.rim.rgb; // the waterline
           r = cr;
           gg = cg;
           bb = cb;
