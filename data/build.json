@@ -423,6 +423,42 @@
     "hint": "Click, then click a plain stone wall: a 3-tile gate with a portcullis replaces the wall at once; E opens and shuts it",
     "note": "docs/09 (Michael, 2026-10-29: \"Free building only\", \"Agreed, for now\"): a 3-tile castle gate stamped over 3 plain stone wall edges in a row, shut, placed at once and free as the Stone ramp is (no bar, no cost, no tool); E opens and shuts it like a door; taking it apart puts the plain wall back"
   },
+  "gate_stone_1": {
+    "label": "Stone gate (1 wide)",
+    "kind": "gate",
+    "sprite": "wall_stone_gate_1",
+    "dev": true,
+    "group": "Castle",
+    "hint": "Click, then click a plain stone wall: a 1-tile gate with a portcullis replaces the wall at once; E opens and shuts it",
+    "note": "art round 14a (Michael, 2026-10-29, #571: \"a portcullis that is just 1 wide as well, like a tall arched door, with a not very wide gate\"; built 2026-10-31): a 1-tile castle gate stamped over one plain stone wall edge, shut, placed at once and free as the 2- and 3-wide; E opens and shuts it"
+  },
+  "arch_stone_1": {
+    "label": "Stone arch (1 wide)",
+    "kind": "gate",
+    "sprite": "wall_stone_arch_1",
+    "dev": true,
+    "group": "Castle",
+    "hint": "Click, then click a plain stone wall: a 1-tile open stone arch replaces the wall at once",
+    "note": "art round 14a (Michael, 2026-10-29, #571: \"on each of the 1/2/3 wide openings minus the gate or gate functionality, it is just a stone arch\"; built 2026-10-31): a plain stone arch stamped over 1 plain stone wall edge(s) in a row, always open (the gate's `always`), nothing to open or shut, placed at once and free; taking it apart puts the plain wall back"
+  },
+  "arch_stone_2": {
+    "label": "Stone arch (2 wide)",
+    "kind": "gate",
+    "sprite": "wall_stone_arch_2",
+    "dev": true,
+    "group": "Castle",
+    "hint": "Click, then click a plain stone wall: a 2-tile open stone arch replaces the wall at once",
+    "note": "art round 14a (Michael, 2026-10-29, #571: \"on each of the 1/2/3 wide openings minus the gate or gate functionality, it is just a stone arch\"; built 2026-10-31): a plain stone arch stamped over 2 plain stone wall edge(s) in a row, always open (the gate's `always`), nothing to open or shut, placed at once and free; taking it apart puts the plain wall back"
+  },
+  "arch_stone_3": {
+    "label": "Stone arch (3 wide)",
+    "kind": "gate",
+    "sprite": "wall_stone_arch_3",
+    "dev": true,
+    "group": "Castle",
+    "hint": "Click, then click a plain stone wall: a 3-tile open stone arch replaces the wall at once",
+    "note": "art round 14a (Michael, 2026-10-29, #571: \"on each of the 1/2/3 wide openings minus the gate or gate functionality, it is just a stone arch\"; built 2026-10-31): a plain stone arch stamped over 3 plain stone wall edge(s) in a row, always open (the gate's `always`), nothing to open or shut, placed at once and free; taking it apart puts the plain wall back"
+  },
   "battlement_stone": {
     "label": "Battlement",
     "kind": "wall",

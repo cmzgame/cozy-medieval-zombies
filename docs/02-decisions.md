@@ -343,6 +343,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-31 — Art round 14a and 14b approved: the 1-wide gate, the stone arches, shallow water, lily pads, plants, and the frog (Michael)
+
+Michael, on the previews: "All of the art looks good to me. The frog is especially excellent." **Approved:** art round 14a (the 1-wide stone gate with its narrow portcullis; plain stone arches 1, 2, and 3 wide; `tools/art-gen/round14a` when the generator is kept) and 14b (the shallow water texture, five lily pads and a flowering one, four water plants, a wading ring, and the frog's hop with its splash). Wired: 14a in the gate and arch build (`09`); 14b with the shallows' blend. Art round 14c (the cliff top and the stone floor's blend) was delivered after and waits on his word.
+
 ### 2026-10-31 — Walk here in two steps (Michael, #571)
 
 Michael (2026-10-29, #571; asked to build 2026-10-31): "Right Click -> 'Walk Here' gives you a tile outline you can move your mouse around and position perfectly, and THEN left click to start the pathing. Right now you don't get this extra click, you path as soon as walk here is clicked." **Ruled and built:** the menu's Walk here puts an outline on the tile under the cursor (white where a body can stand, red with "You can't walk there" where not); the left click walks there, a guest's as the same `act` by the tile's address; Escape or a right click puts it away (`placement.beginWalk`).

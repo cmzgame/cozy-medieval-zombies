@@ -1,0 +1,38 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "leaf_north_closed": "data/art/village/gate_stone_1_north_leaf_closed.png",
+  "leaf_north_mid": "data/art/village/gate_stone_1_north_leaf_mid.png",
+  "leaf_north_raised": "data/art/village/gate_stone_1_north_leaf_raised.png",
+  "leaf_west_closed": "data/art/village/gate_stone_1_west_leaf_closed.png",
+  "leaf_west_mid": "data/art/village/gate_stone_1_west_leaf_mid.png",
+  "leaf_west_raised": "data/art/village/gate_stone_1_west_leaf_raised.png"
+ },
+ "anchors": {
+  "leaf_north_closed": [
+   0,
+   65
+  ],
+  "leaf_north_mid": [
+   0,
+   65
+  ],
+  "leaf_north_raised": [
+   0,
+   65
+  ],
+  "leaf_west_closed": [
+   18,
+   65
+  ],
+  "leaf_west_mid": [
+   18,
+   65
+  ],
+  "leaf_west_raised": [
+   18,
+   65
+  ]
+ },
+ "note": "DRAFT (art round 14a): the 1-wide gate's portcullis, three frames per run: closed (tips at the ground), mid (tips at 29), raised (tips at 58). Drawn after the wall piece; already clipped to what the arch shows"
+}

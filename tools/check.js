@@ -6562,7 +6562,7 @@ check("castle gates: built over plain stone edges by the command a guest sends (
     assert(placementImport.paletteKinds().every((k) => !placementImport.isGateBuild(k.id)), "a gate is offered with Free building off");
     rulesImport.rules.freeBuilding = true;
     const offered = placementImport.paletteKinds().filter((k) => placementImport.isGateBuild(k.id));
-    assert(offered.length === 2 && offered.every((k) => k.group === "Castle" && k.dev && placementImport.costText(k.id) === "free"), `the palette's gates: ${offered.map((k) => k.id)}`);
+    assert(offered.length === 6 && offered.every((k) => k.group === "Castle" && k.dev && placementImport.costText(k.id) === "free"), `the palette's gates: ${offered.map((k) => k.id)}`);
     placementImport.performPlacement(me, { kind: "build", what: "gate_stone_2", tx: x + 1, ty: y + 2, edge: "n" });
     assert(!me.action, "a gate is a timed build");
     const g2 = mapMod.gateMembers(x + 1, y + 2, "n", 0);
@@ -9019,6 +9019,46 @@ check("the small fixes: a stone wall and a battlement refused without Free build
     promptImport.setMessageSink(null);
     rulesImport.rules.freeBuilding = free0;
     me.layer = 0;
+  }
+});
+
+// ---- art round 14a (Michael, 2026-10-29, #571): the 1-wide gate and the stone arches ----
+check("the 1-wide gate and the stone arches: built over plain stone edges by the command a guest sends, the gate shut and opened on its one edge, an arch open from the start and never shut, no opening to batter or open, taken apart to the plain wall", () => {
+  const at = clearGround();
+  assert(at, "no clear ground");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const free0 = rulesImport.rules.freeBuilding;
+  const built = [];
+  try {
+    rulesImport.rules.freeBuilding = true;
+    me.layer = 0;
+    for (let i = 0; i < 9; i++) for (const r of [y + 1, y + 2]) { const t = mapMod.growTile(x + i, r, 0); if (t.prop) mapMod.removeProp(t.prop); } // both tiles of every edge clear: a gate is a door
+    for (let i = 0; i < 9; i++) { mapMod.buildWall(x + i, y + 2, "n", "wall", "wall_stone"); built.push(x + i); }
+    me.gx = x + 4.5; me.gy = y + 3.5;
+    const said = [];
+    promptImport.setMessageSink((t) => (said.push(t), true));
+    placementImport.performPlacement(me, { kind: "build", what: "gate_stone_1", tx: x + 1, ty: y + 2, edge: "n" });
+    promptImport.setMessageSink(null);
+    const g1 = mapMod.peekTile(x + 1, y + 2, 0).n;
+    assert(g1 && g1.gate && g1.gate.i === 0 && g1.sprite === "wall_stone_gate_1" && !g1.open && mapMod.peekTile(x, y + 2, 0).n.sprite === "wall_stone", `the 1-wide gate: ${g1 && g1.sprite} open ${g1 && g1.open} "${said.join(" / ")}"`);
+    assert(mapMod.setGateOpen(x + 1, y + 2, "n", true, 0) && g1.open, "the 1-wide gate did not open");
+    promptImport.setMessageSink((t) => (said.push(t), true));
+    placementImport.performPlacement(me, { kind: "build", what: "arch_stone_2", tx: x + 3, ty: y + 2, edge: "n" });
+    promptImport.setMessageSink(null);
+    const a = [mapMod.peekTile(x + 3, y + 2, 0).n, mapMod.peekTile(x + 4, y + 2, 0).n];
+    assert(a.every((w) => w && w.gate && w.open && mapMod.isArch(w)), `the 2-wide arch: ${a.map((w) => w && [w.sprite, w.open])} "${said.join(" / ")}"`);
+    assert(!mapMod.setGateOpen(x + 3, y + 2, "n", false, 0) && a.every((w) => w.open), "an arch was shut");
+    assert(!mapMod.openingsNear(x + 3.5, y + 2, 2.5, 0).some((o) => mapMod.isArch(o.wall)), "an arch is an opening to open or batter");
+    placementImport.performPlacement(me, { kind: "build", what: "arch_stone_1", tx: x + 6, ty: y + 2, edge: "n" });
+    assert(mapMod.isArch(mapMod.peekTile(x + 6, y + 2, 0).n), "the 1-wide arch was not built");
+    placementImport.performPlacement(me, { kind: "remove", target: { type: "wall", tx: x + 3, ty: y + 2, edge: "n" } });
+    const back = [mapMod.peekTile(x + 3, y + 2, 0).n, mapMod.peekTile(x + 4, y + 2, 0).n];
+    assert(back.every((w) => w && w.kind === "wall" && w.sprite === "wall_stone"), `the arch taken apart: ${back.map((w) => w && [w.kind, w.sprite])}`);
+    return "a 1-wide gate on its one edge, shut and opened; 2- and 1-wide arches open and never shut, no opening to open; the arch taken apart to the plain wall";
+  } finally {
+    for (const i of built) { for (let k = 0; k < 2; k++) { const t = mapMod.peekTile(x + i, y + 2, 0); if (t && t.n) mapMod.destroyWall(x + i, y + 2, "n", false, 0); } }
+    rulesImport.rules.freeBuilding = free0;
   }
 });
 
