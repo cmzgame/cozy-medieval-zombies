@@ -1,0 +1,35 @@
+{
+ "image": "data/art/critters/frog_splash.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   29,
+   6
+  ],
+  "idle_1": [
+   29,
+   0,
+   29,
+   6
+  ],
+  "idle_2": [
+   58,
+   0,
+   29,
+   6
+  ]
+ },
+ "anchor": [
+  14,
+  3
+ ],
+ "animations": {
+  "idle": {
+   "fps": 10,
+   "loop": false,
+   "frames": 3
+  }
+ },
+ "note": "flat on the water, under the frog Approved by Michael 2026-10-31; drawn by render/frogs.js."
+}

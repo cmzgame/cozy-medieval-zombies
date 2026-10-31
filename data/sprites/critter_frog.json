@@ -1,0 +1,162 @@
+{
+ "image": "data/art/critters/frog.png",
+ "frames": {
+  "idle_se_0": [
+   0,
+   0,
+   18,
+   22
+  ],
+  "idle_se_1": [
+   18,
+   0,
+   18,
+   22
+  ],
+  "idle_se_2": [
+   36,
+   0,
+   18,
+   22
+  ],
+  "crouch_se_0": [
+   54,
+   0,
+   18,
+   22
+  ],
+  "hop_se_0": [
+   72,
+   0,
+   18,
+   22
+  ],
+  "hop_se_1": [
+   90,
+   0,
+   18,
+   22
+  ],
+  "hop_se_2": [
+   108,
+   0,
+   18,
+   22
+  ],
+  "land_se_0": [
+   126,
+   0,
+   18,
+   22
+  ],
+  "idle_ne_0": [
+   0,
+   22,
+   18,
+   22
+  ],
+  "idle_ne_1": [
+   18,
+   22,
+   18,
+   22
+  ],
+  "idle_ne_2": [
+   36,
+   22,
+   18,
+   22
+  ],
+  "crouch_ne_0": [
+   54,
+   22,
+   18,
+   22
+  ],
+  "hop_ne_0": [
+   72,
+   22,
+   18,
+   22
+  ],
+  "hop_ne_1": [
+   90,
+   22,
+   18,
+   22
+  ],
+  "hop_ne_2": [
+   108,
+   22,
+   18,
+   22
+  ],
+  "land_ne_0": [
+   126,
+   22,
+   18,
+   22
+  ]
+ },
+ "anchor": [
+  8,
+  19
+ ],
+ "facings": [
+  "se",
+  "ne"
+ ],
+ "mirror": {
+  "sw": "se",
+  "nw": "ne"
+ },
+ "animations": {
+  "idle": {
+   "fps": 2,
+   "loop": true,
+   "frames": 3,
+   "order": [
+    0,
+    1,
+    0,
+    0,
+    2,
+    0
+   ]
+  },
+  "crouch": {
+   "fps": 6,
+   "loop": false,
+   "frames": 1
+  },
+  "hop": {
+   "fps": 12,
+   "loop": false,
+   "frames": 3
+  },
+  "land": {
+   "fps": 8,
+   "loop": false,
+   "frames": 1
+  }
+ },
+ "hop": {
+  "tiles": 1,
+  "along": {
+   "crouch_0": 0.0,
+   "hop_0": 0.12,
+   "hop_1": 0.5,
+   "hop_2": 0.85,
+   "land_0": 1.0
+  },
+  "liftBakedIn": {
+   "crouch_0": 0,
+   "hop_0": 2,
+   "hop_1": 8,
+   "hop_2": 4,
+   "land_0": 0
+  },
+  "splash": "frog_splash"
+ },
+ "note": "a frog (art round 14b): cosmetic, appears on shallow water and hops a tile at a time; the engine moves the anchor along the hop by `along`, the frames carry the arc Approved by Michael 2026-10-31; drawn by render/frogs.js."
+}

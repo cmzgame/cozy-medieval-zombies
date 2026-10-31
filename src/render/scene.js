@@ -21,6 +21,7 @@ import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/45 section 2)
 import { postDrawables, setStoreyView, setViewerAt, wallDrawables } from "./walls.js";
 import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
+import { frogDrawables, wadeDrawables } from "./frogs.js"; // the shallows' frogs and a wader's ripples (art round 14b)
 import { setCutaway } from "./cutaway.js"; // the stub outdoors and the walls down, on the viewer's storey (Michael, 2026-10-30)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
 import { emitFadedFloors, emitFloors, faderFor, flatHere, hiderFor, ladderDrawables, layersFor, liftOf, setFlatBias, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
@@ -320,6 +321,10 @@ export function renderScene(args) {
         // The bodies on this layer, each a further `rise` up when it is on a stair, its picture made and drawn at that height.
         const mineBody = (e) => (e.layer || 0) === L && !hidden(Math.round(e.gx), Math.round(e.gy), L) && mine(e.gx, e.gy); // a body on a hidden storey is not drawn (the review of #534)
         entityDrawables(entities.filter((e) => !e.rise && mineBody(e)), visL, drawables, drawAll, player);
+        if (L === 0) { // the shallows are the ground's: their frogs, and the ring round a body wading (art round 14b)
+          frogDrawables(tilesT, drawAll ? null : visL, drawables);
+          wadeDrawables(entities.filter((e) => !e.rise && mineBody(e)), drawAll ? null : visL, drawables);
+        }
         for (const e of entities) {
           const r = e.rise || 0;
           if (!r || !mineBody(e)) continue;
