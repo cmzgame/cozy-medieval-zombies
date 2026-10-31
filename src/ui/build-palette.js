@@ -164,7 +164,7 @@ export function render(player) {
   const tabs = placement.paletteTabs();
   const shown = tabs.some((t) => t.id === tab) ? tab : tabs.length ? tabs[0].id : "build"; // the Terrain tab goes with Free building: the remembered one stays, and comes back with it
   shownTab = shown;
-  const kinds = placement.paletteKinds().filter((k) => placement.tabOf(k) === shown && matches(k));
+  const kinds = placement.paletteKinds().filter((k) => placement.onTab(k, shown) && matches(k));
   // Under small headings (an entry's `group`), in the order they first appear; an entry with none sits at the top.
   const groups = new Map();
   for (const k of kinds) {
@@ -177,12 +177,12 @@ export function render(player) {
     const leaf = active === k.id && placement.takesLeaf(k.id) ? `<div class="bp-sub">${placement.leafHint(placement.buildLeaf(), placement.state.ghost && placement.state.ghost.carriedLeaf)}</div>` : "";
     const sw = placement.swatchOf(k);
     const how = k.hint || (k.kind === "terrain" ? "Click, then click or drag on the ground to paint" : placement.isInstantStair(k.id) ? "Click, then click the ground to place it at once" : "Click to build");
-    const right = sw ? `<span class="bp-sw" style="background:${esc(sw)}"></span>` : `<span class="bp-cost">${placement.costText(k.id)}</span>`;
+    const right = sw ? `<span class="bp-sw" style="background:${esc(sw)}"></span>` : k.kind === "ruler" ? "" : `<span class="bp-cost">${placement.costText(k.id)}</span>`; // the ruler costs nothing and builds nothing
     return `<div class="bp-row${short ? " short" : ""}${active === k.id ? " active" : ""}" data-kind="${k.id}" title="${esc(k.label)}: ${esc(short || how)}"><span class="bp-name">${esc(k.label)}</span>${right}</div>${leaf}`;
   };
   const list = [...groups].map(([g, ks]) => (g ? `<div class="bp-group">${esc(g)}</div>` : "") + ks.map(rowHtml).join("")).join("") || `<div class="bp-none">Nothing here matches “${esc(query.trim())}”</div>`;
   const remove = shown === "build" ? '<div class="bp-row bp-remove" data-kind="__remove" title="Take apart: highlights what you made or built; click to take it apart for half its materials (docs/43)"><span class="bp-name">Take apart</span><span class="bp-cost">X</span></div>' : "";
-  const hint = shown === "terrain" ? "Click one, then click or drag on the ground to paint. N or Esc to close." : "Click one, then click the ground. N or Esc to close.";
+  const hint = shown === "terrain" ? "Click one, then click or drag on the ground to paint. Esc puts it down; N closes." : "Click one, then click the ground. Esc puts it down; N closes.";
   const keep = listEl.scrollTop;
   set(tabsEl, tabs.length > 1 ? tabs.map((t) => `<button type="button" class="bp-tab${t.id === shown ? " on" : ""}" data-tab="${t.id}">${esc(t.label)}</button>`).join("") : "");
   tabsEl.hidden = tabs.length <= 1;

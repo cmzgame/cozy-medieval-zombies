@@ -88,6 +88,8 @@ export function buildKinds() {
 // when it names none. Nothing is chosen by an entry's id.
 export const TABS = [{ id: "build", label: "Build" }, { id: "terrain", label: "Terrain" }];
 export const tabOf = (k) => (k && TABS.some((t) => t.id === k.tab) ? k.tab : "build");
+// Whether a palette entry is shown on a tab: the ruler on both (a tool for building the map by hand, Michael 2026-10-30), the rest on their own.
+export const onTab = (k, tab) => (k && k.kind === "ruler") || tabOf(k) === tab;
 
 // The tabs the palette shows now: those holding an entry on offer. The Terrain tab is every entry `dev`, so with Free building off the palette
 // is the Build tab alone and shows no tab bar.
@@ -120,6 +122,7 @@ export function paletteKinds() {
 // tile under the cursor and a click builds it. Its cost is its entry's `cost` for each edge of the outline (20 at 5, 28 at 7), never charged
 // while Free building is on, the only time it is offered.
 export const isRoundBuild = (what) => !!(buildData[what] && buildData[what].kind === "round");
+export const isRulerBuild = (what) => !!(buildData[what] && buildData[what].kind === "ruler");
 const roundSizeOf = (what) => (buildData[what] && buildData[what].size) || 5;
 // The palette entry a ring was built from: its sprite and its size.
 const roundEntryOf = (ring) => Object.keys(buildData).find((k) => isRoundBuild(k) && buildData[k].sprite === ring.sprite && roundSizeOf(k) === ring.n);
@@ -270,6 +273,38 @@ function onFloor(player, fn) {
 function cursorGrid(player) {
   const m = input.getMouse();
   return iso.toGrid(m.x, m.y + layerOf(player) * map.STOREY);
+}
+
+// ---- the ruler (Michael, 2026-10-30: "a click and drag ruler tool. drag and it tells you tile count. Yellow?") ----
+// A palette entry of `kind` ruler measures and builds nothing: the press starts at the tile under the cursor, the drag's rectangle from it to the
+// tile under the cursor is drawn in yellow (its edge tiles) with its count, and after the release it stays until the next press. This client's own:
+// nothing in it reaches the world or the wire, and a command naming it is refused (performPlacement).
+function rulerGhost(player) {
+  const m = input.getMouse();
+  const b = state.build;
+  const L = layerOf(player);
+  if (b.from && m.inside) {
+    const at = cursorGrid(player);
+    b.to = [Math.round(at.gx), Math.round(at.gy)];
+  }
+  const span = b.from ? [b.from, b.to || b.from] : b.measure;
+  if (!span) {
+    if (!m.inside) return null;
+    const at = cursorGrid(player);
+    const c = [Math.round(at.gx), Math.round(at.gy)];
+    return { kind: "ruler", x0: c[0], y0: c[1], x1: c[0], y1: c[1], w: 1, h: 1, measuring: false, done: false, layer: L };
+  }
+  const [a, z] = span;
+  return { kind: "ruler", x0: a[0], y0: a[1], x1: z[0], y1: z[1], w: Math.abs(z[0] - a[0]) + 1, h: Math.abs(z[1] - a[1]) + 1, measuring: !!b.from, done: !b.from, layer: L };
+}
+
+// "7 tiles", or "5 × 4 tiles (20)".
+export function rulerText(w, h) {
+  if (w === 1 || h === 1) {
+    const n = Math.max(w, h);
+    return `${n} ${n === 1 ? "tile" : "tiles"}`;
+  }
+  return `${w} × ${h} tiles (${w * h})`;
 }
 
 // ---- floors (docs/49 section 5; Michael, 2026-10-27, `02` "Floors are built a tile at a time, with no physics") ----
@@ -1127,6 +1162,13 @@ export function update(player) {
   else if (state.kind === "painting") state.ghost = paintingGhost(player);
   else if (state.kind === "setdown") state.ghost = setdownGhost(player);
   else if (state.kind === "torch") state.ghost = torchGhost(player);
+  else if (state.kind === "build" && isRulerBuild(state.build.what)) {
+    if (state.build.from && !input.mouseLeftDown()) { // the drag released: the measure stays shown until the next press
+      state.build.measure = [state.build.from, state.build.to || state.build.from];
+      state.build.from = null;
+    }
+    state.ghost = rulerGhost(player);
+  }
   else if (state.kind === "build") {
     state.ghost = buildGhost(player);
   }
@@ -1733,6 +1775,15 @@ export function tryConfirm(player) {
       else startRoundBuild(player, g.wallKind, g.x0, g.y0, g.n);
       return true;
     }
+    if (g.kind === "ruler") {
+      // The ruler: the press starts a measure at the tile under the cursor (update keeps it while held, and shown after the release).
+      const at = cursorGrid(player);
+      const t = [Math.round(at.gx), Math.round(at.gy)];
+      state.build.from = t;
+      state.build.to = t;
+      state.build.measure = null;
+      return true;
+    }
     if (g.kind === "floor") {
       // A floor's rectangle: the press starts the drag at the tile under the cursor; the release builds what the ghost shows then (update).
       if (!state.build.from) {
@@ -1793,6 +1844,7 @@ function addressOf(t) {
 // checked here against the guest's player, the refusal said to it through the acting player.
 export function performPlacement(player, cmd) {
   if (!player || !cmd) return false;
+  if (cmd.kind === "build" && typeof cmd.what === "string" && isRulerBuild(cmd.what)) return false; // the ruler builds nothing: no command names it
   if (player.ladder) { // nothing is placed, built, or taken apart from a ladder (the review of #608)
     showMessage("Not while on a ladder.");
     return true;
@@ -2088,6 +2140,11 @@ export function prompt() {
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
     const { back } = partsOf(t);
     return { label: `Click to take apart ${targetName(t)}${back.length ? ` (${partsText(back)} back)` : ""} · Esc cancel`, mx, my, progress: null, enabled: true };
+  }
+  if (g.kind === "ruler") {
+    const [mx, my] = [(g.x0 + g.x1) / 2, (g.y0 + g.y1) / 2];
+    if (!g.measuring && !g.done) return { label: "Press and drag to measure · Esc cancel", mx, my, progress: null, enabled: true };
+    return { label: g.done ? `${rulerText(g.w, g.h)} · drag again to measure · Esc cancel` : rulerText(g.w, g.h), mx, my, progress: null, enabled: true };
   }
   if (g.kind === "floor") {
     const [mx, my] = [(g.x0 + g.x1) / 2, (g.y0 + g.y1) / 2];

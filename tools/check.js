@@ -6189,6 +6189,17 @@ check("built stairs and floors upstairs: a stair built in the open climbing away
   }
   return res.join("; ");
 });
+// ---- the ruler (Michael, 2026-10-30: "a click and drag ruler tool. drag and it tells you tile count") ----
+check("the ruler: on both of the palette's tabs, always offered, its count's words, and no command builds it", () => {
+  const ruler = placementImport.paletteKinds().find((k) => k.id === "ruler");
+  assert(ruler && placementImport.onTab(ruler, "build") && placementImport.onTab(ruler, "terrain") && !placementImport.onTab({ kind: "wall" }, "terrain"), "the ruler is not on both tabs, or a wall is on the Terrain tab");
+  const words = [[1, 1], [7, 1], [1, 12], [5, 4]].map(([w, h]) => placementImport.rulerText(w, h));
+  assert(words.join("|") === "1 tile|7 tiles|12 tiles|5 × 4 tiles (20)", `its words: ${words.join("|")}`);
+  const me = gameMod.state.player;
+  assert(placementImport.performPlacement(me, { kind: "build", what: "ruler", tx: 3, ty: 3, edge: "n" }) === false && !me.action, "a command naming the ruler was taken");
+  return `on both tabs; ${words.join(", ")}; a command naming it refused`;
+});
+
 // ---- the Terrain tab (Michael, 2026-10-28: "Build menu becomes 2: Build, and Terrain") ----
 check("the build palette's tabs are data: every entry's `tab` is a known one, every Terrain entry is `dev` (Free building only) and paints a floor with a definition, the pink floor has its chart colour, no `walk` field, and a place in the ground's table; the Terrain tab is offered only with Free building on", () => {
   const build = read("data/build.json");

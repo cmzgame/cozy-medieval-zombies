@@ -77,6 +77,10 @@ sprites = {os.path.basename(p)[:-5] for p in glob.glob("data/sprites/*.json")}
 for kind, b in build.items():
     for cost in b.get("cost", {}):
         check_id(f"build.{kind}.cost", cost)
+    if b.get("kind") == "ruler":  # the ruler (Michael, 2026-10-30) measures: no sprite, no cost, on both tabs
+        if b.get("sprite") or b.get("cost") or b.get("tab"):
+            fail(f"build.{kind}: the ruler has no sprite, cost, or tab")
+        continue
     if b.get("sprite") not in sprites:
         fail(f"build.{kind}: no sprite {b.get('sprite')!r}")
     # The palette's tabs (Michael, 2026-10-28): a known tab, and a Terrain entry paints a floor the ground's table knows, Free building only.
