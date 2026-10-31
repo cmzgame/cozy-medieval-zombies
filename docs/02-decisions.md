@@ -11,6 +11,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Height is one unit, world pixels above the ground, with one walk for sight, the dead, and flights; shooting down and up from any storey; the picture hides what is in the way and never fades: the storeys over your room and any slab covering your body are not drawn, your room's camera-side walls are cut to a stub at the floor with their doors and windows drawn whole at low opacity; a plateau never hides; items fall to the first floor below, bodies never (2026-10-30, Height ruled, on `53`).
 - The castle gates break, at about three doors' hit points (2026-10-30, Height ruled; strikes the 2026-10-29 gate ruling's "the dead cannot break it").
 - The build menu has a search box, kept until it is changed or the browser tab is closed (2026-10-30, The build menu's search).
+- The round stone wall is two palette entries, 5 across and 7 across, each placed by a click centred on the cursor, no drag (2026-10-30, Round walls by size).
 - Everything in the build menu is built at once: every `seconds` in `data/build.json` is 0, for building the map by hand (2026-10-30, Build times 0).
 - Mountains are built in tiers up to the storey cap, of hill pieces on dirt, grass, or other hills alone; they are the map's, never a player's; no player-built floor, stair, or ladder reaches a hill's top (2026-10-30, Mountains in tiers; strikes Height ruled's "hills on hills refused for now").
 - Towers climb by ladders: players build a one-tile ladder, climbed by E, the dead ignore it; stairs come up with Free building when nobody is cut off; the storey cap is 6 (2026-10-30, Height ruled).
@@ -342,6 +343,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### 2026-10-30 — The build menu's search: kept until changed or logged off (Michael)
 
 Michael, building his castle: "give the build menus a search box and make it persistent. So if I search "stone" and close the build menu, I want it to still be filtered to that until I log off or change it." **Ruled:** a search box in the palette over both tabs, kept through the palette shut and a reload and dropped when the browser tab closes (the builder's reading of "until I log off": sessionStorage, `13`); a row shows when every word typed is in its name, its heading, or its id; Enter picks the first row shown (the builder's).
+
+### 2026-10-30 — Round walls by size: 5 across and 7 across are two options, placed by a click (Michael)
+
+Michael, building his castle: "Size 5 and 7 round stone walls needs to be two separate options. The 7x7 ones are nearly impossible to draw because when you click to drag to get to 7 and release, it immediately starts building it. So you have to get it correctly positioned BEFORE you drag, which is a frustrating game of guess and check." **Ruled:** the palette has a Round stone wall (5 across) and a Round stone wall (7 across), each a `round` entry with its `size` in `data/build.json`; the ghost is the ring centred on the tile under the cursor and a click builds it, as a gate is placed; the drag is gone. A guest's `build` command names the square's corner and the entry's own size (another size is refused). Strikes `50` section 4's "growing from 5 to 7 as the drag goes out".
 
 ### 2026-10-30 — Build times 0: everything in the build menu is built at once (Michael)
 

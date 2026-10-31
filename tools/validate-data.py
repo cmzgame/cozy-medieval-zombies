@@ -537,6 +537,9 @@ for key, e in load("data/build.json").items():
     # Round walls (docs/50): stone only and not in the game yet, offered only with Free building on (Michael, 2026-10-27).
     if e.get("kind") == "round" and (e.get("sprite") != "wall_stone" or not e.get("dev")):
         fail(f"build {key}: a round wall is stone only and `dev` (Free building alone) for now")
+    # Each size its own entry (Michael, 2026-10-30): `size` 5 or 7.
+    if e.get("kind") == "round" and e.get("size") not in (5, 7):
+        fail(f"build {key}: a round wall's `size` is 5 or 7")
 # Castle gates (art round 12, docs/09, Michael 2026-10-29): a wall definition with `wall.gate` is a gate of 2 or 3 edges in the run `wall.run` (a wall that
 # exists), its picture one frame as wide as the run on each side (`north_gate`, `west_gate`), its parts sheet the portcullis in closed, mid, and raised on each side, its
 # flags booleans (the rulings as data), its swing a number of seconds above 0, its crown a height; a build entry of kind `gate` is `dev` (Free building only) and names one.
