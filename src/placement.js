@@ -978,7 +978,9 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   if (stairWhy) return stairWhy;
   const ringWhy = map.ringWallProblem(tx, ty, edge, kind, L); // a door or a window only at a ring's door points, no wall inside one (docs/50)
   if (ringWhy) return ringWhy;
-  if (L && map.edgeTiles(tx, ty, edge).every(([x, y]) => !map.isWalkableTile(x, y, L))) return "No floor there"; // a storey's wall stands by a floor (docs/49 section 5)
+  // A storey's wall stands by a floor (docs/49 section 5); a battlement by its own rule above, which counts a stairwell as the walkway (Michael,
+  // 2026-10-31: refused beside a stair against a wall with "No floor there", "the battlement is basically part of the wall, not part of the floor").
+  if (L && !isBattlementBuild(what) && map.edgeTiles(tx, ty, edge).every(([x, y]) => !map.isWalkableTile(x, y, L))) return "No floor there";
   if (!map.canBuildWall(tx, ty, edge, kind, L)) return "No room";
   if (leaf) {
     // The wood of its leaves (#334): only for a door or a window, in a wall of a wood (its own sprite when it is stamped over one).
