@@ -1148,6 +1148,12 @@ function waterTileActions(tx, ty, player) {
   return out;
 }
 
+// Walk here to a tile, tagged with its address (a guest's goes as an `act` naming it): the menu's second step (Michael, 2026-10-29, #571: the
+// outline first, then the left click; placement.beginWalk, main.js).
+export function walkHere(tile) {
+  return tag([walkAction(tile)], onTile(tile[0], tile[1]))[0];
+}
+
 function walkAction(tile) {
   return act({
     kind: "floor",
