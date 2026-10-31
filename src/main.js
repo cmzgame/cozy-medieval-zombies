@@ -1027,6 +1027,21 @@ function handleEscape() {
   screens.show("pause");
 }
 
+// The cutaway (Michael, 2026-10-30: "more transparency is needed here, even outside a room"; render/cutaway.js): the walls between the camera and
+// me, and the cursor while a build piece, the ruler, or Take apart is in hand, cut to the stub; and every wall on my storey while the walls are
+// down (H) and the build menu is open. This client's own view: nothing in it is sent or saved.
+let wallsDown = false;
+function cutawayFor(me) {
+  if (!me) return null;
+  const points = [{ x: me.gx, y: me.gy }];
+  const m = input.getMouse();
+  if ((placement.state.kind === "build" || placement.state.kind === "remove") && m.inside) {
+    const at = iso.toGrid(m.x, m.y + (me.layer || 0) * map.STOREY); // the tile under the cursor on my storey, as the ghost finds it
+    points.push({ x: at.gx, y: at.gy });
+  }
+  return { points, down: wallsDown && buildPalette.isOpen() };
+}
+
 // N: the build palette, or out of build mode if in it. Not while carrying or
 // with the bag open (docs/13).
 function toggleBuild() {
@@ -1228,6 +1243,10 @@ function stepGame(dt) {
   if (input.wasPressed("Enter") || input.wasPressed("NumpadEnter")) log.focusChat("");
   if (input.wasPressed("Slash")) log.focusChat("/");
   if (input.wasPressed("KeyN")) toggleBuild();
+  if (input.wasPressed("KeyH") && buildPalette.isOpen()) { // the walls down while the build menu is open (Michael, 2026-10-30): this client's view
+    wallsDown = !wallsDown;
+    showMessage(wallsDown ? "Walls down (H to raise them)" : "Walls up");
+  }
   if (input.wasPressed("KeyM")) mapPanel.toggle(client.me); // the map: a client view, the world keeps running (docs/33)
   if (input.wasPressed("KeyX")) toggleRemove();
   // The wheel zooms in integer steps, 1× to 3× (docs/02, 2026-10-10 night):
@@ -1484,6 +1503,7 @@ function render() {
     tracks: tracks.near(client.me), // wild game's prints near me (docs/45 section 2; this client's view, nothing sent)
     // The tile grid shows only while building or removing (docs/15).
     grid: placement.state.kind === "build" || placement.state.kind === "remove",
+    cutaway: cutawayFor(client.me),
   };
   // Drawn between steps (interp.js): everything that moves `alpha` of the way from where the last step found it to where it left it, and the camera likewise;
   // the step's own positions go back as soon as the picture is made, so nothing in the simulation or the interface ever reads a blended one.

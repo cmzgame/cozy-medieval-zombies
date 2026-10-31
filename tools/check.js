@@ -28,6 +28,7 @@ const clock = await import("../src/clock.js");
 const bleed = await import("../src/bleed.js");
 const infection = await import("../src/infection.js");
 const items = await import("../src/items.js");
+const cutawayMod = await import("../src/render/cutaway.js"); // the cutaway's geometry (Michael, 2026-10-30), pure
 const pathfind = await import("../src/pathfind.js");
 const oldPathfinder = await import("./pathbench.js"); // the old pathfinder, kept there as it was (#124); importing it runs no bench
 
@@ -6189,6 +6190,38 @@ check("built stairs and floors upstairs: a stair built in the open climbing away
   }
   return res.join("; ");
 });
+// ---- the cutaway (Michael, 2026-10-30: "more transparency is needed here, even outside a room") ----
+check("the cutaway: a wall between the camera and a cut point is cut, one behind it, beside it, or past its reach is not; the walls down cut every wall and every ring", () => {
+  const cut = cutawayMod;
+  try {
+    cut.setCutaway({ points: [{ x: 10, y: 10 }] });
+    const cases = [
+      ["the wall just south of it", cut.edgeCut(10, 11, "n"), true],
+      ["the wall just east of it", cut.edgeCut(11, 10, "w"), true],
+      ["three tiles south", cut.edgeCut(10, 13, "n"), true],
+      ["the wall north of it (behind)", cut.edgeCut(10, 10, "n"), false],
+      ["the wall west of it (behind)", cut.edgeCut(10, 10, "w"), false],
+      ["far past its reach to the south", cut.edgeCut(10, 20, "n"), false],
+      ["far across the screen", cut.edgeCut(18, 3, "n"), false],
+      ["a ring it stands in", cut.ringCut({ x0: 7, y0: 7, n: 7 }), true],
+      ["a ring behind it", cut.ringCut({ x0: 0, y0: 0, n: 5 }), false],
+    ];
+    const ring = { x0: 21, y0: 0, n: 7 }; // the proving ground's ring
+    cut.setCutaway({ points: [{ x: 24, y: 9 }] });
+    cases.push(["a ring the point stands south of (in front of it)", cut.ringCut(ring), false]);
+    cut.setCutaway({ points: [{ x: 23, y: -2 }] });
+    cases.push(["a ring the point stands north of (behind it)", cut.ringCut(ring), true]);
+    const bad = cases.filter(([, got, want]) => got !== want).map(([what, got]) => `${what}: ${got}`);
+    cut.setCutaway({ points: [], down: true });
+    const down = cut.allDown() && cut.edgeCut(0, 0, "n") && cut.ringCut({ x0: 50, y0: 50, n: 5 });
+    cut.setCutaway(null);
+    assert(!bad.length && down && !cut.active(), `${bad.join("; ")}${down ? "" : "; the walls down cut nothing"}`);
+    return `${cases.length} cases as meant; the walls down cut every wall and ring; nothing cut once cleared`;
+  } finally {
+    cut.setCutaway(null);
+  }
+});
+
 // ---- the ruler (Michael, 2026-10-30: "a click and drag ruler tool. drag and it tells you tile count") ----
 check("the ruler: on both of the palette's tabs, always offered, its count's words, and no command builds it", () => {
   const ruler = placementImport.paletteKinds().find((k) => k.id === "ruler");

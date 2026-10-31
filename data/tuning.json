@@ -86,7 +86,7 @@
     "delayMs": 60,
     "gap": 14
   },
-  "cover": { "stub": 8, "openingAlpha": 0.3, "fogAlpha": 0.36, "seenAlpha": 0.5 },
+  "cover": { "stub": 8, "openingAlpha": 0.3, "fogAlpha": 0.36, "seenAlpha": 0.5, "cutReach": 7, "cutWidth": 4 },
   "ladder": { "climbSeconds": 1.5 },
   "objectHighlight": {
     "color": "#f4f0e6",

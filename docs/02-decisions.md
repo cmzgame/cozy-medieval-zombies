@@ -10,6 +10,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 - Height is one unit, world pixels above the ground, with one walk for sight, the dead, and flights; shooting down and up from any storey; the picture hides what is in the way and never fades: the storeys over your room and any slab covering your body are not drawn, your room's camera-side walls are cut to a stub at the floor with their doors and windows drawn whole at low opacity; a plateau never hides; items fall to the first floor below, bodies never (2026-10-30, Height ruled, on `53`).
 - The castle gates break, at about three doors' hit points (2026-10-30, Height ruled; strikes the 2026-10-29 gate ruling's "the dead cannot break it").
+- Walls between the camera and you, or the build cursor, are cut to the stub indoors and out, and H puts every wall on your storey down while the build menu is open (2026-10-30, The cutaway and walls down).
 - The build menu stays open while its piece is in hand (Esc puts the piece down, N shuts it), and has a Ruler on both tabs that counts the tiles of a drag in yellow (2026-10-30, The ruler; the build menu stays open).
 - The build menu has a search box, kept until it is changed or the browser tab is closed (2026-10-30, The build menu's search).
 - The round stone wall is two palette entries, 5 across and 7 across, each placed by a click centred on the cursor, no drag (2026-10-30, Round walls by size).
@@ -340,6 +341,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-30 — The cutaway and walls down (Michael)
+
+Michael, laying floor between his castle's curtain walls: "I still think more transparency is needed here, even outside a room. I am trying to lay floor but I literally can't see what I am doing." Offered a cutaway round him and the cursor, or that and a walls-down key, he chose "Walls-down key too". **Ruled:** the cover rule's stub (`53` section 6.2, mechanism 3) is taken outdoors: a wall standing between the camera and you, within `cover.cutReach` toward the camera and `cover.cutWidth` across the screen, is cut to the stub wherever you are, and while a build piece, the ruler, or Take apart is in hand the same goes for the cursor; **H**, with the build menu open, puts every wall on your storey down to the stub (a round room's two halves too) until H again or the menu shuts. Never a fade, never a cliff; each player's own view. The numbers, the key, and walls coming back up when the menu shuts are the builder's defaults (`42`).
 
 ### 2026-10-30 — The ruler; the build menu stays open (Michael)
 

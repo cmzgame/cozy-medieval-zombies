@@ -19,6 +19,7 @@ import * as cliffs from "../cliffs.js"; // a cliff's pictures by its edges and i
 import * as battlements from "../battlements.js"; // a castle battlement's pictures by the floors and the neighbouring edges (art round 13)
 import * as round from "../round.js"; // a ring's outline vertices, where a straight wall's filler runs to the curve (docs/50 section 3)
 import { cover } from "../tuning.js"; // the stub's height and the openings' opacity (docs/53 section 6.2)
+import * as cutaway from "./cutaway.js"; // the stub taken outdoors, round the viewer and the build cursor, and the walls down (Michael, 2026-10-30)
 
 // ---- walls ----
 
@@ -432,6 +433,10 @@ function onViewerStair(x, y) {
 function isNearWall(tx, ty, edge, playerRoom) {
   const far = edge === "n" ? [tx, ty - 1] : [tx - 1, ty];
   if (viewerStair && onViewerStair(far[0], far[1]) && !onViewerStair(tx, ty)) return true;
+  if (cutaway.active() && cutaway.edgeCut(tx, ty, edge)) { // in the cutaway's way, or the walls down; a cliff never (a hill never hides, docs/53 section 6.2)
+    const w = map.tileAt(tx, ty)[edge];
+    if (!(w && cliffs.cliffWallOf(w))) return true;
+  }
   if (playerRoom <= 0) return false;
   const t = map.tileAt(tx, ty);
   return map.tileAt(far[0], far[1]).room === playerRoom && t.room !== playerRoom;
@@ -536,7 +541,7 @@ function vertexAt(tx, ty, playerRoom) {
   // (Michael's designer, 2026-10-12: a ghost post over a solid wall's end read
   // as a pale column).
   const nearAt = (slot) => isNearWall(fade[slot][0], fade[slot][1], fade[slot][2], playerRoom);
-  const near = (playerRoom > 0 || !!viewerStair) && (!nE || nearAt("nE")) && (!nW || nearAt("nW")) && (!wS || nearAt("wS")) && (!wN || nearAt("wN"));
+  const near = (playerRoom > 0 || !!viewerStair || cutaway.active()) && (!nE || nearAt("nE")) && (!nW || nearAt("nW")) && (!wS || nearAt("wS")) && (!wN || nearAt("wN"));
   return { sheet: base.sheet, near, thin: base.thin };
 }
 

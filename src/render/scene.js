@@ -21,6 +21,7 @@ import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/45 section 2)
 import { postDrawables, setStoreyView, setViewerAt, wallDrawables } from "./walls.js";
 import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
+import { setCutaway } from "./cutaway.js"; // the stub outdoors and the walls down, on the viewer's storey (Michael, 2026-10-30)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
 import { emitFadedFloors, emitFloors, faderFor, flatHere, hiderFor, ladderDrawables, layersFor, liftOf, setFlatBias, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
 import { cover as coverTuning } from "../tuning.js"; // the cover rule's levers (docs/53 section 6.2)
@@ -211,7 +212,7 @@ function storeyTileOn(x, y, L) {
 }
 
 export function renderScene(args) {
-  const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, splashes = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null } = probe.override ? { ...args, ...probe.override } : args;
+  const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, splashes = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null, cutaway = null } = probe.override ? { ...args, ...probe.override } : args;
   ensureArea(w, h);
   grownKey = -1; // a chunk grown or dropped since the last frame is asked again (the review of #534)
   hl.set(highlight); // the object under the cursor, outlined by the drawables below (#301)
@@ -295,6 +296,7 @@ export function renderScene(args) {
       }
       const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
       setViewerAt(player && L === VL ? { x: Math.round(player.gx), y: Math.round(player.gy), layer: L } : null); // a near battlement fades where the viewer stands behind it (art round 13)
+      setCutaway(L === VL ? cutaway : null); // the cutaway and the walls down: the viewer's own storey alone
       // The walls' view of the storeys round this layer (render/walls.js): the storey above drawn over a tile (a wall under its floor draws no
       // cap), and the stair the viewer stands on (the walls along it fade).
       setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) && !(faded.any && faded.layers.has(L + 1) && faded(x, y, L + 1)) : null, viewerStair, L > VL ? (x, y) => hidden(x, y, L) : null); // a fading storey is no floor over a wall (the review of #551); a hidden tile's edge walls go with it (docs/53 section 6.2)
@@ -368,6 +370,7 @@ export function renderScene(args) {
   gl.setExtraFlags(0);
   setStoreyView(null, null);
   setViewerAt(null);
+  setCutaway(null);
   lastStats.drawables = count;
   lastStats.translucent = translucent;
   // On top, with no depth test (docs/51 section 4; Primary's recommendation, a default: a ghost hidden behind a wall is useless).

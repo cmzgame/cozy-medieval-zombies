@@ -19,6 +19,7 @@ import { DEPTH_ROOM, DEPTH_BIAS } from "./scene.js";
 import { cover } from "../tuning.js"; // the stub and the openings' opacity (docs/53 section 6.2)
 import * as depth from "./depth.js";
 import { emitBracket } from "./walls.js";
+import * as cutaway from "./cutaway.js"; // the cutaway and the walls down cut a ring's near half as its own room does (Michael, 2026-10-30)
 import { ghostColor } from "./props.js";
 
 export const SEGMENTS = 48; // the drawn curve's segments round the whole ring (7.5 degrees each); the bodies' chords are coarser (round.js)
@@ -68,7 +69,7 @@ export function ringDrawables(tiles, visible, playerRoom, out, layer = 0) {
       if (!round.shape(r.x0, r.y0, r.n).stepped.some(([x, y]) => drawn.has(tileKey(x, y)))) continue;
     }
     const room = map.roomAt(r.x0 + (r.n - 1) / 2, r.y0 + (r.n - 1) / 2, r.layer);
-    const inside = playerRoom > 0 && room === playerRoom;
+    const inside = (playerRoom > 0 && room === playerRoom) || (cutaway.active() && cutaway.ringCut(r));
     out.push(makeHalf(r, false, visible, false, null));
     out.push(makeHalf(r, true, visible, inside, null));
   }
@@ -141,7 +142,8 @@ function makeHalf(r, near, visible, inside, ghostTint, ghostFlags = 0) {
   // within the inner face's silhouette), never a flank.
   const span = iso.HW * (s.R - t) * Math.SQRT2;
   const dxOf = (a) => iso.HW * (s.R + t) * (Math.cos(a) - Math.sin(a)); // the outer face's columns from the centre's at that angle (whichever face is drawn): the flanks are the stretch past the inside's silhouette there
-  const fades = (a0, a1) => near && inside && Math.min(Math.abs(dxOf(a0)), Math.abs(dxOf(a1))) < span;
+  const cutAll = !ghostTint && cutaway.allDown(); // the walls down (Michael, 2026-10-30): every segment of both halves cut to the stub, as every straight wall is
+  const fades = (a0, a1) => cutAll || (near && inside && Math.min(Math.abs(dxOf(a0)), Math.abs(dxOf(a1))) < span);
   const color = sheet.color || "#7b7670";
   const key = (s.cx + s.cy + out * s.R) * 1000;
   // The storeys' seam (docs/53 section 6.4, the walls' rule): a ring with the same ring over it draws no cap, and the one over it draws its face a
