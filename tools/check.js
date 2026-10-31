@@ -29,6 +29,7 @@ const bleed = await import("../src/bleed.js");
 const infection = await import("../src/infection.js");
 const items = await import("../src/items.js");
 const cutawayMod = await import("../src/render/cutaway.js"); // the cutaway's geometry (Michael, 2026-10-30), pure
+const plansMod = await import("../src/plans.js"); // the Planning tool's rulers (Michael, 2026-10-30)
 const pathfind = await import("../src/pathfind.js");
 const oldPathfinder = await import("./pathbench.js"); // the old pathfinder, kept there as it was (#124); importing it runs no bench
 
@@ -6222,15 +6223,42 @@ check("the cutaway: a wall between the camera and a cut point is cut, one behind
   }
 });
 
-// ---- the ruler (Michael, 2026-10-30: "a click and drag ruler tool. drag and it tells you tile count") ----
-check("the ruler: on both of the palette's tabs, always offered, its count's words, and no command builds it", () => {
-  const ruler = placementImport.paletteKinds().find((k) => k.id === "ruler");
-  assert(ruler && placementImport.onTab(ruler, "build") && placementImport.onTab(ruler, "terrain") && !placementImport.onTab({ kind: "wall" }, "terrain"), "the ruler is not on both tabs, or a wall is on the Terrain tab");
-  const words = [[1, 1], [7, 1], [1, 12], [5, 4]].map(([w, h]) => placementImport.rulerText(w, h));
-  assert(words.join("|") === "1 tile|7 tiles|12 tiles|5 × 4 tiles (20)", `its words: ${words.join("|")}`);
-  const me = gameMod.state.player;
-  assert(placementImport.performPlacement(me, { kind: "build", what: "ruler", tx: 3, ty: 3, edge: "n" }) === false && !me.action, "a command naming the ruler was taken");
-  return `on both tabs; ${words.join(", ")}; a command naming it refused`;
+// ---- the Planning tool (Michael, 2026-10-30: "It lets me lay down any number of rulers ... place, keep it there, remove it when needed") ----
+check("planning: a ruler laid and taken up by the commands a guest sends, on the player's storey, in its colour, refused out of bounds; kept in the save and the sync check; its words", () => {
+  const json = read("data/maps/square.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  me.layer = 0;
+  const said = [];
+  promptImport.setMessageSink((t) => (said.push(t), true));
+  try {
+    assert(!S.plans.length, `a new world has plans: ${S.plans.length}`);
+    placementImport.performPlacement(me, { kind: "plan", ax: 12, ay: 4, bx: 6, by: 7, color: "pink" });
+    placementImport.performPlacement(me, { kind: "plan", ax: 3, ay: 3, bx: 9, by: 3, color: "blue" });
+    const [a, b] = S.plans;
+    assert(S.plans.length === 2 && a.x0 === 6 && a.y0 === 4 && a.x1 === 12 && a.y1 === 7 && a.color === "pink" && a.layer === 0 && b.color === "blue", `laid: ${JSON.stringify(S.plans)}`);
+    const words = [plansMod.textOf(a), plansMod.textOf(b), plansMod.sizeText(1, 1)];
+    assert(words.join("|") === "7 × 4 tiles (28)|7 tiles|1 tile", `its words: ${words.join("|")}`);
+    assert(plansMod.planAt(S, 6, 5, 0) === a && !plansMod.planAt(S, 8, 5, 0) && plansMod.planAt(S, 5, 3, 0) === b && !plansMod.planAt(S, 6, 5, 1), "a plan found by its drawn tiles, on its storey, the inside not");
+    const before = said.length;
+    placementImport.performPlacement(me, { kind: "plan", ax: 0, ay: 0, bx: 400, by: 0, color: "green" });
+    placementImport.performPlacement(me, { kind: "plan", ax: 0, ay: 0, bx: 1, by: 1, color: "orange" });
+    assert(S.plans.length === 2 && said.length === before + 2, `out of bounds laid: ${S.plans.length} plans, ${said.slice(before).join(" / ")}`);
+    const hashWith = gameMod.syncParts().plans;
+    const save = JSON.parse(JSON.stringify(gameMod.serialize()));
+    assert(save.plans.length === 2 && save.planNext === 2, `the save's plans: ${JSON.stringify(save.plans)} next ${save.planNext}`);
+    gameMod.restore(save, json);
+    assert(gameMod.state.plans.length === 2 && gameMod.state.plans[0].id === a.id && gameMod.syncParts().plans === hashWith, "the plans did not come back from the save as they were");
+    placementImport.performPlacement(gameMod.state.player, { kind: "unplan", id: a.id });
+    assert(gameMod.state.plans.length === 1 && gameMod.state.plans[0].id === b.id && gameMod.syncParts().plans !== hashWith, "taken up by its id: the list or the sync part did not change");
+    placementImport.performPlacement(gameMod.state.player, { kind: "plan", ax: 1, ay: 1, bx: 2, by: 2, color: "yellow" });
+    assert(gameMod.state.plans[1].id === "plan3", `a new plan's id after a restore: ${gameMod.state.plans[1].id}`);
+    assert(!placementImport.paletteKinds().some((k) => k.id === "ruler"), "the ruler is still in the build menu");
+    return `two laid (pink 7 × 4, blue 7), two refused, kept through the save, one taken up by its id; ${words.join(", ")}`;
+  } finally {
+    promptImport.setMessageSink(null);
+  }
 });
 
 // ---- the Terrain tab (Michael, 2026-10-28: "Build menu becomes 2: Build, and Terrain") ----

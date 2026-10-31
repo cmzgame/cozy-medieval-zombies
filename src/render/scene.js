@@ -14,7 +14,7 @@ import * as gl from "../gl.js";
 import * as ground from "../ground.js";
 import { areaTiles, buildArea, buildStoreyArea, ensureArea } from "./area.js";
 import { arrowDrawables, emitMarker, entityDrawables, fireDrawables, splashDrawables } from "./entities.js";
-import { emitGhost, emitHitShapes, floorItemDrawables, propDrawables } from "./props.js";
+import { emitGhost, emitHitShapes, emitPlans, floorItemDrawables, propDrawables } from "./props.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import { emitRugs } from "./rugs.js"; // laid rugs, flat on the ground under everything (#327)
 import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
@@ -212,7 +212,7 @@ function storeyTileOn(x, y, L) {
 }
 
 export function renderScene(args) {
-  const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, splashes = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null, cutaway = null } = probe.override ? { ...args, ...probe.override } : args;
+  const { w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, splashes = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null, cutaway = null, plans = null } = probe.override ? { ...args, ...probe.override } : args;
   ensureArea(w, h);
   grownKey = -1; // a chunk grown or dropped since the last frame is asked again (the review of #534)
   hl.set(highlight); // the object under the cursor, outlined by the drawables below (#301)
@@ -375,6 +375,11 @@ export function renderScene(args) {
   lastStats.translucent = translucent;
   // On top, with no depth test (docs/51 section 4; Primary's recommendation, a default: a ghost hidden behind a wall is useless).
   gl.setPass(gl.PASS_TOP);
+  // The Planning tool's rulers (Michael, 2026-10-30), on their storeys up to the viewer's, under the ghost: those within 80 tiles of the camera.
+  if (plans && plans.length) {
+    const near = (p) => p.x1 >= cam.gx - 80 && p.x0 <= cam.gx + 80 && p.y1 >= cam.gy - 80 && p.y0 <= cam.gy + 80;
+    for (const L of [...new Set(plans.map((p) => p.layer || 0))]) if (L <= VL) withLift(L * map.STOREY, () => map.withDrawLayer(L, () => emitPlans(plans.filter((p) => (p.layer || 0) === L && near(p)))));
+  }
   if (ghost) withLift((ghost.layer || 0) * map.STOREY, () => map.withDrawLayer(ghost.layer || 0, () => emitGhost(ghost))); // on the builder's storey (docs/49 section 5)
   if (hitShapes) emitHitShapes(hitShapes);
   if (marker) emitMarker(marker);

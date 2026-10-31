@@ -38,6 +38,7 @@ import * as stations from "./stations.js"; // a made prop's recipe, for what tak
 import * as campfire from "./campfire.js"; // a campfire made at the workbench, set down from the bag, picked up again (docs/43, section 3)
 import * as setdown from "./setdown.js"; // an item set down as its prop, a torch put on a wall (docs/43, section 4)
 import * as round from "./round.js"; // a round room's geometry (docs/50)
+import * as plans from "./plans.js"; // the Planning tool's rulers kept in the world (Michael, 2026-10-30)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -51,7 +52,7 @@ const removeReach = () => (rules.freeBuilding ? FREE_REACH : REMOVE_REACH);
 const EDGE_CLEARANCE = 0.45; // the player may not stand closer than this to an edge being built
 
 // kind is null, "prop", "rug", "painting", "build", or "remove". ghost is what the renderer draws.
-export const state = { active: false, kind: null, prop: null, build: null, rug: null, painting: null, setdown: null, torch: null, ghost: null, turns: 0 };
+export const state = { active: false, kind: null, prop: null, build: null, rug: null, painting: null, setdown: null, torch: null, plan: null, ghost: null, turns: 0 };
 // On a guest (docs/31/05 item 10, tier 3): the ghost is the replica's, and the click goes to the host as
 // a command (main.js sets the sender), which performs it for the guest's player with its own reach.
 let sender = null;
@@ -88,8 +89,6 @@ export function buildKinds() {
 // when it names none. Nothing is chosen by an entry's id.
 export const TABS = [{ id: "build", label: "Build" }, { id: "terrain", label: "Terrain" }];
 export const tabOf = (k) => (k && TABS.some((t) => t.id === k.tab) ? k.tab : "build");
-// Whether a palette entry is shown on a tab: the ruler on both (a tool for building the map by hand, Michael 2026-10-30), the rest on their own.
-export const onTab = (k, tab) => (k && k.kind === "ruler") || tabOf(k) === tab;
 
 // The tabs the palette shows now: those holding an entry on offer. The Terrain tab is every entry `dev`, so with Free building off the palette
 // is the Build tab alone and shows no tab bar.
@@ -122,7 +121,6 @@ export function paletteKinds() {
 // tile under the cursor and a click builds it. Its cost is its entry's `cost` for each edge of the outline (20 at 5, 28 at 7), never charged
 // while Free building is on, the only time it is offered.
 export const isRoundBuild = (what) => !!(buildData[what] && buildData[what].kind === "round");
-export const isRulerBuild = (what) => !!(buildData[what] && buildData[what].kind === "ruler");
 const roundSizeOf = (what) => (buildData[what] && buildData[what].size) || 5;
 // The palette entry a ring was built from: its sprite and its size.
 const roundEntryOf = (ring) => Object.keys(buildData).find((k) => isRoundBuild(k) && buildData[k].sprite === ring.sprite && roundSizeOf(k) === ring.n);
@@ -275,36 +273,47 @@ function cursorGrid(player) {
   return iso.toGrid(m.x, m.y + layerOf(player) * map.STOREY);
 }
 
-// ---- the ruler (Michael, 2026-10-30: "a click and drag ruler tool. drag and it tells you tile count. Yellow?") ----
-// A palette entry of `kind` ruler measures and builds nothing: the press starts at the tile under the cursor, the drag's rectangle from it to the
-// tile under the cursor is drawn in yellow (its edge tiles) with its count, and after the release it stays until the next press. This client's own:
-// nothing in it reaches the world or the wire, and a command naming it is refused (performPlacement).
-function rulerGhost(player) {
+// ---- planning (Michael, 2026-10-30, `02` "The Planning tool": "It lets me lay down any number of rulers"; plans.js) ----
+// The Planning panel's mode (ui/planning-panel.js): a press on the ground starts a ruler at the tile under the cursor, the drag's rectangle is
+// drawn in the colour picked with its size, and the release lays it in the world as a plan (the `plan` command, a guest's too); a plan under the
+// cursor is outlined and a click on it takes it up (the `unplan` command, by its id). Plans stay until taken up; render/plans.js draws them.
+export function beginPlan(color) {
+  end();
+  state.kind = "plan";
+  state.plan = { color: plans.COLORS.includes(color) ? color : plans.COLORS[0], from: null, to: null };
+  state.active = true;
+  return true;
+}
+export function setPlanColor(color) {
+  if (state.kind === "plan" && plans.COLORS.includes(color)) state.plan.color = color;
+}
+function planGhost(player) {
   const m = input.getMouse();
-  const b = state.build;
+  const p = state.plan;
   const L = layerOf(player);
-  if (b.from && m.inside) {
-    const at = cursorGrid(player);
-    b.to = [Math.round(at.gx), Math.round(at.gy)];
-  }
-  const span = b.from ? [b.from, b.to || b.from] : b.measure;
-  if (!span) {
-    if (!m.inside) return null;
+  if (m.inside) {
     const at = cursorGrid(player);
     const c = [Math.round(at.gx), Math.round(at.gy)];
-    return { kind: "ruler", x0: c[0], y0: c[1], x1: c[0], y1: c[1], w: 1, h: 1, measuring: false, done: false, layer: L };
+    if (p.from) p.to = c;
+    else {
+      const hover = plans.planAt(plans.world(), c[0], c[1], L);
+      if (hover) return { kind: "plan", hover: hover.id, x0: hover.x0, y0: hover.y0, x1: hover.x1, y1: hover.y1, color: hover.color, layer: L };
+      return { kind: "plan", hover: null, x0: c[0], y0: c[1], x1: c[0], y1: c[1], color: p.color, dragging: false, layer: L };
+    }
   }
-  const [a, z] = span;
-  return { kind: "ruler", x0: a[0], y0: a[1], x1: z[0], y1: z[1], w: Math.abs(z[0] - a[0]) + 1, h: Math.abs(z[1] - a[1]) + 1, measuring: !!b.from, done: !b.from, layer: L };
+  if (!p.from) return null;
+  const z = p.to || p.from;
+  return { kind: "plan", hover: null, x0: Math.min(p.from[0], z[0]), y0: Math.min(p.from[1], z[1]), x1: Math.max(p.from[0], z[0]), y1: Math.max(p.from[1], z[1]), color: p.color, dragging: true, layer: L };
 }
-
-// "7 tiles", or "5 × 4 tiles (20)".
-export function rulerText(w, h) {
-  if (w === 1 || h === 1) {
-    const n = Math.max(w, h);
-    return `${n} ${n === 1 ? "tile" : "tiles"}`;
-  }
-  return `${w} × ${h} tiles (${w * h})`;
+// The drag released: the ruler laid as a plan (a guest's a `plan` command naming its corners and colour).
+function finishPlan(player) {
+  const p = state.plan;
+  const z = p.to || p.from;
+  const cmd = { kind: "plan", ax: p.from[0], ay: p.from[1], bx: z[0], by: z[1], color: p.color };
+  p.from = null;
+  p.to = null;
+  if (sender) sender(cmd);
+  else performPlacement(player, cmd);
 }
 
 // ---- floors (docs/49 section 5; Michael, 2026-10-27, `02` "Floors are built a tile at a time, with no physics") ----
@@ -1089,7 +1098,7 @@ export function beginRemove() {
 // Carrying cannot be cancelled: the prop stays in the hands, so prop mode
 // answers false.
 export function cancel() {
-  if (!["build", "remove", "rug", "painting", "setdown", "torch"].includes(state.kind)) return false; // Esc on a set-down or a torch for a wall too (the campfire's never cancelled before)
+  if (!["build", "remove", "rug", "painting", "setdown", "torch", "plan"].includes(state.kind)) return false; // Esc on a set-down or a torch for a wall too (the campfire's never cancelled before)
   end();
   return true;
 }
@@ -1102,6 +1111,7 @@ function end() {
   state.painting = null;
   state.setdown = null;
   state.torch = null;
+  state.plan = null;
   state.active = false;
   state.ghost = null;
   state.turns = 0;
@@ -1162,12 +1172,9 @@ export function update(player) {
   else if (state.kind === "painting") state.ghost = paintingGhost(player);
   else if (state.kind === "setdown") state.ghost = setdownGhost(player);
   else if (state.kind === "torch") state.ghost = torchGhost(player);
-  else if (state.kind === "build" && isRulerBuild(state.build.what)) {
-    if (state.build.from && !input.mouseLeftDown()) { // the drag released: the measure stays shown until the next press
-      state.build.measure = [state.build.from, state.build.to || state.build.from];
-      state.build.from = null;
-    }
-    state.ghost = rulerGhost(player);
+  else if (state.kind === "plan") {
+    state.ghost = planGhost(player);
+    if (state.plan.from && !input.mouseLeftDown()) finishPlan(player); // the drag released: the ruler laid as a plan
   }
   else if (state.kind === "build") {
     state.ghost = buildGhost(player);
@@ -1761,19 +1768,26 @@ export function tryConfirm(player) {
     end();
     return true;
   }
+  if (state.kind === "plan") {
+    // Planning: a click on a plan takes it up; a press elsewhere starts a ruler (update lays it on the release). It builds nothing, so a build
+    // under way does not stop it.
+    const g = state.ghost;
+    if (!g) return false;
+    if (g.hover) {
+      const cmd = { kind: "unplan", id: g.hover };
+      if (sender) sender(cmd);
+      else performPlacement(player, cmd);
+      return true;
+    }
+    const at = cursorGrid(player);
+    const t = [Math.round(at.gx), Math.round(at.gy)];
+    state.plan.from = t;
+    state.plan.to = t;
+    return true;
+  }
   if (state.kind === "build") {
     const g = state.ghost;
     if (!g) return false;
-    if (g.kind === "ruler") {
-      // The ruler: the press starts a measure at the tile under the cursor (update keeps it while held, and shown after the release);
-      // it builds nothing, so a build under way does not stop it (the review of #615).
-      const at = cursorGrid(player);
-      const t = [Math.round(at.gx), Math.round(at.gy)];
-      state.build.from = t;
-      state.build.to = t;
-      state.build.measure = null;
-      return true;
-    }
     if (player.action) return true; // one build at a time
     if (g.kind === "round") {
       // A ring: built where the ghost stands, centred on the cursor (a guest's a `build` command naming its square's corner and size).
@@ -1845,7 +1859,15 @@ function addressOf(t) {
 // checked here against the guest's player, the refusal said to it through the acting player.
 export function performPlacement(player, cmd) {
   if (!player || !cmd) return false;
-  if (cmd.kind === "build" && typeof cmd.what === "string" && isRulerBuild(cmd.what)) return false; // the ruler builds nothing: no command names it
+  if (cmd.kind === "plan") { // a ruler laid as a plan on the player's storey (Michael, 2026-10-30), from either corner, in one of the five colours
+    const r = plans.add(plans.world(), cmd.ax, cmd.ay, cmd.bx, cmd.by, layerOf(player), cmd.color);
+    if (r.why) showMessage(r.why);
+    return true;
+  }
+  if (cmd.kind === "unplan") { // a plan taken up by its id
+    if (typeof cmd.id === "string") plans.remove(plans.world(), cmd.id);
+    return true;
+  }
   if (player.ladder) { // nothing is placed, built, or taken apart from a ladder (the review of #608)
     showMessage("Not while on a ladder.");
     return true;
@@ -2142,10 +2164,11 @@ export function prompt() {
     const { back } = partsOf(t);
     return { label: `Click to take apart ${targetName(t)}${back.length ? ` (${partsText(back)} back)` : ""} · Esc cancel`, mx, my, progress: null, enabled: true };
   }
-  if (g.kind === "ruler") {
+  if (g.kind === "plan") {
     const [mx, my] = [(g.x0 + g.x1) / 2, (g.y0 + g.y1) / 2];
-    if (!g.measuring && !g.done) return { label: "Press and drag to measure · Esc cancel", mx, my, progress: null, enabled: true };
-    return { label: g.done ? `${rulerText(g.w, g.h)} · drag again to measure · Esc cancel` : rulerText(g.w, g.h), mx, my, progress: null, enabled: true };
+    const size = plans.sizeText(g.x1 - g.x0 + 1, g.y1 - g.y0 + 1);
+    if (g.hover) return { label: `${size} · click to take it up`, mx, my, progress: null, enabled: true };
+    return { label: g.dragging ? size : "Press and drag to plan · Esc closes", mx, my, progress: null, enabled: true };
   }
   if (g.kind === "floor") {
     const [mx, my] = [(g.x0 + g.x1) / 2, (g.y0 + g.y1) / 2];

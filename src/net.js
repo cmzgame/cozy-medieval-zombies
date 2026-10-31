@@ -183,7 +183,10 @@ export function makeCode() {
 // whose tile it holds taking it away); a player's light record may carry `ladder` ({ id, up, t }, a climb under way); a `build` command may name
 // a ladder (`tx`, `ty`, `dir`) and a `remove` `{ type: "ladder", tx, ty }`; the menu's and E's Climb ladder and Descend ladder by label. An older
 // guest would draw no ladder and a climber standing still, and an older host would drop the commands.
-export const PROTOCOL = 31;
+// 32 (2026-10-30, the Planning tool): a frame may carry `plans` (the whole list of the world's rulers, when it changes), the welcome's save
+// `plans` and `planNext`; the `place` command's kinds `plan` ({ ax, ay, bx, by, color }) and `unplan` ({ id }). An older guest would draw no
+// plans, and an older host would drop the commands.
+export const PROTOCOL = 32;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -313,7 +316,7 @@ const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock",
 const HEAVY = new Set(["worn", "hidden", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxMana", "maxThirst", "maxTired", "radius", "speed", "kind"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
-const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame
+const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "", plans: "" }; // sent when they change, not every frame
 
 // The flights (#250): each one's launch goes once, in the first frame after it is loosed, and its end once, in the first frame after it
 // comes down (archery.launchRecord, endRecord); a guest steps it between (archery.stepReplica). Seen every step, so a flight that is loosed
@@ -766,7 +769,7 @@ export function hostStep(mySnap, me) {
       // A guest's hashes at a tick (the sync check).
       if (guests.has(msg.from) && msg.parts && typeof msg.parts === "object") {
         const parts = {};
-        for (const k of Object.keys(msg.parts).slice(0, 16)) if (typeof msg.parts[k] === "string") parts[k] = msg.parts[k].slice(0, 200); // thirteen parts since the item census (#101): room for three more
+        for (const k of Object.keys(msg.parts).slice(0, 16)) if (typeof msg.parts[k] === "string") parts[k] = msg.parts[k].slice(0, 200); // fourteen parts since the plans (the Planning tool): room for two more
         guestSync.set(msg.from, { tick: msg.tick | 0, parts });
       }
     } else if (msg.type === "say") {
@@ -1069,6 +1072,7 @@ export function hostAfterStep() {
     corpses: delta(S.corpses),
     animals: delta(S.animals), // docs/45: a fourth list, its own roster
     animalHomes: whenChanged("animalHomes", S.animalHomes), // each home's cap and renewal, when it changes (the sync check's animals part reads it)
+    plans: whenChanged("plans", S.plans), // the Planning tool's rulers, the whole list when it changes (protocol 32)
     roster,
     ...(floated.length ? { floaters: floated } : {}), // the numbers over heads, when there are any
     pokes: interact.takePokes(), // the sways and the well's bucket stamped this step (interact.js): a guest sees a field wobble when anyone walks through it
@@ -1441,6 +1445,7 @@ function applyFrame(f) {
   bring(f.corpses || []);
   bring(f.animals || []);
   if (f.animalHomes) S.animalHomes = f.animalHomes;
+  if (f.plans) S.plans = f.plans;
   if (f.roster) for (const name of ["zombies", "villagers", "corpses", "animals"]) {
     const ids = f.roster[name];
     if (Array.isArray(ids)) S[name] = ids.map((id) => byId.get(id)).filter(Boolean);

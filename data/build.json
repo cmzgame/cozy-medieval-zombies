@@ -1,11 +1,4 @@
 {
-  "ruler": {
-    "label": "Ruler",
-    "kind": "ruler",
-    "group": "Tools",
-    "hint": "Click, then press and drag on the ground: it counts the tiles",
-    "note": "Michael, 2026-10-30: \"a click and drag ruler tool. drag and it tells you tile count. Yellow? Put it in the build menu\": a measuring tool, not a build: no sprite, no cost, no command; shown on both tabs (placement.onTab), always offered; the drag's rectangle drawn in yellow with its count, kept after the release until the next press; this client's own"
-  },
   "wall": {
     "label": "Log wall",
     "sprite": "wall_log",

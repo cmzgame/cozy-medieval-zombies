@@ -3,6 +3,7 @@
 // Cut from src/render.js on 2026-10-12 (docs/23a, D5): a move, no rule changed; the frame check proves the pixels.
 
 import * as iso from "../iso.js";
+import { edgeTiles } from "../plans.js"; // a plan's drawn tiles (the Planning tool)
 import { getSheet, getDef, idleFrame } from "../assets.js";
 import * as map from "../map.js";
 import { tileKey } from "../visibility.js";
@@ -35,8 +36,15 @@ function propSlice(sheet, name, f, x, y, tx, ty, flags, color, skew = 0) {
 // and red where it may not. It never joins the sort or occlusion lists.
 const GHOST_OK = [0.6, 1, 0.6, 0.55];
 const GHOST_BAD = [1, 0.5, 0.5, 0.55];
-const RULER = [1, 0.85, 0.15, 0.6]; // the ruler's yellow
 export const GHOST_FLAGS = () => gl.FLAG_NOFOG | gl.FLAG_UNLIT;
+// The Planning tool's pastels (Michael, 2026-10-30: "think pastel post it notes, yellow blue green purple pink"), as tints for a tile's diamond.
+export const PLAN_RGB = { yellow: [1, 0.93, 0.55], blue: [0.62, 0.84, 1], green: [0.66, 0.94, 0.66], purple: [0.82, 0.72, 1], pink: [1, 0.72, 0.85] };
+export const planTint = (color) => [...(PLAN_RGB[color] || PLAN_RGB.yellow), 0.8];
+const planEdge = edgeTiles;
+// Every plan on a storey, its edge tiles in its colour (render/scene.js, on top with the ghost).
+export function emitPlans(list) {
+  for (const r of list) for (const [x, y] of planEdge(r)) emitGhostTile(x, y, 0, planTint(r.color));
+}
 
 // A flat colour multiplied by the ghost's tint, as a fresh array (gl.rgb's are shared).
 export function ghostColor(color, tint) {
@@ -109,11 +117,10 @@ export function emitGhost(ghost) {
     rings.emitRingGhost({ id: "ghost", x0: ghost.x0, y0: ghost.y0, n: ghost.n, layer: ghost.layer || 0, sprite: ghost.sprite }, tint, GHOST_FLAGS()); // a round room as it would stand (docs/50 section 5)
     return;
   }
-  if (ghost.kind === "ruler") {
-    // The ruler (Michael, 2026-10-30: "Yellow?"): the edge tiles of the drag's rectangle, so a run reads as a line and a big square costs no more.
-    const [xa, xb] = [Math.min(ghost.x0, ghost.x1), Math.max(ghost.x0, ghost.x1)];
-    const [ya, yb] = [Math.min(ghost.y0, ghost.y1), Math.max(ghost.y0, ghost.y1)];
-    for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) if (y === ya || y === yb || x === xa || x === xb) emitGhostTile(x, y, 0, RULER);
+  if (ghost.kind === "plan") {
+    // Planning (Michael, 2026-10-30): the ruler being dragged in its colour, or the plan under the cursor washed white to say a click takes it up.
+    const t = ghost.hover ? [1, 1, 1, 0.8] : planTint(ghost.color);
+    for (const [x, y] of planEdge(ghost)) emitGhostTile(x, y, 0, t);
     return;
   }
   if (ghost.kind === "floor") {

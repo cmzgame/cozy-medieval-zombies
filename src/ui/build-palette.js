@@ -18,6 +18,7 @@ let footEl = null;
 let hintEl = null;
 let open = false;
 let onPick = () => {};
+let onClose = () => {};
 let lastPlayer = null;
 let tab = "build"; // the last tab picked, kept for the session (also while it is not on offer)
 let shownTab = "build"; // the tab drawn now: the remembered one, or the first on offer
@@ -48,10 +49,11 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 export function initBuildPalette(handlers = {}) {
   onPick = handlers.onPick || onPick;
+  onClose = handlers.onClose || onClose;
   root = document.createElement("div");
   root.id = "build-palette";
   root.hidden = true;
-  root.innerHTML = '<div class="bp-title">Build menu</div><div class="bp-tabs"></div><input class="bp-search" type="search" placeholder="Search" autocomplete="off" spellcheck="false"><div class="bp-list"></div><div class="bp-foot"></div><div class="bp-hint"></div>';
+  root.innerHTML = '<button type="button" class="tp-close" title="Close (N or Esc)">×</button><div class="bp-title">Build menu</div><div class="bp-tabs"></div><input class="bp-search" type="search" placeholder="Search" autocomplete="off" spellcheck="false"><div class="bp-list"></div><div class="bp-foot"></div><div class="bp-hint"></div>';
   titleEl = root.querySelector(".bp-title");
   tabsEl = root.querySelector(".bp-tabs");
   searchEl = root.querySelector(".bp-search");
@@ -64,7 +66,7 @@ export function initBuildPalette(handlers = {}) {
       searchEl.blur();
     }
     else if (e.code === "Enter") {
-      const first = listEl.querySelector('.bp-row:not([data-kind="ruler"])'); // a piece to build, never the ruler (the review of #615)
+      const first = listEl.querySelector(".bp-row");
       searchEl.blur();
       if (first) {
         lastPicked = first.dataset.kind;
@@ -83,6 +85,7 @@ export function initBuildPalette(handlers = {}) {
   document.getElementById("ui").appendChild(root);
   root.addEventListener("mousedown", (e) => e.stopPropagation());
   root.addEventListener("click", (e) => {
+    if (e.target.closest(".tp-close")) return onClose(); // the close button (Michael, 2026-10-30: "they are panels now")
     const t = e.target.closest(".bp-tab");
     if (t) {
       if (t.dataset.tab !== shownTab) {
@@ -164,7 +167,7 @@ export function render(player) {
   const tabs = placement.paletteTabs();
   const shown = tabs.some((t) => t.id === tab) ? tab : tabs.length ? tabs[0].id : "build"; // the Terrain tab goes with Free building: the remembered one stays, and comes back with it
   shownTab = shown;
-  const kinds = placement.paletteKinds().filter((k) => placement.onTab(k, shown) && matches(k));
+  const kinds = placement.paletteKinds().filter((k) => placement.tabOf(k) === shown && matches(k));
   // Under small headings (an entry's `group`), in the order they first appear; an entry with none sits at the top.
   const groups = new Map();
   for (const k of kinds) {
@@ -177,7 +180,7 @@ export function render(player) {
     const leaf = active === k.id && placement.takesLeaf(k.id) ? `<div class="bp-sub">${placement.leafHint(placement.buildLeaf(), placement.state.ghost && placement.state.ghost.carriedLeaf)}</div>` : "";
     const sw = placement.swatchOf(k);
     const how = k.hint || (k.kind === "terrain" ? "Click, then click or drag on the ground to paint" : placement.isInstantStair(k.id) ? "Click, then click the ground to place it at once" : "Click to build");
-    const right = sw ? `<span class="bp-sw" style="background:${esc(sw)}"></span>` : k.kind === "ruler" ? "" : `<span class="bp-cost">${placement.costText(k.id)}</span>`; // the ruler costs nothing and builds nothing
+    const right = sw ? `<span class="bp-sw" style="background:${esc(sw)}"></span>` : `<span class="bp-cost">${placement.costText(k.id)}</span>`;
     return `<div class="bp-row${short ? " short" : ""}${active === k.id ? " active" : ""}" data-kind="${k.id}" title="${esc(k.label)}: ${esc(short || how)}"><span class="bp-name">${esc(k.label)}</span>${right}</div>${leaf}`;
   };
   const list = [...groups].map(([g, ks]) => (g ? `<div class="bp-group">${esc(g)}</div>` : "") + ks.map(rowHtml).join("")).join("") || `<div class="bp-none">Nothing here matches “${esc(query.trim())}”</div>`;

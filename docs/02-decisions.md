@@ -11,7 +11,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Height is one unit, world pixels above the ground, with one walk for sight, the dead, and flights; shooting down and up from any storey; the picture hides what is in the way and never fades: the storeys over your room and any slab covering your body are not drawn, your room's camera-side walls are cut to a stub at the floor with their doors and windows drawn whole at low opacity; a plateau never hides; items fall to the first floor below, bodies never (2026-10-30, Height ruled, on `53`).
 - The castle gates break, at about three doors' hit points (2026-10-30, Height ruled; strikes the 2026-10-29 gate ruling's "the dead cannot break it").
 - Walls between the camera and you, or the build cursor, are cut to the stub indoors and out, and H puts every wall on your storey down while the build menu is open (2026-10-30, The cutaway and walls down).
-- The build menu stays open while its piece is in hand (Esc puts the piece down, N shuts it), and has a Ruler on both tabs that counts the tiles of a drag in yellow (2026-10-30, The ruler; the build menu stays open).
+- The Planning tool: rulers kept in the world in five pastels, each with its size, laid by a drag and taken up by a click, from its own panel (P, or Plan in the right-click menu); the build menu and the Planning panel have close buttons (2026-10-30, The Planning tool).
+- The build menu stays open while its piece is in hand (Esc puts the piece down, N shuts it)~~, and has a Ruler on both tabs that counts the tiles of a drag in yellow~~ (2026-10-30, The ruler; the build menu stays open; the ruler moved to the Planning tool the same day).
 - The build menu has a search box, kept until it is changed or the browser tab is closed (2026-10-30, The build menu's search).
 - The round stone wall is two palette entries, 5 across and 7 across, each placed by a click centred on the cursor, no drag (2026-10-30, Round walls by size).
 - Everything in the build menu is built at once: every `seconds` in `data/build.json` is 0, for building the map by hand (2026-10-30, Build times 0).
@@ -341,6 +342,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-30 — The Planning tool (Michael)
+
+Michael: "remove the ruler from the build tool and make it a second tool (we can restrict it later, I am the only current user) called Planning. It lets me lay down any number of rulers. This would be its own menu similar to build, stays open until you close it. Make sure it has a close button and add one to the build menu, they are panels now. For the planning tool, think pastel post it notes, yellow blue green purple pink. All have text saying how big they are, and on hover over an existing ruler, they are still rulers just in the planning tool, you can remove it. So place, keep it there, remove it when needed. It lives in right click with walk and build." **Ruled:** the Ruler leaves the build menu (strikes the build menu's Ruler of The ruler, the same day). A **Planning** panel, opened with P or the right-click menu's Plan, open until closed by its close button, Esc, or P; a drag lays a ruler in the colour picked (yellow, blue, green, purple, pink), which stays as a plan with its size on it; hovering one and clicking takes it up. The builder's readings: plans are the world's (saved, every player sees them and may plan, a guest through the same commands), not one client's notes, since "keep it there" outlives a reload; P is the panel's key; the panel's Show plans hides them from one's own view; the panel and the build menu take one place and never open together.
 
 ### 2026-10-30 — The cutaway and walls down (Michael)
 

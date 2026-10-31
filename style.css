@@ -1570,7 +1570,7 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #debuffs, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #hover-card, #ui.no-world #inspect-card, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #dye, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #debuffs, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #hover-card, #ui.no-world #inspect-card, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #dye, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #planning-panel, #ui.no-world #plan-labels, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
 /* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
    sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }
@@ -2153,8 +2153,56 @@ html, body {
 
 #build-palette[hidden] { display: none; }
 
+/* The panels' close button (Michael, 2026-10-30: "Make sure it has a close button and add one to the build menu, they are panels now"). */
+.tp-close {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 20px;
+  font-family: var(--font-small);
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid #4a4058;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.tp-close:hover { color: var(--text); background: #3a3044; }
+
+/* The Planning panel (Michael, 2026-10-30): in the build palette's place, never with it. */
+#planning-panel {
+  position: absolute;
+  left: 12px;
+  top: 124px;
+  z-index: 7;
+  width: 220px;
+  box-sizing: border-box;
+  padding: 8px;
+  background: var(--panel);
+  border: 2px solid var(--panel-edge);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: var(--font-small);
+}
+#planning-panel[hidden] { display: none; }
+.tp-title { font-size: 15px; font-family: var(--font-small); color: #d8c8e0; margin-bottom: 8px; padding-right: 26px; }
+.pp-colors { display: flex; gap: 6px; margin-bottom: 8px; }
+.pp-swatch { width: 30px; height: 24px; padding: 0; border: 2px solid rgba(0, 0, 0, 0.3); border-radius: 4px; cursor: pointer; }
+.pp-swatch.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.pp-show { display: flex; align-items: center; gap: 6px; font-size: 13px; font-family: var(--font-small); margin-bottom: 4px; cursor: pointer; }
+.pp-count { font-size: 12px; font-family: var(--font-small); color: #a098ac; }
+.tp-hint { margin-top: 6px; font-size: 11px; font-family: var(--font-small); color: #a098ac; }
+
+/* A plan's size on it, in its own pastel (ui/plan-labels.js). */
+#plan-labels { position: absolute; inset: 0; pointer-events: none; }
+.plan-tag { position: absolute; transform: translate(-50%, -50%); padding: 1px 5px; font-size: 11px; font-family: var(--font-small); color: #2a2230; border-radius: 3px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); white-space: nowrap; pointer-events: none; }
+
 .bp-title {
   flex: none;
+  padding-right: 26px; /* room for the close button */
   font-size: 15px;
   font-family: var(--font-small);
   margin-bottom: 6px;

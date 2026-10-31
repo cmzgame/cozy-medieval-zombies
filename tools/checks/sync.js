@@ -1,6 +1,6 @@
 // The whole-world sync check (docs/31/04, "a replica check"; the gate of tier 3): a host's world and
 // a guest's replica hashed in parts at the same tick and compared, the map chunk by chunk, the prop
-// registry, the fires, the players whole, the dead as the frames carry them, the animals (docs/45), the clock,
+// registry, the fires, the players whole, the dead as the frames carry them, the animals (docs/45), the plans (the Planning tool), the clock,
 // and every item in the world counted (game.itemCensus, #101). A mutation that bypassed a touch or a record
 // shows up as a part that differs. Two tabs on the loopback, the guest joined (CLAUDE.md), then on the host:
 //   __game.net.setSyncReports(true)     // the host marks every tenth frame; both sides hash it and the guest reports
@@ -44,7 +44,7 @@ export async function run(game, opts = {}) {
       const mine = rep.ring.get(g.tick);
       row(`${playerId}'s tick is in the host's ring`, !!mine, mine ? `tick ${g.tick}` : `tick ${g.tick} not kept (the ring holds ${[...rep.ring.keys()].join(", ") || "nothing"}): step the host less far ahead`);
       if (!mine) continue;
-      for (const part of ["map", "chart", "registry", "rings", "fires", "players", "dead", "animals", "clock", "rules", "items", "living"]) {
+      for (const part of ["map", "chart", "registry", "rings", "plans", "fires", "players", "dead", "animals", "clock", "rules", "items", "living"]) {
         const census = part === "items" || part === "living";
         const what = part === "items" ? "every item's count" : part === "living" ? "the count of what the living dead and the villagers wear" : `the ${part}`;
         const detail = census ? `host ${mine.census}; guest ${g.parts.census}` : `host ${mine.counts}`;
