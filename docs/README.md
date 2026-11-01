@@ -32,6 +32,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `28-painting-for-the-slicer.md` — the artist-facing page: the character's contract (the frame, the feet, the facings, the eyes) and how a part is painted and sliced.
 - `sprite-definitions.md` — the sprite loader's field reference, verified against `src/assets.js`; the format every delivery is written into.
 - `testing.md` — the instruments, the pane, its quirks, two tabs.
+- `the-story.md` — how the game was made, for players and press: the concept art, the two prototypes, the pivots in Michael's words, the pictures (`images/history/`), the numbers; a draft until Michael reads it (#560), then added to as the game grows.
 - `bugs.md` — unverified bugs under Open; a reproduced one becomes an issue (`github.md` 6); Closed holds the rulings that stop a re-file; Fixed up to 2026-10-15 is `history/bugs-fixed-2026-10-15.md`.
 - `29-world/` — the 1.0 map: `README` the index and status; `01` geography and `02` water and roads (built where the status says); `04` the village as built, with your cottage; `08` the resource and the dead tables; `09` **the live art backlog**. Its specs are below.
 - `30-the-big-pass-spec.md` — the big pass: the needs, every verb, the stations, fire as maintenance, durability, farming (step 4, pickable), the map place by place (steps 5 to 9, each needing a scope), the one engine list (section 12), the open questions (section 15).
