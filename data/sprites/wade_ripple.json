@@ -1,0 +1,53 @@
+{
+ "image": "data/art/critters/wade_ripple.png",
+ "frames": {
+  "back_0": [
+   0,
+   0,
+   23,
+   10
+  ],
+  "front_0": [
+   23,
+   0,
+   23,
+   10
+  ],
+  "back_1": [
+   46,
+   0,
+   23,
+   10
+  ],
+  "front_1": [
+   69,
+   0,
+   23,
+   10
+  ],
+  "back_2": [
+   92,
+   0,
+   23,
+   10
+  ],
+  "front_2": [
+   115,
+   0,
+   23,
+   10
+  ]
+ },
+ "anchor": [
+  11,
+  4
+ ],
+ "animations": {
+  "idle": {
+   "fps": 5,
+   "loop": true,
+   "frames": 3
+  }
+ },
+ "note": "back_<i> before the figure, front_<i> after it, at the feet, while it stands in shallow water; the figure's lowest 3 px not drawn Approved by Michael 2026-10-31; drawn by render/frogs.js."
+}
