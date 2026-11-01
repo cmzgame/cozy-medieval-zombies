@@ -7,7 +7,8 @@
     "floor_farm_y": "farm",
     "floor_cobble": "cobble",
     "floor_water": "water",
-  "floor_water_shallow": "shallow",
+    "floor_water_shallow": "shallow",
+    "floor_cliff_top": "cliff_top",
     "floor_wood": "laid",
     "floor_stone": "laid",
     "floor_randomspawn": "laid"
@@ -17,7 +18,8 @@
     "farm":   { "priority": 2, "tiles": ["floor_farm", "floor_farm_y"], "threshold": [0.40, 0.12], "lip": 0 },
     "cobble": { "priority": 3, "texture": "ground_cobble", "thresholdAbove": "dirt", "verge": 0.15, "lip": 0.12, "lipBand": 0.06 },
     "shallow": { "priority": 4, "texture": "ground_shallow", "threshold": [0.3, 0.3], "thresholdAbove": "dirt", "verge": 0.15, "includes": ["water"], "lip": 0, "rim": { "colour": "#6f9a9c", "band": 0.03 }, "bank": { "darken": 0.22, "band": 0.07 }, "note": "the shallows (art round 14b; Michael's #571: \"it needs to tile nicely with dirt, stone, and deep water\"): inside a dirt verge as deep water is, and deep water inside them (`includes` water, so a pond has a shallow margin); `rim` a pale waterline at its edge, `bank` the wet dark earth just outside it" },
-    "water":  { "priority": 5, "texture": "ground_water", "threshold": [0.40, 0.5], "thresholdAbove": "shallow", "verge": 0.12, "lip": 0.25, "lipBand": 0.07 }
+    "water":  { "priority": 5, "texture": "ground_water", "threshold": [0.40, 0.5], "thresholdAbove": "shallow", "verge": 0.12, "lip": 0.25, "lipBand": 0.07 },
+    "cliff_top": { "priority": 6, "texture": "ground_cliff_top", "threshold": [0.15, 0.3], "lip": 0.2, "lipBand": 0.06, "note": "the bare cliff floor on the ground (art round 14c's rock top; Michael, 2026-10-31: \"The one I was walking about is the cliff floor art ... bare stone, uncarved, rather than a human made floor\"): a cave's floor spills raggedly onto the grass and the dirt round it; on a storey it stays the tile's frame; the laid stone floor stays hard" }
   },
   "edgeNoise": "ground_noise",
   "zones": {

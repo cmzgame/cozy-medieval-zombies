@@ -194,6 +194,8 @@ function emitCapFromFrame(sheet, name, anchor, top, corners, h, world, flags) {
 // that height, and its own cap drawn along the cut (the picture's cap, set down to the stub's height). A door or a window in such a wall is
 // drawn whole, at full height, at `cover.openingAlpha` ("barely there, but definitely there when you need it").
 const isOpening = (wall) => !!wall && (wall.kind === "door" || wall.kind === "window");
+// A cave mouth (art round 14d): a gate in a cliff, always open, all rock: cut to the stub as the cliff round it is, never drawn faint as a door.
+const isMouth = (wall) => !!wall && !!wall.gate && map.wallRule(wall.sprite).cliff;
 // The line of a wall's near face at `s` px over its foot: the picture is kept below it. `top` is the edge's top vertex on screen.
 function stubLine(edge, x, y, T, s) {
   const top = [x, y - iso.HH];
@@ -439,7 +441,8 @@ function isNearWall(tx, ty, edge, playerRoom) {
     // when any edge of it is (the review of #616: a gate half ghosted at the cut band's end).
     const w = map.tileAt(tx, ty)[edge];
     const rule = w ? map.wallRule(w.sprite) : null;
-    if (w && !(cliffs.cliffWallOf(w) || rule.side || rule.seeThrough || rule.battlement)) {
+    // A cliff (and a cave mouth, its rock) is cut too while the viewer stands inside a cave (art round 14d): the hill in the way goes.
+    if (w && !((rule.cliff && !cliffs.insideNow()) || rule.side || rule.seeThrough || rule.battlement)) {
       if (w.gate) {
         if (map.gateMembers(tx, ty, edge, map.drawLayerNow()).some((g) => cutaway.edgeCut(g.tx, g.ty, edge))) return true;
       } else if (cutaway.edgeCut(tx, ty, edge)) return true;
@@ -732,7 +735,7 @@ function postStack(tx, ty) {
 // is on the camera's side, its lip seen from behind on its far face's plane (behind the plateau's floor); a face with its plateau floored is
 // drawn below its edge line at the top, so the plateau's floor is what shows over its flat top (the lip is the wall's, never a cap); a
 // corner (cliffs.cornerAt) takes the corner piece of `wall.corners` for both its edges and in place of the post.
-const sameRun = (a, b) => a.sprite === b.sprite || map.wallRule(a.sprite).run === map.wallRule(b.sprite).run || (!!cliffs.cliffWallOf(a) && !!cliffs.cliffWallOf(b)); // a castle gate is the stone wall's own run (`wall.run`): no post at its ends nor inside its arch (docs/02, 2026-10-29) // a grassy lip meets a rocky one with no post: the same rock (the artist's note)
+const sameRun = (a, b) => a.sprite === b.sprite || map.wallRule(a.sprite).run === map.wallRule(b.sprite).run || (map.wallRule(a.sprite).cliff && map.wallRule(b.sprite).cliff); // a cave mouth of either rock is the cliff's own (the review of #627) // a castle gate is the stone wall's own run (`wall.run`): no post at its ends nor inside its arch (docs/02, 2026-10-29) // a grassy lip meets a rocky one with no post: the same rock (the artist's note)
 const cornerCache = new Map(); // vertex key (postBase's) -> cliffs.cornerBase or null, for the frame cornerFrame; asked only at a vertex a cliff wall meets
 let cornerFrame = -1;
 function cornerBaseCached(vx, vy, L) {
@@ -760,14 +763,15 @@ function cliffArt(sheet, wall, edge, tx, ty, x, y, h) {
   const L = map.drawLayerNow();
   const f = cliffs.edgeFrame(getDef(wall.sprite), tx, ty, edge, L, (n) => !!sheet.frames[n]);
   if (f.back) return { frameName: f.name, back: true, clip: null };
+  return { frameName: f.name, back: false, clip: cliffClip(edge, tx, ty, x, y, h) };
+}
+// The line a cliff's face (or a cave mouth's rock, art round 14d) is cut along at the top under its plateau's floor, or null with no plateau behind it.
+function cliffClip(edge, tx, ty, x, y, h) {
   const across = edge === "n" ? [tx, ty - 1] : [tx - 1, ty];
-  let clip = null;
-  if (cliffs.plateauAt(across[0], across[1], L)) {
-    const top = [x, y - iso.HH];
-    const at = (X, Y) => [top[0] + X - Y, top[1] + (X + Y) / 2 - h];
-    clip = edge === "n" ? [at(-CAP_MARGIN, 0), at(32 + CAP_MARGIN, 0)] : [at(0, -CAP_MARGIN), at(0, 32 + CAP_MARGIN)];
-  }
-  return { frameName: f.name, back: false, clip };
+  if (!cliffs.plateauAt(across[0], across[1], map.drawLayerNow())) return null;
+  const top = [x, y - iso.HH];
+  const at = (X, Y) => [top[0] + X - Y, top[1] + (X + Y) / 2 - h];
+  return edge === "n" ? [at(-CAP_MARGIN, 0), at(32 + CAP_MARGIN, 0)] : [at(0, -CAP_MARGIN), at(0, 32 + CAP_MARGIN)];
 }
 
 // A corner's picture in parts, each on its own edge's plane (docs/51: the faces' planes; the artist's depth maps are not read): where its
@@ -778,7 +782,9 @@ function cliffArt(sheet, wall, edge, tx, ty, x, y, h) {
 const LIP_UP = 6; // px a lip band reaches over its edge line (the turf's tufts)
 const LIP_DOWN = 6; // and under it (the lip's quarter round from behind)
 const SIDE_SLACK = 2; // px a one-sided corner's parts reach across the vertex's column (its round's last pixels)
-function makeCliffCorner(vx, vy, c, vis) {
+// `stub`: either of its edges is a near wall of the viewer's room or in the cutaway's way (a cave's, art round 14d): each part cut to the
+// stub's height along its own edge, as a straight segment is.
+function makeCliffCorner(vx, vy, c, vis, stub = false) {
   return {
     key: (vx + vy - 1) * 1000 + 0.5,
     kind: "wall",
@@ -843,7 +849,8 @@ function makeCliffCorner(vx, vy, c, vis) {
         }
       }
       let first = true;
-      for (const [q, e] of parts) {
+      for (const [q0, e] of parts) {
+        const q = stub ? below(q0, e, h - cover.stub + T / 4) : q0; // along the near face's line at the stub's height, as stubLine cuts a segment
         if (!q) continue;
         if (first) gl.surface(e.plane, 0, DEPTH_ROOM.wall);
         else gl.setPlane(e.plane);
@@ -867,7 +874,9 @@ export function postDrawables(tiles, visible, playerRoom, out) {
     }
     if (v.corner) {
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
-      out.push(makeCliffCorner(tx, ty, v.corner, vis));
+      const c = v.corner;
+      const stub = isNearWall(c.nTile[0], c.nTile[1], "n", playerRoom) || isNearWall(c.wTile[0], c.wTile[1], "w", playerRoom);
+      out.push(makeCliffCorner(tx, ty, c, vis, stub));
       continue;
     }
     const post = v;
@@ -1168,14 +1177,14 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
       const bat = battlements.battlementOf(t.n);
       const stub = bat ? battlementFades(tx, ty, "n") : isNearWall(tx, ty, "n", playerRoom);
-      out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub && !bat && isOpening(t.n) ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
+      out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub && !bat && isOpening(t.n) && !isMouth(t.n) ? wallCuts("n", tx, ty, playerRoom) : null, stackOf(tx, ty, "n")));
     }
     if (t.w && !map.drawnByRing(t.w) && !(cliffs.cliffWallOf(t.w) && cliffHidden(tx, ty, "w", t.w)) && !edgeHidden(tx, ty, "w")) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
       const bat = battlements.battlementOf(t.w);
       const stub = bat ? battlementFades(tx, ty, "w") : isNearWall(tx, ty, "w", playerRoom);
-      out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub && !bat && isOpening(t.w) ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
+      out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub && !bat && isOpening(t.w) && !isMouth(t.w) ? wallCuts("w", tx, ty, playerRoom) : null, stackOf(tx, ty, "w")));
     }
   }
   fillerDrawables(tiles, visible, playerRoom, out); // where a straight wall meets a ring, its picture run on to the curve (docs/50 section 3)
@@ -1218,7 +1227,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
   const T = sheet.thickness || WALL_T;
   // `stub` is a near wall of the viewer's room (docs/53 section 6.2): a door or a window drawn whole and faint (`cover.openingAlpha`), any
   // other drawn wall cut to the stub; a see-through wall (a fence, bars) stands as it is, hiding nothing.
-  const cut = !!stub && !ghostTint && !isOpening(wall) && !!sheet.wall && !map.wallRule(wall.sprite).seeThrough;
+  const cut = !!stub && !ghostTint && (!isOpening(wall) || isMouth(wall)) && !!sheet.wall && !map.wallRule(wall.sprite).seeThrough;
   const faded = !!stub && !cut && isOpening(wall);
   const alpha = faded ? cover.openingAlpha : 1;
   const flags = ghostTint ? GHOST_FLAGS() : vis ? gl.FLAG_NOFOG : 0;
@@ -1241,6 +1250,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
   // A cliff (art round 10): its face variant or its back, the back on its far face's plane (its lip seen from behind lies behind the
   // plateau's floor), a face seen cut along its edge line under that floor.
   const cliff = sheet.wall && cliffs.cliffWallOf(wall) ? cliffArt(sheet, wall, edge, tx, ty, x, y, h) : null;
+  const mouthClip = !cliff && isMouth(wall) ? cliffClip(edge, tx, ty, x, y, h) : null; // a cave mouth's rock over its plateau's edge, cut as a cliff face is
   const face = cliff && cliff.back ? depth.wallSurface(edge, tx, ty, -T, 2 / depth.UNIT) : depth.wallSurface(edge, tx, ty, T, (postSheet ? (postSheet.thickness || WALL_T) + 3 - T / 2 : 2) / depth.UNIT);
   const br = wall.bracket && wall.bracket.side > 0 ? wall.bracket : null;
   let bx = 0;
@@ -1267,7 +1277,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
       gl.surface(face, lift, DEPTH_ROOM.wall);
       const tint = ghostTint || [1, 1, 1, alpha];
       if (sheet.wall) {
-        emitDrawnWall(gateSheet || sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, stubH: cut ? cover.stub : 0, ghost: !!ghostTint, cuts, face, covered, under: under && !cliff, frameName: cliff ? cliff.frameName : gateSheet ? `${edge === "n" ? "north" : "west"}_gate` : null, clip: cliff && !ghostTint ? cliff.clip : null, gate: gateSheet ? sheet : null, note: (name) => { drawable.gateLeaf = name; } });
+        emitDrawnWall(gateSheet || sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, stubH: cut ? cover.stub : 0, ghost: !!ghostTint, cuts, face, covered, under: under && !cliff && !mouthClip, frameName: cliff ? cliff.frameName : gateSheet ? `${edge === "n" ? "north" : "west"}_gate` : null, clip: !ghostTint ? (cliff ? cliff.clip : mouthClip) : null, gate: gateSheet ? sheet : null, note: (name) => { drawable.gateLeaf = name; } });
       } else {
       // Swung leaves only for a whole, open, unboarded leaf.
       const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");

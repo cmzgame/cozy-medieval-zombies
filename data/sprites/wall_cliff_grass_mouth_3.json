@@ -1,0 +1,47 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "north_gate": "data/art/cliffs/wall_cliff_grass_mouth_3_north.png",
+  "west_gate": "data/art/cliffs/wall_cliff_grass_mouth_3_west.png"
+ },
+ "anchors": {
+  "north_gate": [
+   8,
+   100
+  ],
+  "west_gate": [
+   104,
+   100
+  ]
+ },
+ "wall": {
+  "height": 96,
+  "thickness": 16,
+  "color": "#6e6a66",
+  "material": "stone",
+  "post": "post_cliff_grass",
+  "run": "wall_cliff_grass",
+  "cliff": true,
+  "gate": {
+   "kind": "mouth",
+   "span": 3,
+   "over": "cliff wall",
+   "opening": {
+    "u": [
+     12,
+     84
+    ],
+    "crown": 62,
+    "arch": "natural",
+    "note": "u in world units along the run from the mouth's first edge's start, z from the ground; a ragged natural opening through the wall's whole 16 thickness, its crown the lowest of its top"
+   },
+   "name": "Grassy cave mouth (3 wide)",
+   "always": "open",
+   "deadBreak": false,
+   "bitesPass": true,
+   "shotsPass": true,
+   "fireSpreads": true
+  }
+ },
+ "note": "art round 14d (approved by Michael 2026-10-31): a cave mouth 3 tiles wide, a natural opening carved through the cliff wall's own rock (tools/art-gen/round14d, on round 10's generator), the brow over it jutting a little; a gate that is `always: \"open\"` as the stone arches are, stamped over a cliff run; `wall.cliff` so it is drawn and cut as the cliff is. The frames are named north_gate / west_gate so render/walls.js gateSlice cuts them"
+}

@@ -14,11 +14,39 @@ export function plateauAt(x, y, layer) {
   return !!t && !map.isEngineFloor(t.floor);
 }
 
+// The view from inside a cave (art round 14d; Michael, 2026-10-31: "the new transparency rules ... should remove the cliff face between the
+// player and the camera if you go fully inside"): while the viewer stands in a room on `layer` under a hill's top, the room is a hollow in the
+// rock, so its own tiles are no plateau (its cliffs show their faces into it, none buried, though its roof is a plateau's floor), and for the
+// corners a tile beside it that is not the room's is rock (its corners turn as a pit's do, coves at its far corners). The renderer's alone
+// (render/scene.js sets it for the viewer's storey and clears it after); nothing here is saved, sent, or read by the world.
+let inside = null; // { room, layer }
+export function setInside(v) {
+  inside = v;
+}
+export const insideNow = () => inside;
+const inRoom = (x, y, layer) => {
+  const t = map.peekTile(x, y, layer);
+  return !!t && t.room === inside.room;
+};
+// A tile's plateau as a straight edge sees it: the room's own tiles are none from inside.
+function faceAt(x, y, layer) {
+  if (inside && layer === inside.layer && inRoom(x, y, layer)) return false;
+  return plateauAt(x, y, layer);
+}
+// And as a corner sees it: the room's tiles none, a tile touching the room rock.
+function cornerPlateau(x, y, layer) {
+  if (inside && layer === inside.layer) {
+    if (inRoom(x, y, layer)) return false;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (inRoom(x + dx, y + dy, layer)) return true;
+  }
+  return plateauAt(x, y, layer);
+}
+
 // Whether the cliff wall on (tx, ty, edge) of `layer` is buried: plateau on both its sides (a hill widened past it), so nothing of it is
 // seen; it is drawn as nothing and counts as no edge at a vertex (no post for it, no corner broken by it).
 export function buried(tx, ty, edge, layer) {
   const [ax, ay, bx, by] = edge === "n" ? [tx, ty, tx, ty - 1] : [tx, ty, tx - 1, ty];
-  return plateauAt(ax, ay, layer) && plateauAt(bx, by, layer);
+  return faceAt(ax, ay, layer) && faceAt(bx, by, layer);
 }
 // The wall on (tx, ty, edge) of `layer` as a vertex sees it: null for a buried cliff.
 export function shownWall(tx, ty, edge, layer) {
@@ -47,7 +75,7 @@ export function cornerBase(vx, vy, layer) {
   const q = {};
   let count = 0;
   for (const k of Object.keys(QUAD)) {
-    q[k] = plateauAt(vx + QUAD[k][0], vy + QUAD[k][1], layer);
+    q[k] = cornerPlateau(vx + QUAD[k][0], vy + QUAD[k][1], layer);
     if (q[k]) count++;
   }
   if (count !== 1 && count !== 3) return null;
@@ -59,7 +87,7 @@ export function cornerBase(vx, vy, layer) {
   const n = map.tileAt(nTile[0], nTile[1], layer).n;
   const w = map.tileAt(wTile[0], wTile[1], layer).w;
   if (n !== nOn || w !== wOn) return null; // its two edges are not the ones the plateau turns along
-  return { name: (count === 1 ? OUTER : INNER)[key], nTile, wTile, n, w, nFront: plateauAt(nTile[0], nTile[1] - 1, layer), wFront: plateauAt(wTile[0] - 1, wTile[1], layer) };
+  return { name: (count === 1 ? OUTER : INNER)[key], nTile, wTile, n, w, nFront: cornerPlateau(nTile[0], nTile[1] - 1, layer), wFront: cornerPlateau(wTile[0] - 1, wTile[1], layer) };
 }
 
 // The corner at (vx, vy) with its picture's name (`frame`): its halved picture for an edge the corner at that edge's other end claims too
@@ -88,7 +116,7 @@ export function claimedByCorner(tx, ty, edge, wall, layer, base = cornerBase) {
 // `faces[side]` by a hash of the edge (any variant meets any other). `def` is the wall's definition, `has` whether its sheet has a frame.
 export function edgeFrame(def, tx, ty, edge, layer, has = () => true) {
   const side = edge === "n" ? "north" : "west";
-  if (plateauAt(tx, ty, layer) && def.back && def.back[side] && has(def.back[side])) return { name: def.back[side], back: true };
+  if (faceAt(tx, ty, layer) && def.back && def.back[side] && has(def.back[side])) return { name: def.back[side], back: true };
   const faces = ((def.faces && def.faces[side]) || []).filter(has);
   return { name: faces.length ? faces[Math.floor(map.hash2(tx, ty, edge === "n" ? 7 : 8) * faces.length)] : `${side}_plain`, back: false };
 }

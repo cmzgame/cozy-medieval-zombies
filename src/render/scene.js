@@ -22,6 +22,7 @@ import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/4
 import { postDrawables, setStoreyView, setViewerAt, wallDrawables } from "./walls.js";
 import { ringDrawables } from "./rings.js"; // round rooms, their two halves (docs/50 section 4)
 import { frogDrawables, wadeDrawables } from "./frogs.js"; // the shallows' frogs and a wader's ripples (art round 14b)
+import * as cliffs from "../cliffs.js"; // the view from inside a cave (art round 14d)
 import { setCutaway } from "./cutaway.js"; // the stub outdoors and the walls down, on the viewer's storey (Michael, 2026-10-30)
 import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
 import { emitFadedFloors, emitFloors, faderFor, flatHere, hiderFor, ladderDrawables, layersFor, liftOf, setFlatBias, stairDrawables, tilesOf, withLift } from "./storeys.js"; // the storeys (docs/49 step 2)
@@ -304,6 +305,7 @@ export function renderScene(args) {
       const roomHere = player && L === VL ? map.roomAt(Math.round(player.gx), Math.round(player.gy), L) : L === 0 && !player ? playerRoom : 0; // the near walls fade on the viewer's own layer alone
       setViewerAt(player && L === VL ? { x: Math.round(player.gx), y: Math.round(player.gy), layer: L } : null); // a near battlement fades where the viewer stands behind it (art round 13)
       setCutaway(L === VL ? cutaway : null); // the cutaway and the walls down: the viewer's own storey alone
+      cliffs.setInside(L === VL && hidden.cave ? { room: hidden.cave, layer: L } : null); // inside a cave its cliffs face in, and the hill in the way is cut (art round 14d)
       // The walls' view of the storeys round this layer (render/walls.js): the storey above drawn over a tile (a wall under its floor draws no
       // cap), and the stair the viewer stands on (the walls along it fade).
       setStoreyView(layers.includes(L + 1) ? (x, y) => !hidden(x, y, L + 1) && !(faded.any && faded.layers.has(L + 1) && faded(x, y, L + 1)) : null, viewerStair, L > VL ? (x, y) => hidden(x, y, L) : null); // a fading storey is no floor over a wall (the review of #551); a hidden tile's edge walls go with it (docs/53 section 6.2)
@@ -382,6 +384,7 @@ export function renderScene(args) {
   setStoreyView(null, null);
   setViewerAt(null);
   setCutaway(null);
+  cliffs.setInside(null);
   lastStats.drawables = count;
   lastStats.translucent = translucent;
   // On top, with no depth test (docs/51 section 4; Primary's recommendation, a default: a ghost hidden behind a wall is useless).

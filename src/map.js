@@ -1287,8 +1287,9 @@ export function stairEdgeProblem(tx, ty, edge, layer = 0) {
   return "";
 }
 
-export function canBuildWall(tx, ty, edge, kind = "wall", layer = 0) {
-  if (!canStampOver(tileAt(tx, ty, layer)[edge], kind)) return false;
+// `stamp` false: what stands on the edge is not asked (a cave mouth goes into the cliff no door may be stamped into; gateProblem has asked it).
+export function canBuildWall(tx, ty, edge, kind = "wall", layer = 0, stamp = true) {
+  if (stamp && !canStampOver(tileAt(tx, ty, layer)[edge], kind)) return false;
   if (stairEdgeProblem(tx, ty, edge, layer)) return false; // a stair's run, its top, and its stairwell (the review of #549)
   if (ringWallProblem(tx, ty, edge, kind, layer)) return false; // a ring's rules (docs/50 section 5)
   const [a, b] = edgeTiles(tx, ty, edge);
@@ -1979,17 +1980,19 @@ export function gateProblem(tx, ty, edge, sprite, layer = 0) {
   const rule = wallRule(sprite);
   const g = rule.gate;
   if (!g) return "Not a gate";
+  const over = g.over || "stone wall"; // what it is stamped into: a castle gate's plain stone wall, a cave mouth's cliff (art round 14d)
   for (let k = 0; k < g.span; k++) {
     const x = edge === "n" ? tx + k : tx;
     const y = edge === "n" ? ty : ty + k;
     const w = tileAt(x, y, layer)[edge];
-    if (!w) return "Over a stone wall";
-    if (w.gate) return "Already a gate";
-    if (w.kind !== "wall" || w.sprite !== rule.run) return "Over a plain stone wall";
+    if (!w) return `Over a ${over}`;
+    if (w.gate) return rule.cliff ? "Already a cave mouth" : "Already a gate";
+    // A cave mouth goes into any cliff, rock or grassy (its picture's own lip is the run's it was made for); a gate into its own run's plain wall.
+    if (w.kind !== "wall" || (rule.cliff ? !wallRule(w.sprite).cliff : w.sprite !== rule.run)) return rule.cliff ? `Over a ${over}` : `Over a plain ${over}`;
     if (w.round) return "Not on a round room";
     if (w.hangings && w.hangings.length) return "Take what hangs there down first";
     if (w.bracket) return "Take the torch down first";
-    if (!canBuildWall(x, y, edge, "door", layer)) return "No room";
+    if (!canBuildWall(x, y, edge, "door", layer, !rule.cliff)) return "No room";
   }
   return "";
 }
