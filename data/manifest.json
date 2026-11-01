@@ -1,5 +1,5 @@
 {
-  "version": "b23957c6",
+  "version": "657c6397",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 24163, "stamp": "48102130"},
@@ -7,7 +7,7 @@
     "data/crops.json": {"size": 2313, "stamp": "36c5359c"},
     "data/dyes.json": {"size": 2539, "stamp": "b65fc8c1"},
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
-    "data/ground.json": {"size": 5509, "stamp": "554353d2"},
+    "data/ground.json": {"size": 5950, "stamp": "f8f771ff"},
     "data/interactions.json": {"size": 5308, "stamp": "85b232e4"},
     "data/items.json": {"size": 71071, "stamp": "5b1a4aae"},
     "data/kit.json": {"size": 939, "stamp": "628d28a8"},
@@ -276,6 +276,7 @@
     "data/art/decor/rug_regal_red.png": {"size": 1921, "stamp": "aa3f9752"},
     "data/art/ground/arrowhead_0.png": {"size": 239, "stamp": "fff13674"},
     "data/art/ground/clay_bank.png": {"size": 604, "stamp": "3dd2dca2"},
+    "data/art/ground/cliff_grass_0.png": {"size": 6787, "stamp": "945fb7a1"},
     "data/art/ground/cliff_top_0.png": {"size": 8226, "stamp": "07ab89b3"},
     "data/art/ground/farm_soil_0.png": {"size": 636, "stamp": "5556c715"},
     "data/art/ground/farm_soil_1.png": {"size": 619, "stamp": "650e3641"},
@@ -1290,6 +1291,7 @@
     "data/sprites/forge.json": {"size": 385, "stamp": "83b84f9a"},
     "data/sprites/frog_splash.json": {"size": 412, "stamp": "cf354302"},
     "data/sprites/grindstone.json": {"size": 337, "stamp": "56947ecc"},
+    "data/sprites/ground_cliff_grass.json": {"size": 485, "stamp": "a8143e61"},
     "data/sprites/ground_cliff_top.json": {"size": 431, "stamp": "bbe9ee1c"},
     "data/sprites/ground_cobble.json": {"size": 162, "stamp": "3d8bc4c6"},
     "data/sprites/ground_dirt.json": {"size": 142, "stamp": "875f27ff"},

@@ -85,6 +85,8 @@ let FI = null; // Int32Array
 let FU = null; // Float32Array
 let FV = null; // Float32Array
 let terrain = []; // the blended kinds, by priority: { name, id, texture | frame, ... }
+let storeyKinds = []; // the kinds a storey's floor blends in (render/storeys.js; docs/53 step 4's leftover): every kind with a texture, by priority, a `storeyOnly` one too
+let storeyOnly = new Set(); // the kinds the ground does not draw (a grassy cliff top: on the ground the grass is the base): laid there
 let noise = null; // { w, h, v: Uint8Array } the edge noise, grey 0..255
 
 // The chunk's canvas sits at world pixel left = (x0 - y0 - 16) * 32,
@@ -235,9 +237,11 @@ export async function init(mapJson) {
   }
   // The earth's kinds, by priority; ids 3 and up (1 is grass, 2 laid).
   terrain = [];
+  storeyKinds = [];
+  storeyOnly = new Set();
   const entries = Object.entries(data.terrain || {}).sort((a, b) => a[1].priority - b[1].priority);
   for (const [name, t] of entries) {
-    const k = { name, id: 3 + terrain.length, threshold: t.threshold || (t.thresholdAbove ? null : [0.25, 0.5]), above: t.thresholdAbove || null, verge: t.verge || 0, lip: t.lip || 0, lipBand: t.lipBand || 0, includes: t.includes || [] };
+    const k = { name, priority: t.priority, id: t.storeyOnly ? 0 : 3 + terrain.length, threshold: t.threshold || (t.thresholdAbove ? null : [0.25, 0.5]), above: t.thresholdAbove || null, verge: t.verge || 0, lip: t.lip || 0, lipBand: t.lipBand || 0, includes: t.includes || [] };
     // A waterline (art round 14b, the shallows): `rim` a pale band of its own colour at the kind's edge, `bank` the kind below darkened just
     // outside it (wet earth), each `band` of the weight wide.
     if (t.rim) k.rim = { rgb: hexRgb(t.rim.colour), band: t.rim.band || 0.03 };
@@ -246,6 +250,7 @@ export async function init(mapJson) {
       const sheet = await assets.loadSprite(t.texture);
       usedSheets.add(t.texture);
       k.texture = { w: sheet.image.width, h: sheet.image.height, px: pixelsOf(sheet.image) };
+      storeyKinds.push(k);
     } else if (t.tiles) {
       // Laid per tile from floor sheets, each tile a frame picked by hash from
       // its own floor's sheet (the farm's two furrow directions, docs/17).
@@ -255,7 +260,8 @@ export async function init(mapJson) {
         usedSheets.add(id);
       }
     }
-    terrain.push(k);
+    if (t.storeyOnly) storeyOnly.add(name);
+    else terrain.push(k);
   }
   if (data.edgeNoise) {
     const sheet = await assets.loadSprite(data.edgeNoise);
@@ -281,7 +287,22 @@ export function kindOf(floorId) {
   // The engine's own floors (docs/49 section 3: the void, the earth, a hole) have no sheet: the ground's bake takes them as dirt until
   // the storeys are drawn (docs/49 step 2; a hole's opening is step 3's art). Only a cellar's hole is ever on the ground.
   if (map.isEngineFloor(floorId)) return "dirt";
-  return (data && data.floors[floorId]) || "laid";
+  const k = data && data.floors[floorId];
+  return k && !storeyOnly.has(k) ? k : "laid";
+}
+
+// ---- a storey's floor (docs/53 step 4's leftover; Michael, 2026-10-31: "blending storey floors with the ground") ----
+// The kind a floor is drawn in a storey up, or null for a laid floor (a hard diamond, as on the ground): a textured kind, the grassy cliff top's
+// `storeyOnly` one too. render/storeys.js blends them as the ground does.
+export function storeyKindOf(floorId) {
+  const n = data && data.floors[floorId];
+  return (n && storeyKinds.find((k) => k.name === n)) || null;
+}
+export const storeyKindList = () => storeyKinds;
+// The edge noise at a world pixel, 0..1 (the ground's own, so a storey's ragged edges are drawn as the ground's are).
+export function edgeNoiseAt(wx, wy) {
+  if (!noise) return 0.5;
+  return noise.v[(((wy % noise.h) + noise.h) % noise.h) * noise.w + (((wx % noise.w) + noise.w) % noise.w)] / 255;
 }
 
 // A frame of a floor sheet as pixels, and its offset in the tile's 64×32

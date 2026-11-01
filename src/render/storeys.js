@@ -10,6 +10,7 @@ import * as iso from "../iso.js";
 import * as map from "../map.js";
 import * as gl from "../gl.js";
 import { getSheet } from "../assets.js";
+import * as ground from "../ground.js"; // a storey's cliff tops blended as the ground's earth is (docs/53 step 4's leftover)
 import * as round from "../round.js"; // a laid floor in a ring's square, drawn inside its curve (docs/49 section 5)
 import { WALL_T } from "../placeholders.js"; // a ring's wall thickness, for the floor over it (Michael, 2026-10-31)
 import { UNIT } from "./depth.js";
@@ -677,7 +678,17 @@ function floorSheet(c) {
   const key = map.chunkKey(c.cx, c.cy, c.layer);
   const had = bakes.get(key);
   const under = ringsUnder(c);
-  if (had && had.v === c.lightVersion && had.under === under) return had.sheet;
+  // Baked again only for a change of its floors (the review of #629: a door or an item touching the chunk bumps its version too, and the blend's
+  // pixels cost a few ms a chunk), or for a new chunk object (a guest's chunk replaced by the host's).
+  let sig = null;
+  if (had && had.chunk === c && had.under === under) {
+    if (had.v === c.lightVersion) return had.sheet;
+    sig = floorSig(c);
+    if (sig === had.sig) {
+      had.v = c.lightVersion;
+      return had.sheet;
+    }
+  }
   const C = map.CHUNK;
   const W = C * iso.TW + PAD * 2;
   const H = C * iso.TH + PAD * 2;
@@ -686,10 +697,12 @@ function floorSheet(c) {
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, W, H);
+  const blended = blendStorey(c, ctx, W, H); // the cliff tops' tiles, drawn already
   for (let ly = 0; ly < C; ly++) {
     for (let lx = 0; lx < C; lx++) {
       const t = c.tiles[ly * C + lx];
       if (!t || map.isEngineFloor(t.floor)) continue; // the void is clear: what is below shows through a stairwell or past a floor's edge
+      if (blended[ly * C + lx]) continue;
       let sh = null;
       try { sh = getSheet(t.floor); } catch { sh = null; }
       if (!sh) continue;
@@ -728,8 +741,136 @@ function floorSheet(c) {
   if (under) fillTowerTops(c, ctx);
   const sheet = had ? had.sheet : { image: canvas, frames: { all: [0, 0, W, H] }, anchor: [0, 0] };
   if (had) gl.redrawSheet(sheet);
-  bakes.set(key, { sheet, v: c.lightVersion, under });
+  bakes.set(key, { sheet, v: c.lightVersion, under, chunk: c, sig: sig || floorSig(c) });
+  bakeCount++;
   return sheet;
+}
+// What a storey chunk's floor picture is made of: its tiles' floors and one tile beyond (the blend's reach), whether each was built (a ring's clip),
+// and the rings on its own storey over it.
+function floorSig(c) {
+  const C = map.CHUNK;
+  const x0 = c.cx * C;
+  const y0 = c.cy * C;
+  const L = c.layer;
+  const parts = [];
+  for (let y = y0 - 1; y <= y0 + C; y++) {
+    for (let x = x0 - 1; x <= x0 + C; x++) {
+      const t = map.peekTile(x, y, L);
+      parts.push(t ? (t.built ? `${t.floor}*` : t.floor) : "");
+    }
+  }
+  for (const r of map.allRings(L)) if (r.x0 < x0 + C && r.x0 + r.n > x0 && r.y0 < y0 + C && r.y0 + r.n > y0) parts.push(`${r.id}:${r.n}`);
+  return parts.join(",");
+}
+
+// A storey chunk's floor picture, baked now if it needs it, its pad, and how many bakes have run, for check("storeyblend") (a hidden pane draws
+// no frames to bake it).
+let bakeCount = 0;
+export function floorBakeOf(cx, cy, L) {
+  const c = map.getChunk(cx, cy, false, L);
+  if (!c) return null;
+  const sheet = floorSheet(c);
+  return { canvas: sheet.image, pad: PAD, bakes: bakeCount };
+}
+
+// A storey's blended floor (docs/53 step 4's leftover; Michael, 2026-10-31: "blending storey floors with the ground"; art round 14c's textures): the
+// bare and the grassy cliff top are drawn as the ground draws its earth (src/ground.js), each tile its own kind's texture read at the world pixel,
+// and a kind of higher priority laid over a lower one's tile where its weight between the tile centres reaches its threshold on the ground's
+// edge noise, with its lip, so rock spreads raggedly onto a grassy top. A laid floor stays a hard diamond (it neither spreads nor is spread on),
+// and the void stays clear, so a plateau still ends square at its edge, where the cliff's lip carries the rounding. A tile a ring's curve cuts
+// is left to the frames (floorSheet's clip). Returns, per tile of the chunk, whether it was drawn here.
+function blendStorey(c, ctx, W, H) {
+  const C = map.CHUNK;
+  const L = c.layer;
+  const x0 = c.cx * C;
+  const y0 = c.cy * C;
+  const done = new Uint8Array(C * C);
+  if (!(L > 0)) return done;
+  const N = C + 2; // the chunk's tiles and one beyond: a blend reaches across a chunk's edge
+  const kinds = new Array(N * N).fill(null);
+  for (let fy = 0; fy < N; fy++) {
+    for (let fx = 0; fx < N; fx++) {
+      const t = map.peekTile(x0 - 1 + fx, y0 - 1 + fy, L);
+      if (t && !map.isEngineFloor(t.floor)) kinds[fy * N + fx] = ground.storeyKindOf(t.floor);
+    }
+  }
+  let any = false;
+  for (let ly = 0; ly < C; ly++) {
+    for (let lx = 0; lx < C; lx++) {
+      if (!kinds[(ly + 1) * N + lx + 1]) continue;
+      const x = x0 + lx;
+      const y = y0 + ly;
+      const t = c.tiles[ly * C + lx];
+      const r = (t && t.built && map.ringAt(x, y, L)) || map.ringAt(x, y, L - 1); // floorSheet's own ring or the one below
+      if (r && round.isStepped(r.x0, r.y0, r.n, x, y)) continue; // a tile a ring steps over: the frames, cut to the curve
+      done[ly * C + lx] = 1;
+      any = true;
+    }
+  }
+  if (!any) return done;
+  const list = ground.storeyKindList();
+  const img = ctx.createImageData(W, H);
+  const out = img.data;
+  const HW = iso.HW;
+  const HH = iso.HH;
+  const left = (x0 - y0 - C) * HW - PAD; // the world pixel of the canvas's column 0, as the ground's chunk picture reads it
+  const top = (x0 + y0) * HH - HH - PAD;
+  const kindAt = (gx, gy) => { const fx = gx - x0 + 1; const fy = gy - y0 + 1; return fx < 0 || fy < 0 || fx >= N || fy >= N ? null : kinds[fy * N + fx]; };
+  const texel = (k, wx, wy) => { const tx = k.texture; return ((((wy % tx.h) + tx.h) % tx.h) * tx.w + (((wx % tx.w) + tx.w) % tx.w)) * 4; };
+  for (let ly = 0; ly < C; ly++) {
+    for (let lx = 0; lx < C; lx++) {
+      if (!done[ly * C + lx]) continue;
+      const own = kinds[(ly + 1) * N + lx + 1];
+      const ccx = (lx - ly) * HW + C * HW + PAD; // the tile's centre on the canvas
+      const ccy = (lx + ly) * HH + HH + PAD;
+      for (let py = ccy - HH; py < ccy + HH; py++) {
+        for (let px = ccx - HW; px < ccx + HW; px++) {
+          const u = (px + 0.5 - ccx) / HW;
+          const v = (py + 0.5 - ccy) / HH;
+          if (Math.abs(u) + Math.abs(v) > 1) continue; // the tile's own diamond
+          const wx = left + px;
+          const wy = top + py;
+          // As the ground: the four tile centres round the pixel, a void or a laid tile among them counted as this tile's own kind (so a
+          // kind keeps its ground to a plateau's edge and a laid floor's), the lowest kind among them the base, and each higher one laid over
+          // it where its weight reaches its threshold, its own tiles too, so a patch's corners round away as a dirt patch's do on the grass.
+          const gx = x0 + lx + (u + v) / 2; // the pixel in grid units, tile centres on the whole numbers
+          const gy = y0 + ly + (v - u) / 2;
+          const fx = Math.floor(gx);
+          const fy = Math.floor(gy);
+          const a = gx - fx;
+          const b = gy - fy;
+          const c00 = kindAt(fx, fy) || own;
+          const c10 = kindAt(fx + 1, fy) || own;
+          const c01 = kindAt(fx, fy + 1) || own;
+          const c11 = kindAt(fx + 1, fy + 1) || own;
+          let k = c00;
+          let shade = 1;
+          if (c10 !== c00 || c01 !== c00 || c11 !== c00) {
+            for (const q of [c10, c01, c11]) if (q.priority < k.priority) k = q; // the base
+            const base = k;
+            const n = ground.edgeNoiseAt(wx, wy);
+            for (const T of list) {
+              if (T.priority <= base.priority) continue;
+              const w = (c00 === T ? (1 - a) * (1 - b) : 0) + (c10 === T ? a * (1 - b) : 0) + (c01 === T ? (1 - a) * b : 0) + (c11 === T ? a * b : 0);
+              if (w <= 0) continue;
+              const thr = T.threshold ? T.threshold[0] + T.threshold[1] * n : 0.25;
+              if (w < thr) continue;
+              k = T;
+              shade = T.lip && w < thr + T.lipBand ? 1 - T.lip : 1;
+            }
+          }
+          const j = texel(k, wx, wy);
+          const o = (py * W + px) * 4;
+          out[o] = k.texture.px[j] * shade;
+          out[o + 1] = k.texture.px[j + 1] * shade;
+          out[o + 2] = k.texture.px[j + 2] * shade;
+          out[o + 3] = 255;
+        }
+      }
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return done;
 }
 
 // A tower's top (Michael, 2026-10-31: "if I remove those tiles that are breaking outside the round wall I end up with holes in the floor"): over a

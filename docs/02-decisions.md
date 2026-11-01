@@ -343,6 +343,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-11-01 — The storey floor blends: art round 14c's grassy cliff top wired (Michael)
+
+Michael, on the upstairs floor blend ("blending storey floors with the ground", his batch of 2026-10-31): "Go ahead!" **Built and wired:** a storey's bare cliff top (`cliff_top`) and grassy cliff top (`cliff_grass`, art round 14c's turf with rock showing through, the storeys' alone: on the ground the grass is the base, so it stays laid there) blend as the ground's earth does, the rock spreading raggedly onto the turf; laid floors stay hard diamonds and the void stays clear. Art round 14c's flag texture is not wired (the laid stone floor stays rigid, `02` "Caves").
+
 ### 2026-10-31 — Caves: cave mouths, the bare cliff floor blends, and the hill cut from inside (Michael)
 
 Michael, on his hollowed hill: "If someone has laid down cut stones into the ground to form a floor much like the stone wall, it should stay rigid. The one I was walking about is the cliff floor art ... It's bare stone, uncarved, rather than a human made floor"; "we need a way to make a cave, especially with the new transparency rules which should remove the cliff face between the player and the camera if you go fully inside". On the proposal and art round 14d's previews: "Approve, wire caves". **Ruled:**
