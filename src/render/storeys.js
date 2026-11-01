@@ -170,8 +170,10 @@ export function hiderFor(viewer) {
   const above = layersFor(L).filter((k) => k > L);
   // (1) The ceiling: the room's tiles with a floor over them, and the whole column over each.
   const room = roomTiles(vx, vy, L);
+  let cave = 0; // the viewer's room when it is a cave: a room under a hill's top (art round 14d), where a hill in the way hides as a storey does
   if (room && above.length) {
     const ceil = room.filter(([x, y]) => { const t = map.peekTile(x, y, L + 1); return !!t && !map.isEngineFloor(t.floor); });
+    if (ceil.some(([x, y]) => isPlateauFloor(map.peekTile(x, y, L + 1).floor))) cave = map.roomAt(vx, vy, L);
     if (ceil.length) {
       for (const k of above) { const set = setOf(k); for (const [x, y] of ceil) mark(set, x, y); }
       sigs.push(`room${map.roomAt(vx, vy, L)}:${ceil.length}`);
@@ -180,16 +182,19 @@ export function hiderFor(viewer) {
   // (2) The slabs that cover the body: a slab whose box does not cover it is passed by whole; one that does is asked tile by tile.
   for (const k of above) {
     for (const slab of slabsOn(k).list) {
-      if (slab.plateau || !storeyCovers(viewer, slab.rect, k)) continue;
+      if ((slab.plateau && !cave) || !storeyCovers(viewer, slab.rect, k)) continue; // a hill never hides, but from inside a cave (Michael, 2026-10-31)
       if (!slab.tiles.some(([x, y]) => storeyCovers(viewer, [x, y, 1, 1], k))) continue;
       const set = setOf(k);
-      for (const [x, y] of slab.tiles) mark(set, x, y);
+      // A hill's top from inside a cave: only the tiles that cover the body, so the rock round the cave stays (the whole slab would bare the hill's hollow).
+      if (slab.plateau) for (const [x, y] of slab.tiles) { if (storeyCovers(viewer, [x, y, 1, 1], k)) mark(set, x, y); }
+      else for (const [x, y] of slab.tiles) mark(set, x, y);
       sigs.push(`${k}:${slab.rect.join(",")}`);
     }
   }
   const hide = (x, y, layer) => layer > L && !!byLayer.get(layer)?.has(keyOf(x, y));
   hide.sig = sigs.join(";");
   hide.layers = new Set(byLayer.keys());
+  hide.cave = cave;
   hideKept.key = key;
   hideKept.hide = hide;
   return hide;

@@ -687,7 +687,8 @@ const gateEdges = (what, tx, ty, edge) => {
 };
 // Why a castle gate may not be built on the run that begins at (tx, ty, edge) now, or "" (the host's and a guest's alike).
 function gateBlock(player, what, tx, ty, edge) {
-  if (!rules.freeBuilding) return (map.wallRule(buildData[what].sprite).gate || {}).always === "open" ? "Stone arches are not in the game yet" : "Castle gates are not in the game yet"; // Free building only (a guest's command too)
+  const gk = (map.wallRule(buildData[what].sprite).gate || {}).kind;
+  if (!rules.freeBuilding) return gk === "mouth" ? "Cave mouths are not in the game yet" : gk === "arch" ? "Stone arches are not in the game yet" : "Castle gates are not in the game yet"; // Free building only (a guest's command too)
   const L = layerOf(player);
   const why = map.gateProblem(tx, ty, edge, buildData[what].sprite, L);
   if (why) return why;
@@ -2237,8 +2238,8 @@ export function prompt() {
   if (g.kind === "gate") {
     const [mx, my] = map.edgeMid(g.tx + (g.edge === "n" ? (g.span - 1) / 2 : 0), g.ty + (g.edge === "w" ? (g.span - 1) / 2 : 0), g.edge);
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
-    const arch = (map.wallRule(g.sprite).gate || {}).always === "open";
-    return { label: `Click to place the ${arch ? "arch" : "gate"} at once · Esc cancel`, mx, my, progress: null, enabled: true };
+    const gk = (map.wallRule(g.sprite).gate || {}).kind;
+    return { label: `Click to place the ${gk === "mouth" ? "cave mouth" : gk === "arch" ? "arch" : "gate"} at once · Esc cancel`, mx, my, progress: null, enabled: true };
   }
   if (g.kind === "round") {
     const [mx, my] = [g.x0 + (g.n - 1) / 2, g.y0 + (g.n - 1) / 2];

@@ -367,6 +367,66 @@
     "group": "Landforms",
     "note": "as the Cliff wall, its turf rolled over the lip (art round 10)"
   },
+  "mouth_cliff_1": {
+    "label": "Cave mouth (1 wide)",
+    "kind": "gate",
+    "sprite": "wall_cliff_mouth_1",
+    "dev": true,
+    "tab": "terrain",
+    "group": "Landforms",
+    "hint": "Click, then click a cliff wall: a 1-tile cave mouth opens in it at once",
+    "note": "art round 14d (Michael, 2026-10-31: \"we need a way to make a cave\"): a natural opening stamped over 1 cliff wall edge(s) in a row, always open (the gate's `always`), placed at once and free with Free building; taking it apart puts the cliff wall back"
+  },
+  "mouth_cliff_2": {
+    "label": "Cave mouth (2 wide)",
+    "kind": "gate",
+    "sprite": "wall_cliff_mouth_2",
+    "dev": true,
+    "tab": "terrain",
+    "group": "Landforms",
+    "hint": "Click, then click a cliff wall: a 2-tile cave mouth opens in it at once",
+    "note": "art round 14d (Michael, 2026-10-31: \"we need a way to make a cave\"): a natural opening stamped over 2 cliff wall edge(s) in a row, always open (the gate's `always`), placed at once and free with Free building; taking it apart puts the cliff wall back"
+  },
+  "mouth_cliff_3": {
+    "label": "Cave mouth (3 wide)",
+    "kind": "gate",
+    "sprite": "wall_cliff_mouth_3",
+    "dev": true,
+    "tab": "terrain",
+    "group": "Landforms",
+    "hint": "Click, then click a cliff wall: a 3-tile cave mouth opens in it at once",
+    "note": "art round 14d (Michael, 2026-10-31: \"we need a way to make a cave\"): a natural opening stamped over 3 cliff wall edge(s) in a row, always open (the gate's `always`), placed at once and free with Free building; taking it apart puts the cliff wall back"
+  },
+  "mouth_cliff_grass_1": {
+    "label": "Grassy cave mouth (1 wide)",
+    "kind": "gate",
+    "sprite": "wall_cliff_grass_mouth_1",
+    "dev": true,
+    "tab": "terrain",
+    "group": "Landforms",
+    "hint": "Click, then click a cliff wall: a 1-tile cave mouth opens in it at once",
+    "note": "art round 14d (Michael, 2026-10-31: \"we need a way to make a cave\"): a natural opening stamped over 1 cliff wall edge(s) in a row, always open (the gate's `always`), placed at once and free with Free building; taking it apart puts the cliff wall back"
+  },
+  "mouth_cliff_grass_2": {
+    "label": "Grassy cave mouth (2 wide)",
+    "kind": "gate",
+    "sprite": "wall_cliff_grass_mouth_2",
+    "dev": true,
+    "tab": "terrain",
+    "group": "Landforms",
+    "hint": "Click, then click a cliff wall: a 2-tile cave mouth opens in it at once",
+    "note": "art round 14d (Michael, 2026-10-31: \"we need a way to make a cave\"): a natural opening stamped over 2 cliff wall edge(s) in a row, always open (the gate's `always`), placed at once and free with Free building; taking it apart puts the cliff wall back"
+  },
+  "mouth_cliff_grass_3": {
+    "label": "Grassy cave mouth (3 wide)",
+    "kind": "gate",
+    "sprite": "wall_cliff_grass_mouth_3",
+    "dev": true,
+    "tab": "terrain",
+    "group": "Landforms",
+    "hint": "Click, then click a cliff wall: a 3-tile cave mouth opens in it at once",
+    "note": "art round 14d (Michael, 2026-10-31: \"we need a way to make a cave\"): a natural opening stamped over 3 cliff wall edge(s) in a row, always open (the gate's `always`), placed at once and free with Free building; taking it apart puts the cliff wall back"
+  },
   "floor_cliff_top": {
     "label": "Cliff top",
     "kind": "floor",

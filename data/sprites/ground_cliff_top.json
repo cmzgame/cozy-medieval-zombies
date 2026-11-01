@@ -1,0 +1,17 @@
+{
+ "image": "data/art/ground/cliff_top_0.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   256,
+   128
+  ]
+ },
+ "anchor": [
+  0,
+  0
+ ],
+ "note": "the bare cliff floor's rock (art round 14c, wired with the caves, Michael 2026-10-31): round 10's rock in big tilted slabs parted by wandering fissures, pits, scree, lichen; a seamless 256 x 128 world texture, the blended kind `cliff_top` of data/ground.json",
+ "mapColor": "#968f88"
+}

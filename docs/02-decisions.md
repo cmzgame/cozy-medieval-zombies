@@ -343,6 +343,13 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-31 — Caves: cave mouths, the bare cliff floor blends, and the hill cut from inside (Michael)
+
+Michael, on his hollowed hill: "If someone has laid down cut stones into the ground to form a floor much like the stone wall, it should stay rigid. The one I was walking about is the cliff floor art ... It's bare stone, uncarved, rather than a human made floor"; "we need a way to make a cave, especially with the new transparency rules which should remove the cliff face between the player and the camera if you go fully inside". On the proposal and art round 14d's previews: "Approve, wire caves". **Ruled:**
+- **The bare cliff floor blends, the laid stone floor stays hard.** `floor_cliff_top` on the ground is the blended kind `cliff_top` (art round 14c's rock texture, wired with this); `floor_stone` stays a laid diamond. On a storey the cliff top keeps its tile's frame (the storey blend is `53` step 4's leftover).
+- **Cave mouths** (art round 14d, approved): natural openings 1, 2, and 3 wide, rock and grassy, carved from the cliff wall's own rock, stamped into a cliff run as the stone arches are into stone (always open, nothing to shut, board, or batter; Free building's, in the Terrain tab's Landforms). A mouth closes the hollow behind it into a room, so the room rules give a cave its roof hidden over you and its near walls cut.
+- **From inside a cave, the hill is cut** (an exception to "a hill never hides", `53` section 6.2, for the viewer standing in a room under a hill's top alone): the cave's own walls show their rock faces into it (none buried, coves at its far corners), its near walls and corners and the cliffs between the camera and you are cut to the stub, and the tiles of the hill's top that cover you are not drawn.
+
 ### 2026-10-31 — Art round 14a and 14b approved: the 1-wide gate, the stone arches, shallow water, lily pads, plants, and the frog (Michael)
 
 Michael, on the previews: "All of the art looks good to me. The frog is especially excellent." **Approved:** art round 14a (the 1-wide stone gate with its narrow portcullis; plain stone arches 1, 2, and 3 wide; `tools/art-gen/round14a` when the generator is kept) and 14b (the shallow water texture, five lily pads and a flowering one, four water plants, a wading ring, and the frog's hop with its splash). Wired: 14a in the gate and arch build (`09`); 14b with the shallows' blend. Art round 14c (the cliff top and the stone floor's blend) was delivered after and waits on his word.

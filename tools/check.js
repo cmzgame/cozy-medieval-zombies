@@ -6561,7 +6561,7 @@ check("castle gates: built over plain stone edges by the command a guest sends (
     assert(!mapMod.wallBetween(x + 1, y + 2, x + 1, y + 1).gate, "a gate was built with Free building off");
     assert(placementImport.paletteKinds().every((k) => !placementImport.isGateBuild(k.id)), "a gate is offered with Free building off");
     rulesImport.rules.freeBuilding = true;
-    const offered = placementImport.paletteKinds().filter((k) => placementImport.isGateBuild(k.id));
+    const offered = placementImport.paletteKinds().filter((k) => placementImport.isGateBuild(k.id) && !mapMod.wallRule(k.sprite).cliff); // the cave mouths are the Landforms' (their own row)
     assert(offered.length === 6 && offered.every((k) => k.group === "Castle" && k.dev && placementImport.costText(k.id) === "free"), `the palette's gates: ${offered.map((k) => k.id)}`);
     placementImport.performPlacement(me, { kind: "build", what: "gate_stone_2", tx: x + 1, ty: y + 2, edge: "n" });
     assert(!me.action, "a gate is a timed build");
@@ -9059,6 +9059,78 @@ check("the 1-wide gate and the stone arches: built over plain stone edges by the
   } finally {
     for (const i of built) { for (let k = 0; k < 2; k++) { const t = mapMod.peekTile(x + i, y + 2, 0); if (t && t.n) mapMod.destroyWall(x + i, y + 2, "n", false, 0); } }
     rulesImport.rules.freeBuilding = free0;
+  }
+});
+
+// ---- art round 14d (Michael, 2026-10-31: "we need a way to make a cave"): cave mouths ----
+check("cave mouths: built into a hill's cliff run by the command a guest sends (Free building only), open from the start and never shut, the hollow behind it a room with the mouth its opening, refused over a stone wall or a gap, taken apart to the cliff; the bare cliff floor blends on the ground", () => {
+  const at = clearGround();
+  assert(at, "no clear ground");
+  const [x, y] = at;
+  const me = gameMod.state.player;
+  const was = { gx: me.gx, gy: me.gy, layer: me.layer, free: rulesImport.rules.freeBuilding };
+  const walls = [];
+  const floors = [];
+  const said = [];
+  const send = (cmd) => { said.length = 0; promptImport.setMessageSink((t) => (said.push(t), true)); placementImport.performPlacement(me, cmd); promptImport.setMessageSink(null); return said[said.length - 1] || ""; };
+  try {
+    // A hill 4 by 3, as the map would bake it: a ring of cliff walls on the ground and its top a storey up; a stone wall beside it.
+    for (let i = 0; i < 4; i++) for (const r of [y, y + 3]) { mapMod.buildWall(x + i, r, "n", "wall", "wall_cliff", null, 0); walls.push([x + i, r, "n"]); }
+    for (let j = 0; j < 3; j++) for (const c of [x, x + 4]) { mapMod.buildWall(c, y + j, "w", "wall", "wall_cliff", null, 0); walls.push([c, y + j, "w"]); }
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 4; i++) { const t = mapMod.growTile(x + i, y + j, 1); t.floor = "floor_cliff_top"; t.built = { under: "void", free: true }; mapMod.touch(x + i, y + j, 1); floors.push([x + i, y + j]); }
+    for (let i = 0; i < 6; i++) for (let j = -1; j < 5; j++) { const t = mapMod.growTile(x + i, y + j, 0); if (t.prop) mapMod.removeProp(t.prop); }
+    mapMod.buildWall(x + 6, y + 3, "n", "wall", "wall_stone", null, 0); walls.push([x + 6, y + 3, "n"]);
+    mapMod.roomsIfDirty();
+    me.gx = x + 2; me.gy = y + 4.5; me.layer = 0;
+    rulesImport.rules.freeBuilding = false;
+    let why = send({ kind: "build", what: "mouth_cliff_2", tx: x + 1, ty: y + 3, edge: "n" });
+    assert(why === "Cave mouths are not in the game yet" && !mapMod.peekTile(x + 1, y + 3, 0).n.gate, `a mouth with Free building off: "${why}"`);
+    rulesImport.rules.freeBuilding = true;
+    const offered = placementImport.paletteKinds().filter((k) => placementImport.isGateBuild(k.id) && mapMod.wallRule(k.sprite).cliff);
+    assert(offered.length === 6 && offered.every((k) => k.group === "Landforms" && k.tab === "terrain" && placementImport.costText(k.id) === "free"), `the palette's mouths: ${offered.map((k) => [k.id, k.group, k.tab])}`);
+    why = send({ kind: "build", what: "mouth_cliff_2", tx: x + 1, ty: y + 3, edge: "n" });
+    const m = [mapMod.peekTile(x + 1, y + 3, 0).n, mapMod.peekTile(x + 2, y + 3, 0).n];
+    assert(m.every((w) => w && w.gate && w.open && mapMod.isArch(w) && w.sprite === "wall_cliff_mouth_2" && w.under === "wall_cliff" && mapMod.wallRule(w.sprite).cliff), `the 2-wide mouth: ${m.map((w) => w && [w.sprite, w.open, w.under])} "${why}"`);
+    assert(!mapMod.setGateOpen(x + 1, y + 3, "n", false, 0) && m.every((w) => w.open), "a cave mouth was shut");
+    assert(!mapMod.openingsNear(x + 1.5, y + 3, 2.5, 0).some((o) => mapMod.isArch(o.wall)), "a cave mouth is an opening to open or batter");
+    const room = mapMod.roomAt(x + 1, y + 1, 0);
+    const rec = mapMod.getRoom(room);
+    assert(room > 0 && rec && rec.openings.some((o) => o.tx === x + 1 && o.ty === y + 3 && o.edge === "n"), `the hollow is no room with the mouth its opening: room ${room}, ${rec && JSON.stringify(rec.openings)}`);
+    assert(mapMod.roomAt(x + 3, y + 2, 0) === room, "the hollow is not one room");
+    // A grassy mouth goes into a rock cliff too; not into a stone wall, a mouth, or a gap.
+    me.gx = x + 5.5; me.gy = y + 1.5; // beside the hill's east face, with a clear line to it
+    why = send({ kind: "build", what: "mouth_cliff_grass_1", tx: x + 4, ty: y + 1, edge: "w" });
+    me.gx = x + 3; me.gy = y + 4.5;
+    assert(mapMod.isArch(mapMod.peekTile(x + 4, y + 1, 0).w), `a grassy mouth in a rock cliff: "${why}"`);
+    why = send({ kind: "build", what: "mouth_cliff_1", tx: x + 6, ty: y + 3, edge: "n" });
+    assert(why === "Over a cliff wall" && !mapMod.peekTile(x + 6, y + 3, 0).n.gate, `a mouth over a stone wall: "${why}"`);
+    why = send({ kind: "build", what: "mouth_cliff_1", tx: x + 5, ty: y + 3, edge: "n" });
+    assert(why === "Over a cliff wall", `a mouth over a gap: "${why}"`);
+    why = send({ kind: "build", what: "mouth_cliff_1", tx: x + 2, ty: y + 3, edge: "n" });
+    assert(why === "Already a cave mouth", `a mouth over a mouth: "${why}"`);
+    // From inside (the renderer's view, cliffs.setInside): the far wall faces into the hollow, no edge of it is buried, its far corner a cove.
+    const def = JSON.parse(fs.readFileSync(path.join(root, "data/sprites/wall_cliff.json"), "utf8"));
+    const outside = [cliffsMod.edgeFrame(def, x + 1, y, "n", 0).back, cliffsMod.cornerBase(x, y, 0)?.name];
+    try {
+      cliffsMod.setInside({ room: mapMod.roomAt(x + 1, y + 1, 0), layer: 0 }); // read again: the second mouth refilled the rooms
+      const inside = [cliffsMod.edgeFrame(def, x + 1, y, "n", 0).back, cliffsMod.cornerBase(x, y, 0)?.name, cliffsMod.buried(x + 1, y, "n", 0)];
+      assert(outside[0] === true && inside[0] === false && inside[1] === "inner_n" && inside[2] === false, `the far wall from outside ${outside}, from inside ${inside}`);
+    } finally {
+      cliffsMod.setInside(null);
+    }
+    send({ kind: "remove", target: { type: "wall", tx: x + 2, ty: y + 3, edge: "n" } });
+    const back = [mapMod.peekTile(x + 1, y + 3, 0).n, mapMod.peekTile(x + 2, y + 3, 0).n];
+    assert(back.every((w) => w && w.kind === "wall" && w.sprite === "wall_cliff"), `the mouth taken apart: ${back.map((w) => w && [w.kind, w.sprite])}`);
+    const ground = read("data/ground.json");
+    assert(ground.floors.floor_cliff_top === "cliff_top" && ground.terrain.cliff_top && ground.terrain.cliff_top.texture === "ground_cliff_top" && ground.floors.floor_stone === "laid", "the bare cliff floor is not the blended cliff_top on the ground, or the laid stone floor is not laid");
+    return "a 2-wide mouth built open by the command, never shut, no opening to batter, the hollow one room with the mouth its opening, its far wall a face and its far corner a cove from inside; a grassy mouth in rock; refused off Free building, over a stone wall, a gap, a mouth; taken apart to the cliff; floor_cliff_top blends as cliff_top, floor_stone stays laid";
+  } finally {
+    promptImport.setMessageSink(null);
+    for (const [wx, wy, e] of walls) { const t = mapMod.peekTile(wx, wy, 0); if (t && t[e]) mapMod.destroyWall(wx, wy, e, false, 0); }
+    for (const [fx, fy] of floors) { const t = mapMod.peekTile(fx, fy, 1); if (t) { t.floor = "void"; delete t.built; mapMod.touch(fx, fy, 1); } }
+    mapMod.roomsIfDirty();
+    rulesImport.rules.freeBuilding = was.free;
+    me.gx = was.gx; me.gy = was.gy; me.layer = was.layer;
   }
 });
 
