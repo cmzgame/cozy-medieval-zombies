@@ -1,0 +1,17 @@
+{
+ "image": "data/art/ground/cliff_grass_0.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   256,
+   128
+  ]
+ },
+ "anchor": [
+  0,
+  0
+ ],
+ "note": "the grassy cliff top's turf (art round 14c, wired with the storey blend, Michael 2026-11-01): the ground's own grass with rock showing through in patches, the turf's cut edge, a rock nub and a tuft now and then; a seamless 256 x 128 world texture, the storey-only blended kind `cliff_grass` of data/ground.json",
+ "mapColor": "#4b5f3d"
+}

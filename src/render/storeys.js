@@ -10,6 +10,7 @@ import * as iso from "../iso.js";
 import * as map from "../map.js";
 import * as gl from "../gl.js";
 import { getSheet } from "../assets.js";
+import * as ground from "../ground.js"; // a storey's cliff tops blended as the ground's earth is (docs/53 step 4's leftover)
 import * as round from "../round.js"; // a laid floor in a ring's square, drawn inside its curve (docs/49 section 5)
 import { WALL_T } from "../placeholders.js"; // a ring's wall thickness, for the floor over it (Michael, 2026-10-31)
 import { UNIT } from "./depth.js";
@@ -686,10 +687,12 @@ function floorSheet(c) {
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, W, H);
+  const blended = blendStorey(c, ctx, W, H); // the cliff tops' tiles, drawn already
   for (let ly = 0; ly < C; ly++) {
     for (let lx = 0; lx < C; lx++) {
       const t = c.tiles[ly * C + lx];
       if (!t || map.isEngineFloor(t.floor)) continue; // the void is clear: what is below shows through a stairwell or past a floor's edge
+      if (blended[ly * C + lx]) continue;
       let sh = null;
       try { sh = getSheet(t.floor); } catch { sh = null; }
       if (!sh) continue;
@@ -730,6 +733,100 @@ function floorSheet(c) {
   if (had) gl.redrawSheet(sheet);
   bakes.set(key, { sheet, v: c.lightVersion, under });
   return sheet;
+}
+
+// A storey chunk's baked floor picture and its pad, for a check (the storey blend's: every floored tile's diamond filled, the void clear).
+export const floorBakeOf = (cx, cy, L) => { const b = bakes.get(map.chunkKey(cx, cy, L)); return b ? { canvas: b.sheet.image, pad: PAD } : null; };
+
+// A storey's blended floor (docs/53 step 4's leftover; Michael, 2026-10-31: "blending storey floors with the ground"; art round 14c's textures): the
+// bare and the grassy cliff top are drawn as the ground draws its earth (src/ground.js), each tile its own kind's texture read at the world pixel,
+// and a kind of higher priority laid over a lower one's tile where its weight between the tile centres reaches its threshold on the ground's
+// edge noise, with its lip, so rock spreads raggedly onto a grassy top. A laid floor stays a hard diamond (it neither spreads nor is spread on),
+// and the void stays clear, so a plateau still ends square at its edge, where the cliff's lip carries the rounding. A tile a ring's curve cuts
+// is left to the frames (floorSheet's clip). Returns, per tile of the chunk, whether it was drawn here.
+function blendStorey(c, ctx, W, H) {
+  const C = map.CHUNK;
+  const L = c.layer;
+  const x0 = c.cx * C;
+  const y0 = c.cy * C;
+  const done = new Uint8Array(C * C);
+  if (!(L > 0)) return done;
+  const N = C + 2; // the chunk's tiles and one beyond: a blend reaches across a chunk's edge
+  const kinds = new Array(N * N).fill(null);
+  for (let fy = 0; fy < N; fy++) {
+    for (let fx = 0; fx < N; fx++) {
+      const t = map.peekTile(x0 - 1 + fx, y0 - 1 + fy, L);
+      if (t && !map.isEngineFloor(t.floor)) kinds[fy * N + fx] = ground.storeyKindOf(t.floor);
+    }
+  }
+  let any = false;
+  for (let ly = 0; ly < C; ly++) {
+    for (let lx = 0; lx < C; lx++) {
+      if (!kinds[(ly + 1) * N + lx + 1]) continue;
+      const x = x0 + lx;
+      const y = y0 + ly;
+      const t = c.tiles[ly * C + lx];
+      const r = (t && t.built && map.ringAt(x, y, L)) || map.ringAt(x, y, L - 1); // floorSheet's own ring or the one below
+      if (r && round.isStepped(r.x0, r.y0, r.n, x, y)) continue; // a tile a ring steps over: the frames, cut to the curve
+      done[ly * C + lx] = 1;
+      any = true;
+    }
+  }
+  if (!any) return done;
+  const list = ground.storeyKindList();
+  const img = ctx.createImageData(W, H);
+  const out = img.data;
+  const HW = iso.HW;
+  const HH = iso.HH;
+  const left = (x0 - y0 - C) * HW - PAD; // the world pixel of the canvas's column 0, as the ground's chunk picture reads it
+  const top = (x0 + y0) * HH - HH - PAD;
+  const kindAt = (gx, gy) => { const fx = gx - x0 + 1; const fy = gy - y0 + 1; return fx < 0 || fy < 0 || fx >= N || fy >= N ? null : kinds[fy * N + fx]; };
+  const texel = (k, wx, wy) => { const tx = k.texture; return ((((wy % tx.h) + tx.h) % tx.h) * tx.w + (((wx % tx.w) + tx.w) % tx.w)) * 4; };
+  for (let ly = 0; ly < C; ly++) {
+    for (let lx = 0; lx < C; lx++) {
+      if (!done[ly * C + lx]) continue;
+      const own = kinds[(ly + 1) * N + lx + 1];
+      const above = list.filter((k) => k.priority > own.priority);
+      const ccx = (lx - ly) * HW + C * HW + PAD; // the tile's centre on the canvas
+      const ccy = (lx + ly) * HH + HH + PAD;
+      for (let py = ccy - HH; py < ccy + HH; py++) {
+        for (let px = ccx - HW; px < ccx + HW; px++) {
+          const u = (px + 0.5 - ccx) / HW;
+          const v = (py + 0.5 - ccy) / HH;
+          if (Math.abs(u) + Math.abs(v) > 1) continue; // the tile's own diamond
+          const wx = left + px;
+          const wy = top + py;
+          let k = own;
+          let shade = 1;
+          if (above.length) {
+            const gx = x0 + lx + (u + v) / 2; // the pixel in grid units, tile centres on the whole numbers
+            const gy = y0 + ly + (v - u) / 2;
+            const fx = Math.floor(gx);
+            const fy = Math.floor(gy);
+            const a = gx - fx;
+            const b = gy - fy;
+            const n = ground.edgeNoiseAt(wx, wy);
+            for (const T of above) {
+              const w = (kindAt(fx, fy) === T ? (1 - a) * (1 - b) : 0) + (kindAt(fx + 1, fy) === T ? a * (1 - b) : 0) + (kindAt(fx, fy + 1) === T ? (1 - a) * b : 0) + (kindAt(fx + 1, fy + 1) === T ? a * b : 0);
+              if (w <= 0) continue;
+              const thr = T.threshold ? T.threshold[0] + T.threshold[1] * n : 0.25;
+              if (w < thr) continue;
+              k = T;
+              shade = T.lip && w < thr + T.lipBand ? 1 - T.lip : 1;
+            }
+          }
+          const j = texel(k, wx, wy);
+          const o = (py * W + px) * 4;
+          out[o] = k.texture.px[j] * shade;
+          out[o + 1] = k.texture.px[j + 1] * shade;
+          out[o + 2] = k.texture.px[j + 2] * shade;
+          out[o + 3] = 255;
+        }
+      }
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return done;
 }
 
 // A tower's top (Michael, 2026-10-31: "if I remove those tiles that are breaking outside the round wall I end up with holes in the floor"): over a

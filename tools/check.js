@@ -9137,6 +9137,24 @@ check("cave mouths: built into a hill's cliff run by the command a guest sends (
   }
 });
 
+// docs/53 step 4's leftover (Michael, 2026-10-31: "blending storey floors with the ground"): the storey's blended kinds are data.
+check("the storey blend: the bare and the grassy cliff top are textured kinds a storey up, the grassy one the storeys' alone (laid on the ground, where the grass is the base), the rock over the turf; laid floors stay laid", () => {
+  const g = read("data/ground.json");
+  const top = g.terrain.cliff_top;
+  const grass = g.terrain.cliff_grass;
+  assert(g.floors.floor_cliff_top === "cliff_top" && g.floors.floor_cliff_grass === "cliff_grass", `the floors' kinds: ${g.floors.floor_cliff_top}, ${g.floors.floor_cliff_grass}`);
+  assert(grass && grass.storeyOnly === true && grass.texture === "ground_cliff_grass" && !top.storeyOnly, "the grassy cliff top is not the storeys' alone, or the bare one is");
+  assert(top.priority > grass.priority, "the rock does not spread onto the turf");
+  for (const id of [top.texture, grass.texture]) {
+    const s = read(`data/sprites/${id}.json`);
+    assert(fs.existsSync(path.join(root, s.image)) && s.frames.idle_0[2] === 256 && s.frames.idle_0[3] === 128, `${id}'s texture`);
+  }
+  assert(["floor_wood", "floor_stone"].every((f) => g.floors[f] === "laid"), "a laid floor is blended");
+  const src = fs.readFileSync(path.join(root, "src/ground.js"), "utf8");
+  assert(/k && !storeyOnly\.has\(k\) \? k : "laid"/.test(src), "the ground draws a storey-only kind");
+  return "floor_cliff_top cliff_top, floor_cliff_grass cliff_grass (storey only), rock over turf, both 256 by 128 textures; wood and stone laid";
+});
+
 // Michael's ruling of 2026-10-30 (docs/02): mountains in tiers, hills only on dirt, grass, or hills, and no player-built way up one.
 check("hills in tiers: a second tier's cliff wall, ramp, and cliff top built on a first tier's top by the command a guest sends; a cliff wall on cobble refused; a player's floor, stair, or ladder up onto a hill's top refused; a stair on the plateau to a floor above it allowed", () => {
   const at = clearGround();
