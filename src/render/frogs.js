@@ -17,6 +17,8 @@ import { getSheet } from "../assets.js";
 import { tileKey } from "../visibility.js";
 import { frameQuad, DEPTH_BIAS, DEPTH_ROOM } from "./scene.js";
 import { flatHere } from "./storeys.js";
+import { seenAlpha } from "../sight.js"; // the dead fade in the dark: so does their ripple (the review of #625)
+import { sight as sightTuning } from "../tuning.js";
 
 export const FROGS = {
   density: 0.05, // a shallow tile's chance of a frog living on it
@@ -97,14 +99,21 @@ export function frogAt(x, y, t, shallow = isShallow) {
 }
 
 // The frogs living on the ground tiles in view and in sight, as drawables (render/scene.js, the ground's layer alone: the shallows are ground).
+// A frog's home and the neighbour it hops to are both looked at from every tile in view, so one sitting on a tile in view whose home is just
+// past the edge is drawn too (the review of #625: it popped in and out at the screen's edge).
 export function frogDrawables(tiles, visible, out) {
   let sheet = null;
   try { sheet = getSheet("critter_frog"); } catch { return; }
   let splash = null;
   try { splash = getSheet("frog_splash"); } catch { splash = null; }
   const t = loop.simTime();
-  for (const [tx, ty] of tiles) {
-    if (!isShallow(tx, ty)) continue;
+  const homes = new Set();
+  for (const [vx, vy] of tiles) {
+    if (!isShallow(vx, vy)) continue;
+    for (const [hx, hy] of [[vx, vy], [vx - 1, vy], [vx + 1, vy], [vx, vy - 1], [vx, vy + 1]]) homes.add(`${hx},${hy}`);
+  }
+  for (const key of homes) {
+    const [tx, ty] = key.split(",").map(Number);
     const fr = frogAt(tx, ty, t);
     if (!fr) continue;
     if (visible && !visible.has(tileKey(Math.round(fr.gx), Math.round(fr.gy)))) continue;
@@ -130,9 +139,11 @@ export function frogDrawables(tiles, visible, out) {
   }
 }
 
-// A ring of ripples at the feet of every body standing in shallow water on the ground, in sight: the back arc flat under it, the front arc a
-// billboard just over its feet. Its frame turns at 5 a second, each body on its own beat.
-export function wadeDrawables(bodies, visible, out) {
+// A ring of ripples at the feet of every body standing in shallow water on the ground, in sight: the back arc flat under it, the front arc on
+// the body's own plane, a little nearer, so it is drawn over its feet. Its frame turns at 5 a second, each body on its own beat. One of the dead
+// fading in the dark (sight.js) has its ripple faded with it, and none past the cutoff, so the ring never shows where a body is not drawn (the
+// review of #625).
+export function wadeDrawables(bodies, visible, out, drawAll = false, me = null) {
   let sheet = null;
   try { sheet = getSheet("wade_ripple"); } catch { return; }
   const t = loop.simTime();
@@ -141,22 +152,25 @@ export function wadeDrawables(bodies, visible, out) {
     const tx = Math.round(b.gx);
     const ty = Math.round(b.gy);
     if (!isShallow(tx, ty)) continue;
-    if (visible && !visible.has(tileKey(tx, ty))) continue;
-    const i = Math.floor(t * 5 + hash(tx, ty, String(b.id)) * 3) % 3;
+    if (visible && b !== me && !visible.has(tileKey(tx, ty))) continue;
+    const fade = me && !drawAll && b.kind === "zombie" ? seenAlpha(me, b) : 1;
+    if (fade < sightTuning.drawCutoff) continue;
+    const tint = fade < 1 ? [fade, fade, fade, fade] : undefined;
+    const i = Math.floor(t * 5 + hash(0, 0, String(b.id)) * 3) % 3; // the body's own beat, kept as it walks
     const p = iso.toScreen(b.gx, b.gy);
     const x = Math.round(p.x);
     const y = Math.round(p.y);
     out.push({
-      key: (b.gx + b.gy) * 1000 + 0.95,
+      key: (b.gx + b.gy) * 1000 + 2.5, // after the body's own
       kind: "prop",
       vis: true,
       rect: { x: x - 12, y: y - 5, w: 24, h: 10 },
       canOcclude: false,
       occluder: false,
       emit() {
-        flatHere(() => frameQuad(sheet, `back_${i}`, x, y, { world: [b.gx, b.gy], heights: 0, flags: gl.FLAG_NOFOG }));
-        gl.surface(depth.billboard(b.gx + 0.02, b.gy + 0.02), DEPTH_BIAS.figure, DEPTH_ROOM.figure); // just nearer than the body's own billboard
-        frameQuad(sheet, `front_${i}`, x, y, { world: [b.gx, b.gy], flags: gl.FLAG_NOFOG });
+        flatHere(() => frameQuad(sheet, `back_${i}`, x, y, { world: [b.gx, b.gy], heights: 0, flags: gl.FLAG_NOFOG, color: tint }));
+        gl.surface(depth.figure(b.gx, b.gy), DEPTH_BIAS.figure + DEPTH_BIAS.particle, DEPTH_ROOM.figure); // the body's own plane, nearer: over its feet, as its fire is
+        frameQuad(sheet, `front_${i}`, x, y, { world: [b.gx, b.gy], flags: gl.FLAG_NOFOG, color: tint });
       },
     });
   }

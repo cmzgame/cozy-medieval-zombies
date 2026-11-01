@@ -323,7 +323,7 @@ export function renderScene(args) {
         entityDrawables(entities.filter((e) => !e.rise && mineBody(e)), visL, drawables, drawAll, player);
         if (L === 0) { // the shallows are the ground's: their frogs, and the ring round a body wading (art round 14b)
           frogDrawables(tilesT, drawAll ? null : visL, drawables);
-          wadeDrawables(entities.filter((e) => !e.rise && mineBody(e)), drawAll ? null : visL, drawables);
+          wadeDrawables(entities.filter((e) => !e.rise && mineBody(e)), drawAll ? null : visL, drawables, drawAll, player);
         }
         for (const e of entities) {
           const r = e.rise || 0;
