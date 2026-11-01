@@ -79,6 +79,7 @@ For Michael's fourth point, so a road can be authored or built later without a d
 - **Cobble on grass:** never direct. The verge appears by itself; nothing needs authoring.
 - **Farm on anything:** covers its tiles with a slightly ragged outside edge; furrows kept. Farm wins over dirt where they meet (priority).
 - **Laid floors on anything:** a hard diamond. Indoors it is bounded by walls anyway.
+- **Shallow water** (art round 14b, Michael's #571: "it needs to tile nicely with dirt, stone, and deep water"; built 2026-10-31): a blended kind like deep water, its own texture (`ground_shallow`, 256 by 128, the bed showing through), inside a dirt verge, and deep water inside it (`includes` water, so a pond gets a shallow margin and no dirt specks where the two meet). Its edge has a pale **rim** (a waterline of its own colour, `rim`) and the dirt just outside it is darkened, wet (`bank`). **Lily pads** lie on the shallows and deep water and **water plants** (rushes, reedmace, arrowhead, sedge) poke through the shallows at the shore: two decal rules, the first kept off the bank by `inset` (a share of the tile's diamond round its centre), the second `where: "shore"` (a shallow tile beside one that is not water).
 - **Later kinds** (mud, a riverbank, snow) are one more `terrain` entry with a priority, a threshold, and a texture or tiles. A river is a terrain kind whose texture is water and whose priority is highest; what it does to movement is a different milestone.
 
 ## Known simplifications

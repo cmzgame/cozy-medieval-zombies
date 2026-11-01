@@ -250,7 +250,7 @@ export async function run(game) {
       const waterMid = kindsOfTile(x + 4, y + 5);
       const shallow = kindsOfTile(x + 1, y + 4);
       const shallowEdge = kindsOfTile(x + 0, y + 4);
-      row("deep water blends as the river does, a ragged dirt shore between it and the grass (a grass tile beside it is part dirt, part grass); a shallow tile is a hard diamond of the laid kind (as the river's ford)", (waterEdge.dirt || 0) > 100 && (waterEdge.grass || 0) > 100 && share(waterMid, "water") > 0.97 && share(shallow, "laid") > 0.99 && share(shallowEdge, "laid") > 0.99, `water ring ${JSON.stringify(waterRing.slice(0, 6))}; water edge ${JSON.stringify(waterEdge)}; shallow ${JSON.stringify(shallow)}; shallow edge ${JSON.stringify(shallowEdge)}`);
+      row("deep water blends as the river does, a ragged dirt shore between it and the grass (a grass tile beside it is part dirt, part grass); a shallow tile is the shallows' own blended kind, no hard diamond (art round 14b: \"it needs to tile nicely with dirt, stone, and deep water\")", (waterEdge.dirt || 0) > 100 && (waterEdge.grass || 0) > 100 && share(waterMid, "water") > 0.97 && share(shallow, "shallow") > 0.5 && !(shallow.laid > 0) && (shallowEdge.shallow || 0) > 0 && !(shallowEdge.laid > 0), `water ring ${JSON.stringify(waterRing.slice(0, 6))}; water edge ${JSON.stringify(waterEdge)}; shallow ${JSON.stringify(shallow)}; shallow edge ${JSON.stringify(shallowEdge)}`);
       const pinkBake = G.ground.bakeImage(Math.floor((x + 0) / C), Math.floor((y + 6) / C));
       let pink = 0;
       let all = 0;
