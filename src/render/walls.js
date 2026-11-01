@@ -735,7 +735,7 @@ function postStack(tx, ty) {
 // is on the camera's side, its lip seen from behind on its far face's plane (behind the plateau's floor); a face with its plateau floored is
 // drawn below its edge line at the top, so the plateau's floor is what shows over its flat top (the lip is the wall's, never a cap); a
 // corner (cliffs.cornerAt) takes the corner piece of `wall.corners` for both its edges and in place of the post.
-const sameRun = (a, b) => a.sprite === b.sprite || map.wallRule(a.sprite).run === map.wallRule(b.sprite).run || (!!cliffs.cliffWallOf(a) && !!cliffs.cliffWallOf(b)); // a castle gate is the stone wall's own run (`wall.run`): no post at its ends nor inside its arch (docs/02, 2026-10-29) // a grassy lip meets a rocky one with no post: the same rock (the artist's note)
+const sameRun = (a, b) => a.sprite === b.sprite || map.wallRule(a.sprite).run === map.wallRule(b.sprite).run || (map.wallRule(a.sprite).cliff && map.wallRule(b.sprite).cliff); // a cave mouth of either rock is the cliff's own (the review of #627) // a castle gate is the stone wall's own run (`wall.run`): no post at its ends nor inside its arch (docs/02, 2026-10-29) // a grassy lip meets a rocky one with no post: the same rock (the artist's note)
 const cornerCache = new Map(); // vertex key (postBase's) -> cliffs.cornerBase or null, for the frame cornerFrame; asked only at a vertex a cliff wall meets
 let cornerFrame = -1;
 function cornerBaseCached(vx, vy, L) {
@@ -850,7 +850,7 @@ function makeCliffCorner(vx, vy, c, vis, stub = false) {
       }
       let first = true;
       for (const [q0, e] of parts) {
-        const q = stub ? below(q0, e, h - cover.stub + (e.front ? T / 4 : -T / 4)) : q0;
+        const q = stub ? below(q0, e, h - cover.stub + T / 4) : q0; // along the near face's line at the stub's height, as stubLine cuts a segment
         if (!q) continue;
         if (first) gl.surface(e.plane, 0, DEPTH_ROOM.wall);
         else gl.setPlane(e.plane);

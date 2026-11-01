@@ -22,6 +22,7 @@ import { emit } from "./events.js";
 import * as iso from "./iso.js";
 import * as input from "./input.js";
 import * as map from "./map.js";
+import * as cliffs from "./cliffs.js"; // a cave mouth is never on a cliff's corner (art round 14d)
 import * as battlements from "./battlements.js"; // a battlement's walkway rule (art round 13)
 import * as inventory from "./inventory.js";
 import * as items from "./items.js";
@@ -693,6 +694,8 @@ function gateBlock(player, what, tx, ty, edge) {
   const why = map.gateProblem(tx, ty, edge, buildData[what].sprite, L);
   if (why) return why;
   const edges = gateEdges(what, tx, ty, edge);
+  // A cave mouth (art round 14d) never takes an edge a cliff's corner piece draws: the corner would break into a post (the review of #627).
+  if (gk === "mouth" && edges.some(([x, y]) => cliffs.claimedByCorner(x, y, edge, map.tileAt(x, y, L)[edge], L))) return "Not at a cliff's corner";
   if (edges.some(([x, y]) => distToEdge(player.gx, player.gy, x, y, edge) < EDGE_CLEARANCE)) return "Step back";
   if (stations.bodyAcrossSegments(edges.map(([x, y]) => edgeSegment(x, y, edge)), L)) return "Someone is in the way";
   return "";

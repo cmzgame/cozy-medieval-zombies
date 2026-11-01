@@ -9108,6 +9108,8 @@ check("cave mouths: built into a hill's cliff run by the command a guest sends (
     assert(why === "Over a cliff wall", `a mouth over a gap: "${why}"`);
     why = send({ kind: "build", what: "mouth_cliff_1", tx: x + 2, ty: y + 3, edge: "n" });
     assert(why === "Already a cave mouth", `a mouth over a mouth: "${why}"`);
+    why = send({ kind: "build", what: "mouth_cliff_1", tx: x + 3, ty: y + 3, edge: "n" });
+    assert(why === "Not at a cliff's corner" && !mapMod.peekTile(x + 3, y + 3, 0).n.gate, `a mouth on a corner's edge: "${why}"`);
     // From inside (the renderer's view, cliffs.setInside): the far wall faces into the hollow, no edge of it is buried, its far corner a cove.
     const def = JSON.parse(fs.readFileSync(path.join(root, "data/sprites/wall_cliff.json"), "utf8"));
     const outside = [cliffsMod.edgeFrame(def, x + 1, y, "n", 0).back, cliffsMod.cornerBase(x, y, 0)?.name];
@@ -9126,8 +9128,9 @@ check("cave mouths: built into a hill's cliff run by the command a guest sends (
     return "a 2-wide mouth built open by the command, never shut, no opening to batter, the hollow one room with the mouth its opening, its far wall a face and its far corner a cove from inside; a grassy mouth in rock; refused off Free building, over a stone wall, a gap, a mouth; taken apart to the cliff; floor_cliff_top blends as cliff_top, floor_stone stays laid";
   } finally {
     promptImport.setMessageSink(null);
-    for (const [wx, wy, e] of walls) { const t = mapMod.peekTile(wx, wy, 0); if (t && t[e]) mapMod.destroyWall(wx, wy, e, false, 0); }
+    for (const [wx, wy, e] of walls) for (let k = 0; k < 3; k++) { const t = mapMod.peekTile(wx, wy, 0); if (t && t[e]) mapMod.destroyWall(wx, wy, e, false, 0); } // a mouth taken apart puts its cliff back: destroyed again
     for (const [fx, fy] of floors) { const t = mapMod.peekTile(fx, fy, 1); if (t) { t.floor = "void"; delete t.built; mapMod.touch(fx, fy, 1); } }
+    assert(walls.every(([wx, wy, e]) => !mapMod.peekTile(wx, wy, 0)?.[e]), "a wall was left behind");
     mapMod.roomsIfDirty();
     rulesImport.rules.freeBuilding = was.free;
     me.gx = was.gx; me.gy = was.gy; me.layer = was.layer;
