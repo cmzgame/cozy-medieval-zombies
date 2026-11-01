@@ -2525,6 +2525,10 @@ export function installChunk(d) {
   chunks.set(k, c);
   lastChunk = null;
   roomsDirty = true;
+  // The caches keyed by the world (slabs, the hiding rule, a storey's floor picture: its blend reaches a tile across a chunk's edge) see a chunk
+  // that came in as they see one changed here (the review of #629: a guest's storey floors were never drawn again).
+  worldVersion++;
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const n = getChunk(cx + dx, cy + dy, false, layer); if (n && n !== c) n.lightVersion++; }
   settleRings(c); // a ring built or taken apart on the host, or kept by the save: its record follows its edges (docs/50 section 6)
   // A built stair's record from its chunk (docs/49 section 5): its tiles, its landing, and its stairwell came in their own chunks' floors. A
   // built stair whose foot is on this chunk and is not in its record was taken away (docs/53 step 6): it goes from this copy too.
